@@ -221,6 +221,15 @@ download a recent emulator version for the CommanderX16, such as `x16emu <https:
 There is also `Box16 <https://github.com/indigodarkwolf/box16>`_ which has powerful debugging features.
 If multiple options are listed above, you can select which one you want to launch using the ``-emu`` or ``-emu2`` command line options.
 
+For the Amiga targets (``amiga500`` and ``amiga1200``), you can use an Amiga emulator such as
+`WinUAE <https://www.winuae.net/>`_, `FS-UAE <https://fs-uae.net/>`_ or `Copperline <https://copperline.dev/>`_.
+Copperline is a modern Amiga emulator with a built-in debugger and headless/scripted execution
+support. It is the only emulator that fully supports the ``emudbg`` library module:
+``console_write``, ``console_nl`` and ``exitemu()`` also work on WinUAE (via the uaelib trap),
+but the remaining routines (``console_chrout``, ``console_value_*``, ``console_hex_*``,
+``debug_arg``, ``debug_arg_str``, ``debug_printf``) use Copperline-specific debug ports.
+
+
 .. index:: pair: Tools; Syntax highlighting
 
 **Syntax highlighting:** for a few different editors, syntax highlighting definition files are provided.

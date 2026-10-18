@@ -548,6 +548,14 @@ modules. Import them the same way as any other library::
     clip to the window. The ``rastport`` and ``window`` variables expose the handles
     for direct library calls and IDCMP message handling. Kickstart 1.3 compatible.
 
+``emudbg``
+    Emulator debug output for the Copperline emulator (with partial WinUAE support):
+    ``console_write``, ``console_nl`` and ``exitemu()`` use the WinUAE-compatible uaelib trap
+    and work on both WinUAE and Copperline. The remaining routines (``console_chrout``,
+    ``console_value_*``, ``console_hex_*``, ``debug_arg``, ``debug_arg_str``, ``debug_printf``)
+    use Copperline-specific debug ports and only work on Copperline. See :ref:`library-emudbg`
+    for details. Not usable on real hardware or FS-UAE.
+
 
 arena
 ^^^^^
@@ -898,14 +906,28 @@ to see what's in there. (Note: slight variations for different compiler targets)
     Also there are some weird cases in CBM dos when dealing with empty (0-byte) files. It's best to avoid such files altogether.
 
 
-emudbg  (cx16 only)
-^^^^^^^^^^^^^^^^^^^
+.. _library-emudbg:
+
+emudbg  (cx16, virtual, amiga500, amiga1200)
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 .. index:: pair: Libraries; emudbg
 
-X16Emu Emulator debug routines, for Cx16 only.
+Emulator debug routines, for the Cx16, virtual, amiga500 and amiga1200 targets.
 Allows you to interface with the emulator's debug routines/registers.
 There's stuff like ``is_emulator`` to detect if running in the emulator,
 and ``console_write`` to write a (iso) string to the emulator's console (stdout), etc.
+
+On the amiga targets, ``console_write``, ``console_nl`` and ``exitemu()`` use the
+WinUAE-compatible uaelib trap and work on both WinUAE and Copperline. The remaining routines
+(``console_chrout``, ``console_value_*``, ``console_hex_*``, ``debug_arg``, ``debug_arg_str``,
+``debug_printf``) use Copperline-specific debug ports and only work on Copperline.
+``is_emulator()`` probes the uaelib trap area at $F0FF60; that probe can hang or crash
+real Amiga hardware, so never run code using this module on a real machine.
+Read the :source:`amiga emudbg source code <compiler/res/prog8lib/shared_amiga_emudbg.p8>`
+and the `Copperline debugging documentation <https://copperline.dev/docs/run#debugging>`_
+for details.
+
+Commander X16 specifics:
 
 *EOL (end of line) character handling:*
 Writing ``iso:'\n'`` to the console doesn't produce a proper new line there, because prog8 encodes

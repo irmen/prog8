@@ -1,6 +1,6 @@
 
-Prog8 compiler v14.0-SNAPSHOT by Irmen de Jong (irmen@razorvine.net)
-Prerelease version from git commit b1642f4f in branch master
+Prog8 compiler v14.0-BETA2 by Irmen de Jong (irmen@razorvine.net)
+Prerelease version from git commit 1da37e41 in branch master
 This software is licensed under the GNU GPL 3.0, see https://www.gnu.org/licenses/gpl.html
 
 Compiling program import-all-amiga500.p8
@@ -488,16 +488,26 @@ LIBRARY MODULE NAME: coroutines
 
 coroutines  {
     const ubyte  MAX_TASKS
+    const uword  STACKSIZE
     ubyte  active_task
+    long  main_a5
+    long  main_sp
     long  supervisor
+    long[]  task_a5
+    long[]  task_sp
     long[]  tasklist
+    ubyte[]  taskstacks
+    long  tmp_a5
+    long  tmp_sp
+    long  tmp_term
     long[]  userdatas
     add  (long taskaddress, long userdata) -> ubyte
     current  () -> ubyte
     kill  (ubyte taskid)
     killall  ()
+    pick_next  () -> bool
     run  (long supervisor_routine)
-    termination  ()
+    termination  () -> long
     yield  () -> long
 }
 
@@ -1563,6 +1573,25 @@ dos  {
 }
 
 
+LIBRARY MODULE NAME: emudbg
+---------------------------
+
+emudbg  {
+    console_chrout  (ubyte char)
+    console_hex_long  (long value)
+    console_hex_word  (uword value)
+    console_nl  ()
+    console_value_long  (long value)
+    console_value_word  (word value)
+    console_write  (str text)
+    debug_arg  (long value)
+    debug_arg_str  (str text)
+    debug_printf  (str format)
+    exitemu  ()
+    is_emulator  () clobbers (D1) -> bool @D0
+}
+
+
 LIBRARY MODULE NAME: exec
 -------------------------
 
@@ -2498,6 +2527,7 @@ graphics  {
     const ubyte  HALF_LINE
     const long  HAMLACE_KEY
     const long  HAM_KEY
+    const uword  HIRES
     const long  HIRESDPF2_KEY
     const long  HIRESDPF_KEY
     const long  HIRESEHBLACE_KEY
@@ -2516,6 +2546,7 @@ graphics  {
     const ubyte  ISGRTRY
     const ubyte  ISLESSX
     const ubyte  ISLESSY
+    const ubyte  LACE
     const ubyte  LAYERBACKDROP
     const uword  LAYERHIDDEN
     const uword  LAYERIREFRESH
@@ -2531,6 +2562,7 @@ graphics  {
     const ubyte  LAYER_BACKMOST
     const uword  LAYER_CLIPRECTS_LOST
     const ubyte  LAYER_FRONTMOST
+    const uword  LORES
     const long  LORESDPF2_KEY
     const long  LORESDPF_KEY
     const long  LORESEHBSDBL_KEY
@@ -2666,6 +2698,7 @@ graphics  {
     const long  SUPEREHB_KEY
     const long  SUPERHAMLACE_KEY
     const long  SUPERHAM_KEY
+    const ubyte  SUPERHIRES
     const long  SUPERLACEDPF2_KEY
     const long  SUPERLACEDPF_KEY
     const long  SUPERLACE_KEY
@@ -4677,14 +4710,29 @@ LIBRARY MODULE NAME: math
 -------------------------
 
 math  {
-    ubyte  a1
-    ubyte  b1
-    ubyte  c1
-    ubyte  x1
     cos8  (ubyte angle) -> byte
     cos8u  (ubyte angle) -> ubyte
     cosr8  (ubyte radians) -> byte
     cosr8u  (ubyte radians) -> ubyte
+    crc16  (^^ubyte data @A0, uword length @D0, uword initvalue @D1, uword xorout @D2) -> uword @D0
+    crc16_end  (uword xorout) -> uword
+    crc16_start  (uword initvalue)
+    crc16_update  (ubyte value @D0)
+    crc32  (^^ubyte data @A0, uword length @D0) -> long @D0
+    crc32_end  () -> long
+    crc32_start  ()
+    crc32_update  (ubyte value @D0)
+    diff  (ubyte v1 @D0, ubyte v2 @D1) -> ubyte @D0
+    diffl  (long l1 @D0, long l2 @D1) -> long @D0
+    diffw  (uword w1 @D0, uword w2 @D1) -> uword @D0
+    gcd  (uword a @D0, uword b @D1) -> uword @D0
+    interpolate  (ubyte v @D0, ubyte inputMin @D1, ubyte inputMax @D2, ubyte outputMin @D3, ubyte outputMax @D4) -> ubyte @D0
+    interpolatew  (uword v @D0, uword inputMin @D1, uword inputMax @D2, uword outputMin @D3, uword outputMax @D4) -> uword @D0
+    lerp  (ubyte v0 @D0, ubyte v1 @D1, ubyte t @D2) -> ubyte @D0
+    lerpw  (uword v0 @D0, uword v1 @D1, uword t @D2) -> uword @D0
+    log2  (ubyte value @D0) -> ubyte @D0
+    log2l  (long value @D0) -> ubyte @D0
+    log2w  (uword value @D0) -> ubyte @D0
     randrange  (ubyte n) -> ubyte
     randrangew  (uword n) -> uword
     rnd  () -> ubyte
@@ -4739,6 +4787,7 @@ LIBRARY MODULE NAME: syslib
 sys  {
     long @shared  AsyncIOBase
     long @shared  DOSBase
+    long @shared  DiskfontBase
     long @shared  GfxBase
     long @shared  IFFParseBase
     long @shared  IconBase
@@ -4769,8 +4818,9 @@ sys  {
     const ubyte  target
     clear_carry  ()
     cpuAtLeast68020  () clobbers (D0,A6) -> bool @Pz
+    die  (uword code, str message)
     exec_version  () -> uword @D0
-    exit  (ubyte returnvalue)
+    exit  (word returnvalue @D0)
     memclear  (long mem @D0, uword numbytes @D1)
     memcopy  (long source @A0, long tgt @A1, long count @D0)
     memset  (long mem @D0, uword numbytes @D1, ubyte value @D2)
@@ -5026,3 +5076,4 @@ wavfile  {
 }
 
 
+No output produced.

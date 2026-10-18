@@ -12,6 +12,7 @@
 %import coroutines
 %import custom
 %import conv
+%import emudbg
 %import floats
 %import lists
 %import lineclip
