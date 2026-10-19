@@ -2,6 +2,7 @@ package prog8.parser
 
 import org.antlr.v4.runtime.*
 import org.antlr.v4.runtime.atn.PredictionMode
+import org.antlr.v4.runtime.misc.ParseCancellationException
 import prog8.ast.Module
 import prog8.ast.antlr.Antlr2KotlinVisitor
 import prog8.code.core.ICompilationTarget
@@ -27,13 +28,17 @@ object Prog8Parser {
         lexer.addErrorListener(sllErrorListener)
         val parser = Prog8ANTLRParser(tokens)
         parser.interpreter.predictionMode = PredictionMode.SLL
-        parser.errorHandler = DefaultErrorStrategy()
+        parser.errorHandler = BailErrorStrategy()
         parser.removeErrorListeners()
         parser.addErrorListener(sllErrorListener)
 
-        val parseTree = parser.module()
+        val parseTree = try {
+            parser.module()
+        } catch (_: ParseCancellationException) {
+            null
+        }
 
-        if(!sllErrorListener.hasErrors()) {
+        if(parseTree != null && !sllErrorListener.hasErrors()) {
             // SLL succeeded cleanly — use this tree
             val visitor = Antlr2KotlinVisitor(src, target, tokens)
             val visitorResult = visitor.visit(parseTree)
@@ -42,9 +47,10 @@ object Prog8Parser {
 
         // SLL found errors — fall back to LL for full context parsing
         val llErrorListener = CollectingErrorListener(src)
-        lexer.reset()
+        tokens.seek(0)
         parser.reset()
         parser.interpreter.predictionMode = PredictionMode.LL
+        parser.errorHandler = DefaultErrorStrategy()
         parser.removeErrorListeners()
         parser.addErrorListener(llErrorListener)
 

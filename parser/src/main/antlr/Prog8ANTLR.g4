@@ -202,7 +202,7 @@ labeldef :  identifier ':'  ;
 
 unconditionaljump :  GOTO  expression ;
 
-directive : directivename '!'? (directivenamelist | (directivearg? | directivearg (',' directivearg)*))   ;
+directive : directivename '!'? (directivenamelist | directivearg (',' directivearg)*)?   ;
 
 directivename: '%' UNICODEDNAME;
 
@@ -216,8 +216,7 @@ vardecl: PRIVATE? PUBLIC? datatype (arrayindex arrayindex? | EMPTYARRAYSIG)? TAG
 identifierlist: identifier (',' identifier)* ;
 
 varinitializer :
-    vardecl '=' expression
-    | vardecl '=' tuple_expression
+    vardecl '=' (tuple_expression | expression)
     ;
 
 constdecl: PRIVATE? PUBLIC? 'const' datatype? identifierlist '=' expression ;
@@ -240,10 +239,8 @@ arrayindex:
 // ArrayIndexComma exists in the grammar so the visitor can give a friendly error for the wrong 2D array syntax
 
 assignment :
-    assign_target '=' expression
-    | assign_target '=' assignment
-    | multi_assign_target '=' expression
-    | multi_assign_target '=' tuple_expression
+    assign_target '=' (assignment | expression)
+    | multi_assign_target '=' (tuple_expression | expression)
     ;
 
 augassignment :
