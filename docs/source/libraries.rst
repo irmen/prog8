@@ -1193,45 +1193,6 @@ to the header::
         }
     }
 
-.. _linked-list-iteration:
-
-Linked-list iteration
-~~~~~~~~~~~~~~~~~~~~~
-
-Prog8 can desugar linked-list ``for`` loops into ordinary ``while`` loops.
-The explicit form works for arbitrary node layouts and link field names::
-
-    main {
-        ^^MyList mylist = []                ; zero-initialized header
-        ^^MyNode n1 = [0, 0, 42]
-        ^^MyNode n2 = [0, 0, 99]
-        lists.init(mylist)
-        lists.add_tail(mylist, n1)
-        lists.add_tail(mylist, n2)
-
-        ; forward iteration over an Exec/MinList
-        for node in mylist.Head via .Succ until &mylist.Tail {
-            txt.print_ub(node.value)
-            txt.nl()
-        }
-
-        ; backward iteration
-        for node in mylist.TailPred via .Pred until &mylist.Head {
-            txt.print_ub(node.value)
-            txt.nl()
-        }
-    }
-
-For simple null-terminated lists, ``until`` may be omitted and defaults to ``0``::
-
-    for node in head via .next {
-        ; use node
-    }
-
-Exec-compatible lists use uppercase field names (``Succ``, ``Pred``, ``Head``,
-``Tail``), so use the explicit ``via`` form for them. Linked-list iteration always
-requires this explicit field selection, regardless of the target or field names.
-
 User-defined node structs work the same way as long as the link pointers are the first fields at
 offset 0; add ``Type``/``Pri``/``Name`` after them if you need ``enqueue`` or
 ``find_name`` (the ``exec.Node``/``FullNode`` layout).
@@ -1244,6 +1205,47 @@ suitably aligned (even address on 6502, long-aligned on m68k).
 
 Read the :source:`lists source code <compiler/res/prog8lib/lists.p8>` and
 :source:`amiga lists source code <compiler/res/prog8lib/shared_amiga_lists.p8>` for details.
+
+
+.. _linked-list-iteration:
+
+Linked-list iteration
+~~~~~~~~~~~~~~~~~~~~~
+
+Prog8 has some convenience syntax to iterate through a linked-list via a ``for`` loop.
+The for loop's ``via .field`` clause selects which pointer field in the node struct to follow
+from one node to the next (usually called 'next' or 'succ'). The ``until`` clause
+gives the sentinel value where iteration stops (when 0, it can be omitted):: 
+
+    ; iteration over an Amiga Exec list.
+    
+    main {
+        ^^MyList mylist = []
+        ^^MyNode n1 = [0, 0, 42]
+        ^^MyNode n2 = [0, 0, 99]
+        lists.init(mylist)
+        lists.add_tail(mylist, n1)
+        lists.add_tail(mylist, n2)
+
+        ; forward iteration
+        for node in mylist.Head via .Succ until &mylist.Tail {
+            txt.print_ub(node.value)
+            txt.nl()
+        }
+
+        ; backward iteration
+        for node in mylist.TailPred via .Pred until &mylist.Head {
+            txt.print_ub(node.value)
+            txt.nl()
+        }
+    }
+
+For simple null-terminated lists, ``until`` may be omitted and then the stop value defaults to ``0``::
+
+    for node in head via .next {
+        ; use node
+    }
+
 
 math
 ^^^^

@@ -14,16 +14,18 @@ import prog8.code.core.Position
 
 internal fun checkLinkedForLoop(
     forLoop: ForLoop,
-    nodeType: DataType,
+    nodeTypeIn: DataType,
     program: Program,
     errors: IErrorReporter
 ): Boolean {
+    val nodeType = resolveDt(nodeTypeIn, forLoop.definingScope, program)
     if (!nodeType.isPointer) {
         errors.err("linked-list for loop requires a pointer loop variable", forLoop.position)
         return false
     }
 
-    val iterableType = forLoop.iterable.inferType(program).getOrUndef()
+    val iterableTypeRaw = forLoop.iterable.inferType(program).getOrUndef()
+    val iterableType = resolveDt(iterableTypeRaw, forLoop.definingScope, program)
     if (!iterableType.isPointer) {
         errors.err("linked-list for loop start must be a pointer", forLoop.position)
         return false
@@ -95,6 +97,43 @@ internal fun resolveDeferredType(
     val name = if (antlrName.size == 1 && structScope.isNotEmpty()) structScope + antlrName else antlrName
     StructTypeResolver.resolve(scope, program, name, position, errors)?.let(dt::setActualSubType)
     return dt
+}
+
+
+private fun resolveDt(dt: DataType, scope: INameScope, program: Program): DataType {
+    val antlrName = dt.subTypeFromAntlr ?: return dt
+    // Try the scope first, then search all modules/blocks for a struct with that name.
+    var resolved = scope.lookup(antlrName) as? ISubType
+    if (resolved == null && antlrName.size == 1) {
+        for (module in program.modules) {
+            val block = findStructInScope(module, antlrName[0])
+            if (block != null) {
+                resolved = block
+                break
+            }
+        }
+    }
+    return if (resolved != null) {
+        when {
+            dt.isPointer -> DataType.pointer(resolved)
+            dt.isStructInstance -> DataType.structInstance(resolved)
+            else -> dt
+        }
+    } else {
+        dt
+    }
+}
+
+private fun findStructInScope(scope: INameScope, name: String): ISubType? {
+    val direct = scope.lookup(name) as? ISubType
+    if (direct != null) return direct
+    for (stmt in scope.statements) {
+        if (stmt is INameScope) {
+            val found = findStructInScope(stmt, name)
+            if (found != null) return found
+        }
+    }
+    return null
 }
 
 

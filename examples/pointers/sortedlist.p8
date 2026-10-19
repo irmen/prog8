@@ -31,8 +31,7 @@ main {
 
     sub printlist() {
         ubyte count = 0
-        ^^slist.Node head = slist.head
-        for ^^slist.Node n in head via .next {
+        for ^^slist.Node n in slist.head via .next {
             txt.print_uw(n.size)
             txt.chrout(':')
             txt.chrout(n.letter)
