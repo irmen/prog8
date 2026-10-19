@@ -1143,7 +1143,7 @@ The list can then be manipulated with:
 
 To visit every node, walk the links with a ``while`` loop. Start at ``Head`` and follow
 ``Succ`` until you reach ``&Tail``; or start at ``TailPred`` and follow ``Pred`` back
-to the header:
+to the header::
 
     main {
         struct MyNode {
@@ -1181,7 +1181,7 @@ Linked-list iteration
 ~~~~~~~~~~~~~~~~~~~~~
 
 Prog8 can desugar linked-list ``for`` loops into ordinary ``while`` loops.
-The explicit form works for arbitrary node layouts and link field names:
+The explicit form works for arbitrary node layouts and link field names::
 
     main {
         ^^MyList mylist = []                ; zero-initialized header
@@ -1204,14 +1204,14 @@ The explicit form works for arbitrary node layouts and link field names:
         }
     }
 
-For simple null-terminated lists, ``until`` may be omitted and defaults to ``0``:
+For simple null-terminated lists, ``until`` may be omitted and defaults to ``0``::
 
     for node in head via .next {
         ; use node
     }
 
 Header shorthand is available when the conventional lowercase field names
-``next`` or ``succ`` are used:
+``next`` or ``succ`` are used::
 
     for node in head { }       ; forward, until 0
 
@@ -1242,7 +1242,7 @@ Not all routines are available on all targets.
 
 
 checksumming
-''''''''''''
+~~~~~~~~~~~~
 .. index:: pair: Libraries; checksumming
 
 ``crc16 (uword data, uword length, uword initvalue, uword xorout) -> uword``
@@ -1266,7 +1266,7 @@ checksumming
     Call the start() routine first, feed it bytes with the update() routine, finalize with calling the end() routine that returns the result value as a long.
 
 interpolation
-'''''''''''''
+~~~~~~~~~~~~~
 .. index:: pair: Libraries; interpolation
 
 ``lerp(v0, v1, t)``
@@ -1296,7 +1296,7 @@ interpolation
     Also destroys cx16.r12 through cx16.r15 (used as multiply/division working registers), and cx16.r1, cx16.r2.
 
 large multiplications
-'''''''''''''''''''''
+~~~~~~~~~~~~~~~~~~~~~
 .. index:: pair: Libraries; large multiplications
 
 ``mul32 (word w1, word w2) -> long``
@@ -1314,7 +1314,7 @@ large multiplications
     Suggestion (if you are on the Commander X16): use ``verafx.muls()`` to get a hardware accelerated 32 bit signed multiplication.
 
 miscellaneous
-'''''''''''''
+~~~~~~~~~~~~~
 .. index:: pair: Libraries; miscellaneous
 
 ``direction (ubyte x1, ubyte y1, ubyte x2, ubyte y2)``
@@ -1344,7 +1344,7 @@ miscellaneous
 
 
 random numbers
-''''''''''''''
+~~~~~~~~~~~~~~
 .. index:: pair: Libraries; random numbers
 
 ``rnd ()``
@@ -1399,7 +1399,7 @@ random numbers
     Returns the 2-Log of the long value v.
 
 trigonometry
-''''''''''''
+~~~~~~~~~~~~
 .. index:: pair: Libraries; trigonometry
 
 .. hint::
@@ -1745,7 +1745,7 @@ strings
 Provides string manipulation routines.
 
 conversion and classification
-'''''''''''''''''''''''''''''
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 .. index:: pair: Libraries; conversion and classification
 
 ``isdigit (char)``
@@ -1789,7 +1789,7 @@ conversion and classification
 
 
 miscellaneous
-'''''''''''''
+~~~~~~~~~~~~~
 .. index:: pair: Libraries; miscellaneous
 
 ``compare (string1, string2) -> ubyte result``
@@ -1817,7 +1817,7 @@ miscellaneous
 
 
 manipulation
-''''''''''''
+~~~~~~~~~~~~
 .. index:: pair: Libraries; manipulation
 
 ``append (string, suffix) -> ubyte length``
@@ -1893,7 +1893,7 @@ manipulation
 
 
 searching
-'''''''''
+~~~~~~~~~
 .. index:: pair: Libraries; searching
 
 ``contains (string, char) -> bool``
@@ -1952,7 +1952,7 @@ sys (part of syslib)
 .. index:: pair: Libraries; sys
 
 miscellaneous
-'''''''''''''
+~~~~~~~~~~~~~
 .. index:: pair: Libraries; miscellaneous
 
 ``cpu_is_65816()``
@@ -2072,7 +2072,7 @@ miscellaneous
 
 
 processor status flags
-''''''''''''''''''''''
+~~~~~~~~~~~~~~~~~~~~~~
 .. index:: pair: Libraries; processor status flags
 
 ``clear_carry ()``
@@ -2109,7 +2109,7 @@ processor status flags
     Sets the CPU status register Interrupt Disable flag.
 
 processor stack
-'''''''''''''''
+~~~~~~~~~~~~~~~
 .. index:: pair: Libraries; processor stack
 
 Pushing and popping values on the CPU hardware stack can be done via the stack related :ref:`builtinfunctions` (pop, push etc).
