@@ -1009,6 +1009,12 @@ _after:
     }
 
     override fun after(forLoop: ForLoop, parent: Node): Iterable<AstModification> {
+        if (forLoop.linkedVia != null || forLoop.isLinkedHeaderShorthand(program)) {
+            // leave the invalid step combination for AstChecker, desugaring would hide it
+            if (forLoop.step != null) return noModifications
+            return desugarLinkedForLoop(forLoop, parent)
+        }
+
         // Desugar reverse array/string iteration
         // - for x in array step -1  -> index loop len-1 downto 0
         // - for c in string step -1 -> similar via index
@@ -1026,6 +1032,91 @@ _after:
         }
         // forward array/string with step 1 is handled by normal codegen, no desugaring
         return noModifications
+    }
+
+    private fun desugarLinkedForLoop(forLoop: ForLoop, parent: Node): Iterable<AstModification> {
+        val pos = forLoop.position
+        val nodeRef = forLoop.loopVar.copy()
+
+        // Resolve explicit or header-shorthand metadata.
+        val startExpr: prog8.ast.expressions.Expression
+        val linkField: String
+        val sentinelExpr: prog8.ast.expressions.Expression
+
+        if (forLoop.linkedVia != null) {
+            startExpr = forLoop.iterable
+            linkField = forLoop.linkedVia!!
+            sentinelExpr = forLoop.linkedUntil ?: prog8.ast.expressions.NumericLiteral.optimalInteger(0, pos)
+        } else {
+            val iterableType = forLoop.iterable.inferType(program).getOrUndef()
+            val loopVarType = forLoop.loopVar.targetVarDecl()?.datatype
+            val nodeStruct = loopVarType?.dereference()?.subType
+            val forwardLinks = listOf("next", "succ")
+            linkField = forwardLinks.firstOrNull { nodeStruct?.getFieldType(it)?.isPointer == true } ?: "next"
+
+            val headerStruct = iterableType.dereference().subType
+            val headName = if (iterableType.isPointer && iterableType != loopVarType) {
+                listOf("head", "first").firstOrNull { headerStruct?.getFieldType(it)?.isPointer == true }
+            } else null
+
+            if (headName == null) {
+                startExpr = forLoop.iterable
+                sentinelExpr = forLoop.linkedUntil ?: prog8.ast.expressions.NumericLiteral.optimalInteger(0, pos)
+            } else {
+                startExpr = prog8.ast.expressions.BinaryExpression(forLoop.iterable, ".", prog8.ast.expressions.IdentifierReference(listOf(headName), pos), pos)
+                val tailName = listOf("tail", "last").firstOrNull { headerStruct?.getFieldType(it)?.isPointer == true }
+                sentinelExpr = forLoop.linkedUntil ?: if (tailName != null) {
+                    prog8.ast.expressions.BinaryExpression(forLoop.iterable.copy(), ".", prog8.ast.expressions.IdentifierReference(listOf(tailName), pos), pos)
+                } else {
+                    prog8.ast.expressions.NumericLiteral.optimalInteger(0, pos)
+                }
+            }
+        }
+
+        // Declare the loop variable if it is not already declared.
+        val statements = mutableListOf<prog8.ast.statements.Statement>()
+        val names = forLoop.loopVar.nameInSource
+        val scope = forLoop.definingScope
+        val existing = if (names.size == 1) scope.lookup(names.single()) else null
+        if (existing !is prog8.ast.statements.VarDecl) {
+            val iterableType = forLoop.iterable.inferType(program).getOrUndef()
+            val effectiveType = forLoop.loopVarType ?: iterableType
+            val decl = prog8.ast.statements.VarDecl.builder(effectiveType, pos)
+                .names(names.single())
+                .type(prog8.ast.statements.VarDeclType.VAR)
+                .build()
+            statements.add(decl)
+        }
+
+        val initAssign = prog8.ast.statements.Assignment(
+            prog8.ast.statements.AssignTarget(nodeRef.copy(), null, null, null, false, position = pos),
+            startExpr,
+            prog8.ast.statements.AssignmentOrigin.OPTIMIZER,
+            pos
+        )
+        statements.add(initAssign)
+
+        val condition = prog8.ast.expressions.BinaryExpression(nodeRef.copy(), "!=", sentinelExpr, pos)
+        val fieldAccess = prog8.ast.expressions.BinaryExpression(nodeRef.copy(), ".", prog8.ast.expressions.IdentifierReference(listOf(linkField), pos), pos)
+        val tailAssign = prog8.ast.statements.Assignment(
+            prog8.ast.statements.AssignTarget(nodeRef.copy(), null, null, null, false, position = pos),
+            fieldAccess,
+            prog8.ast.statements.AssignmentOrigin.OPTIMIZER,
+            pos
+        )
+        val whileBody = prog8.ast.statements.AnonymousScope(
+            mutableListOf<prog8.ast.statements.Statement>().apply {
+                addAll(forLoop.body.statements)
+                add(tailAssign)
+            },
+            pos
+        )
+        val whileLoop = prog8.ast.statements.WhileLoop(condition, whileBody, pos)
+        statements.add(whileLoop)
+
+        val replacement = prog8.ast.statements.AnonymousScope(statements, pos)
+        replacement.linkParents(parent)
+        return listOf(prog8.ast.walk.AstReplaceNode(forLoop, replacement, parent))
     }
 
     private fun desugarReverseArrayStringForLoop(forLoop: ForLoop, parent: Node, iterableDt: DataType): Iterable<AstModification> {

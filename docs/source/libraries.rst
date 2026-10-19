@@ -1175,6 +1175,47 @@ to the header:
         }
     }
 
+Linked-list iteration
+~~~~~~~~~~~~~~~~~~~~~
+
+Prog8 can desugar linked-list ``for`` loops into ordinary ``while`` loops.
+The explicit form works for arbitrary node layouts and link field names:
+
+    main {
+        ^^MyList mylist = []                ; zero-initialized header
+        ^^MyNode n1 = [0, 0, 42]
+        ^^MyNode n2 = [0, 0, 99]
+        lists.init(mylist)
+        lists.add_tail(mylist, n1)
+        lists.add_tail(mylist, n2)
+
+        ; forward iteration over an Exec/MinList
+        for node in mylist.Head via .Succ until &mylist.Tail {
+            txt.print_ub(node.value)
+            txt.nl()
+        }
+
+        ; backward iteration
+        for node in mylist.TailPred via .Pred until &mylist.Head {
+            txt.print_ub(node.value)
+            txt.nl()
+        }
+    }
+
+For simple null-terminated lists, ``until`` may be omitted and defaults to ``0``:
+
+    for node in head via .next {
+        ; use node
+    }
+
+Header shorthand is available when the conventional lowercase field names
+``next`` or ``succ`` are used:
+
+    for node in head { }       ; forward, until 0
+
+Exec-style lists use uppercase field names (``Succ``, ``Pred``, ``Head``,
+``Tail``), so use the explicit ``via`` form for them.
+
 Custom nodes work the same way as long as the link pointers are the first fields at
 offset 0; add ``Type``/``Pri``/``Name`` after them if you need ``enqueue`` or
 ``find_name`` (the ``exec.Node``/``FullNode`` layout).

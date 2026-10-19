@@ -1413,7 +1413,9 @@ class ForLoop(var loopVar: IdentifierReference,
               var body: AnonymousScope,
               var loopVarType: DataType?,
               var step: Expression?,
-              override val position: Position) : Statement() {
+              override val position: Position,
+              var linkedVia: String? = null,
+              var linkedUntil: Expression? = null) : Statement() {
     override lateinit var parent: Node
 
     override fun linkParents(parent: Node) {
@@ -1421,6 +1423,7 @@ class ForLoop(var loopVar: IdentifierReference,
         loopVar.linkParents(this)
         iterable.linkParents(this)
         step?.linkParents(this)
+        linkedUntil?.linkParents(this)
         body.linkParents(this)
     }
 
@@ -1431,6 +1434,7 @@ class ForLoop(var loopVar: IdentifierReference,
             node===loopVar -> loopVar = replacement as IdentifierReference
             node===iterable -> iterable = replacement as Expression
             node===step -> step = replacement as Expression
+            node===linkedUntil -> linkedUntil = replacement as Expression
             node===body -> body = replacement as AnonymousScope
             else -> throw FatalAstException("invalid replace in $this at ${node.position}: $node -> $replacement")
         }
@@ -1441,13 +1445,16 @@ class ForLoop(var loopVar: IdentifierReference,
     override fun accept(visitor: AstWalker, parent: Node) = visitor.visit(this, parent)
     override fun toString(): String {
         val typeStr = if (loopVarType != null) "type: $loopVarType, " else ""
+        val viaStr = if (linkedVia != null) ", via: $linkedVia" else ""
+        val untilStr = if (linkedUntil != null) ", until: $linkedUntil" else ""
         val stepStr = if (step != null) ", step: $step" else ""
-        return "ForLoop(${typeStr}loopVar: $loopVar, iterable: $iterable$stepStr, pos=$position)"
+        return "ForLoop(${typeStr}loopVar: $loopVar, iterable: $iterable$viaStr$untilStr$stepStr, pos=$position)"
     }
     override fun referencesIdentifier(nameInSource: List<String>): Boolean =
         loopVar.referencesIdentifier(nameInSource) ||
                 iterable.referencesIdentifier(nameInSource) ||
                 (step?.referencesIdentifier(nameInSource)==true) ||
+                (linkedUntil?.referencesIdentifier(nameInSource)==true) ||
                 body.referencesIdentifier(nameInSource)
 
     fun loopVarDt(program: Program): InferredTypes.InferredType {

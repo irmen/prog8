@@ -28,7 +28,7 @@ syn keyword prog8Conditional if_cs if_cc if_vs if_vc if_eq if_z if_ne if_nz
 syn keyword prog8Conditional if_pl if_pos if_mi if_neg
 syn keyword prog8Repeat for while in do until repeat unroll
 syn match prog8Label "\<\w\+\>:"
-syn keyword prog8Operator and or to downto as void not xor step
+syn keyword prog8Operator and or to downto as void not xor step via
 
 syn match prog8Directive "\(^\|\s\)%\(output\|launcher\|zeropage\|memtop\)\>"
 syn match prog8Directive "\(^\|\s\)%\(zpreserved\|zpallowed\|address\|encoding\|import\|option\|varsaddress\|jmptable\)\>"

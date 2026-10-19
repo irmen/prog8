@@ -33,6 +33,8 @@ INLINE: 'inline';
 PRIVATE: 'private';
 PUBLIC: 'public';
 STEP: 'step';
+VIA: 'via';
+UNTIL: 'until';
 ELSE: 'else';
 THEN: 'then';
 ENUM: 'enum';
@@ -425,11 +427,15 @@ branch_stmt : branchcondition EOL? (statement | statement_block) EOL? else_part?
 branchcondition: 'if_cs' | 'if_cc' | 'if_eq' | 'if_z' | 'if_ne' | 'if_nz' | 'if_pl' | 'if_pos' | 'if_mi' | 'if_neg' | 'if_vs' | 'if_vc' ;
 
 
-forloop :  'for' datatype? scoped_identifier 'in' expression (STEP expression)? EOL? (statement | statement_block) ;
+forloop :  'for' datatype? scoped_identifier 'in' iterable=expression
+           (VIA '.' viaField=identifier)?
+           (UNTIL untilExpr=expression)?
+           (STEP stepExpr=expression)?
+           EOL? (statement | statement_block) ;
 
 whileloop:  'while' expression EOL? (statement | statement_block) ;
 
-untilloop:  'do' (statement | statement_block) EOL? 'until' expression ;
+untilloop:  'do' (statement | statement_block) EOL? UNTIL expression ;
 
 repeatloop:  'repeat' expression? EOL? (statement | statement_block) ;
 
