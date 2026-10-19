@@ -4107,4 +4107,30 @@ main {
         val machine = result.simulate()
         machine.assertMemory(0x02, 0x00)  // low byte of $3000
     }
+    test("chain-1 derefLast write stores through followed pointer on 6502") {
+        val src = $$"""
+            %option no_sysinit
+            %launcher none
+            %address $1000
+            %zeropage basicsafe
+            main {
+                struct S {
+                    ^^pointer bar
+                }
+
+                &ubyte probe = $02
+                &ubyte poweroff = $f203
+
+                sub start() {
+                    ^^S foo = memory("foo", 4, 0)
+                    foo.bar = $2000
+                    foo.bar^^ = $5678
+                    probe = peekw($2000) as ubyte
+                    poweroff = 1
+                }
+            }""".trimIndent()
+        val result = compileText(C64Target(), false, src, outputDir)!!
+        val machine = result.simulate()
+        machine.assertMemory(0x02, 0x78)  // low byte of $5678
+    }
 })

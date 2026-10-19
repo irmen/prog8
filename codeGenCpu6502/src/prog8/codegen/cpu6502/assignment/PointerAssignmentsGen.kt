@@ -160,7 +160,7 @@ internal class PointerAssignmentsGen(private val asmgen: AsmGen6502Internal, pri
                 sta  ($zpPtrVar),y""")
     }
 
-    internal fun inplaceByteNegate(target: PtrTarget, scope: IPtSubroutine?) {
+    internal fun inplaceByteNegate(target: PtrTarget) {
         val (zpPtrVar, offset) = deref(target.pointer)
         if(asmgen.isTargetCpu(CpuType.CPU65C02)) {
             asmgen.out("""
@@ -180,7 +180,7 @@ internal class PointerAssignmentsGen(private val asmgen: AsmGen6502Internal, pri
         }
     }
 
-    internal fun inplaceWordNegate(target: PtrTarget, scope: IPtSubroutine?) {
+    internal fun inplaceWordNegate(target: PtrTarget) {
         val (zpPtrVar, offset) = deref(target.pointer)
         asmgen.out("""
                 ldy  #$offset
@@ -194,7 +194,7 @@ internal class PointerAssignmentsGen(private val asmgen: AsmGen6502Internal, pri
                 sta  ($zpPtrVar),y""")
     }
 
-    internal fun inplaceLongNegate(target: PtrTarget, scope: IPtSubroutine?) {
+    internal fun inplaceLongNegate(target: PtrTarget) {
         val (zpPtrVar, offset) = deref(target.pointer)
         asmgen.out("""
                 ldy  #$offset
@@ -216,7 +216,7 @@ internal class PointerAssignmentsGen(private val asmgen: AsmGen6502Internal, pri
                 sta  ($zpPtrVar),y""")
     }
 
-    internal fun inplaceFloatNegate(target: PtrTarget, scope: IPtSubroutine?) {
+    internal fun inplaceFloatNegate(target: PtrTarget) {
         val (zpPtrVar, offset) = deref(target.pointer)
         // flip sign bit in second byte of 5-byte float
         asmgen.out(
@@ -230,11 +230,19 @@ internal class PointerAssignmentsGen(private val asmgen: AsmGen6502Internal, pri
     }
 
 
+    /**
+     * Walk the pointer deref chain. Always returns (zpVar, offset) such that one indirect
+     * access through zpVar at byte offset reaches the final thing:
+     *   derefLast=true  -> (zpVar),offset is the address of the value itself
+     *   derefLast=false -> (zpVar),offset is the location of the field content
+     * This contract holds for every chain length: the final pointer (if any) is already
+     * followed inside deref(), so callers never need a second dereference.
+     * zpVar is P8ZP_SCRATCH_PTR for non-empty chains or non-zeropage pointers; it may be
+     * the original (zeropage) pointer variable only for an empty chain with derefLast=false.
+     * loadPointerFieldValue: for addOffsetToPointer=true, also load the value if the final
+     * field is a pointer-typed field (rather than returning its address).
+     */
     internal fun deref(pointer: PtPointerDeref, addOffsetToPointer: Boolean=false, loadPointerFieldValue: Boolean=false): Pair<String, UByte> {
-        // walk the pointer deref chain and leaves the final pointer value in a ZP var
-        // this will often be the temp var P8ZP_SCRATCH_PTR but can also be the original pointer variable if it is already in zeropage and there is nothing to add to it
-        // returns the ZP var to use as a pointer, and a Y register offset (which can be zero)
-        // loadPointerFieldValue: for addOffsetToPointer=true, also load the value if the final field is a pointer-typed field (rather than returning its address).
 
         fun addFieldOffsetToScratchPointer(fieldoffset: UInt) {
             if(fieldoffset==0u)
@@ -287,6 +295,7 @@ internal class PointerAssignmentsGen(private val asmgen: AsmGen6502Internal, pri
                     if(pointer.derefLast) {
                         asmgen.assignExpressionToVariable(pointer.startpointer, "P8ZP_SCRATCH_PTR", DataType.UWORD)
                         addFieldOffsetToScratchPointer(field.second.toUInt())
+                        updateScratchPointer()
                         return "P8ZP_SCRATCH_PTR" to 0u
                     }
                     else
@@ -297,6 +306,7 @@ internal class PointerAssignmentsGen(private val asmgen: AsmGen6502Internal, pri
                     asmgen.assignExpressionToVariable(pointer.startpointer, "P8ZP_SCRATCH_PTR", DataType.UWORD)
                     if(pointer.derefLast) {
                         addFieldOffsetToScratchPointer(field.second.toUInt())
+                        updateScratchPointer()
                         return "P8ZP_SCRATCH_PTR" to 0u
                     }
                     else
@@ -346,6 +356,8 @@ internal class PointerAssignmentsGen(private val asmgen: AsmGen6502Internal, pri
             return !allocator.isZpVar(pointer.startpointer.name)
         if(pointer.chain.size > 1 || addOffsetToPointer)
             return true
+        // chain==1 derefLast=true now fully follows into P8ZP_SCRATCH_PTR (see deref()),
+        // so it always uses the scratch pointer regardless of isZpVar.
         return !(allocator.isZpVar(pointer.startpointer.name) && !pointer.derefLast)
     }
 
@@ -395,17 +407,7 @@ internal class PointerAssignmentsGen(private val asmgen: AsmGen6502Internal, pri
     }
 
     internal fun assignPointerDerefExpression(target: AsmAssignTarget, value: PtPointerDeref) {
-        val (zpPtrVar, offset1) = deref(value)
-        val offset: UByte
-        if(value.derefLast && value.chain.isNotEmpty()) {
-            // deref() returns the address of the final pointer field; load the pointer value it contains.
-            // This is safe because deref() uses P8ZP_SCRATCH_PTR for non-empty chains.
-            asmgen.loadIndirectWordAY(zpPtrVar, offset1)
-            asmgen.out("  sta  $zpPtrVar |  sty  $zpPtrVar+1")
-            offset = 0.toUByte()
-        } else {
-            offset = offset1
-        }
+        val (zpPtrVar, offset) = deref(value)
         if(value.type.isByteOrBool) {
             asmgen.loadIndirectByte(zpPtrVar, offset)
             asmgen.assignRegister(RegisterOrPair.A, target)

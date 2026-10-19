@@ -2293,7 +2293,7 @@ internal class PrimitiveAssignmentsGen(
                     }
                     TargetStorageKind.MEMORY -> throw AssemblyError("memory is ubyte, can't negate that")
                     TargetStorageKind.ARRAY -> assignmentAsmGen.assignPrefixedExpressionToArrayElt(makePrefixedExprFromArrayExprAssign("-", assign), scope)
-                    TargetStorageKind.POINTER -> pointergen.inplaceByteNegate(PtrTarget(target), scope)
+                    TargetStorageKind.POINTER -> pointergen.inplaceByteNegate(PtrTarget(target))
                     TargetStorageKind.VOID -> { /* do nothing */ }
                 }
             }
@@ -2354,7 +2354,7 @@ internal class PrimitiveAssignmentsGen(
                     }
                     TargetStorageKind.MEMORY -> throw AssemblyError("memory is ubyte, can't negate that")
                     TargetStorageKind.ARRAY -> assignmentAsmGen.assignPrefixedExpressionToArrayElt(makePrefixedExprFromArrayExprAssign("-", assign), scope)
-                    TargetStorageKind.POINTER -> pointergen.inplaceWordNegate(PtrTarget(target), scope)
+                    TargetStorageKind.POINTER -> pointergen.inplaceWordNegate(PtrTarget(target))
                     TargetStorageKind.VOID -> { /* do nothing */ }
                 }
             }
@@ -2385,7 +2385,7 @@ internal class PrimitiveAssignmentsGen(
                             ldy  #>cx16.$regstart
                             jsr  prog8_lib.long_negate_inplace""")
                     }
-                    TargetStorageKind.POINTER -> pointergen.inplaceLongNegate(PtrTarget(target), scope)
+                    TargetStorageKind.POINTER -> pointergen.inplaceLongNegate(PtrTarget(target))
                     TargetStorageKind.VOID -> { /* do nothing */ }
                 }
             }
@@ -2406,7 +2406,7 @@ internal class PrimitiveAssignmentsGen(
                             sta  ${target.asmVarname}+1""")
                     }
                     TargetStorageKind.ARRAY -> assignmentAsmGen.assignPrefixedExpressionToArrayElt(makePrefixedExprFromArrayExprAssign("-", assign), scope)
-                    TargetStorageKind.POINTER -> pointergen.inplaceFloatNegate(PtrTarget(target), scope)
+                    TargetStorageKind.POINTER -> pointergen.inplaceFloatNegate(PtrTarget(target))
                     else -> throw AssemblyError("weird target for in-place float negation")
                 }
             }
