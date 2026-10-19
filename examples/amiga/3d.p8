@@ -7,6 +7,10 @@
 ; 3d spinning Dodecahedron with double buffering for smooth display
 
 main {
+    const ubyte VERTEX_COUNT = 20
+    word[VERTEX_COUNT] px
+    word[VERTEX_COUNT] py
+
     sub start() {
         pointer bitplane1 = exec.AllocMem(10240, exec.MEMF_CHIP | exec.MEMF_CLEAR)
         pointer bitplane2 = exec.AllocMem(10240, exec.MEMF_CHIP | exec.MEMF_CLEAR)
@@ -31,7 +35,6 @@ main {
         blitter.copy_rect(textdata.text_bitmap_words, text_screen2, textdata.TEXT_WIDTH_WORDS, textdata.TEXT_HEIGHT, 0, 26, $f0, 0)
         blitter.wait()
 
-        const ubyte VERTEX_COUNT = 20
         const ubyte EDGE_COUNT = 30
         ; Integer-scaled canonical coordinates from Wikipedia's regular dodecahedron model.
         word[VERTEX_COUNT] vx = [-75, -75, -75, -75, 75, 75, 75, 75, 0, 0, 0, 0, -46, -46, 46, 46, -121, -121, 121, 121]
@@ -59,8 +62,6 @@ main {
         uword angle_y = 0
         uword angle_z = 0
         while not custom.left_button() {
-            word[VERTEX_COUNT] px
-            word[VERTEX_COUNT] py
 
             ; Wait for vertical blank, then ensure blitter is done before swapping.
             custom.waitvsync()

@@ -12,7 +12,7 @@
 main {
     sub start() {
 
-        long[] screentags = [
+        long[] @shared screentags = [
             intuition.SA_Left,      0,
             intuition.SA_Top,       0,
             intuition.SA_Width,     320,
@@ -24,7 +24,7 @@ main {
             utility.TAG_DONE,     0
         ]
 
-        long[] windowtags = [
+        long[] @shared windowtags = [
             intuition.WA_CustomScreen, 0,       ; set later
             intuition.WA_Left,         0 ,
             intuition.WA_Top,          0 ,
@@ -44,7 +44,7 @@ main {
         }
         defer iffparse.closelib()
 
-        str imagefile = "?" * 60
+        str @shared imagefile = "?" * 60
         txt.print("name of iff file to load: ")
         void txt.input_chars(imagefile)
 
@@ -139,14 +139,14 @@ main {
         decode(header, bodyBuffer)
         return true
 
-        sub decode(^^BMHDheader hdr, ^^ubyte body) {
-            long bytesPerRow = ((hdr.w + 15) / 16) * 2
+        sub decode(^^BMHDheader hdr, ^^ubyte @shared body) {
+            long @shared bytesPerRow = ((hdr.w + 15) / 16) * 2
             ^^graphics.BitMap bm = intuition.GetScreenBitMap(scr)
             ubyte compressionType = hdr.compression
 
             for y in 0 to hdr.h-1 {
                 for plane in 0 to hdr.nPlanes-1 {
-                    ^^ubyte target = bm.Planes[plane] + y*bytesPerRow
+                    ^^ubyte @shared target = bm.Planes[plane] + y*bytesPerRow
                     when compressionType {
                         0 -> {
                             ; non-compressed

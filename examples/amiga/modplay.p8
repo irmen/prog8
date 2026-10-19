@@ -7,7 +7,7 @@ main {
         if ptplayer.install() {
             txt.print("ptplayer init ok\n")
 
-            str modname = "?" * 60
+            str @shared modname = "?" * 60
             txt.print("name of mod file to load: ")
             void txt.input_chars(modname)
 

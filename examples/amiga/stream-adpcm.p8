@@ -152,7 +152,7 @@ main {
         txt.print_l((TOTAL_FRAMES + SAMPLE_RATE - 1) / SAMPLE_RATE)
         txt.print(" sec.\n\n")
 
-        str drive_input = "?" * 4
+        str @shared drive_input = "?" * 4
         txt.print("The music is on a raw data disk that the OS cannot recognise\n")
         txt.print("Insert it in DF0 - DF3, then enter the drive nr 0-3: ")
         void txt.input_chars(drive_input)

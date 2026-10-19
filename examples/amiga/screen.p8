@@ -8,7 +8,7 @@
 main {
     sub start() {
 
-        long[] screentags = [
+        long[] @shared screentags = [
             intuition.SA_Left,      0,
             intuition.SA_Top,       300,
             intuition.SA_Width,     320,
@@ -23,7 +23,7 @@ main {
             utility.TAG_DONE,     0
         ]
 
-        long[] windowtags = [
+        long[] @shared windowtags = [
             intuition.WA_CustomScreen, 0,       ; set later
             intuition.WA_Left,         0 ,
             intuition.WA_Top,          0 ,
@@ -37,7 +37,7 @@ main {
             utility.TAG_DONE,        0
         ]
 
-        uword[32] palette = [
+        uword[32] @shared palette = [
             $0112, $0334, $0778, $0FFF,
             $0422, $0843, $0C75, $0EA8,
             $0531, $0A72, $0EA3, $0FE7,
@@ -75,7 +75,7 @@ main {
         graphics.SetDrMd(rp, graphics.RP_JAM1)
         graphics.SetAPen(rp, 2)
         graphics.Move(rp, 20, 10)
-        str message = "Graphics screen using Prog8 !!"
+        str @shared message = "Graphics screen using Prog8 !!"
         void graphics.Text(rp, message, len(message))
 
         ; slide screen up and down again

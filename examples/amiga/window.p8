@@ -32,7 +32,7 @@ main {
         ^^graphics.RastPort rp = win.RPort
         word font_baseline = rp.TxBaseline as word
         word font_descent = rp.TxHeight - font_baseline
-        str message = "Woah it works!"
+        str @shared message = "Woah it works!"
         word text_width = graphics.TextLength(rp, message, len(message))
         word x_pos = 100
         word y_pos = 40

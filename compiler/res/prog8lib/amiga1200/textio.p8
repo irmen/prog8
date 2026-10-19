@@ -113,19 +113,23 @@ _msg:
     }
 
     sub print_w(word value) {
-        vprintf("%d", &value)
+        fmt_value_w = value as uword
+        vprintf("%d", &fmt_value_w)
     }
 
     sub print_l(long value) {
-        vprintf("%ld", &value)
+        fmt_value_l = value
+        vprintf("%ld", &fmt_value_l)
     }
 
     sub print_ulhex(long value, bool prefix) {
-        vprintf(if prefix then "$%08lx" else "%08lx", &value)
+        fmt_value_l = value
+        vprintf(if prefix then "$%08lx" else "%08lx", &fmt_value_l)
     }
 
     sub print_uwhex(uword value, bool prefix) {
-        vprintf(if prefix then "$%04x" else "%04x", &value)
+        fmt_value_w = value
+        vprintf(if prefix then "$%04x" else "%04x", &fmt_value_w)
     }
 
     sub print_ubhex(ubyte value, bool prefix) {

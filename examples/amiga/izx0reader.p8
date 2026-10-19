@@ -12,12 +12,12 @@
 main {
     sub start() {
 
-        str imagefile = "?" * 60
+        str @shared imagefile = "?" * 60
         txt.print("name of izx0 file to load: ")
         void txt.input_chars(imagefile)
 
         ; open a 320x256, 5-plane screen
-        long[] screentags = [
+        long[] @shared screentags = [
             intuition.SA_Left,      0,
             intuition.SA_Top,       0,
             intuition.SA_Width,     320,
@@ -29,7 +29,7 @@ main {
             utility.TAG_DONE,     0
         ]
 
-        long[] windowtags = [
+        long[] @shared windowtags = [
             intuition.WA_CustomScreen, 0,       ; set later
             intuition.WA_Left,         0 ,
             intuition.WA_Top,          0 ,
@@ -59,6 +59,8 @@ main {
                 if izx0.read(imagefile, &bm.Planes) {
                     graphics.LoadRGB4(intuition.GetScreenViewPort(myScreen), izx0.palette, izx0.numColors as word)
                     sys.wait(200)
+                } else {
+                    txt.print("error: could not load izx0 image\n")
                 }
 
                 intuition.CloseWindow(myWindow)

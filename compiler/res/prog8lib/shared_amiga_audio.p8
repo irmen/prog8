@@ -103,12 +103,13 @@ audio {
     private ubyte[4] queued
     private bool[4] play_alt
     private bool[4] wait_alt
+    private ubyte[1] @shared channel_matrix
 
     ; ---- high level audio interface ----
 
     sub init() -> bool {
         ; -- Initialize the audio device on all 4 channels.
-        ubyte[1] channel_matrix = [15]      ; allocate all 4 channels at once
+        channel_matrix[0] = 15                     ; allocate all 4 channels at once
         for ubyte channel in 0 to 3 {
             active_channels[channel] = false
             queued[channel] = 0

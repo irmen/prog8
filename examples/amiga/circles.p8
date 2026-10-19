@@ -23,7 +23,7 @@ main {
     ubyte[5] planeMasks = [1, 2, 4, 8, 16]
 
     sub start() {
-        long[] screentags = [
+        long[] @shared screentags = [
             intuition.SA_Left,      0,
             intuition.SA_Top,       0,
             intuition.SA_Width,     SCREEN_WIDTH,
@@ -35,7 +35,7 @@ main {
             utility.TAG_DONE,       0
         ]
 
-        long[] windowtags = [
+        long[] @shared windowtags = [
             intuition.WA_CustomScreen, 0,
             intuition.WA_Left,         0,
             intuition.WA_Top,          0,
