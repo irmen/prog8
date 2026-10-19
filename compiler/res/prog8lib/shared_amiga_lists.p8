@@ -83,7 +83,7 @@
 ;;       }
 ;;       struct MyList {
 ;;           ^^MyNode Head
-;;           pointer Tail
+;;           ^^MyNode Tail
 ;;           ^^MyNode TailPred
 ;;       }
 ;;       sub start() {
@@ -93,6 +93,10 @@
 ;;           exec.NewList(mylist as ^^exec.List)  ; or lists.init(mylist as pointer)
 ;;           lists.add_tail(mylist as pointer, n1 as pointer)
 ;;           lists.add_tail(mylist as pointer, n2 as pointer)
+;;           for node in mylist.Head via .Succ until &mylist.Tail {
+;;               ; the last node's Succ is &mylist.Tail, not 0
+;;               ; use node
+;;           }
 ;;           ; or directly: exec.AddTail(mylist as pointer, n1 as pointer)
 ;;       }
 ;;   }

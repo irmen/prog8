@@ -466,9 +466,9 @@ modules. Import them the same way as any other library::
     base for everything else: ``exec.OpenLibrary()`` is what opens the optional libraries.
     The ``exec`` module is always available, ``sys.SysBase`` is the ExecBase at 4.w.
     In addition to the library bindings it provides ``exec.NewList(list)`` to initialize
-    a new Exec list header in place: it sets ``Head = &Tail``, ``Tail = 0`` and
-    ``TailPred = &Head``. The portable ``lists`` module's ``init()`` calls this on the
-    Amiga targets.
+    an Exec list header in place. The portable ``lists`` module's ``init()`` calls this
+    on the Amiga targets; see the :ref:`linked-list-iteration` section for the header
+    layout and iteration rules.
 
 ``dos`` (``dos.library``)
     File and directory handling, locking, IOStreams, requesters and the DOS error codes.
@@ -1121,8 +1121,12 @@ lists
 ^^^^^
 .. index:: pair: Libraries; lists
 
-Portable doubly linked lists modeled after Amiga Exec lists (``MinList``/``MinNode``).
-Available on all targets; on ``amiga500`` and ``amiga1200`` the types and routines simply forward to ``exec.library``.
+The ``lists`` module provides doubly linked lists on all targets. On ``amiga500`` and
+``amiga1200`` it is a thin wrapper around ``exec.library`` and uses the actual Exec
+``MinList``/``MinNode`` structures. Other targets use a portable implementation with
+the same field names and sentinel convention for source compatibility; no AmigaOS
+library is involved there. That portable layout is an implementation detail, not an
+Amiga ABI guarantee for other targets.
 
 Three struct types are provided:
 
@@ -1132,6 +1136,11 @@ Three struct types are provided:
 
 On ``amiga500`` and ``amiga1200`` these are aliases: ``Node = exec.MinNode``, ``List = exec.MinList``, ``FullNode = exec.Node``.
 
+At the Exec ABI level, ``List`` and ``MinList`` have the same first three pointer
+fields. ``List`` then adds its type and padding bytes, while ``Node`` adds type,
+priority and name fields after the two link pointers. The minimal variants omit
+those extra fields and are intended for operations that do not need type checking.
+
 A list header must be initialized once with ``init(listptr)`` (sets ``Head = &Tail``, ``Tail = 0``, ``TailPred = &Head``).
 The list can then be manipulated with:
 
@@ -1140,6 +1149,15 @@ The list can then be manipulated with:
 - ``remove(node)``, ``remove_head(listptr) -> pointer``, ``remove_tail(listptr) -> pointer``
 - ``enqueue(listptr, node)`` - priority-sorted insertion by ``Pri`` (requires ``FullNode`` layout, FIFO for equal priorities)
 - ``find_name(listptr, name) -> pointer`` - linear search by ``Name`` (requires ``FullNode`` layout)
+
+The Amiga Exec layout is sentinel-linked rather than null-terminated. The current
+portable implementation mirrors this behavior for source compatibility. ``Tail`` remains zero,
+but the last node's ``Succ`` points to the address of the ``Tail`` field (``&Tail``)
+rather than to ``0``. ``&Tail`` is not a real node; when treated as one, its apparent
+``Pred`` field overlays the header's ``TailPred`` field. Likewise, the first node's
+``Pred`` points to ``&Head``. An empty list has ``Head == &Tail`` and ``TailPred == &Head``.
+Therefore forward iteration must stop at ``&Tail`` and backward iteration at ``&Head``;
+neither direction should use ``0`` as its loop terminator.
 
 To visit every node, walk the links with a ``while`` loop. Start at ``Head`` and follow
 ``Succ`` until you reach ``&Tail``; or start at ``TailPred`` and follow ``Pred`` back
@@ -1153,7 +1171,7 @@ to the header::
         }
         struct MyList {
             ^^MyNode Head
-            pointer  Tail
+            ^^MyNode Tail
             ^^MyNode TailPred
         }
 
@@ -1210,15 +1228,11 @@ For simple null-terminated lists, ``until`` may be omitted and defaults to ``0``
         ; use node
     }
 
-Header shorthand is available when the conventional lowercase field names
-``next`` or ``succ`` are used::
+Exec-compatible lists use uppercase field names (``Succ``, ``Pred``, ``Head``,
+``Tail``), so use the explicit ``via`` form for them. Linked-list iteration always
+requires this explicit field selection, regardless of the target or field names.
 
-    for node in head { }       ; forward, until 0
-
-Exec-style lists use uppercase field names (``Succ``, ``Pred``, ``Head``,
-``Tail``), so use the explicit ``via`` form for them.
-
-Custom nodes work the same way as long as the link pointers are the first fields at
+User-defined node structs work the same way as long as the link pointers are the first fields at
 offset 0; add ``Type``/``Pri``/``Name`` after them if you need ``enqueue`` or
 ``find_name`` (the ``exec.Node``/``FullNode`` layout).
 
@@ -1229,7 +1243,7 @@ from any arena/bump allocator. Just ensure the allocation is
 suitably aligned (even address on 6502, long-aligned on m68k).
 
 Read the :source:`lists source code <compiler/res/prog8lib/lists.p8>` and
-:source:`amiga lists source code <compiler/res/prog8lib/amiga500/lists.p8>` for details.
+:source:`amiga lists source code <compiler/res/prog8lib/shared_amiga_lists.p8>` for details.
 
 math
 ^^^^

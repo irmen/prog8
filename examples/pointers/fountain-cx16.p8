@@ -69,14 +69,14 @@ main  {
     }
 
     sub clear_particles() {
-        for ^^Particle pp in particles {
+        for ^^Particle pp in particles via .next {
             cx16.FB_cursor_position(pp.x as uword, pp.y as uword)
             cx16.FB_set_pixel(0)
         }
     }
 
     sub update_particles() {
-        for ^^Particle pp in particles {
+        for ^^Particle pp in particles via .next {
             pp.speedy += GRAVITY
             pp.x += pp.speedx
             pp.y += pp.speedy
@@ -97,4 +97,3 @@ main  {
         }
     }
 }
-

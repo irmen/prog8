@@ -154,19 +154,6 @@ internal fun Expression.flatten(): List<Expression> {
     return if (this is ArrayLiteral) this.value.flatMap { it.flatten() } else listOf(this)
 }
 
-internal fun DataType.isLinkedListType(): Boolean {
-    if (!isPointer) return false
-    val struct = dereference().subType ?: return false
-    val linkFields = listOf("next", "succ", "head", "first")
-    return linkFields.any { struct.getFieldType(it)?.isPointer == true }
-}
-
-internal fun ForLoop.isLinkedHeaderShorthand(program: Program): Boolean {
-    if (linkedVia != null) return true
-    val iterableType = iterable.inferType(program).getOrUndef()
-    return iterableType.isLinkedListType()
-}
-
 internal fun List<Expression>.flattenArgs(): List<Expression> {
     return this.flatMap { it.flatten() }
 }

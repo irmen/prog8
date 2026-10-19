@@ -262,8 +262,13 @@ internal class AstChecker(private val program: Program,
 
     override fun visit(forLoop: ForLoop) {
 
-        if (forLoop.linkedVia != null || forLoop.isLinkedHeaderShorthand(program)) {
-            checkLinkedForLoop(forLoop)
+        if (forLoop.linkedVia != null) {
+            val loopVarDecl = forLoop.loopVar.targetVarDecl()
+            if (loopVarDecl == null || !loopVarDecl.datatype.isPointer) {
+                errors.err("linked-list for loop requires a pointer loop variable", forLoop.position)
+            } else {
+                checkLinkedForLoop(forLoop, loopVarDecl.datatype, program, errors)
+            }
             super.visit(forLoop)
             return
         }
@@ -303,7 +308,10 @@ internal class AstChecker(private val program: Program,
         if(forLoop.iterable is IFunctionCall) {
             errors.err("can not loop over function call return value", forLoop.position)
         } else if(!(iterableDt.isIterable) && forLoop.iterable !is RangeExpression) {
-            errors.err("can only loop over an iterable type", forLoop.position)
+            if (iterableDt.isPointer)
+                errors.err("pointer-linked for loop requires an explicit 'via .field'", forLoop.position)
+            else
+                errors.err("can only loop over an iterable type", forLoop.position)
         } else {
             val loopvar = forLoop.loopVar.targetVarDecl()
             if(loopvar==null || loopvar.type== VarDeclType.CONST) {
@@ -398,69 +406,6 @@ internal class AstChecker(private val program: Program,
         super.visit(forLoop)
     }
 
-
-    private fun checkLinkedForLoop(forLoop: ForLoop) {
-        val loopVarDecl = forLoop.loopVar.targetVarDecl()
-        if (loopVarDecl == null || !loopVarDecl.datatype.isPointer) {
-            errors.err("linked-list for loop requires a pointer loop variable", forLoop.position)
-            return
-        }
-        val nodeType = loopVarDecl.datatype
-        val iterableType = forLoop.iterable.inferType(program).getOrUndef()
-        if (!iterableType.isPointer) {
-            errors.err("linked-list for loop start must be a pointer", forLoop.position)
-            return
-        }
-
-        val nodeStruct = nodeType.dereference().subType
-        if (nodeStruct == null) {
-            errors.err("linked-list for loop node type must be a struct", forLoop.position)
-            return
-        }
-
-        val linkField: String = when {
-            forLoop.linkedVia != null -> {
-                if (iterableType != nodeType) {
-                    errors.err("linked-list for loop start must be a pointer to the same node type", forLoop.position)
-                    return
-                }
-                forLoop.linkedVia!!
-            }
-            else -> {
-                val headerStruct = iterableType.dereference().subType
-                val headerStart = listOf("head", "first").firstOrNull { headerStruct?.getFieldType(it) == nodeType }
-                if (iterableType != nodeType && headerStart == null) {
-                    errors.err("linked-list for loop start must be a pointer to the same node type or a list header with 'head'/'first' field", forLoop.position)
-                    return
-                }
-                listOf("next", "succ").firstOrNull { nodeStruct.getFieldType(it)?.isPointer == true }
-                    ?: run {
-                        errors.err("linked-list for loop node type must have a 'next' or 'succ' field", forLoop.position)
-                        return
-                    }
-            }
-        }
-
-        val fieldType = nodeStruct.getFieldType(linkField)
-        if (fieldType == null || !fieldType.isPointer || fieldType != nodeType) {
-            errors.err("linked-list for loop 'via' field must be a pointer to the same node type", forLoop.position)
-            return
-        }
-
-        if (forLoop.step != null) {
-            errors.err("linked-list for loop cannot use 'step'", forLoop.position)
-        }
-        forLoop.linkedUntil?.let { untilExpr ->
-            val untilType = untilExpr.inferType(program).getOrUndef()
-            val addressOfTargetType = (untilExpr as? AddressOf)?.identifier?.inferType(program)?.getOrUndef()
-            val isValidUntil = (untilType.isPointer && untilType == nodeType) ||
-                    (untilExpr is NumericLiteral && untilExpr.number == 0.0) ||
-                    addressOfTargetType == nodeType
-            if (!isValidUntil) {
-                errors.err("linked-list for loop 'until' must be a compatible node pointer or 0", forLoop.position)
-            }
-        }
-    }
 
     override fun visit(jump: Jump) {
         val ident = jump.target as? IdentifierReference

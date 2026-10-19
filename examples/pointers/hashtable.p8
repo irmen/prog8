@@ -184,7 +184,7 @@ cache {
     }
 
     sub print_forward() {
-        for ^^Entry current in head {
+        for ^^Entry current in head via .next {
             txt.print("- ")
             txt.print(current.name)
             txt.print(" (")
@@ -213,4 +213,3 @@ cache {
         txt.print("\n")
     }
 }
-

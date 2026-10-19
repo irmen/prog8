@@ -1009,7 +1009,7 @@ _after:
     }
 
     override fun after(forLoop: ForLoop, parent: Node): Iterable<AstModification> {
-        if (forLoop.linkedVia != null || forLoop.isLinkedHeaderShorthand(program)) {
+        if (forLoop.linkedVia != null) {
             // leave the invalid step combination for AstChecker, desugaring would hide it
             if (forLoop.step != null) return noModifications
             return desugarLinkedForLoop(forLoop, parent)
@@ -1038,40 +1038,9 @@ _after:
         val pos = forLoop.position
         val nodeRef = forLoop.loopVar.copy()
 
-        // Resolve explicit or header-shorthand metadata.
-        val startExpr: Expression
-        val linkField: String
-        val sentinelExpr: Expression
-
-        if (forLoop.linkedVia != null) {
-            startExpr = forLoop.iterable
-            linkField = forLoop.linkedVia!!
-            sentinelExpr = forLoop.linkedUntil ?: NumericLiteral.optimalInteger(0, pos)
-        } else {
-            val iterableType = forLoop.iterable.inferType(program).getOrUndef()
-            val loopVarType = forLoop.loopVar.targetVarDecl()?.datatype
-            val nodeStruct = loopVarType?.dereference()?.subType
-            val forwardLinks = listOf("next", "succ")
-            linkField = forwardLinks.firstOrNull { nodeStruct?.getFieldType(it)?.isPointer == true } ?: "next"
-
-            val headerStruct = iterableType.dereference().subType
-            val headName = if (iterableType.isPointer && iterableType != loopVarType) {
-                listOf("head", "first").firstOrNull { headerStruct?.getFieldType(it)?.isPointer == true }
-            } else null
-
-            if (headName == null) {
-                startExpr = forLoop.iterable
-                sentinelExpr = forLoop.linkedUntil ?: NumericLiteral.optimalInteger(0, pos)
-            } else {
-                startExpr = BinaryExpression(forLoop.iterable, ".", IdentifierReference(listOf(headName), pos), pos)
-                val tailName = listOf("tail", "last").firstOrNull { headerStruct?.getFieldType(it)?.isPointer == true }
-                sentinelExpr = forLoop.linkedUntil ?: if (tailName != null) {
-                    BinaryExpression(forLoop.iterable.copy(), ".", IdentifierReference(listOf(tailName), pos), pos)
-                } else {
-                    NumericLiteral.optimalInteger(0, pos)
-                }
-            }
-        }
+        val startExpr = forLoop.iterable
+        val linkField = forLoop.linkedVia ?: error("linked loop desugared without a via field")
+        val sentinelExpr = forLoop.linkedUntil ?: NumericLiteral.optimalInteger(0, pos)
 
         // Declare the loop variable if it is not already declared.
         val statements = mutableListOf<Statement>()

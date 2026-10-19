@@ -4,8 +4,6 @@ import prog8.ast.INameScope
 import prog8.ast.IStatementContainer
 import prog8.ast.Node
 import prog8.ast.Program
-import prog8.ast.expressions.AddressOf
-import prog8.ast.expressions.NumericLiteral
 import prog8.ast.expressions.RangeExpression
 import prog8.ast.statements.ForLoop
 import prog8.ast.statements.VarDecl
@@ -37,18 +35,18 @@ class ImplicitForIteratorDecls(
             return emptyList()
         val iterableType = inferredIterableType.getOrUndef()
 
-        val isLinked = forLoop.linkedVia != null || iterableType.isLinkedListType()
+        val isLinked = forLoop.linkedVia != null
         if (!iterableType.isIterable && forLoop.iterable !is RangeExpression && !isLinked)
             return emptyList()
 
         val elementType = if (isLinked) {
-            linkedNodeType(iterableType) ?: return emptyList()
+            iterableType.takeIf { it.isPointer } ?: return emptyList()
         } else {
             iterableType.elementType()
         }
 
         if (isLinked) {
-            validateLinkedForLoop(forLoop, iterableType, elementType)
+            checkLinkedForLoop(forLoop, elementType, program, errors)
             if (!errors.noErrors())
                 return emptyList()
         }
@@ -127,75 +125,6 @@ class ImplicitForIteratorDecls(
     }
 
 
-    private fun validateLinkedForLoop(forLoop: ForLoop, iterableType: DataType, nodeType: DataType) {
-        val nodeStruct = nodeType.dereference().subType
-        if (nodeStruct == null) {
-            errors.err("linked-list for loop node type must be a struct", forLoop.position)
-            return
-        }
-
-        val linkField: String = when {
-            forLoop.linkedVia != null -> {
-                if (iterableType != nodeType) {
-                    errors.err("linked-list for loop start must be a pointer to the same node type", forLoop.position)
-                    return
-                }
-                forLoop.linkedVia!!
-            }
-            else -> {
-                val headerStruct = iterableType.dereference().subType
-                val headerStart = listOf("head", "first").firstOrNull { headerStruct?.getFieldType(it) == nodeType }
-                if (iterableType != nodeType && headerStart == null) {
-                    errors.err("linked-list for loop start must be a pointer to the same node type or a list header with 'head'/'first' field", forLoop.position)
-                    return
-                }
-                listOf("next", "succ").firstOrNull { nodeStruct.getFieldType(it)?.isPointer == true }
-                    ?: run {
-                        errors.err("linked-list for loop node type must have a 'next' or 'succ' field", forLoop.position)
-                        return
-                    }
-            }
-        }
-
-        val fieldType = nodeStruct.getFieldType(linkField)
-        if (fieldType == null || !fieldType.isPointer || fieldType != nodeType) {
-            errors.err("linked-list for loop 'via' field must be a pointer to the same node type", forLoop.position)
-            return
-        }
-
-        if (forLoop.step != null) {
-            errors.err("linked-list for loop cannot use 'step'", forLoop.position)
-        }
-
-        forLoop.linkedUntil?.let { untilExpr ->
-            val untilType = untilExpr.inferType(program).getOrUndef()
-            val addressOfTargetType = (untilExpr as? AddressOf)?.identifier?.inferType(program)?.getOrUndef()
-            val isValidUntil = (untilType.isPointer && untilType == nodeType) ||
-                    (untilExpr is NumericLiteral && untilExpr.number == 0.0) ||
-                    addressOfTargetType == nodeType
-            if (!isValidUntil) {
-                errors.err("linked-list for loop 'until' must be a compatible node pointer or 0", forLoop.position)
-            }
-        }
-    }
-
-    private fun linkedNodeType(iterableType: DataType): DataType? {
-        if (iterableType.isPointer) {
-            val subType = iterableType.dereference().subType
-            val forwardLinks = listOf("next", "succ")
-            if (subType != null && forwardLinks.any { subType.getFieldType(it)?.isPointer == true }) {
-                return iterableType
-            }
-        }
-        if (!iterableType.isPointer) return null
-        val headerStruct = iterableType.dereference().subType
-        val headName = listOf("head", "first").firstOrNull { headerStruct?.getFieldType(it)?.isPointer == true }
-        if (headName != null) {
-            return headerStruct?.getFieldType(headName)
-        }
-        return null
-    }
-
     private fun resolveDt(dt: DataType, scope: INameScope, position: Position): DataType {
         val antlrName = dt.subTypeFromAntlr ?: return dt
         val resolved = StructTypeResolver.resolve(scope, program, antlrName, position, errors) ?: return dt
@@ -205,4 +134,5 @@ class ImplicitForIteratorDecls(
             else -> dt
         }
     }
+
 }

@@ -74,7 +74,7 @@ class TestLinkedForLoops: FunSpec({
         errors.errors.any { it.contains("linked-list for loop cannot use 'step'") } shouldBe true
     }
 
-    test("header shorthand linked for loop cannot use step") {
+    test("pointer-linked for loop requires an explicit via field") {
         val errors = ErrorReporterForTests()
         compileText(VMTarget(), false, """
             main {
@@ -82,19 +82,15 @@ class TestLinkedForLoops: FunSpec({
                     ^^Node next
                     ubyte value
                 }
-                struct List {
-                    ^^Node head
-                    ^^Node last
-                }
                 sub start() {
-                    ^^List list = memory("list", sizeof(List), 0)
-                    for ^^Node n in list step 1 {
+                    ^^Node head = memory("head", sizeof(Node), 0)
+                    for ^^Node n in head {
                         n.value = 1
                     }
                 }
             }
         """, outputDir, errors, writeAssembly = false) shouldBe null
-        errors.errors.any { it.contains("linked-list for loop cannot use 'step'") } shouldBe true
+        errors.errors.any { it.contains("pointer-linked for loop requires an explicit 'via .field'") } shouldBe true
     }
 
     test("linkedUntil is traversed by IAstVisitor and AstWalker") {
@@ -165,7 +161,7 @@ class TestLinkedForLoops: FunSpec({
         }
     }
 
-    test("header shorthand uses tail sentinel") {
+    test("explicit header traversal uses tail sentinel") {
         val src = $$"""
             %zeropage basicsafe
             main {
@@ -190,7 +186,7 @@ class TestLinkedForLoops: FunSpec({
                     list.head = n1
                     list.last = sentinel
                     ubyte @shared sum = 0
-                    for ^^Node n in list {
+                    for ^^Node n in list.head via .next until list.last {
                         sum += n.value
                     }
                     if sum != 33 { sys.exit(7) }
@@ -206,7 +202,7 @@ class TestLinkedForLoops: FunSpec({
         }
     }
 
-    test("header shorthand with node pointer terminates at zero") {
+    test("explicit node traversal terminates at zero by default") {
         val src = $$"""
             %zeropage basicsafe
             main {
@@ -223,7 +219,7 @@ class TestLinkedForLoops: FunSpec({
                     n2.next = 0
                     ^^Node @shared head = n1
                     ubyte @shared sum = 0
-                    for ^^Node n in head {
+                    for ^^Node n in head via .next {
                         sum += n.value
                     }
                     if sum != 33 { sys.exit(7) }
@@ -284,25 +280,22 @@ class TestLinkedForLoops: FunSpec({
         errors.errors.any { it.contains("'until' can only be used in linked-list for loops") } shouldBe true
     }
 
-    test("header shorthand requires node link field") {
+    test("explicit linked traversal requires a pointer link field") {
         val errors = ErrorReporterForTests()
         compileText(VMTarget(), false, """
             main {
                 struct Node {
                     ubyte value
                 }
-                struct List {
-                    ^^Node head
-                }
                 sub start() {
-                    ^^List list = memory("list", sizeof(List), 0)
-                    for n in list {
+                    ^^Node head = memory("head", sizeof(Node), 0)
+                    for n in head via .value {
                         n.value = 1
                     }
                 }
             }
         """, outputDir, errors, writeAssembly = false) shouldBe null
-        errors.errors.any { it.contains("linked-list for loop node type must have a 'next' or 'succ' field") } shouldBe true
+        errors.errors.any { it.contains("linked-list for loop 'via' field must be a pointer to the same node type") } shouldBe true
     }
 
     test("explicit until accepts address-of header field") {
@@ -316,6 +309,45 @@ class TestLinkedForLoops: FunSpec({
                 struct List {
                     ^^Node head
                     ^^Node tail
+                }
+                sub start() {
+                    ^^Node n1 = memory("n1", sizeof(Node), 0)
+                    ^^Node n2 = memory("n2", sizeof(Node), 0)
+                    ^^List list = memory("list", sizeof(List), 0)
+                    n1.value = 11
+                    n2.value = 22
+                    n1.next = n2
+                    n2.next = &list.tail
+                    list.head = n1
+                    list.tail = n2
+                    ubyte @shared sum = 0
+                    for ^^Node n in list.head via .next until &list.tail {
+                        sum += n.value
+                    }
+                    if sum != 33 { sys.exit(7) }
+                    pokew($4400, $c0ba)
+                    sys.exit(0)
+                }
+            }
+        """
+        val result = compileText(VMTarget(), false, src, outputDir)!!
+        val virtfile = result.compilationOptions.outputDir.resolve(result.compilerAst.name + ".p8ir")
+        VmRunner().runAndTestProgram(virtfile.readText(), true) { vm ->
+            vm.memory.getUW(0x4400u).toInt() shouldBe 0xc0ba
+        }
+    }
+
+    test("explicit until accepts address-of untyped pointer header field") {
+        val src = $$"""
+            %zeropage basicsafe
+            main {
+                struct Node {
+                    ^^Node next
+                    ubyte value
+                }
+                struct List {
+                    ^^Node head
+                    pointer tail
                 }
                 sub start() {
                     ^^Node n1 = memory("n1", sizeof(Node), 0)

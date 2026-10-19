@@ -59,7 +59,7 @@ main {
     }
 
     sub update_particles() {
-        for ^^Particle pp in particles {
+        for ^^Particle pp in particles via .next {
             pp.speedy += GRAVITY
             pp.x += pp.speedx
             pp.y += pp.speedy
@@ -78,4 +78,3 @@ main {
         }
     }
 }
-
