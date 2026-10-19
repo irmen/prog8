@@ -2,6 +2,7 @@ package prog8.codegen.intermediate
 
 import prog8.code.*
 import prog8.code.ast.PtStructField
+import prog8.code.core.Position
 import prog8.intermediate.*
 
 /**
@@ -78,7 +79,7 @@ private class StToIrConverter(val romable: Boolean) {
         val hasInit = initValue != null
         val inBss = !hasInit || romable
         val readonly = romable && hasInit
-        return IRStStaticVariable(name, variable.dt, initValue, variable.length, variable.zpwish, variable.align, variable.dirty, inBss, readonly, variable.shared)
+        return IRStStaticVariable(name, variable.dt, initValue, variable.length, variable.zpwish, variable.align, variable.dirty, inBss, readonly, variable.shared, variable.astNode?.position ?: Position.DUMMY)
     }
 
     fun convert(variable: StMemVar): IRStMemVar {

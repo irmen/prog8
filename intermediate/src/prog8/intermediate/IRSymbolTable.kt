@@ -2,10 +2,7 @@ package prog8.intermediate
 
 import prog8.code.PROG8_CONTAINER_MODULES
 import prog8.code.SymbolNames
-import prog8.code.core.BaseDataType
-import prog8.code.core.DataType
-import prog8.code.core.Encoding
-import prog8.code.core.ZeropageWish
+import prog8.code.core.*
 
 
 // In the Intermediate Representation, all nesting has been removed.
@@ -132,7 +129,8 @@ class IRStStaticVariable(name: String,
                        val dirty: Boolean,
                        val inBss: Boolean = false,   // variable should be placed in BSS (RAM), not inline with code
                        val readonly: Boolean = false, // variable should be treated as read-only
-                       val shared: Boolean = false    // the @shared tag: keep the variable in program-static storage
+                       val shared: Boolean = false,   // the @shared tag: keep the variable in program-static storage
+                       val position: Position = Position.DUMMY
 ) : IRStNode(name, IRStNodeType.STATICVAR) {
     init {
         if(align > 0u) {

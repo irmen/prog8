@@ -516,7 +516,7 @@ class StackFrameLayout(private val program: IRProgram, private val errors: IErro
             locals += LocalLayout(name, elemDt, count, size, alignment, v.dirty, initialized, isFloat)
             if (v.length != null && size > 8 && !v.dirty && v.initializationValue == null) {
                 val shortName = name.substringAfterLast('.').removePrefix("p8v_")
-                errors.warn("local array '$shortName' ($size bytes) in subroutine '${userName(sub)}' is zero-initialized on every call which can be costly; consider @dirty if you assign it before use", sub.position)
+                errors.warn("local array '$shortName' ($size bytes) in subroutine '${userName(sub)}' is zero-initialized on every call which can be costly; consider @dirty if you assign it before use", v.position)
             }
         }
 
