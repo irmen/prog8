@@ -383,7 +383,9 @@ internal class PointerAssignmentsGen(private val asmgen: AsmGen6502Internal, pri
     internal fun assignPointerDerefExpression(target: AsmAssignTarget, value: PtPointerDeref) {
         val (zpPtrVar, offset1) = deref(value)
         val offset: UByte
-        if(value.derefLast) {
+        if(value.derefLast && value.chain.isNotEmpty()) {
+            // deref() returns the address of the final pointer field; load the pointer value it contains.
+            // This is safe because deref() uses P8ZP_SCRATCH_PTR for non-empty chains.
             asmgen.loadIndirectWordAY(zpPtrVar, offset1)
             asmgen.out("  sta  $zpPtrVar |  sty  $zpPtrVar+1")
             offset = 0.toUByte()
