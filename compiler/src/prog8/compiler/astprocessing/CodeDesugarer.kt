@@ -1039,14 +1039,14 @@ _after:
         val nodeRef = forLoop.loopVar.copy()
 
         // Resolve explicit or header-shorthand metadata.
-        val startExpr: prog8.ast.expressions.Expression
+        val startExpr: Expression
         val linkField: String
-        val sentinelExpr: prog8.ast.expressions.Expression
+        val sentinelExpr: Expression
 
         if (forLoop.linkedVia != null) {
             startExpr = forLoop.iterable
             linkField = forLoop.linkedVia!!
-            sentinelExpr = forLoop.linkedUntil ?: prog8.ast.expressions.NumericLiteral.optimalInteger(0, pos)
+            sentinelExpr = forLoop.linkedUntil ?: NumericLiteral.optimalInteger(0, pos)
         } else {
             val iterableType = forLoop.iterable.inferType(program).getOrUndef()
             val loopVarType = forLoop.loopVar.targetVarDecl()?.datatype
@@ -1061,62 +1061,62 @@ _after:
 
             if (headName == null) {
                 startExpr = forLoop.iterable
-                sentinelExpr = forLoop.linkedUntil ?: prog8.ast.expressions.NumericLiteral.optimalInteger(0, pos)
+                sentinelExpr = forLoop.linkedUntil ?: NumericLiteral.optimalInteger(0, pos)
             } else {
-                startExpr = prog8.ast.expressions.BinaryExpression(forLoop.iterable, ".", prog8.ast.expressions.IdentifierReference(listOf(headName), pos), pos)
+                startExpr = BinaryExpression(forLoop.iterable, ".", IdentifierReference(listOf(headName), pos), pos)
                 val tailName = listOf("tail", "last").firstOrNull { headerStruct?.getFieldType(it)?.isPointer == true }
                 sentinelExpr = forLoop.linkedUntil ?: if (tailName != null) {
-                    prog8.ast.expressions.BinaryExpression(forLoop.iterable.copy(), ".", prog8.ast.expressions.IdentifierReference(listOf(tailName), pos), pos)
+                    BinaryExpression(forLoop.iterable.copy(), ".", IdentifierReference(listOf(tailName), pos), pos)
                 } else {
-                    prog8.ast.expressions.NumericLiteral.optimalInteger(0, pos)
+                    NumericLiteral.optimalInteger(0, pos)
                 }
             }
         }
 
         // Declare the loop variable if it is not already declared.
-        val statements = mutableListOf<prog8.ast.statements.Statement>()
+        val statements = mutableListOf<Statement>()
         val names = forLoop.loopVar.nameInSource
         val scope = forLoop.definingScope
         val existing = if (names.size == 1) scope.lookup(names.single()) else null
-        if (existing !is prog8.ast.statements.VarDecl) {
+        if (existing !is VarDecl) {
             val iterableType = forLoop.iterable.inferType(program).getOrUndef()
             val effectiveType = forLoop.loopVarType ?: iterableType
-            val decl = prog8.ast.statements.VarDecl.builder(effectiveType, pos)
+            val decl = VarDecl.builder(effectiveType, pos)
                 .names(names.single())
-                .type(prog8.ast.statements.VarDeclType.VAR)
+                .type(VarDeclType.VAR)
                 .build()
             statements.add(decl)
         }
 
-        val initAssign = prog8.ast.statements.Assignment(
-            prog8.ast.statements.AssignTarget(nodeRef.copy(), null, null, null, false, position = pos),
+        val initAssign = Assignment(
+            AssignTarget(nodeRef.copy(), null, null, null, false, position = pos),
             startExpr,
-            prog8.ast.statements.AssignmentOrigin.OPTIMIZER,
+            AssignmentOrigin.OPTIMIZER,
             pos
         )
         statements.add(initAssign)
 
-        val condition = prog8.ast.expressions.BinaryExpression(nodeRef.copy(), "!=", sentinelExpr, pos)
-        val fieldAccess = prog8.ast.expressions.BinaryExpression(nodeRef.copy(), ".", prog8.ast.expressions.IdentifierReference(listOf(linkField), pos), pos)
-        val tailAssign = prog8.ast.statements.Assignment(
-            prog8.ast.statements.AssignTarget(nodeRef.copy(), null, null, null, false, position = pos),
+        val condition = BinaryExpression(nodeRef.copy(), "!=", sentinelExpr, pos)
+        val fieldAccess = BinaryExpression(nodeRef.copy(), ".", IdentifierReference(listOf(linkField), pos), pos)
+        val tailAssign = Assignment(
+            AssignTarget(nodeRef.copy(), null, null, null, false, position = pos),
             fieldAccess,
-            prog8.ast.statements.AssignmentOrigin.OPTIMIZER,
+            AssignmentOrigin.OPTIMIZER,
             pos
         )
-        val whileBody = prog8.ast.statements.AnonymousScope(
-            mutableListOf<prog8.ast.statements.Statement>().apply {
+        val whileBody = AnonymousScope(
+            mutableListOf<Statement>().apply {
                 addAll(forLoop.body.statements)
                 add(tailAssign)
             },
             pos
         )
-        val whileLoop = prog8.ast.statements.WhileLoop(condition, whileBody, pos)
+        val whileLoop = WhileLoop(condition, whileBody, pos)
         statements.add(whileLoop)
 
-        val replacement = prog8.ast.statements.AnonymousScope(statements, pos)
+        val replacement = AnonymousScope(statements, pos)
         replacement.linkParents(parent)
-        return listOf(prog8.ast.walk.AstReplaceNode(forLoop, replacement, parent))
+        return listOf(AstReplaceNode(forLoop, replacement, parent))
     }
 
     private fun desugarReverseArrayStringForLoop(forLoop: ForLoop, parent: Node, iterableDt: DataType): Iterable<AstModification> {

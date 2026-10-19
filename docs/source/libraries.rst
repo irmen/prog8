@@ -1175,6 +1175,8 @@ to the header:
         }
     }
 
+.. _linked-list-iteration:
+
 Linked-list iteration
 ~~~~~~~~~~~~~~~~~~~~~
 

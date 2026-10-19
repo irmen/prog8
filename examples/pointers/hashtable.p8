@@ -137,12 +137,10 @@ cache {
     sub find(str name) -> ^^Entry {
         ; Find entry using hash table for O(1) average case
         ubyte bucket = strings.hash(name) % HASH_TABLE_SIZE
-        ^^Entry current = hash_table[bucket]
 
-        while current != 0 {
+        for ^^Entry current in hash_table[bucket] via .hash_next {
             if strings.compare(current.name, name) == 0
                 return current
-            current = current.hash_next
         }
 
         return 0  ; Not found
@@ -170,13 +168,11 @@ cache {
         if hash_table[bucket] == to_remove {
             hash_table[bucket] = to_remove.hash_next
         } else {
-            ^^Entry current = hash_table[bucket]
-            while current.hash_next != 0 {
+            for ^^Entry current in hash_table[bucket] via .hash_next {
                 if current.hash_next == to_remove {
                     current.hash_next = to_remove.hash_next
                     break
                 }
-                current = current.hash_next
             }
         }
 
@@ -188,8 +184,7 @@ cache {
     }
 
     sub print_forward() {
-        ^^Entry current = head
-        while current != 0 {
+        for ^^Entry current in head {
             txt.print("- ")
             txt.print(current.name)
             txt.print(" (")
@@ -197,7 +192,6 @@ cache {
             txt.print(", ")
             txt.print_ub(current.age)
             txt.print(")\n")
-            current = current.next
         }
         txt.print("Total entries: ")
         txt.print_uw(count)
@@ -205,8 +199,7 @@ cache {
     }
 
     sub print_backward() {
-        ^^Entry current = tail
-        while current != 0 {
+        for ^^Entry current in tail via .prev {
             txt.print("- ")
             txt.print(current.name)
             txt.print(" (")
@@ -214,7 +207,6 @@ cache {
             txt.print(", ")
             txt.print_ub(current.age)
             txt.print(")\n")
-            current = current.prev
         }
         txt.print("Total entries: ")
         txt.print_uw(count)

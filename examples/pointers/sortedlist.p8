@@ -31,14 +31,12 @@ main {
 
     sub printlist() {
         ubyte count = 0
-        ^^slist.Node n = slist.head
-        while n!=0 {
+        for ^^slist.Node n in slist.head {
             txt.print_uw(n.size)
             txt.chrout(':')
             txt.chrout(n.letter)
             txt.print(", ")
             count++
-            n = n.next
         }
         txt.print("\nlength=")
         txt.print_ub(count)

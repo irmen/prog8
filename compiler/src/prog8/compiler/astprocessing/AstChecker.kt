@@ -452,9 +452,9 @@ internal class AstChecker(private val program: Program,
         }
         forLoop.linkedUntil?.let { untilExpr ->
             val untilType = untilExpr.inferType(program).getOrUndef()
-            val addressOfTargetType = (untilExpr as? prog8.ast.expressions.AddressOf)?.identifier?.inferType(program)?.getOrUndef()
+            val addressOfTargetType = (untilExpr as? AddressOf)?.identifier?.inferType(program)?.getOrUndef()
             val isValidUntil = (untilType.isPointer && untilType == nodeType) ||
-                    (untilExpr is prog8.ast.expressions.NumericLiteral && untilExpr.number == 0.0) ||
+                    (untilExpr is NumericLiteral && untilExpr.number == 0.0) ||
                     addressOfTargetType == nodeType
             if (!isValidUntil) {
                 errors.err("linked-list for loop 'until' must be a compatible node pointer or 0", forLoop.position)

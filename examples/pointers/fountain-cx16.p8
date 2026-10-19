@@ -69,17 +69,14 @@ main  {
     }
 
     sub clear_particles() {
-        ^^Particle pp = particles
-        while pp!=0 {
+        for ^^Particle pp in particles {
             cx16.FB_cursor_position(pp.x as uword, pp.y as uword)
             cx16.FB_set_pixel(0)
-            pp = pp.next
         }
     }
 
     sub update_particles() {
-        ^^Particle pp = particles
-        while pp!=0 {
+        for ^^Particle pp in particles {
             pp.speedy += GRAVITY
             pp.x += pp.speedx
             pp.y += pp.speedy
@@ -97,8 +94,6 @@ main  {
 
             if pp.brightness>=7
                 pp.brightness -= 7
-
-            pp = pp.next
         }
     }
 }

@@ -295,7 +295,7 @@ class TestCompilerOnExamplesBothC64andCx16: FunSpec({
             ExampleSizes("textelite", c64SizeOptimized=11227, c64SizeUnoptimized=12146, cx16SizeOptimized=10746, cx16SizeUnoptimized=12788),
             ExampleSizes("pointers/animalgame", c64SizeOptimized=1965, c64SizeUnoptimized=2521, cx16SizeOptimized=1991, cx16SizeUnoptimized=2801),
             ExampleSizes("pointers/binarytree", c64SizeOptimized=2672, c64SizeUnoptimized=2735, cx16SizeOptimized=2175, cx16SizeUnoptimized=2487),
-            ExampleSizes("pointers/hashtable", c64SizeOptimized=3388, c64SizeUnoptimized=4217, cx16SizeOptimized=2911, cx16SizeUnoptimized=3788),
+            ExampleSizes("pointers/hashtable", c64SizeOptimized=3388, c64SizeUnoptimized=4207, cx16SizeOptimized=2911, cx16SizeUnoptimized=3782),
             ExampleSizes("pointers/sortedlist", c64SizeOptimized=1353, c64SizeUnoptimized=3137, cx16SizeOptimized=1291, cx16SizeUnoptimized=3358),
             ExampleSizes("pointers/sorting", c64SizeOptimized=1776, c64SizeUnoptimized=2523, cx16SizeOptimized=1788, cx16SizeUnoptimized=2653),
         ),

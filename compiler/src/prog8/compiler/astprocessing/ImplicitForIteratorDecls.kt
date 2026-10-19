@@ -42,7 +42,7 @@ class ImplicitForIteratorDecls(
             return emptyList()
 
         val elementType = if (isLinked) {
-            linkedNodeType(forLoop, iterableType) ?: return emptyList()
+            linkedNodeType(iterableType) ?: return emptyList()
         } else {
             iterableType.elementType()
         }
@@ -179,7 +179,7 @@ class ImplicitForIteratorDecls(
         }
     }
 
-    private fun linkedNodeType(forLoop: ForLoop, iterableType: DataType): DataType? {
+    private fun linkedNodeType(iterableType: DataType): DataType? {
         if (iterableType.isPointer) {
             val subType = iterableType.dereference().subType
             val forwardLinks = listOf("next", "succ")
