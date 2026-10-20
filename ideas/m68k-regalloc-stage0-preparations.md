@@ -27,6 +27,12 @@ Key constraints carried through all stages:
 - The stack-frame model is already implemented (`StackFrameLayout`); parameters
   and locals of framed subroutines live in A5 frames.
 
+**Stage 2 caveat (resolved):** compiler-generated sequences no longer clobber
+`d2`–`d4`. Byte multiply and 68020+ long divide-immediate now use the standard
+scratch set (`d0`/`d1`/`a0`/`a1`), and `translateSyscallSplitWordarrayContains`
+saves/restores `d2`–`d4` with `movem`. The full data-register pool `d2`–`d6` is
+allocatable.
+
 ## Item 1 - Catalog every bsr/jsr the backend emits
 
 **Goal:** Produce the definitive list of hidden call boundaries (bsr/jsr with no
@@ -102,6 +108,17 @@ translators.
 harness, once available; otherwise manual diff on a sample).
 
 **Compiler-stability gate:** Byte-identical output; compiler behavior unchanged.
+
+## Item 3 - Status (completed)
+
+Named constants `SCRATCH_D0`..`SCRATCH_FP1` added to `AsmGen.kt`. All ad hoc
+`d0`/`d1`/`a0`/`a1`/`fp0`/`fp1` references in `emitLine` strings across
+`AsmGen.kt` and the translator files (`InstrArithmetic`, `InstrBitwise`,
+`InstrControl`, `InstrLoadStore`, `InstrBranch`, `InstrSyscall`) now route
+through the constants. Core helpers
+`emitLoadD0`/`emitStoreD0`/`emitLoadD0FromAddress`/`emitStoreD0ToAddress`,
+`loadRegOrZeroExtendToD0`, `loadPointerToA0`, `loadIndexToD0` also use them.
+Output is byte-identical.
 
 ## Item 4 - Make helper call sites convention-clean
 
@@ -212,18 +229,6 @@ whether the argument vreg is actually in `p8_regfile`/stack, leaving the
 register-allocated path to the allocator's own call-boundary marshalling. No
 structural change needed for bring-up.
 
-## Item 3 - Status (partial)
-
-Named constants `SCRATCH_D0`..`SCRATCH_FP1` added to `AsmGen.kt`. Core helpers
-`emitLoadD0`/`emitStoreD0`/`emitLoadD0FromAddress`/`emitStoreD0ToAddress`,
-`loadRegOrZeroExtendToD0`, `loadPointerToA0`, `loadIndexToD0` migrated to use
-them. The remaining ad hoc `d0`/`d1`/`a0`/`a1`/`fp0`/`fp1` references in
-emitLine strings across `AsmGen.kt` and the translator files
-(`InstrArithmetic`, `InstrBitwise`, `InstrControl`, `InstrLoadStore`,
-`InstrBranch`, `InstrSyscall`) are left for the Stage 1 `operand()` refactor,
-which supersedes them. Constants are in place and available for incremental
-migration.
-
 ## Item 4 - Status
 
 Helper call sites (longmath, sqrt, strcmp, startup, Amiga CALLFAR) already use
@@ -232,6 +237,11 @@ load/save A6 for Amiga library bases. D7 is reserved and not clobbered by
 helpers (repeat-loop save/restore lives in the backend's own repeat handling).
 No code change required; convention is already clean. The allocator (Stage 2)
 must still model these as hidden call boundaries (Item 1 catalog).
+
+**Resolved for Stage 2:** compiler-generated sequences no longer clobber `d2`–
+`d4`. Byte multiply and 68020+ long divide-immediate were rewritten to use the
+standard scratch set, and `translateSyscallSplitWordarrayContains` now saves and
+restores `d2`–`d4` with `movem`.
 
 ## Item 2 - Status
 

@@ -102,6 +102,21 @@ With an allocated pointer in `a2`:
 
 The float regfile address fallback stays for spilled pointers.
 
+### Float indexed operations
+
+Float indexed operands also re-select addressing modes. With an allocated index
+in `d3` and scale 1:
+
+```asm
+    lea     base, a0
+    fmove.s (0,a0,d3.l), fp0
+```
+
+**Scale handling:** when the index is allocated and the scale is not 1, the
+allocated path emits `(0,a0,dX.l*scale)` on 68020+ (hardware-encoded scale).
+The non-allocated path still scales correctly in software, keeping empty-map
+output byte-identical.
+
 ## Implementation order
 
 1. Ensure `AsmGen.operand()` can report whether a `RegisterOperand` is allocated
@@ -122,11 +137,29 @@ The float regfile address fallback stays for spilled pointers.
 **Implemented.** `resolveMemory()` now checks `operandAsDataReg`/`operandAsAddressReg` for
 indexed and indirect references. When the index/pointer vreg is allocated to a
 register of the correct class, the addressing mode uses it directly (hardware-encoded
-scales on 68020+ for indexed; `(off, reg)` for indirect). Otherwise it falls back
-to the existing scratch staging (`d0`/`a0`), keeping empty-map output byte-identical.
-Float indirect uses the allocated pointer when available; float indexed stays on
-scratch staging (conservative). Helpers `operandAsDataReg`/`operandAsAddressReg`
-added to `AsmGen`.
+scales on 68020+ for indexed (including float); `(off, reg)` for indirect).
+Otherwise it falls back to the existing scratch staging (`d0`/`a0`), keeping
+empty-map output byte-identical. Float indirect uses the allocated pointer when
+available; float indexed uses the allocated data register with hardware scale.
+Helpers `operandAsDataReg`/`operandAsAddressReg` added to `AsmGen`.
+
+**Deferred to Stage 2:** Two opcode groups are not yet location-agnostic and
+will break once `regAllocation` is populated:
+
+1. **`JUMPI`/`CALLI` memory-indirect addressing on 68020+.** The 68020+ path emits
+   `jmp ([operand(reg)])` / `jsr ([operand(reg)])`, which requires an
+   address-register base. With an empty map `operand(reg)` is a regfile address
+   and the mode is valid; with an allocated data register it is not. Fixing this
+   belongs to Stage 2 because it requires the allocator to honor the
+   `INDIRECT_TARGET` / `PREFER_ADDRESS` class constraint (or a fallback to `a0`
+   staging when the constraint cannot be met).
+
+2. **Memory-form word shifts/rotates in `InstrBitwise.kt`.** `LSRM`, `ROLM`,
+   `ROXLM`, etc. emit `op.w  operand(reg)`, which is only valid when the operand
+   is a memory address. With an allocated data register the instruction is
+   misinterpreted as a register-count shift. This requires either a spill policy
+   that keeps these operands in memory or instruction re-selection to the
+   register form when the operand is allocated — both allocator-stage concerns.
 
 With an empty allocation map, output must still be byte-identical to Stage 1A.
 With a populated map, indexed/indirect operands should use the allocated

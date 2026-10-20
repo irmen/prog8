@@ -141,8 +141,8 @@ what makes the large mechanical refactor safe to land and review on its own.
   Stage 1.
 - Build and tests pass (`:codeGenM68k:compileKotlin`, `:codeGenM68k:test`).
 
-Still blocked on open decision §7.1 #2 (class-constraint mechanism):
-- Indexed/indirect addressing-mode re-selection (LOADX/STOREX/LOADI/STOREI/
-  STOREZX and float variants). The current code keeps using scratch registers
-  (a0/d0) for these, which is the conservative fallback; no behavior change.
-  This will be implemented once the class-constraint mechanism is decided.
+Class-constraint mechanism (§7.1 #2) implemented: `AllocationHint` on
+`RegisterOperand`, `resolvedAllocationHint` for role-based defaults, and
+`IRTextCodec.parseRegisterOperand` reconstructing the hint from the slot role so
+it survives `.p8ir` round-trips. Indexed/indirect addressing-mode re-selection
+is implemented in Stage 1B.

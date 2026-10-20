@@ -599,8 +599,10 @@ internal class AsmGen(val program: IRProgram, internal val target: ICompilationT
      * (lea for a symbol/index base, index register loading/scaling, or a pointer load into a0).
      * This replaces the old ad-hoc decoding of address/labelSymbol/symbolOffset/reg2/scale fields
      * that used to be duplicated across every load/store opcode and the memory-operand arithmetic ops.
-     * [forFloat] selects the FPU indexed/indirect addressing conventions (32-bit d0.l index,
-     * unconditional addIndirectOffset) used by the float load/store opcodes.
+     * [forFloat] selects the FPU indexed/indirect addressing conventions: a 32-bit index
+     * (d0.l, or the allocated data register .l) with manual scaling when not allocated, and
+     * address-register indirect addressing for pointers (falling back to a0 when not allocated
+     * to an address register).
      */
     fun resolveMemory(memory: MemoryReference, forFloat: Boolean = false): String {
         return when (memory) {
@@ -632,7 +634,12 @@ internal class AsmGen(val program: IRProgram, internal val target: ICompilationT
                         "(0, $SCRATCH_A0, $SCRATCH_D0.l)"
                     } else {
                         emitLine("lea  $baseAddr, $SCRATCH_A0")
-                        "(0, $SCRATCH_A0, $idxPhys.l)"
+                        when {
+                            scale == 2 -> "(0, $SCRATCH_A0, $idxPhys.l*2)"
+                            scale == 4 -> "(0, $SCRATCH_A0, $idxPhys.l*4)"
+                            scale == 8 -> "(0, $SCRATCH_A0, $idxPhys.l*8)"
+                            else -> "(0, $SCRATCH_A0, $idxPhys.l)"
+                        }
                     }
                 } else {
                     if (!useAllocated) {

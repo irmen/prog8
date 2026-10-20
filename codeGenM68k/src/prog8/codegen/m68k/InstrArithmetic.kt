@@ -309,11 +309,11 @@ private fun AsmGen.emitMulOp(dstReg: Int, srcReg: Int?, type: IRDataType, unsign
                     emitLoadD0(dstReg, IRDataType.BYTE)
                     if (unsigned) emitLine("and.l  #\$ff, $SCRATCH_D0") else emitSignExtendByteToLong(SCRATCH_D0)
                     invalidateD0Cache()
-                    emitLine("move.w  $SCRATCH_D0, d2")
+                    emitLine("move.w  $SCRATCH_D0, $SCRATCH_D1")
                     emitLoadD0(srcReg, IRDataType.BYTE)
                     if (unsigned) emitLine("and.l  #\$ff, $SCRATCH_D0") else emitSignExtendByteToLong(SCRATCH_D0)
                     invalidateD0Cache()
-                    emitLine("$op.w  d2, $SCRATCH_D0")
+                    emitLine("$op.w  $SCRATCH_D1, $SCRATCH_D0")
                     invalidateD0Cache()
                     emitStoreD0(dstReg, IRDataType.BYTE)
                 }
@@ -328,11 +328,10 @@ private fun AsmGen.emitMulOp(dstReg: Int, srcReg: Int?, type: IRDataType, unsign
                 target != null -> {
                     emitLine("move.b  $target, $SCRATCH_D1")
                     if (unsigned) emitLine("and.l  #\$ff, $SCRATCH_D1") else emitSignExtendByteToLong(SCRATCH_D1)
-                    emitLine("move.w  $SCRATCH_D1, d2")
                     emitLoadD0(dstReg, IRDataType.BYTE)
                     if (unsigned) emitLine("and.l  #\$ff, $SCRATCH_D0") else emitSignExtendByteToLong(SCRATCH_D0)
                     invalidateD0Cache()
-                    emitLine("$op.w  d2, $SCRATCH_D0")
+                    emitLine("$op.w  $SCRATCH_D1, $SCRATCH_D0")
                     invalidateD0Cache()
                     emitStoreD0ToAddress(target, IRDataType.BYTE)
                 }
@@ -594,8 +593,8 @@ private fun AsmGen.emitModOp(dstReg: Int, srcReg: Int?, type: IRDataType, unsign
                     }
                     imm != null -> {
                         emitLoadD0(dstReg, IRDataType.LONG)
-                        emitLine("move.l  #${imm}, d2", "divisor")
-                        emitLine("$opLong  d2, $SCRATCH_D1:$SCRATCH_D0")
+                        emitLine("move.l  #${imm}, $SCRATCH_D1", "divisor")
+                        emitLine("$opLong  $SCRATCH_D1, $SCRATCH_D1:$SCRATCH_D0")
                         invalidateD0Cache()
                         invalidateD0CacheForSlot(dstReg)
                         emitLine("move.l  $SCRATCH_D1, ${operand(dstReg)}", "remainder")

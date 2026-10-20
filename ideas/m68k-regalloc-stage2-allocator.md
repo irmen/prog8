@@ -1,7 +1,12 @@
 # M68k Register Allocation - Stage 2: The Allocator
 
 **Parent design:** `ideas/m68k-register-allocation.md`
-**Prerequisite:** Stage 1 gate green (byte-identical output with empty map).
+**Prerequisite:** Stage 0 complete, including Item 2 (byte-identical golden
+harness in place and green). Do not start Stage 2 without the corpus harness;
+it is the only automated defense against empty-map regressions once the
+allocator begins populating `regAllocation`.
+**Additional prerequisite:** Stage 1A and Stage 1B gates green (byte-identical
+output with empty allocation map).
 **Additional prerequisite:** Decisions §7.1 items 1-4 of the design resolved and
 recorded (see "Decisions required before implementation" below).
 **Status:** Design decided at convention level; internals (§7.1) must be closed
@@ -35,6 +40,33 @@ convention, IR format 8, stack model already implemented):
   float -> FP0; multi-value -> unchanged (memory slots/LOADHR).
 - asmsub/extsub boundaries are not uniform CALLs; they carry per-call-site
   metadata (regs read, defined, destroyed) (§2.6).
+
+## Known blockers carried from Stage 1B
+
+Stage 1B deliberately left two opcode groups location-agnostic in name only.
+They generate correct assembly with the empty `regAllocation` map but will break
+once the allocator populates it. These must be resolved as part of Stage 2.
+
+### `JUMPI`/`CALLI` memory-indirect addressing on 68020+
+
+`InstrControl.kt` emits `jmp ([operand(reg)])` / `jsr ([operand(reg)])` on
+68020+. Memory-indirect addressing requires an address-register base. With an
+empty map `operand(reg)` is a regfile address and the mode is valid; with an
+allocated data register it is not.
+
+**Fix:** honor the `INDIRECT_TARGET` / `PREFER_ADDRESS` class constraint in the
+allocator, with an `a0` staging fallback for cases where the pointer vreg cannot
+be kept in an address register.
+
+### Memory-form word shifts/rotates in `InstrBitwise.kt`
+
+`LSRM`, `ROLM`, `ROXLM`, etc. emit `op.w  operand(reg)`. This is only valid
+when the operand resolves to a memory address. With an allocated data register
+the instruction is misinterpreted as a register-count shift/rotate.
+
+**Fix:** either (a) keep these operands spilled to memory via allocator spill
+policy, or (b) re-select to the register form (`move addr,d0` / `shift #1,d0` /
+`move d0,addr`) when the operand is register-resident.
 
 ## Register classes (§4)
 

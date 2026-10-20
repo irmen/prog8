@@ -118,6 +118,7 @@ private fun AsmGen.translateSyscallSplitWordarrayContains(site: CallSite) {
     val labelDone = makeLabel(".swc_done")
 
     emitLoadD0(regElem, IRDataType.WORD)
+    emitLine("movem.l  d2-d4,-(sp)")
     emitLine("move.l  ${operand(regArr)}, $SCRATCH_A0")     // a0 = lsb array start
     emitLine("move.w  ${operand(regLen)}, $SCRATCH_D1")     // d1 = element count
     emitLine("move.w  $SCRATCH_D1, d2")
@@ -137,6 +138,7 @@ private fun AsmGen.translateSyscallSplitWordarrayContains(site: CallSite) {
     emitRaw("$labelFound:")
     emitLine("move.b  #1, ${regAddrByte(resultReg, 0)}")
     emitRaw("$labelDone:")
+    emitLine("movem.l  (sp)+,d2-d4")
 }
 
 private fun AsmGen.translateSyscallFloatarrayContains(site: CallSite) {
