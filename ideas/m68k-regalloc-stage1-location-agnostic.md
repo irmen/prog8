@@ -121,12 +121,28 @@ With an empty allocation map, the generated assembly must be byte-identical to
 the pre-change output for the test corpus (Stage 0 item 2 harness). This is
 what makes the large mechanical refactor safe to land and review on its own.
 
-## Compiler-stability gate
+## Status (implemented) — Stage 1b
 
-- Compiler builds (`gradle :compiler:compileKotlin`).
-- Full test suite passes (`gradle build`).
-- Byte-identical output for the corpus (harness green).
-- No change to compiler behavior; only internal indirection added.
+- `operand()` / `storeOperand()` added to `AsmGen` (Int and `RegisterOperand`
+  overloads) plus `floatOperand()`; all consult the (empty) `regAllocation` map
+  and delegate to `regAddr`/`floatRegFileAddr` when not mapped — byte-identical
+  by construction.
+- All `regAddr(` → `operand(` and `floatRegFileAddr(` → `floatOperand(` in the
+  six translator files (`InstrArithmetic`, `InstrBitwise`, `InstrBranch`,
+  `InstrControl`, `InstrLoadStore`, `InstrSyscall`); `regAddrByte` (byte
+  sub-access, must-be-spilled) left untouched.
+- `regAllocation` map property added (empty in Stage 1).
+- `regAddr`/`floatRegFileAddr`/`regAddrByte` remain as the spill primitives.
+- Debug assertion added: `operand()`/`floatOperand()` throw if the map assigns
+  a vreg to a scratch or reserved register (d0/d1/a0/a1/fp0/fp1/d7/a5/a6).
+- CALL boundary modeling: no ad hoc kill lists existed in the backend; CALL
+  handling already consumes `CallSite.effects` (`memoryEffect`/`statusEffect`)
+  via `insn.memoryEffect`/`insn.statusEffect`. Nothing further required for
+  Stage 1.
+- Build and tests pass (`:codeGenM68k:compileKotlin`, `:codeGenM68k:test`).
 
-If the checkpoint fails, the refactor introduced a behavioral change and must be
-fixed before proceeding. Do not start Stage 2 until this gate is green.
+Still blocked on open decision §7.1 #2 (class-constraint mechanism):
+- Indexed/indirect addressing-mode re-selection (LOADX/STOREX/LOADI/STOREI/
+  STOREZX and float variants). The current code keeps using scratch registers
+  (a0/d0) for these, which is the conservative fallback; no behavior change.
+  This will be implemented once the class-constraint mechanism is decided.

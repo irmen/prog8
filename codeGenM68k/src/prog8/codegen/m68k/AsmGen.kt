@@ -7,6 +7,16 @@ import kotlin.math.max
 internal const val FP_ACC = "fp0"   // primary FPU scratch / accumulator
 internal const val FP_SRC = "fp1"   // secondary FPU scratch / source operand
 
+// Scratch registers: permanently reserved as translator scratch (Stage 0, item 3).
+// These never hold an allocated vreg. Route all references through these constants
+// so the scratch set is explicit and auditable.
+internal const val SCRATCH_D0 = "d0"
+internal const val SCRATCH_D1 = "d1"
+internal const val SCRATCH_A0 = "a0"
+internal const val SCRATCH_A1 = "a1"
+internal const val SCRATCH_FP0 = "fp0"
+internal const val SCRATCH_FP1 = "fp1"
+
 /**
  * The virtual register that an instruction writes into its primary destination slot,
  * but only when that slot is a pure definition (not a read-modify-write). This is the
@@ -106,6 +116,21 @@ internal fun nativeFloatConst(value: Double): String? = when (value) {
 internal class AsmGen(val program: IRProgram, internal val target: ICompilationTarget, internal val errors: IErrorReporter? = null) {
     private val output = StringBuilder()
     private val regsUsed by lazy { program.registersUsed() }
+    // Stage 1: location-agnostic indirection. Empty by default (Stage 1 checkpoint);
+    // Stage 2 populates vreg -> physical-register mapping. Keyed on VirtualRegister.
+    internal val regAllocation: MutableMap<VirtualRegister, String> = mutableMapOf()
+
+    // Scratch + reserved registers must never hold an allocated vreg (§2.3, §2.5).
+    //   SCRATCH_D0/D1/A0/A1/FP0/FP1: permanent translator scratch (§2.3).
+    //   d7: physical repeat-loop counter (§2.5); clobbered by backend helpers.
+    //   a5: frame pointer (§2.5); a6: AmigaOS library base (§2.5).
+    //   a7: stack pointer (hardware); never a vreg target.
+    private val nonAllocatableRegs = setOf(SCRATCH_D0, SCRATCH_D1, SCRATCH_A0, SCRATCH_A1, SCRATCH_FP0, SCRATCH_FP1, "d7", "a5", "a6", "a7")
+
+    private fun assertAllocatable(phys: String?) {
+        if (phys != null && phys.lowercase() in nonAllocatableRegs)
+            error("allocator assigned a vreg to non-allocatable register $phys")
+    }
     internal val cpu get() = target.cpu
 
     companion object {
@@ -136,7 +161,7 @@ internal class AsmGen(val program: IRProgram, internal val target: ICompilationT
     // WHY IT EXISTS / WHAT IT ACTUALLY WINS
     //   The codegen funnels every virtual-register operand through d0
     //   (`move p8_regfile+N,d0` ... op ... `move d0,p8_regfile+M`). The cache
-    //   remembers "d0 currently holds virtual register rX of type T" and skips
+    //   remembers "$SCRATCH_D0 currently holds virtual register rX of type T" and skips
     //   a reload when the very same value is read again with no d0-clobbering
     //   instruction in between.
     //
@@ -153,7 +178,7 @@ internal class AsmGen(val program: IRProgram, internal val target: ICompilationT
     //   intervening ALU ops). If a program shows no delta, that is why.
     //
     // CORRECTNESS INVARIANT (read carefully, the obvious one is wrong)
-    //   It is tempting to say "the cache is safe because move.x mem,d0 does not
+    //   It is tempting to say "the cache is safe because move.x mem,$SCRATCH_D0 does not
     //   set CCR". That is FALSE on m68k: move.x to a data register DOES set N/Z
     //   (only movea leaves CCR alone). The cache is safe for a subtler reason:
     //   no emitted sequence ever consumes the N/Z flags left by a `move ...,d0`.
@@ -214,7 +239,7 @@ internal class AsmGen(val program: IRProgram, internal val target: ICompilationT
     fun emitLoadD0(reg: Int, type: IRDataType) {
         if (d0CacheReg == reg && d0CacheType == type)
             return
-        emitLine("move${dtSuffix(type)}  ${regAddr(reg)}, d0")
+        emitLine("move${dtSuffix(type)}  ${regAddr(reg)}, $SCRATCH_D0")
         d0CacheReg = reg
         d0CacheType = type
     }
@@ -222,7 +247,7 @@ internal class AsmGen(val program: IRProgram, internal val target: ICompilationT
     // Store d0 to a virtual register and update the cache to reflect that d0
     // still holds that value.
     fun emitStoreD0(reg: Int, type: IRDataType) {
-        emitLine("move${dtSuffix(type)}  d0, ${regAddr(reg)}")
+        emitLine("move${dtSuffix(type)}  $SCRATCH_D0, ${regAddr(reg)}")
         d0CacheReg = reg
         d0CacheType = type
     }
@@ -235,7 +260,7 @@ internal class AsmGen(val program: IRProgram, internal val target: ICompilationT
             emitLoadD0(reg, type)
         } else {
             invalidateD0Cache()
-            emitLine("move${dtSuffix(type)}  $address, d0")
+            emitLine("move${dtSuffix(type)}  $address, $SCRATCH_D0")
         }
     }
 
@@ -247,7 +272,7 @@ internal class AsmGen(val program: IRProgram, internal val target: ICompilationT
             emitStoreD0(reg, type)
         } else {
             invalidateD0Cache()
-            emitLine("move${dtSuffix(type)}  d0, $address")
+            emitLine("move${dtSuffix(type)}  $SCRATCH_D0, $address")
         }
     }
 
@@ -385,6 +410,49 @@ internal class AsmGen(val program: IRProgram, internal val target: ICompilationT
         return "$REGFILE_LABEL+$offset"
     }
 
+    // Stage 1 location-agnostic indirection. With an empty regAllocation map these
+    // delegate to regAddr/floatRegFileAddr, so output is byte-identical (checkpoint).
+    fun operand(reg: Int): String {
+        // int vreg; consult map (keyed by IntReg). Empty map -> regfile address.
+        val vreg = VirtualRegister.IntReg(RegisterNum(reg))
+        val phys = regAllocation[vreg]
+        assertAllocatable(phys)
+        if (phys != null) return phys
+        return regAddr(reg)
+    }
+
+    fun storeOperand(reg: Int): String = operand(reg)
+
+    fun operand(op: RegisterOperand): String {
+        val vreg = op.register
+        val phys = regAllocation[vreg]
+        assertAllocatable(phys)
+        if (phys != null) return phys
+        return if (op.isFloat) floatRegFileAddr(op.number) else regAddr(op.registerNumber)
+    }
+
+    fun storeOperand(op: RegisterOperand): String = operand(op)
+
+    fun floatOperand(reg: RegisterNum): String {
+        val vreg = VirtualRegister.FloatReg(reg)
+        val phys = regAllocation[vreg]
+        assertAllocatable(phys)
+        if (phys != null) return phys
+        return floatRegFileAddr(reg)
+    }
+
+    // Stage 1B helpers: return the physical register name only if the operand is
+    // allocated to a register of the required class; null => fall back to scratch.
+    fun operandAsDataReg(op: RegisterOperand): String? {
+        val phys = regAllocation[op.register] ?: return null
+        return if (phys.lowercase() in setOf("d2", "d3", "d4", "d5", "d6")) phys else null
+    }
+
+    fun operandAsAddressReg(op: RegisterOperand): String? {
+        val phys = regAllocation[op.register] ?: return null
+        return if (phys.lowercase() in setOf("a2", "a3", "a4")) phys else null
+    }
+
     private fun regNumForOffset(offset: Int): Int? =
         regFileLayout.offsets.entries.find { it.value == offset }?.key
 
@@ -424,7 +492,7 @@ internal class AsmGen(val program: IRProgram, internal val target: ICompilationT
         }
         if (sizeOf(regType) < sizeOf(requiredType)) {
             // Zero-extend: clear d0 (clobbers any cached value) and load the narrow part.
-            emitLine("moveq  #0, d0")
+            emitLine("moveq  #0, $SCRATCH_D0")
             invalidateD0Cache()
             emitLoadD0(reg, regType)
             // d0 now holds the zero-extended wider value.
@@ -437,12 +505,12 @@ internal class AsmGen(val program: IRProgram, internal val target: ICompilationT
     fun loadPointerToA0(reg: Int) {
         // load a 32-bit pointer from the register file into a0
         frameVregAddr(reg)?.let {
-            emitLine("movea.l  $it, a0")
+            emitLine("movea.l  $it, $SCRATCH_A0")
             return
         }
         val offset = regFileLayout.offsets[reg] ?: error("register r$reg has no layout info")
         val addr = if (offset == 0) REGFILE_LABEL else "$REGFILE_LABEL+$offset"
-        emitLine("movea.l  $addr, a0")
+        emitLine("movea.l  $addr, $SCRATCH_A0")
     }
 
 
@@ -496,7 +564,7 @@ internal class AsmGen(val program: IRProgram, internal val target: ICompilationT
     private fun loadIndexToD0(idx: Int) {
         if (regType(idx) == IRDataType.BYTE) {
             invalidateD0Cache()                 // moveq clobbers d0
-            emitLine("moveq  #0, d0")
+            emitLine("moveq  #0, $SCRATCH_D0")
             emitLoadD0(idx, IRDataType.BYTE)    // cache as byte; consumer widens
         } else {
             emitLoadD0(idx, IRDataType.WORD)    // cache as word; consumer widens
@@ -505,9 +573,9 @@ internal class AsmGen(val program: IRProgram, internal val target: ICompilationT
 
     private fun addIndirectOffset(offset: Int) {
         when (offset) {
-            in 1..8 -> emitLine("addq.l  #$offset, a0")
-            in -8..-1 -> emitLine("subq.l  #${-offset}, a0")
-            else -> emitLine("adda.l  #$offset, a0")
+            in 1..8 -> emitLine("addq.l  #$offset, $SCRATCH_A0")
+            in -8..-1 -> emitLine("subq.l  #${-offset}, $SCRATCH_A0")
+            else -> emitLine("adda.l  #$offset, $SCRATCH_A0")
         }
     }
 
@@ -541,56 +609,88 @@ internal class AsmGen(val program: IRProgram, internal val target: ICompilationT
                 val idx = memory.index.intNumber
                 val scale = memory.scale
                 val baseAddr = resolveMemoryBase(memory.base, memory.displacement)
+                val idxPhys = operandAsDataReg(memory.index)
+                // Allocated path: use the index register directly in the addressing mode
+                // when no manual staging/scaling is required (hardware-encoded scales on 68020+).
+                val useAllocated = idxPhys != null && (scale == 1 ||
+                    (program.options.compTarget.cpu >= CpuType.M68020 && scale in setOf(2, 4, 8)))
                 if (forFloat) {
-                    // full-width d0.l indexing requires zero-extending the word index to 32 bits
-                    invalidateD0Cache()                 // moveq clobbers d0
-                    emitLine("moveq  #0, d0")
-                    emitLoadD0(idx, IRDataType.WORD)    // cache as word; d0.l widens it
-                    if (scale != 1) {
-                        invalidateD0Cache()             // scaling transforms d0
-                        when (scale) {
-                            2 -> emitLine("add.l  d0,d0")
-                            4 -> emitLine("lsl.l  #2, d0")
-                            8 -> emitLine("lsl.l  #3, d0")
-                            else -> emitLine("muls.w  #$scale, d0")
-                        }
-                    }
-                    emitLine("lea  $baseAddr, a0")
-                    "(0, a0, d0.l)"
-                } else {
-                    loadIndexToD0(idx)
-                    if (scale != 1) {
-                        invalidateD0Cache()             // scaling transforms d0
-                        if (program.options.compTarget.cpu >= CpuType.M68020) {
-                            if (scale != 2 && scale != 4 && scale != 8) emitLine("muls.w  #$scale, d0")
-                        } else {
+                    if (!useAllocated) {
+                        invalidateD0Cache()
+                        emitLine("moveq  #0, $SCRATCH_D0")
+                        emitLoadD0(idx, IRDataType.WORD)
+                        if (scale != 1) {
+                            invalidateD0Cache()
                             when (scale) {
-                                2 -> emitLine("add.w  d0,d0")
-                                4 -> emitLine("lsl.w  #2, d0")
-                                else -> emitLine("muls.w  #$scale, d0")
+                                2 -> emitLine("add.l  $SCRATCH_D0,$SCRATCH_D0")
+                                4 -> emitLine("lsl.l  #2, $SCRATCH_D0")
+                                8 -> emitLine("lsl.l  #3, $SCRATCH_D0")
+                                else -> emitLine("muls.w  #$scale, $SCRATCH_D0")
                             }
                         }
+                        emitLine("lea  $baseAddr, $SCRATCH_A0")
+                        "(0, $SCRATCH_A0, $SCRATCH_D0.l)"
+                    } else {
+                        emitLine("lea  $baseAddr, $SCRATCH_A0")
+                        "(0, $SCRATCH_A0, $idxPhys.l)"
                     }
-                    emitLine("lea  $baseAddr, a0")
-                    when {
-                        program.options.compTarget.cpu >= CpuType.M68020 && scale == 2 -> "(a0,d0.w*2)"
-                        program.options.compTarget.cpu >= CpuType.M68020 && scale == 4 -> "(a0,d0.w*4)"
-                        program.options.compTarget.cpu >= CpuType.M68020 && scale == 8 -> "(a0,d0.w*8)"
-                        else -> "(a0,d0.w)"
+                } else {
+                    if (!useAllocated) {
+                        loadIndexToD0(idx)
+                        if (scale != 1) {
+                            invalidateD0Cache()
+                            if (program.options.compTarget.cpu >= CpuType.M68020) {
+                                if (scale != 2 && scale != 4 && scale != 8) emitLine("muls.w  #$scale, $SCRATCH_D0")
+                            } else {
+                                when (scale) {
+                                    2 -> emitLine("add.w  $SCRATCH_D0,$SCRATCH_D0")
+                                    4 -> emitLine("lsl.w  #2, $SCRATCH_D0")
+                                    else -> emitLine("muls.w  #$scale, $SCRATCH_D0")
+                                }
+                            }
+                        }
+                        emitLine("lea  $baseAddr, $SCRATCH_A0")
+                        when {
+                            program.options.compTarget.cpu >= CpuType.M68020 && scale == 2 -> "($SCRATCH_A0,$SCRATCH_D0.w*2)"
+                            program.options.compTarget.cpu >= CpuType.M68020 && scale == 4 -> "($SCRATCH_A0,$SCRATCH_D0.w*4)"
+                            program.options.compTarget.cpu >= CpuType.M68020 && scale == 8 -> "($SCRATCH_A0,$SCRATCH_D0.w*8)"
+                            else -> "($SCRATCH_A0,$SCRATCH_D0.w)"
+                        }
+                    } else {
+                        emitLine("lea  $baseAddr, $SCRATCH_A0")
+                        when {
+                            scale == 2 -> "($SCRATCH_A0,$idxPhys.w*2)"
+                            scale == 4 -> "($SCRATCH_A0,$idxPhys.w*4)"
+                            scale == 8 -> "($SCRATCH_A0,$idxPhys.w*8)"
+                            else -> "($SCRATCH_A0,$idxPhys.w)"
+                        }
                     }
                 }
             }
             is MemoryReference.Indirect -> {
-                loadPointerToA0(memory.pointer.intNumber)
+                val ptrPhys = operandAsAddressReg(memory.pointer)
                 val off = memory.displacement
+                val useAllocated = ptrPhys != null && off in -32768..32767
+                if (!useAllocated) {
+                    loadPointerToA0(memory.pointer.intNumber)
+                }
+                val baseReg = if (useAllocated) ptrPhys else SCRATCH_A0
                 if (forFloat) {
-                    if (off != 0) addIndirectOffset(off)
-                    "(a0)"
+                    if (!useAllocated && off != 0) addIndirectOffset(off)
+                    if (useAllocated) {
+                        if (off == 0) "($baseReg)" else "($off,$baseReg)"
+                    } else {
+                        "($baseReg)"
+                    }
                 } else {
-                    when {
-                        off < -32768 || off > 32767 -> { addIndirectOffset(off); "(a0)" }
-                        off == 0 -> "(a0)"
-                        else -> "($off,a0)"
+                    if (!useAllocated) {
+                        when {
+                            off < -32768 || off > 32767 -> { addIndirectOffset(off); "($baseReg)" }
+                            off == 0 -> "($baseReg)"
+                            else -> "($off,$baseReg)"
+                        }
+                    } else {
+                        if (off == 0) "($baseReg)" else "($off,$baseReg)"
                     }
                 }
             }
@@ -611,8 +711,8 @@ internal class AsmGen(val program: IRProgram, internal val target: ICompilationT
             emitLine("fmovecr  #$native, $dstReg")
         } else {
             val label = makeFloatConstLabel(value)
-            emitLine("lea  $label, a0")
-            emitLine("fmove.s  (a0), $dstReg")
+            emitLine("lea  $label, $SCRATCH_A0")
+            emitLine("fmove.s  ($SCRATCH_A0), $dstReg")
         }
     }
 
@@ -720,7 +820,7 @@ internal class AsmGen(val program: IRProgram, internal val target: ICompilationT
             emitLine("bsr  ${fixNameSymbols("p8_sys_startup.init_system")}")
         emitLine("bsr  ${fixNameSymbols("p8_sys_startup.init_system_phase2")}")
         emitLine("bsr  ${fixNameSymbols("p8b_main.p8s_start")}")
-        emitLine("moveq  #0, d0", "normal return status 0")
+        emitLine("moveq  #0, $SCRATCH_D0", "normal return status 0")
         emitLine("bra  ${fixNameSymbols("p8_sys_startup.cleanup_at_exit")}")
     }
 
@@ -1029,17 +1129,17 @@ internal class AsmGen(val program: IRProgram, internal val target: ICompilationT
      */
     private fun emitFrameZeroLoop(startDisp: Int, longwords: Int) {
         invalidateD0Cache()     // moveq clobbers d0
-        emitLine("moveq  #0, d0")
-        emitLine("lea  $startDisp(a5), a0")
+        emitLine("moveq  #0, $SCRATCH_D0")
+        emitLine("lea  $startDisp(a5), $SCRATCH_A0")
         val iterations = longwords - 1
         if (iterations in 0..127)
-            emitLine("moveq  #$iterations, d1")
+            emitLine("moveq  #$iterations, $SCRATCH_D1")
         else
-            emitLine("move.w  #$iterations, d1")
+            emitLine("move.w  #$iterations, $SCRATCH_D1")
         val loopLabel = makeLabel("zeroloop")
         emitLabel(loopLabel)
-        emitLine("move.l  d0,(a0)+")
-        emitLine("dbra  d1,$loopLabel")
+        emitLine("move.l  $SCRATCH_D0,($SCRATCH_A0)+")
+        emitLine("dbra  $SCRATCH_D1,$loopLabel")
         invalidateD0Cache()
     }
 

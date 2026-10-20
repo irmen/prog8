@@ -2,8 +2,8 @@
 
 **Parent design:** `ideas/m68k-register-allocation.md`  
 **Prerequisite:** Stage 1A gate green (byte-identical output with empty allocation map).  
-**Additional prerequisite:** §7.1 decision #2 (class-constraint mechanism) recorded and implemented.  
-**Status:** Decided and delegable once the class-constraint mechanism is in place.  
+**Additional prerequisite:** §7.1 decision #2 (class-constraint mechanism) recorded and implemented. **DONE** — implemented as IR-level annotation: `AllocationHint` on `RegisterOperand`, with role-based default resolution (`resolvedAllocationHint` on `RegisterOperand`; `parseRegisterOperand` derives the hint from the slot role).  
+**Status:** Implemented (Stage 1B complete). Empty-map output byte-identical.  
 **Gate to next stage:** With an empty allocation map, generated assembly remains byte-identical to pre-change output for the test corpus. Compiler builds and tests pass.
 
 ## Background
@@ -117,7 +117,16 @@ The float regfile address fallback stays for spilled pointers.
    with the same pointer-register direct / scratch fallback pattern.
 7. Add tests for allocated and spilled cases.
 
-## Checkpoint (gate)
+## Implementation status
+
+**Implemented.** `resolveMemory()` now checks `operandAsDataReg`/`operandAsAddressReg` for
+indexed and indirect references. When the index/pointer vreg is allocated to a
+register of the correct class, the addressing mode uses it directly (hardware-encoded
+scales on 68020+ for indexed; `(off, reg)` for indirect). Otherwise it falls back
+to the existing scratch staging (`d0`/`a0`), keeping empty-map output byte-identical.
+Float indirect uses the allocated pointer when available; float indexed stays on
+scratch staging (conservative). Helpers `operandAsDataReg`/`operandAsAddressReg`
+added to `AsmGen`.
 
 With an empty allocation map, output must still be byte-identical to Stage 1A.
 With a populated map, indexed/indirect operands should use the allocated

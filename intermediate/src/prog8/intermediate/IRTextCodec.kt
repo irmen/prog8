@@ -313,7 +313,12 @@ object IRTextCodec {
         val type = explicitType
             ?: throw IRParseException("${schema.opcode}: register operand needs an explicit type: $token")
         val register = if (isFloat) VirtualRegister.float(number) else VirtualRegister.int(number)
-        return RegisterOperand(register, type, slotSchema.role, slotSchema.direction)
+        val hint = when (slotSchema.role) {
+            OperandRole.INDEX -> AllocationHint.PREFER_DATA
+            OperandRole.POINTER_BASE, OperandRole.INDIRECT_TARGET -> AllocationHint.PREFER_ADDRESS
+            else -> AllocationHint.NONE
+        }
+        return RegisterOperand(register, type, slotSchema.role, slotSchema.direction, hint)
     }
 
     private fun parseImmediate(token: String, slotSchema: ImmediateSlotSchema, schema: OpcodeSchema): ImmediateOperand {

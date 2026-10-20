@@ -207,13 +207,16 @@ gates are green and the liveness analysis handles `IRLoopChunk` correctly.
    `AsmGen`. This replaces `loadRegOrZeroExtendToD0` for register-resident
    operands; spilled operands keep the existing d0-based extension path.
 
-2. **Class-constraint mechanism (§4.1).** (DECIDED) IR-level annotation.
-   `RegisterOperand.allocationHint` already carries `PREFER_DATA` for `INDEX`
-   operands and `PREFER_ADDRESS` for `POINTER_BASE` / `INDIRECT_TARGET` operands
-   (set in `IRInstructionsFactory`). The Stage 2 allocator reads this hint and
-   assigns the vreg to the appropriate physical register class. If the vreg is
-   spilled, the hint is irrelevant and the translator falls back to the current
-   scratch-register staging.
+2. **Class-constraint mechanism (§4.1).** (IMPLEMENTED) IR-level annotation.
+   `RegisterOperand.allocationHint` carries `PREFER_DATA` for `INDEX` operands
+   and `PREFER_ADDRESS` for `POINTER_BASE` / `INDIRECT_TARGET` operands (set in
+   `IRInstructionsFactory`). `RegisterOperand.resolvedAllocationHint` falls back
+   to the role-based default when the hint is NONE, so the constraint survives
+   even when not explicitly set. `IRTextCodec.parseRegisterOperand` derives the
+   hint from the slot role, so it survives `.p8ir` round-trips. The Stage 2
+   allocator reads `resolvedAllocationHint` and assigns the vreg to the
+   appropriate physical register class; spilled vregs ignore the hint and the
+   translator falls back to scratch staging.
 
 3. **Spill-slot allocation policy (§5).** (DECIDED)
    - Compute worst-case spill demand per register class from the live-range

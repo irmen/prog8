@@ -74,6 +74,16 @@ data class RegisterOperand(
     val registerNumber: Int get() = register.number.value
     val isFloat: Boolean get() = register is VirtualRegister.FloatReg
 
+    /** Allocation hint resolved from the explicit annotation, falling back to the
+     *  role-based default so index/pointer/indirect-target operands always carry
+     *  a class constraint even when the hint was not explicitly set. */
+    val resolvedAllocationHint: AllocationHint
+        get() = if (allocationHint != AllocationHint.NONE) allocationHint else when (role) {
+            OperandRole.INDEX -> AllocationHint.PREFER_DATA
+            OperandRole.POINTER_BASE, OperandRole.INDIRECT_TARGET -> AllocationHint.PREFER_ADDRESS
+            else -> AllocationHint.NONE
+        }
+
     fun withRegister(newRegister: VirtualRegister): RegisterOperand =
         if (newRegister == register) this else copy(register = newRegister)
 }

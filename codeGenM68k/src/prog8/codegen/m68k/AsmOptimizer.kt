@@ -104,7 +104,7 @@ private fun optimizeRedundantLea(allPretrimmed: List<String>): List<Modification
             return null
         val operands = instr.substringAfter(' ').substringBefore(';')
         val parts = operands.split(',', limit = 2)
-        if (parts.size != 2 || parts[1].trim() != "a0")
+        if (parts.size != 2 || parts[1].trim() != SCRATCH_A0)
             return null
         return parts[0].trim()
     }
@@ -137,7 +137,7 @@ private fun optimizeRedundantLea(allPretrimmed: List<String>): List<Modification
             continue
         }
         // Any non-parenthesised mention of a0 means it is written
-        if (instr.replace(parenthesised, "").contains("a0", ignoreCase = true))
+        if (instr.replace(parenthesised, "").contains(SCRATCH_A0, ignoreCase = true))
             a0Base = null
     }
     return mods
@@ -145,7 +145,7 @@ private fun optimizeRedundantLea(allPretrimmed: List<String>): List<Modification
 
 /** Matches a parenthesised group, for stripping addressing modes. */
 private val parenthesised = Regex("""\([^)]*\)""")
-private val d0IndexOperand = Regex("""\(\s*a0\s*,\s*d0\.w(?:\*\d+)?\s*\)""")
+private val d0IndexOperand = Regex("""\(\s*$SCRATCH_A0\s*,\s*$SCRATCH_D0\.w(?:\*\d+)?\s*\)""")
 
 /** A single edit to apply: either remove a line (keeping its label if present) or replace it. */
 private class Modification(val lineIndex: Int, val remove: Boolean, val replacement: String?)
@@ -268,7 +268,7 @@ private fun optimizeRedundantReload(linesBy: Sequence<List<TrimmedLine>>): List<
         if (first.isMove() && second.isMove() && first.moveSize() == second.moveSize()) {
             val (src0, dst0) = first.moveOperands() ?: continue
             val (src1, dst1) = second.moveOperands() ?: continue
-            if (src0 == "d0" && dst1 == "d0" && dst0 == src1 && dst0.isSafeMemoryOperand()) {
+            if (src0 == SCRATCH_D0 && dst1 == SCRATCH_D0 && dst0 == src1 && dst0.isSafeMemoryOperand()) {
                 mods.add(Modification(lines[1].index, true, null))
             }
         }
@@ -297,14 +297,14 @@ private fun optimizeBounceToGlobal(linesBy: Sequence<List<TrimmedLine>>, allPret
         if (first.isMove() && second.isMove() && first.moveSize() == second.moveSize()) {
             val (src0, dst0) = first.moveOperands() ?: continue
             val (src1, dst1) = second.moveOperands() ?: continue
-            if (src0 == "d0" && dst1 != "d0" && dst0 == src1
+            if (src0 == SCRATCH_D0 && dst1 != SCRATCH_D0 && dst0 == src1
                 && dst0.isRegfileSlot() && dst1.isSafeMemoryOperand()
                 && !isSlotReadAfter(dst0, lines[1].index + 1, allPretrimmed)
             ) {
                 val size = first.moveSize()
                 val indent = lines[1].value.takeWhile { it.isWhitespace() }
                 mods.add(Modification(lines[0].index, true, null))   // remove regfile spill
-                mods.add(Modification(lines[1].index, false, "${indent}move.$size  d0, $dst1"))  // direct store
+                mods.add(Modification(lines[1].index, false, "${indent}move.$size  $SCRATCH_D0, $dst1"))  // direct store
             }
         }
     }
@@ -461,7 +461,7 @@ private fun optimizeMsigbSpill(linesBy: Sequence<List<TrimmedLine>>, allPretrimm
         if (firstSize != 'w' && firstSize != 'l') continue
         val (src0, dst0) = first.moveOperands() ?: continue
         val (src1, dst1) = second.moveOperands() ?: continue
-        if (dst1 != "d0") continue
+        if (dst1 != SCRATCH_D0) continue
         if (src1 != dst0) continue
         if (!dst0.isRegfileSlot()) continue
         if (src0.isRegfileSlot() || src0.isRegister()) continue
@@ -472,10 +472,10 @@ private fun optimizeMsigbSpill(linesBy: Sequence<List<TrimmedLine>>, allPretrimm
         val indent2 = lines[1].value.takeWhile { it.isWhitespace() }
         if (isSlotReadAfter(dst0, lines[1].index + 1, allPretrimmed)) {
             // keep spill, just rewrite the byte load to read directly from the symbol
-            mods.add(Modification(lines[1].index, false, "${indent2}move.b  $src0,d0"))
+            mods.add(Modification(lines[1].index, false, "${indent2}move.b  $src0,$SCRATCH_D0"))
         } else {
             mods.add(Modification(lines[0].index, true, null))
-            mods.add(Modification(lines[1].index, false, "${indent2}move.b  $src0,d0"))
+            mods.add(Modification(lines[1].index, false, "${indent2}move.b  $src0,$SCRATCH_D0"))
         }
     }
     return mods
@@ -538,7 +538,7 @@ private fun optimizeClampImmediate(allPretrimmed: List<String>, lines: MutableLi
         val sizeMin = instr[4]
         if (sizeMin != 'b' && sizeMin != 'w' && sizeMin != 'l') continue
         val cmpMinParts = instr.substringAfter(' ').trim().split(',', limit = 2).map { it.trim().substringBefore(';').trim() }
-        if (cmpMinParts.size != 2 || cmpMinParts[1] != "d0" || !cmpMinParts[0].isRegfileSlot()) continue
+        if (cmpMinParts.size != 2 || cmpMinParts[1] != SCRATCH_D0 || !cmpMinParts[0].isRegfileSlot()) continue
         val slotMin = cmpMinParts[0]
 
         val bgeInstr = filtered[idx+1].instruction
@@ -550,7 +550,7 @@ private fun optimizeClampImmediate(allPretrimmed: List<String>, lines: MutableLi
         if (!moveMinInstr.startsWith("move.")) continue
         if (moveMinInstr.moveSize() != sizeMin) continue
         val moveMinOps = moveMinInstr.moveOperands() ?: continue
-        if (moveMinOps.first != slotMin || moveMinOps.second != "d0") continue
+        if (moveMinOps.first != slotMin || moveMinOps.second != SCRATCH_D0) continue
 
         val braInstr = filtered[idx+3].instruction
         if (!braInstr.startsWith("bra ")) continue
@@ -563,7 +563,7 @@ private fun optimizeClampImmediate(allPretrimmed: List<String>, lines: MutableLi
         if (!cmpMaxInstr.startsWith("cmp.")) continue
         if (cmpMaxInstr[4] != sizeMin) continue
         val cmpMaxParts = cmpMaxInstr.substringAfter(' ').trim().split(',', limit = 2).map { it.trim().substringBefore(';').trim() }
-        if (cmpMaxParts.size != 2 || cmpMaxParts[1] != "d0" || !cmpMaxParts[0].isRegfileSlot()) continue
+        if (cmpMaxParts.size != 2 || cmpMaxParts[1] != SCRATCH_D0 || !cmpMaxParts[0].isRegfileSlot()) continue
         val slotMax = cmpMaxParts[0]
 
         val bleInstr = filtered[idx+6].instruction
@@ -575,7 +575,7 @@ private fun optimizeClampImmediate(allPretrimmed: List<String>, lines: MutableLi
         if (!moveMaxInstr.startsWith("move.")) continue
         if (moveMaxInstr.moveSize() != sizeMin) continue
         val moveMaxOps = moveMaxInstr.moveOperands() ?: continue
-        if (moveMaxOps.first != slotMax || moveMaxOps.second != "d0") continue
+        if (moveMaxOps.first != slotMax || moveMaxOps.second != SCRATCH_D0) continue
 
         val labelDoneLine = filtered[idx+8].trimmed
         if (!labelDoneLine.startsWith("$labelDone:")) continue
@@ -586,8 +586,8 @@ private fun optimizeClampImmediate(allPretrimmed: List<String>, lines: MutableLi
             val immMin = defineMin.second
             val indentCmp = filtered[idx].value.takeWhile { it.isWhitespace() }
             val indentMove = filtered[idx+2].value.takeWhile { it.isWhitespace() }
-            mods.add(Modification(filtered[idx].index, false, "${indentCmp}cmpi.$sizeMin  $immMin,d0"))
-            mods.add(Modification(filtered[idx+2].index, false, "${indentMove}move.$sizeMin  $immMin,d0"))
+            mods.add(Modification(filtered[idx].index, false, "${indentCmp}cmpi.$sizeMin  $immMin,$SCRATCH_D0"))
+            mods.add(Modification(filtered[idx+2].index, false, "${indentMove}move.$sizeMin  $immMin,$SCRATCH_D0"))
             // If the slot is not read after the clamp block, the defining move is dead
             val defineIdx = defineMin.first
             if (!isSlotReadAfter(slotMin, filtered[idx+8].index + 1, allPretrimmed)) {
@@ -599,8 +599,8 @@ private fun optimizeClampImmediate(allPretrimmed: List<String>, lines: MutableLi
             val immMax = defineMax.second
             val indentCmp2 = filtered[idx+5].value.takeWhile { it.isWhitespace() }
             val indentMove2 = filtered[idx+7].value.takeWhile { it.isWhitespace() }
-            mods.add(Modification(filtered[idx+5].index, false, "${indentCmp2}cmpi.$sizeMin  $immMax,d0"))
-            mods.add(Modification(filtered[idx+7].index, false, "${indentMove2}move.$sizeMin  $immMax,d0"))
+            mods.add(Modification(filtered[idx+5].index, false, "${indentCmp2}cmpi.$sizeMin  $immMax,$SCRATCH_D0"))
+            mods.add(Modification(filtered[idx+7].index, false, "${indentMove2}move.$sizeMin  $immMax,$SCRATCH_D0"))
             val defineIdxMax = defineMax.first
             if (!isSlotReadAfter(slotMax, filtered[idx+8].index + 1, allPretrimmed)) {
                 mods.add(Modification(defineIdxMax, true, null))
@@ -696,19 +696,19 @@ private fun optimizeFuseLoadxJumpi(allPretrimmed: List<String>, lines: MutableLi
     val alreadyModified = mutableSetOf<Int>()
 
     fun loadIndexedOperand(instr: String): String? {
-        // matches "move.l  (a0,d0.w), d0" (68000, index pre-scaled into d0) and the scaled
-        // "move.l  (a0,d0.w*4), d0" forms (68020+, scale folded into the addressing mode).
+        // matches "move.l  ($SCRATCH_A0,$SCRATCH_D0.w), $SCRATCH_D0" (68000, index pre-scaled into d0) and the scaled
+        // "move.l  ($SCRATCH_A0,$SCRATCH_D0.w*4), $SCRATCH_D0" forms (68020+, scale folded into the addressing mode).
         // The matched operand is returned so the fused instruction keeps the same scale.
         if (!instr.startsWith("move.l")) return null
-        if (!(instr.trim().endsWith(", d0") || instr.trim().endsWith(",d0"))) return null
+        if (!(instr.trim().endsWith(", $SCRATCH_D0") || instr.trim().endsWith(",$SCRATCH_D0"))) return null
         return d0IndexOperand.find(instr)?.value
     }
 
     fun isSpill(instr: String): String? {
-        // "move.l  d0, p8_regfile+M"
+        // "move.l  $SCRATCH_D0, p8_regfile+M"
         if (!instr.startsWith("move.l")) return null
         val ops = instr.moveOperands() ?: return null
-        if (ops.first != "d0") return null
+        if (ops.first != SCRATCH_D0) return null
         if (!ops.second.isRegfileSlot()) return null
         return ops.second.removePrefix("p8_regfile+").substringBefore(',').substringBefore(' ').trim()
     }
@@ -717,7 +717,7 @@ private fun optimizeFuseLoadxJumpi(allPretrimmed: List<String>, lines: MutableLi
         if (filtered[leaIdx].index in alreadyModified) continue
         val leaInstr = filtered[leaIdx].instruction
         if (!leaInstr.startsWith("lea ")) continue
-        if (!leaInstr.endsWith(",a0")) continue
+        if (!leaInstr.endsWith(",$SCRATCH_A0")) continue
 
         // The index is usually already in d0 at this point (scaled via lsl.w #2
         // or zero-extended). Earlier peepholes may have removed the explicit
@@ -738,7 +738,7 @@ private fun optimizeFuseLoadxJumpi(allPretrimmed: List<String>, lines: MutableLi
         val nextIdx = leaIdx + 3
         if (nextIdx >= filtered.size) continue
         val nextInstr = filtered[nextIdx].instruction
-        val is68000Reload = nextInstr.startsWith("movea.l") && slotM in nextInstr && nextInstr.trim().endsWith(",a0")
+        val is68000Reload = nextInstr.startsWith("movea.l") && slotM in nextInstr && nextInstr.trim().endsWith(",$SCRATCH_A0")
         val is68020MemIndirectJmp = nextInstr.startsWith("jmp") && "([p8_regfile+$slotM" in nextInstr.replace(" ", "")
         val is68020MemIndirectJsr = nextInstr.startsWith("jsr") && "([p8_regfile+$slotM" in nextInstr.replace(" ", "")
 
@@ -748,8 +748,8 @@ private fun optimizeFuseLoadxJumpi(allPretrimmed: List<String>, lines: MutableLi
             val jmpIdx = nextIdx + 1
             if (filtered[jmpIdx].index in alreadyModified) continue
             val jmpInstr = filtered[jmpIdx].instruction
-            val isJmp = jmpInstr == "jmp  (a0)" || jmpInstr.replace(" ", "") == "jmp(a0)"
-            val isJsr = jmpInstr.startsWith("jsr") && "(a0)" in jmpInstr.replace(" ", "")
+            val isJmp = jmpInstr == "jmp  ($SCRATCH_A0)" || jmpInstr.replace(" ", "") == "jmp($SCRATCH_A0)"
+            val isJsr = jmpInstr.startsWith("jsr") && "($SCRATCH_A0)" in jmpInstr.replace(" ", "")
             if (!isJmp && !isJsr) continue
             // No labels on lea, load, spill, reload, jmp/jsr
             if ((0..1).any { hasLabel(filtered[loadIdx + it].trimmed) }) continue
@@ -757,7 +757,7 @@ private fun optimizeFuseLoadxJumpi(allPretrimmed: List<String>, lines: MutableLi
             if (hasLabel(filtered[spillIdx].trimmed) || hasLabel(filtered[nextIdx].trimmed) || hasLabel(filtered[jmpIdx].trimmed)) continue
 
             val loadIndent = lines[filtered[loadIdx].index].takeWhile { it.isWhitespace() }
-            mods.add(Modification(filtered[loadIdx].index, false, "${loadIndent}move.l  $loadOperand, a0"))
+            mods.add(Modification(filtered[loadIdx].index, false, "${loadIndent}move.l  $loadOperand, $SCRATCH_A0"))
             mods.add(Modification(filtered[spillIdx].index, true, null))
             mods.add(Modification(filtered[nextIdx].index, true, null))
             alreadyModified.add(filtered[loadIdx].index)
@@ -770,9 +770,9 @@ private fun optimizeFuseLoadxJumpi(allPretrimmed: List<String>, lines: MutableLi
             val loadIndent = lines[filtered[loadIdx].index].takeWhile { it.isWhitespace() }
             val jmpIndent = lines[filtered[nextIdx].index].takeWhile { it.isWhitespace() }
             val mnemonic = if (is68020MemIndirectJsr) "jsr" else "jmp"
-            mods.add(Modification(filtered[loadIdx].index, false, "${loadIndent}move.l  $loadOperand, a0"))
+            mods.add(Modification(filtered[loadIdx].index, false, "${loadIndent}move.l  $loadOperand, $SCRATCH_A0"))
             mods.add(Modification(filtered[spillIdx].index, true, null))
-            mods.add(Modification(filtered[nextIdx].index, false, "${jmpIndent}$mnemonic  (a0)"))
+            mods.add(Modification(filtered[nextIdx].index, false, "${jmpIndent}$mnemonic  ($SCRATCH_A0)"))
             alreadyModified.add(filtered[loadIdx].index)
             alreadyModified.add(filtered[spillIdx].index)
             alreadyModified.add(filtered[nextIdx].index)
