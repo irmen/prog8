@@ -58,7 +58,6 @@ Optimizations
 - Port more benchmarks from https://thred.github.io/c-bench-64/  to prog8 and see how it stacks up. (see benchmark-c/ directory)
 - Compilation speed: try to join multiple modifications in 1 result in the AST processors instead of returning it straight away every time
 - various optimizers skip stuff if compTarget.name==VMTarget.NAME.  Once new 6502 codegen is done from IR code, those 6502 only optimizations should probably be removed
-- M68K stack/frame follow-ups: the stack-based memory model for locals and parameters is implemented, including frame slots for locals, parameters in the caller-pushed incoming area (word-packed argument slots are now the default convention), per-activation virtual registers for re-entrant subroutines, prologue zero-store coalescing, and diagnostics/polish items. Remaining low-pri optimization work: reserved outgoing-argument area (allocate the max call-site arg size once in the caller's ``link`` frame; benchmark-driven, likely marginal) and loop-aware liveness for frame slot reuse (needs real backward live-in/live-out dataflow over the CFG; frame-size-driven). Register argument passing lives in ``ideas/m68k-register-allocation.md`` §9. See the user-facing description in ``technical.rst``.
 
 
 Dead Code Elimination bug in 64tass, for nested subroutines

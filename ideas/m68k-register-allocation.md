@@ -1,6 +1,6 @@
 # M68k Register Allocation and Calling Convention Design
 
-**Status: reconciled - the seven correctness issues from `m68k-reg-problems.md` are resolved and folded into this design** (that file was removed from `ideas/` after folding; the `m68k-reg-problems.md §N` references below are historical provenance only). Listed as "Deferred" in `docs/source/todo.rst`. The calling convention (§2), register classes (§4), spilling strategy (§5), prologue/epilogue (§6), and the Stage 0/1/3 execution work (§7) are decided and delegable. Still open before Stage 2 is delegable: the §7.1 items 1-4 (width semantics, class-constraint mechanism, spill-slot policy mechanics, call-site metadata representation).
+**Status: reconciled - the seven correctness issues from `m68k-reg-problems.md` are resolved and folded into this design** (that file was removed from `ideas/` after folding; the `m68k-reg-problems.md §N` references below are historical provenance only). Listed as "Deferred" in `docs/source/todo.rst`. The calling convention (§2), register classes (§4), spilling strategy (§5), prologue/epilogue (§6), the Stage 0/1/3 execution work (§7), and the Stage 2 decisions (§7.1) are decided and recorded. Stage 1B (indexed/indirect addressing-mode re-selection) is split out from Stage 1 so it can be gated on the class-constraint mechanism without blocking the main location-agnostic refactor.
 
 Related implementation: `../docs/source/technical.rst` (M68K stack frames for locals; A5
 is the frame pointer and A6 is reserved for AmigaOS library bases — both are
@@ -664,7 +664,7 @@ Each is small, contained, and verifiable on its own.
    to spilled operands) actually is, so it can be scheduled rather than
    discovered late.
 
-### Stage 1 — location-agnostic instruction selection (prerequisite; the bulk of the work)
+### Stage 1A — location-agnostic instruction selection (prerequisite; the bulk of the work)
 
 Replace every use of `regAddr(reg)` / `floatRegFileAddr(reg)` in *operand
 position* with a single indirection on `AsmGen` that takes the typed operand
@@ -697,10 +697,11 @@ review on its own. Notes:
   (`CallEffects.memoryEffect`/`statusEffect`) plus the `callSite` register
   accesses (arguments/results), not via ad-hoc per-opcode kill lists.
 
-**Indexed/indirect opcodes are a separate, non-mechanical sub-task.** Most
-translators fit the "swap `regAddr` for `operand()`" pattern, but a minority do
-not, because they *select* addressing modes around hardcoded scratch registers
-rather than merely naming an operand:
+### Stage 1B — indexed/indirect addressing-mode re-selection
+
+Most translators fit the "swap `regAddr` for `operand()`" pattern, but a
+minority do not, because they *select* addressing modes around hardcoded scratch
+registers rather than merely naming an operand:
 
 - `LOADX` / `STOREX` use indexed addressing `(a0,d0.w*scale)`: the index vreg
   is forced into d0 via `loadIndexToD0` and the base into a0. Under allocation
@@ -714,11 +715,13 @@ rather than merely naming an operand:
   have the same structure around `p8_fregfile` + a0.
 
 For these, the §1.1 lesson ("different instruction selection, not different
-operand spelling") applies *within* Stage 1 itself: the translator must pick
-the addressing mode from the allocated register class (index register → Dn,
-pointer → An), which is genuine per-opcode re-selection, not a string swap.
-Treat them as a distinct work item with their own tests; do not assume the
-blanket `operand()` refactor covers them.
+operand spelling") applies: the translator must pick the addressing mode from
+the allocated register class (index register → Dn, pointer → An), which is
+genuine per-opcode re-selection, not a string swap.
+
+Stage 1B is split out from Stage 1A so the large mechanical refactor can land
+independently. It is gated on the class-constraint mechanism (§7.1 #2) and is
+documented in `ideas/m68k-regalloc-stage1b-indexed-indirect.md`.
 
 **Scratch registers need only enforcement, not a reservation protocol.**
 Because D0/D1/A0/A1/FP0/FP1 are decided to be permanently reserved pure
@@ -736,7 +739,7 @@ a new hardcoded scratch register outside the D0/D1/A0/A1/FP0/FP1 set.
 
 - **Checkpoint before starting Stage 2:** with an empty allocation map, the
   generated assembly must be byte-identical to the pre-change output for a
-  corpus of test programs.
+  corpus of test programs. Both Stage 1A and Stage 1B must pass this checkpoint.
 
 ### Stage 2 — the allocator decides the mapping, per subroutine
 
@@ -746,8 +749,8 @@ a new hardcoded scratch register outside the D0/D1/A0/A1/FP0/FP1 set.
 2. **Implement/repair intraprocedural liveness and interference** (§3.1: reuse
     the packer's gen/kill dataflow, interval construction, and greedy coloring;
     validate CFG edge construction against nested loops, conditionals, early
-    returns, and jump tables; replace the interference model with a
-    liveness-derived one).
+    returns, jump tables, and `IRLoopChunk`; replace the interference model
+    with a liveness-derived one).
 3. **Class-aware greedy colouring**: map vregs → physical D/A/FP registers,
    treating `CALL` as killing caller-saved registers.
 4. **Wire the mapping into `operand()` / `storeOperand()`** (typed
@@ -779,58 +782,46 @@ a new hardcoded scratch register outside the D0/D1/A0/A1/FP0/FP1 set.
  10. **Optionally reset `RegisterPool` per subroutine** to allow vreg reuse
      (§5).
 
-### 7.1 Open Decision Points (not yet fully decided — needed before Stage 2 is delegable)
+### 7.1 Decision Points (now decided and recorded in `ideas/m68k-regalloc-stage2-allocator.md`)
 
-Stages 0, 1, and 3 are decided and can be handed to an agent as-is. Stage 2's
-*internals* still have open design questions where an agent would otherwise be
-designing rather than executing. These must be decided before Stage 2 is
-delegable:
+Stages 0, 1A, 1B, and 3 are decided and can be handed to an agent as-is. Stage
+2's internals were open design questions; they are now resolved and recorded in
+the Stage 2 document. Summary:
 
-1. **`operand()` / `storeOperand()` width semantics.** The signature is shown
-   (`fun operand(op: RegisterOperand): String`) but the width-marshalling is unspecified:
-   when a vreg is register-resident but used at a different width (byte vreg in
-   a word op), does `operand()` zero/sign-extend, and into *which* register?
-   Today `loadRegOrZeroExtendToD0` does this against d0; under allocation the
-   extension has to target a defined register. This is the most-encountered
-   decision across the translator call sites.
-2. **The class-constraint mechanism (§4.1 says *what*, not *how*).** We know
-   index→DATA and pointer→ADDRESS, but not how the translator *communicates*
-   the constraint to the allocator: a per-vreg constraint recorded in a
-   pre-pass, a hint at allocation-call time, or an IR-level annotation. The
-   constraint-propagation plumbing is undesigned.
-3. **Spill-slot allocation policy (§5 lists targets, not policy).** How spill
-     slots are assigned per subroutine (slot count, alignment, interplay with
-     the frame-layout pass — which currently budgets locals, incoming args, and
-     `frameVregSlots` only, with no generic spill budget yet; worst-case sizing
-     from live-range pressure vs iterative re-layout) and whether spill code is
-     inserted during coloring (rewriting the IR) or emitted at use points. The
-     *targets* are decided: frame slots, SP-reserved fallback for frameless
-     subroutines (§5); the push/pop variant stays rejected as a general
-    mechanism.
-4. **Call-site metadata representation (mechanism).** The liveness side is
-    decided: "CALL kills D0/D1/A0/A1/FP0/FP1" is realized as kill edges at
-    call points, and the translator-scratch plus reserved registers never
-    appear in the interference graph at all (they are never vreg-allocated,
-    §2.3). Ordinary Prog8 subroutines are uniform; asmsub/extsub boundaries
-    carry per-call-site metadata (§2.6). Still open: how that metadata is
-    represented (IR-level annotation vs backend table) and how preservation
-    moves are emitted.
- 5. **Fate of `ImmediateCallOptimization` (Stage 2 step 9) — DECIDED.**
-    Restrict it to spilled operands for allocator bring-up; delete it and fold
-    immediate-forwarding into call-boundary marshalling when the
-    register-parameter convention lands. See Stage 2 step 9.
- 6. **Empirical validation gate (human judgment, stays open by design).**
-     "Are the per-class pools big enough?" (§2.3 cost) and "does liveness
-     survive programs with complex control flow?" (§3.1) are hypotheses to
-     *measure*, not tasks. Per the demand analysis (§4.0) the measurement
-     should focus on the **data pool (D2–D6)** - it is the expected
-     bottleneck. The address pool (A2–A4) estimate ("rarely pressured") is a
-     hypothesis that must be validated from real IR liveness, because
-     short-lived pointer temporaries are live between their definition and
-     use (m68k-reg-problems.md §7); the FP pool (FP2–FP7) is expected to have
-     ample headroom. An agent
-     can run the measurement, but a human judges the result and decides whether
-     a pool is adequate or the convention itself needs revisiting.
+1. **`operand()` / `storeOperand()` width semantics — DECIDED.** `operand()`
+   returns the register name only; the translator emits explicit width extension
+   at the use site with an `extendToWidth` helper.
+2. **Class-constraint mechanism — DECIDED.** IR-level annotation via
+   `RegisterOperand.allocationHint` (already set for `INDEX`, `POINTER_BASE`,
+   and `INDIRECT_TARGET` roles in `IRInstructionsFactory`).
+3. **Spill-slot allocation policy — DECIDED.** Worst-case sizing from liveness
+   pressure per class; frame slots for framed subs, SP-reserved area for
+   frameless subs, BSS `p8_regfile` only as a last resort for non-reentrant
+   code; spill code emitted at use points by `operand()`.
+4. **Call-site metadata representation — DECIDED.** Backend table keyed by
+   IR instruction index, recording read/defined/destroyed hardware registers for
+   fixed-register boundaries (`asmsub`, `extsub`, Amiga library calls). Ordinary
+   Prog8 subs use the uniform caller-saved kill set.
+5. **Fate of `ImmediateCallOptimization` (Stage 2 step 9) — DECIDED.**
+   Restrict it to spilled operands for allocator bring-up; delete it and fold
+   immediate-forwarding into call-boundary marshalling when the
+   register-parameter convention lands. See Stage 2 step 9.
+6. **Empirical validation gate (human judgment, stays open by design).**
+   "Are the per-class pools big enough?" (§2.3 cost) and "does liveness
+   survive programs with complex control flow?" (§3.1) are hypotheses to
+   *measure*, not tasks. Per the demand analysis (§4.0) the measurement
+   should focus on the **data pool (D2–D6)** - it is the expected
+   bottleneck. The address pool (A2–A4) estimate ("rarely pressured") is a
+   hypothesis that must be validated from real IR liveness, because
+   short-lived pointer temporaries are live between their definition and
+   use (m68k-reg-problems.md §7); the FP pool (FP2–FP7) is expected to have
+   ample headroom. An agent can run the measurement, but a human judges the
+   result and decides whether a pool is adequate or the convention itself needs
+   revisiting.
+
+Full details of these decisions, including the D0 cache retirement plan and
+frameless-subroutine spill mechanics, are in
+`ideas/m68k-regalloc-stage2-allocator.md`.
 
 ### Stage 3 — teardown of the old mitigation layer
 
