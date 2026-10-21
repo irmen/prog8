@@ -369,12 +369,12 @@ class TestM68kRegisterAllocator : FunSpec({
         val program = IRProgram("test", IRSymbolTable(), options, DummyStringEncoder)
         val chunk = IRCodeChunk(null, null)
         val siteA = CallSite(
-            CallTarget.Direct(CodeReference.Label("p8_other", 0)),
+            CallTarget.Direct(CodeReference.Label("test.other", 0)),
             results = listOf(Calls.result(6, IRDataType.LONG, CallLocation.HardwareRegister(CallingConventionSlot(20))))
         )
         chunk.instructions.add(IRInstruction(Opcode.CALL, null, callSite = siteA))
         val siteD = CallSite(
-            CallTarget.Direct(CodeReference.Label("p8_other", 0)),
+            CallTarget.Direct(CodeReference.Label("test.other", 0)),
             results = listOf(Calls.result(7, IRDataType.WORD, CallLocation.HardwareRegister(CallingConventionSlot(12))))
         )
         chunk.instructions.add(IRInstruction(Opcode.CALL, null, callSite = siteD))
@@ -382,13 +382,52 @@ class TestM68kRegisterAllocator : FunSpec({
         chunk.instructions.add(IRInstructions.binary(Opcode.MULR, IRDataType.LONG, 8, 6))
         val sub = IRSubroutine("test.start", emptyList(), emptyList(), Position.DUMMY)
         sub.chunks.add(chunk)
+        // The call target is an ordinary Prog8 subroutine, so the boundary is
+        // precise (slot reads/defs only) rather than whole-pool conservative.
+        val other = IRSubroutine("test.other", emptyList(), emptyList(), Position.DUMMY)
+        other.chunks.add(IRCodeChunk(null, null))
         val block = IRBlock("test", false, IRBlock.Options(), Position.DUMMY)
         block.children.add(sub)
+        block.children.add(other)
         program.blocks.add(block)
 
         val alloc = M68kRegisterAllocator(program).allocate().mapBySub[sub]!!
         listOf("a2", "a3", "a4").contains(alloc[VirtualRegister.int(6)]) shouldBe true
         listOf("d2", "d3", "d4", "d5", "d6").contains(alloc[VirtualRegister.int(7)]) shouldBe true
+    }
+
+    test("asmsub with undeclared scratch spills values live across it") {
+        // The memclear class: stdlib hand-written bodies use pool registers
+        // without declaring them, so no declared set can be trusted. A value
+        // live across such a call cannot stay in any pool register.
+        val options = CompilationOptions.builder(Qemu68kTarget())
+            .output(OutputType.RAW).zeropage(ZeropageType.FLOATSAFE)
+            .compilerVersion("test").memtopAddress(0xffffu).optimize(true).build()
+        val program = IRProgram("test", IRSymbolTable(), options, DummyStringEncoder)
+        val head = IRCodeChunk(null, null)
+        head.instructions.add(IRInstructions.load(IRDataType.WORD, 1, 50))
+        val callChunk = IRCodeChunk("test.mid", null)
+        val site = CallSite(CallTarget.Direct(CodeReference.Label("test.memlike", 0)))
+        callChunk.instructions.add(IRInstruction(Opcode.CALL, null, callSite = site))
+        val tail = IRCodeChunk("test.tail", null)
+        tail.instructions.add(IRInstructions.storeMemory(Opcode.STOREM, IRDataType.WORD, 1, IRMemory.direct("p8b_test.p8v_out")))
+        val sub = IRSubroutine("test.start", emptyList(), emptyList(), Position.DUMMY)
+        sub.chunks.add(head)
+        sub.chunks.add(callChunk)
+        sub.chunks.add(tail)
+        val block = IRBlock("test", false, IRBlock.Options(), Position.DUMMY)
+        block.children.add(sub)
+        val asmChunk = IRInlineAsmChunk("test.memlike", "rts", false, null)
+        block.children.add(
+            IRAsmSubroutine(
+                "test.memlike", null, emptySet(),
+                emptyList(), emptyList(), asmChunk, Position.DUMMY, false
+            )
+        )
+        program.blocks.add(block)
+
+        val alloc = M68kRegisterAllocator(program).allocate()
+        alloc.mapBySub[sub]?.get(VirtualRegister.int(1)) shouldBe null
     }
 
     test("renumber compacts vreg numbers per subroutine, ints and floats separately") {

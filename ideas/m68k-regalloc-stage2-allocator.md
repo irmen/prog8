@@ -178,11 +178,28 @@ Bugs found and fixed by this validation:
   (`live + uses + defs`), proven by a discriminator test that shares on the
   old model and separates on the new one. Corpus stats unchanged (still 100%
   residency, 0 spills).
-- Review-driven hardening: multi-instruction direct sequences that read a
-  source after writing the destination (EXT/EXTS/EXTL/EXTLS, CONCAT, WORD
-  DIV/MOD) now assert source and destination differ; the allocator
-  guarantees it, so a violation fails loudly instead of miscompiling if a
-  later allocator change breaks the invariant.
+- Runtime-validated fix (amiga500, real OS): the AmigaOS library ABI
+  (`exec`, `dos`, `graphics`, `lowlevel`, `iffparse`, ...) preserves only
+  d2-d5, a2-a5 and a6 - d0/d1/d6/d7/a0/a1 are volatile. But the allocator's
+  pool treats **d6** as callee-saved and `fixedBoundaryEffects` only added
+  `a6` to the destroy set for `AmigaLibrary` targets, so a live value parked
+  in d6 across a `callfar` to an OS library was silently corrupted (guru
+  meditations and freezes in lowlevel-timer, stream-file, iff, stream-disk).
+  Fixed by adding `d6` to the destroyed set for AmigaLibrary boundaries; d7
+  is already saved separately by the loop-counter logic. Under qemu68k there
+  is no OS-library call edge, so this never showed in the qemu corpus.
+- Runtime-validated fix, superseding the d6-only note above (amiga500, real
+  OS): the systematic cause was undeclared scratch in hand-written bodies.
+  Stdlib asmsubs use D2-D6/A2-A4 without declaring them (written when those
+  regs were always free - e.g. `memclear` zeroes d0-d6/a1 with no `clobbers`
+  clause), so no declared set can be trusted. Any call whose callee is
+  hand-written or unknown (asmsub, Amiga library, banked, absolute) now
+  forbids the whole allocatable pool for values live across it; calls to
+  known ordinary Prog8 subs keep precise slot-read/def forbidding. Covered
+  by an allocator test with an undeclared-scratch asmsub (fails on the old
+  precise-only model). Corpus cost is negligible (4 spilled refs; residency
+  still >=99%; sizes unchanged). extsub declarations carry no clobber lists
+  (bank/LVO/slots only), so this knowledge lives in the backend.
 
 FP precision semantics (accepted): the bare 68881 forms compute in extended
 precision, and that matches what the legacy path always did - its accumulators

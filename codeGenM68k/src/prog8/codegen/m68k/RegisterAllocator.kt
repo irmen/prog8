@@ -86,15 +86,19 @@ class M68kRegisterAllocator(val program: IRProgram) {
             .toSet()
         val destroys = buildSet {
             if (asmSub != null) addAll(declaredClobbers(asmSub))
-            // the backend loads the AmigaOS library base into a6 around every library call
-            if (target is CallTarget.AmigaLibrary) add("a6")
+            // the backend loads the AmigaOS library base into a6 around every library call.
+            // The AmigaOS library ABI preserves only d2-d5/a2-a5/a6; d6 is volatile, so a
+            // value the allocator parked in d6 must not stay live across the call.
+            if (target is CallTarget.AmigaLibrary) {
+                add("a6")
+                add("d6")
+            }
         }
         val isFixed = asmSub != null || target is CallTarget.AmigaLibrary ||
                 target is CallTarget.Banked || target is CallTarget.BankedVariable ||
                 (target as? CallTarget.Direct)?.reference is CodeReference.Absolute ||
                 reads.isNotEmpty() || defined.isNotEmpty()
         if (!isFixed) return null
-        if (reads.isEmpty() && defined.isEmpty() && destroys.isEmpty()) return null
         return CallSiteRegisterEffects(reads, defined, destroys)
     }
 
@@ -379,7 +383,25 @@ class M68kRegisterAllocator(val program: IRProgram) {
                     val effects = fixedBoundaryEffects(cs)
                     if (effects != null) {
                         subCallEffects[callOrdinal[ins]!!] = effects
-                        val clobberedPool = (effects.reads + effects.defined + effects.destroys).intersect(allocatablePool)
+                        // Fixed boundaries whose callee body is hand-written or
+                        // unknown use pool registers as undeclared scratch:
+                        // stdlib asmsubs were written when D2-D6/A2-A4 were
+                        // always free (e.g. memclear zeroes d0-d6/a1 with no
+                        // clobbers clause), so declared sets are incomplete.
+                        // For those, forbid the whole pool for values live
+                        // across the call. A call to a known ordinary Prog8
+                        // subroutine is precise: the callee preserves
+                        // callee-saved regs, so only its slot reads/defs forbid.
+                        val target = cs.target
+                        val asmSub = (target as? CallTarget.Direct)?.reference?.let {
+                            (it as? CodeReference.Label)?.name?.let { name -> asmSubByLabel[name] }
+                        }
+                        val directLabel = (target as? CallTarget.Direct)?.reference as? CodeReference.Label
+                        val knownOrdinary = directLabel != null && asmSub == null &&
+                            program.allSubs().any { it.label == directLabel.name }
+                        val unknownCallee = !knownOrdinary
+                        val clobberedPool = if (unknownCallee) allocatablePool
+                            else (effects.reads + effects.defined + effects.destroys).intersect(allocatablePool)
                         if (clobberedPool.isNotEmpty()) {
                             for (v in live - defs) {
                                 forbiddenByVreg.getOrPut(v) { mutableSetOf() }.addAll(clobberedPool)
