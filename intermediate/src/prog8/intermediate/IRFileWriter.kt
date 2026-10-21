@@ -119,6 +119,7 @@ class IRFileWriter(private val irProgram: IRProgram, outfileOverride: Path?) {
                         xml.writeAttribute("NAME", child.label)
                         xml.writeAttribute("ADDRESS", child.address?.toHex() ?: "")
                         xml.writeAttribute("CLOBBERS", clobbers)
+                        if(child.clobbersDeclared) xml.writeAttribute("CLOBBERSDECLARED", "true")
                         xml.writeAttribute("RETURNS", returns)
                         xml.writeAttribute("POS", child.position.toString())
                         xml.writeAttribute("INLINE", child.isInline.toString())

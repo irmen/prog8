@@ -633,6 +633,7 @@ class Antlr2KotlinVisitor(val source: SourceCode, private val target: ICompilati
             emptyList(),
             emptyList(),
             emptySet(),
+            false,
             asmAddress = null,
             isAsmSubroutine = false,
             inline = ctx.INLINE() != null,
@@ -689,7 +690,7 @@ class Antlr2KotlinVisitor(val source: SourceCode, private val target: ICompilati
             ad.returntypes,
             ad.asmParameterRegisters,
             ad.asmReturnvaluesRegisters,
-            ad.asmClobbers, null, true, inline, false, visibility,
+            ad.asmClobbers, ad.asmClobbersDeclared, null, true, inline, false, visibility,
             statements.statements, ctx.toPosition(), leadingBlockComment(ctx)
         )
     }
@@ -702,7 +703,7 @@ class Antlr2KotlinVisitor(val source: SourceCode, private val target: ICompilati
         val address = Subroutine.Address(constbank, varbank, addr)
         return Subroutine(subdecl.name, subdecl.parameters, subdecl.returntypes,
             subdecl.asmParameterRegisters, subdecl.asmReturnvaluesRegisters,
-            subdecl.asmClobbers, address, true, inline = false, visibility = visibilityFromTokens(ctx), statements = mutableListOf(), position = ctx.toPosition(), blockComment = leadingBlockComment(ctx)
+            subdecl.asmClobbers, subdecl.asmClobbersDeclared, address, true, inline = false, visibility = visibilityFromTokens(ctx), statements = mutableListOf(), position = ctx.toPosition(), blockComment = leadingBlockComment(ctx)
         )
     }
 
@@ -1171,7 +1172,7 @@ class Antlr2KotlinVisitor(val source: SourceCode, private val target: ICompilati
         val normalReturntypes = returns.mapTo(mutableListOf()) { it.type }
         val paramRegisters = params.mapTo(mutableListOf()) { RegisterOrStatusflag(it.registerOrPair, it.statusflag) }
         val returnRegisters = returns.mapTo(mutableListOf()) { RegisterOrStatusflag(it.registerOrPair, it.statusflag) }
-        return AsmsubDecl(name, normalParameters, normalReturntypes, paramRegisters, returnRegisters, clobbers)
+        return AsmsubDecl(name, normalParameters, normalReturntypes, paramRegisters, returnRegisters, clobbers, sig.asmsub_clobbers() != null)
     }
 
     private class AsmsubDecl(val name: String,
@@ -1179,7 +1180,8 @@ class Antlr2KotlinVisitor(val source: SourceCode, private val target: ICompilati
                              val returntypes: MutableList<DataType>,
                              val asmParameterRegisters: List<RegisterOrStatusflag>,
                              val asmReturnvaluesRegisters: List<RegisterOrStatusflag>,
-                             val asmClobbers: Set<CpuRegister>)
+                             val asmClobbers: Set<CpuRegister>,
+                             val asmClobbersDeclared: Boolean)
 
     private class AsmSubroutineParameter(name: String,
                                          type: DataType,

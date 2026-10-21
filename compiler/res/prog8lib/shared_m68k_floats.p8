@@ -3,7 +3,7 @@
 floats {
     %option merge, no_symbol_prefixing, ignore_unused
 
-    asmsub tostr(float value @FP0) -> str @A0 {
+    asmsub tostr(float value @FP0) clobbers(D2,D3,D4,D5) -> str @A0 {
         %asm {{
             jmp floats._tostr
         }}
@@ -186,7 +186,7 @@ floats {
         }}
     }
 
-    asmsub parse(str value @A0) -> float @FP0 {
+    asmsub parse(str value @A0) clobbers(D2,D3,D4,D5,FP2,FP3) -> float @FP0 {
         %asm {{
             move.l a0,a1
             fmove.s floats._fzero,fp0

@@ -55,6 +55,15 @@ internal fun renumberVregsPerSubroutine(program: IRProgram): Map<VirtualRegister
         for (child in block.children)
             if (child is IRCodeChunkBase) child.forEachChunkRecursive(::scanOutside)
     for (sub in program.allSubs()) {
+        if (sub.noframe) {
+            sub.forEachChunk { chunk ->
+                for (ins in chunk.instructions)
+                    for (ra in ins.registerAccesses)
+                        if (ra.register.num < RESERVED_VREG_START && ra.register.num > maxOutside)
+                            maxOutside = ra.register.num
+            }
+            continue
+        }
         val intNums = mutableSetOf<Int>()
         val floatNums = mutableSetOf<Int>()
         sub.forEachChunk { chunk ->

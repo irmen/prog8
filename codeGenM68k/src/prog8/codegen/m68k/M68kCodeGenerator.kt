@@ -92,8 +92,17 @@ internal fun appendSpillSlotsToFrame(
     if (fresh.isEmpty()) return
     var cursor = -sub.frameSize
     val slots = mutableMapOf<Int, Int>()
+    // Build a per-subroutine type map: after per-subroutine vreg reuse the same vreg
+    // number can have different types in different subroutines, so the global
+    // virtualRegisterTypes map is not reliable here.
+    val subTypes = mutableMapOf<VirtualRegister, IRDataType>()
+    sub.forEachInstruction { ins ->
+        for (ra in ins.registerAccesses) {
+            subTypes.putIfAbsent(ra.register, ra.type)
+        }
+    }
     for (vr in fresh) {
-        val size = when (requireNotNull(types[vr]) { "spilled $vr of ${sub.label} has no type info" }) {
+        val size = when (requireNotNull(subTypes[vr] ?: types[vr]) { "spilled $vr of ${sub.label} has no type info" }) {
             IRDataType.BYTE -> 1
             IRDataType.WORD -> 2
             IRDataType.FLOAT -> target.FLOAT_MEM_SIZE.toInt()

@@ -67,7 +67,7 @@ strings {
         }}
     }
 
-    asmsub copy(str source @D0, str target @D1) -> ubyte @D0 {
+    asmsub copy(str source @D0, str target @D1) clobbers(D2) -> ubyte @D0 {
         ; Copy a string to another, overwriting that one.
         ; Returns the length of the string that was copied.
         %asm {{
@@ -85,7 +85,7 @@ strings {
         }}
     }
 
-    asmsub ncopy(str source @D0, str target @D1, ubyte maxlength @D2) -> ubyte @D0 {
+    asmsub ncopy(str source @D0, str target @D1, ubyte maxlength @D2) clobbers(D2) -> ubyte @D0 {
         ; Copy a string to another, overwriting that one, but limited to the given length.
         ; Always null-terminates the result.
         ; Returns the length of the string that was copied.

@@ -135,6 +135,7 @@ class TestVm: FunSpec( {
             "main.asmstart",
             0x2000u,
             emptySet(),
+            false,
             emptyList(),
             emptyList(),
             IRInlineAsmChunk("main.asmstart", "return", false, null),

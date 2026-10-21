@@ -187,7 +187,7 @@ qemu {
     const long CPU_FEATURE_COLDFIRE = 16
 
     ; Dump all bootinfo records to the TTY in hex.
-    asmsub bootinfo_dump() {
+    asmsub bootinfo_dump() clobbers(A2,A3,D3,D4,D5,D6) {
         %asm {{
             bsr     qemu.bootinfo_ptr
             movea.l d0,a2           ; a2 = first record
@@ -407,7 +407,7 @@ sys {
         }}
     }
 
-    asmsub memcopy(long source @A0, long tgt @A1, long count @D0) {
+    asmsub memcopy(long source @A0, long tgt @A1, long count @D0) clobbers(D2,D3) {
         ; Copy bytes from source to target. Allows long count.
         ; Bulk of the work uses long-aligned longword copies;
         ; pre-alignment and remainder bytes use individual byte copies.

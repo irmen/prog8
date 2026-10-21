@@ -156,7 +156,7 @@ class TestM68kRegisterAllocator : FunSpec({
         val asmChunk = IRInlineAsmChunk("test.clobberd2", "rts", false, null)
         block.children.add(
             IRAsmSubroutine(
-                "test.clobberd2", null, setOf(CpuRegister.D2),
+                "test.clobberd2", null, setOf(CpuRegister.D2), true,
                 emptyList(), emptyList(), asmChunk, Position.DUMMY, false
             )
         )
@@ -166,6 +166,7 @@ class TestM68kRegisterAllocator : FunSpec({
         val effects = result.callSiteEffects[sub]?.get(0)
         effects!!.destroys shouldBe setOf("d2")
         result.mapBySub[sub]!![VirtualRegister.int(1)] shouldNotBe "d2"
+        result.mapBySub[sub]!![VirtualRegister.int(1)] shouldNotBe null
     }
 
     test("ordinary subroutine calls get no fixed-boundary metadata entry") {
@@ -420,7 +421,7 @@ class TestM68kRegisterAllocator : FunSpec({
         val asmChunk = IRInlineAsmChunk("test.memlike", "rts", false, null)
         block.children.add(
             IRAsmSubroutine(
-                "test.memlike", null, emptySet(),
+                "test.memlike", null, emptySet(), false,
                 emptyList(), emptyList(), asmChunk, Position.DUMMY, false
             )
         )
@@ -428,6 +429,58 @@ class TestM68kRegisterAllocator : FunSpec({
 
         val alloc = M68kRegisterAllocator(program).allocate()
         alloc.mapBySub[sub]?.get(VirtualRegister.int(1)) shouldBe null
+    }
+
+    test("asmsub with declared empty clobbers keeps values in pool registers") {
+        // When the source explicitly wrote clobbers(), the empty set is a
+        // trustworthy declaration that the asmsub touches nothing else.
+        val options = CompilationOptions.builder(Qemu68kTarget())
+            .output(OutputType.RAW).zeropage(ZeropageType.FLOATSAFE)
+            .compilerVersion("test").memtopAddress(0xffffu).optimize(true).build()
+        val program = IRProgram("test", IRSymbolTable(), options, DummyStringEncoder)
+        val head = IRCodeChunk(null, null)
+        head.instructions.add(IRInstructions.load(IRDataType.WORD, 1, 50))
+        val callChunk = IRCodeChunk("test.mid", null)
+        val site = CallSite(CallTarget.Direct(CodeReference.Label("test.emptyclobber", 0)))
+        callChunk.instructions.add(IRInstruction(Opcode.CALL, null, callSite = site))
+        val tail = IRCodeChunk("test.tail", null)
+        tail.instructions.add(IRInstructions.storeMemory(Opcode.STOREM, IRDataType.WORD, 1, IRMemory.direct("p8b_test.p8v_out")))
+        val sub = IRSubroutine("test.start", emptyList(), emptyList(), Position.DUMMY)
+        sub.chunks.add(head)
+        sub.chunks.add(callChunk)
+        sub.chunks.add(tail)
+        val block = IRBlock("test", false, IRBlock.Options(), Position.DUMMY)
+        block.children.add(sub)
+        val asmChunk = IRInlineAsmChunk("test.emptyclobber", "rts", false, null)
+        block.children.add(
+            IRAsmSubroutine(
+                "test.emptyclobber", null, emptySet(), true,
+                emptyList(), emptyList(), asmChunk, Position.DUMMY, false
+            )
+        )
+        program.blocks.add(block)
+
+        val alloc = M68kRegisterAllocator(program).allocate()
+        alloc.mapBySub[sub]?.get(VirtualRegister.int(1)) shouldNotBe null
+    }
+
+    test("noframe subroutine does not receive allocated registers or saves") {
+        val options = CompilationOptions.builder(Qemu68kTarget())
+            .output(OutputType.RAW).zeropage(ZeropageType.FLOATSAFE)
+            .compilerVersion("test").memtopAddress(0xffffu).optimize(true).build()
+        val program = IRProgram("test", IRSymbolTable(), options, DummyStringEncoder)
+        val chunk = IRCodeChunk(null, null)
+        chunk.instructions.add(IRInstructions.load(IRDataType.WORD, 1, 42))
+        val sub = IRSubroutine("test.noframe", emptyList(), emptyList(), Position.DUMMY, noframe = true)
+        sub.chunks.add(chunk)
+        val block = IRBlock("test", false, IRBlock.Options(), Position.DUMMY)
+        block.children.add(sub)
+        program.blocks.add(block)
+
+        val alloc = M68kRegisterAllocator(program).allocate()
+        alloc.mapBySub[sub] shouldBe null
+        alloc.calleeSavedBySub[sub] shouldBe emptySet()
+        alloc.spilledVregsBySub[sub] shouldBe emptyList()
     }
 
     test("renumber compacts vreg numbers per subroutine, ints and floats separately") {

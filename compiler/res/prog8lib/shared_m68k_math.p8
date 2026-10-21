@@ -245,7 +245,7 @@ math {
         }}
     }
 
-    asmsub log2(ubyte value @D0) -> ubyte @D0 {
+    asmsub log2(ubyte value @D0) clobbers(D2) -> ubyte @D0 {
         ; returns the integer base-2 logarithm of the unsigned byte value (position of the highest set bit)
         ; returns 0 for value = 0
         %asm {{
@@ -264,7 +264,7 @@ math {
         }}
     }
 
-    asmsub log2w(uword value @D0) -> ubyte @D0 {
+    asmsub log2w(uword value @D0) clobbers(D2) -> ubyte @D0 {
         ; returns the integer base-2 logarithm of the unsigned word value (position of the highest set bit)
         ; returns 0 for value = 0
         %asm {{
@@ -283,7 +283,7 @@ math {
         }}
     }
 
-    asmsub log2l(long value @D0) -> ubyte @D0 {
+    asmsub log2l(long value @D0) clobbers(D2) -> ubyte @D0 {
         ; returns the integer base-2 logarithm of the signed long value (position of the highest set bit)
         ; returns 0 for value = 0
         %asm {{
@@ -332,7 +332,7 @@ math {
         }}
     }
 
-    asmsub lerp(ubyte v0 @D0, ubyte v1 @D1, ubyte t @D2) -> ubyte @D0 {
+    asmsub lerp(ubyte v0 @D0, ubyte v1 @D1, ubyte t @D2) clobbers(D3) -> ubyte @D0 {
         ; Linear interpolation (LERP)
         ; returns an interpolation between two inputs (v0, v1) for a parameter t in the interval [0, 255]
         ; guarantees v = v1 when t = 255
@@ -369,7 +369,7 @@ math {
         }}
     }
 
-    asmsub lerpw(uword v0 @D0, uword v1 @D1, uword t @D2) -> uword @D0 {
+    asmsub lerpw(uword v0 @D0, uword v1 @D1, uword t @D2) clobbers(D3) -> uword @D0 {
         ; Linear interpolation (LERP) on word values
         ; returns an interpolation between two inputs (v0, v1) for a parameter t in the interval [0, 65535]
         ; guarantees v = v1 when t = 65535
@@ -426,7 +426,7 @@ math {
         }}
     }
 
-    asmsub interpolate(ubyte v @D0, ubyte inputMin @D1, ubyte inputMax @D2, ubyte outputMin @D3, ubyte outputMax @D4) -> ubyte @D0 {
+    asmsub interpolate(ubyte v @D0, ubyte inputMin @D1, ubyte inputMax @D2, ubyte outputMin @D3, ubyte outputMax @D4) clobbers(D2,D3,D4) -> ubyte @D0 {
         ; Interpolate a value v in interval [inputMin, inputMax] to output interval [outputMin, outputMax]
         ; original Prog8 implementation:
         ;   uword tmp = ((v - inputMin) * 256 + inputMax) / (inputMax - inputMin)
@@ -450,7 +450,7 @@ math {
         }}
     }
 
-    asmsub interpolatew(uword v @D0, uword inputMin @D1, uword inputMax @D2, uword outputMin @D3, uword outputMax @D4) -> uword @D0 {
+    asmsub interpolatew(uword v @D0, uword inputMin @D1, uword inputMax @D2, uword outputMin @D3, uword outputMax @D4) clobbers(D2,D3,D4) -> uword @D0 {
         ; Interpolate a value v in interval [inputMin, inputMax] to output interval [outputMin, outputMax]
         ; Uses a 32-bit intermediate product, so it works best when v is within the input range.
         ; equivalent Prog8 implementation (there was no m68k Prog8 version; this is the shared math library one):
@@ -466,7 +466,7 @@ math {
         }}
     }
 
-    asmsub gcd(uword a @D0, uword b @D1) -> uword @D0 {
+    asmsub gcd(uword a @D0, uword b @D1) clobbers(D2,D3) -> uword @D0 {
         ; Calculate the Greatest Common Divisor of two 16-bit unsigned integers using the Binary GCD algorithm (Stein's algorithm).
         %asm {{
             tst.w   d0

@@ -51,10 +51,13 @@ Done (analysis-level, gated off by default so shipping output is unchanged):
   subs alike (`appendSpillSlotsToFrame`, mirroring StackFrameLayout geometry);
   spilled vregs resolve to their slots through `operand()`/`storeOperand()`/
   `floatOperand()` at use points. Covered by frame-layout and codegen unit tests.
-  `%option noframe` subroutines are exempt: they manage the machine stack
-  themselves, so framing them is rejected with a compile error instead of
-  silently emitting `link`/`unlk` (falling back to the static register file
-  would be unsound under vreg reuse). Covered by unit test.
+ `%option noframe` subroutines are exempt: they manage the machine stack
+ themselves, so framing them is rejected with a compile error instead of
+ silently emitting `link`/`unlk` (falling back to the static register file
+  would be unsound under vreg reuse). The allocator also leaves these
+  subroutines completely unallocated: generated `movem` saves would change
+  the stack layout expected by their hand-written assembly (notably the
+  startup routine's saved original stack pointer). Covered by unit tests.
 - Step 7: return-value pinning wired end to end (§2.7): the allocator pins each
   call result to its boundary register (D0 for default int/pointer, FP0 for
   default float, slot register for slot-annotated results; memory and
@@ -188,18 +191,15 @@ Bugs found and fixed by this validation:
   Fixed by adding `d6` to the destroyed set for AmigaLibrary boundaries; d7
   is already saved separately by the loop-counter logic. Under qemu68k there
   is no OS-library call edge, so this never showed in the qemu corpus.
-- Runtime-validated fix, superseding the d6-only note above (amiga500, real
-  OS): the systematic cause was undeclared scratch in hand-written bodies.
-  Stdlib asmsubs use D2-D6/A2-A4 without declaring them (written when those
-  regs were always free - e.g. `memclear` zeroes d0-d6/a1 with no `clobbers`
-  clause), so no declared set can be trusted. Any call whose callee is
-  hand-written or unknown (asmsub, Amiga library, banked, absolute) now
-  forbids the whole allocatable pool for values live across it; calls to
-  known ordinary Prog8 subs keep precise slot-read/def forbidding. Covered
-  by an allocator test with an undeclared-scratch asmsub (fails on the old
-  precise-only model). Corpus cost is negligible (4 spilled refs; residency
-  still >=99%; sizes unchanged). extsub declarations carry no clobber lists
-  (bank/LVO/slots only), so this knowledge lives in the backend.
+ - Runtime-validated fix, superseding the d6-only note above (amiga500, real
+   OS): the systematic cause was undeclared scratch in hand-written bodies.
+   The m68k stdlib declarations are now audited, including shared m68k,
+   Amiga 500/1200, and QEMU 68k sources. Declared asmsubs use their precise
+   clobber sets; Amiga library calls use the backend ABI effects; only asmsubs
+   without usable metadata and genuinely unknown fixed boundaries forbid the
+   whole allocatable pool. Covered by tests for both declared and undeclared
+   asmsub scratch. extsub declarations carry no clobber lists (bank/LVO/slots
+   only), so that knowledge remains in the backend.
 
 FP precision semantics (accepted): the bare 68881 forms compute in extended
 precision, and that matches what the legacy path always did - its accumulators

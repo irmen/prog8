@@ -211,7 +211,7 @@ private class SymbolDumper(val skipLibraries: Boolean): IAstVisitor {
             }
         }
         output(")")
-        if(subroutine.asmClobbers.isNotEmpty()) {
+        if(subroutine.asmClobbersDeclared) {
             output(" clobbers (")
             val regs = subroutine.asmClobbers.toList().sorted()
             for(r in regs) {

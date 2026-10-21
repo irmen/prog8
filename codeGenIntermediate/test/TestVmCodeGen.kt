@@ -629,7 +629,7 @@ class TestVmCodeGen: FunSpec({
         val codegen = VmCodeGen(false)
         val program = PtProgram("test", VMTarget())
         val block = PtBlock("main", false, SourceCode.Generated("test"), PtBlock.Options(), Position.DUMMY)
-        val extsub = PtAsmSub("routine", PtAsmSub.Address(null, null, 0x5000u), setOf(CpuRegister.Y), emptyList(), emptyList(), false, Position.DUMMY)
+        val extsub = PtAsmSub("routine", PtAsmSub.Address(null, null, 0x5000u), setOf(CpuRegister.Y), true, emptyList(), emptyList(), false, Position.DUMMY)
         block.add(extsub)
         val sub = PtSub("start", emptyList(), emptyList(), Position.DUMMY)
         val call = PtFunctionCall("main.routine", false, false, emptyArray(), Position.DUMMY)

@@ -211,6 +211,12 @@ class M68kRegisterAllocator(val program: IRProgram) {
     ) {
         val chunks = allChunks(sub)
         if (chunks.isEmpty()) return
+        if (sub.noframe) {
+            calleeSavedBySub[sub] = emptySet()
+            spillDemandBySub[sub] = 0
+            spilledVregsBySub[sub] = emptyList()
+            return
+        }
         val n = chunks.size
         val succ = buildCfg(chunks)
         val (gens, kills) = chunks.map { genKill(it) }.unzip()
@@ -383,15 +389,12 @@ class M68kRegisterAllocator(val program: IRProgram) {
                     val effects = fixedBoundaryEffects(cs)
                     if (effects != null) {
                         subCallEffects[callOrdinal[ins]!!] = effects
-                        // Fixed boundaries whose callee body is hand-written or
-                        // unknown use pool registers as undeclared scratch:
-                        // stdlib asmsubs were written when D2-D6/A2-A4 were
-                        // always free (e.g. memclear zeroes d0-d6/a1 with no
-                        // clobbers clause), so declared sets are incomplete.
-                        // For those, forbid the whole pool for values live
-                        // across the call. A call to a known ordinary Prog8
-                        // subroutine is precise: the callee preserves
-                        // callee-saved regs, so only its slot reads/defs forbid.
+                        // Unknown fixed boundaries may use any pool register as
+                        // scratch. Asmsubs with a declared clobber list (even an
+                        // empty one) and known Amiga-library ABI effects are
+                        // precise; an asmsub without a declaration is unknown,
+                        // and ordinary Prog8 subroutines preserve their
+                        // callee-saved registers.
                         val target = cs.target
                         val asmSub = (target as? CallTarget.Direct)?.reference?.let {
                             (it as? CodeReference.Label)?.name?.let { name -> asmSubByLabel[name] }
@@ -399,7 +402,8 @@ class M68kRegisterAllocator(val program: IRProgram) {
                         val directLabel = (target as? CallTarget.Direct)?.reference as? CodeReference.Label
                         val knownOrdinary = directLabel != null && asmSub == null &&
                             program.allSubs().any { it.label == directLabel.name }
-                        val unknownCallee = !knownOrdinary
+                        val unknownCallee = (asmSub == null || !asmSub.clobbersDeclared) && !knownOrdinary &&
+                            target !is CallTarget.AmigaLibrary
                         val clobberedPool = if (unknownCallee) allocatablePool
                             else (effects.reads + effects.defined + effects.destroys).intersect(allocatablePool)
                         if (clobberedPool.isNotEmpty()) {

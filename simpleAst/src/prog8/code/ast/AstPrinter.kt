@@ -89,7 +89,7 @@ fun printAst(root: PtNode, skipLibraries: Boolean, output: (text: String) -> Uni
                     val statusflag = it.first.statusflag
                     "${it.second.type} ${it.second.name} @${register ?: statusflag}"
                 }
-                val clobbers = if (node.clobbers.isEmpty()) "" else "clobbers ${node.clobbers}"
+                val clobbers = if (node.clobbersDeclared) "clobbers ${node.clobbers}" else ""
                 val returns = if (node.returns.isEmpty()) "" else {
                     "-> ${node.returns.joinToString(", ") {
                             val register = it.first.registerOrPair

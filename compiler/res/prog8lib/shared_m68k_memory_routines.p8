@@ -5,7 +5,7 @@ sys {
 
     ; note: memcopy() is implemented differently for Amiga so it's not here in shared.
 
-    asmsub memset(long mem @D0, uword numbytes @D1, ubyte value @D2) {
+    asmsub memset(long mem @D0, uword numbytes @D1, ubyte value @D2) clobbers(D0,D1,D2,D3,D4,D5,D6,D7,A0,A1,A2,A3,A4) {
         %asm {{
             movea.l  d0,a0
             tst.w    d1
@@ -57,7 +57,7 @@ sys {
         }}
     }
 
-    asmsub memclear(long mem @D0, uword numbytes @D1) {
+    asmsub memclear(long mem @D0, uword numbytes @D1) clobbers(D0,D1,D2,D3,D4,D5,D6,D7,A0,A1,A2,A3,A4) {
         ; Clear memory (fill with zero).  Uses movem.l d0-d7,-(a0)
         ; for the bulk clear (32 bytes per instruction, decrementing from
         ; the end address).  Handles misaligned start and remaining bytes.
@@ -136,7 +136,7 @@ sys {
         }}
     }
 
-    asmsub memsetw(long mem @D0, uword numwords @D1, uword value @D2) {
+    asmsub memsetw(long mem @D0, uword numwords @D1, uword value @D2) clobbers(D0,D1,D2,D3,A0) {
         ; Fill memory with the given 16-bit word value, for the given number of words.
         ; Requires word-aligned start address. Uses longword stores (2 words at a time)
         ; for the bulk fill, with a possible trailing single word.
@@ -171,7 +171,7 @@ sys {
         }}
     }
 
-    asmsub memsetl(long mem @D0, uword numlongs @D1, long value @D2) {
+    asmsub memsetl(long mem @D0, uword numlongs @D1, long value @D2) clobbers(D0,A0) {
         ; Fill memory with the given 32-bit longword value, for the given number of longwords.
         ; Requires longword-aligned start address. Uses longword stores.
         %asm {{

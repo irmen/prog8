@@ -737,4 +737,66 @@ return
             file.deleteExisting()
         }
     }
+
+    test("asmsub clobbers declaration round-trips through IR") {
+        val target = VMTarget()
+        val options = CompilationOptions.builder(target)
+            .output(OutputType.RAW)
+            .zeropage(ZeropageType.DONTUSE)
+            .noSysInit(true)
+            .compilerVersion("99.99")
+            .loadAddress(target.PROGRAM_LOAD_ADDRESS)
+            .memtopAddress(0xffffu)
+            .outputDir(Path(""))
+            .build()
+        val program = IRProgram("unittest-clobbers", IRSymbolTable(), options, target)
+        val block = IRBlock("test", false, IRBlock.Options(), Position.DUMMY)
+
+        val declaredEmpty = IRAsmSubroutine(
+            "test.declared_empty", null, emptySet(), true,
+            emptyList(), emptyList(),
+            IRInlineAsmChunk("test.declared_empty", "rts", false, null),
+            Position.DUMMY
+        )
+        val declaredRegs = IRAsmSubroutine(
+            "test.declared_regs", null, setOf(CpuRegister.D2), true,
+            emptyList(), emptyList(),
+            IRInlineAsmChunk("test.declared_regs", "rts", false, null),
+            Position.DUMMY
+        )
+        val undeclared = IRAsmSubroutine(
+            "test.undeclared", null, emptySet(), false,
+            emptyList(), emptyList(),
+            IRInlineAsmChunk("test.undeclared", "rts", false, null),
+            Position.DUMMY
+        )
+        block.children += declaredEmpty
+        block.children += declaredRegs
+        block.children += undeclared
+        program.blocks += block
+
+        val file = IRFileWriter(program, Path("intermediate-clobbers-test-output.p8ir")).write()
+        try {
+            val text = file.readText()
+            text.contains("CLOBBERSDECLARED=\"true\"") shouldBe true
+
+            val readBack = IRFileReader().read(file)
+            val subs = readBack.blocks.first().children.filterIsInstance<IRAsmSubroutine>().associateBy { it.label }
+            subs["test.declared_empty"]!!.clobbersDeclared shouldBe true
+            subs["test.declared_empty"]!!.clobbers shouldBe emptySet()
+            subs["test.declared_regs"]!!.clobbersDeclared shouldBe true
+            subs["test.declared_regs"]!!.clobbers shouldBe setOf(CpuRegister.D2)
+            subs["test.undeclared"]!!.clobbersDeclared shouldBe false
+            subs["test.undeclared"]!!.clobbers shouldBe emptySet()
+
+            // Old IR files that predate the marker must be treated as undeclared, even if they
+            // happen to contain a CLOBBERS list.
+            val legacyText = text.replace(" CLOBBERSDECLARED=\"true\"", "")
+            val legacyRead = IRFileReader().read(legacyText)
+            val legacySubs = legacyRead.blocks.first().children.filterIsInstance<IRAsmSubroutine>().associateBy { it.label }
+            legacySubs.values.forEach { it.clobbersDeclared shouldBe false }
+        } finally {
+            file.deleteExisting()
+        }
+    }
 })
