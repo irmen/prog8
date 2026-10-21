@@ -30,6 +30,24 @@ object M68kRegisterConvention {
     val RESERVED = CALLER_SAVED + setOf("d7", "a5", "a6", "a7")
     const val RETURN_INT = "d0"
     const val RETURN_FLOAT = "fp0"
+    // The assembler-visible symbol for an IR label.
+    fun asmSymbolName(name: String): String {
+        var n = name.replace("::", "_")
+        // Vasm treats a trailing ".b" / ".w" / ".l" etc as a size extension, not part of the symbol.
+        // A prog8 symbol such as "bugrepro.env_samples.b" (sub env_samples containing local var b)
+        // would therefore be mis-parsed as "bugrepro.env_samples" with size ".b", causing
+        // "bad size extension", "label redefined" and "unknown mnemonic <.b:>" errors.
+        // Mangle the last dot when it introduces a known M68k size suffix so the symbol
+        // remains unique but no longer looks like a size extension.
+        val lastDot = n.lastIndexOf('.')
+        if (lastDot != -1 && lastDot < n.length - 1) {
+            val suffix = n.substring(lastDot + 1)
+            if (suffix.length == 1 && suffix.lowercase() in setOf("b", "w", "l", "s", "q", "d", "x", "p")) {
+                n = n.substring(0, lastDot) + "_" + suffix
+            }
+        }
+        return n
+    }
     // Every physical m68k register name, used to interpret asmsub clobber declarations.
     val ALL_HARDWARE_REGS = (0..7).map { "d$it" }.toSet() + (0..6).map { "a$it" }.toSet() + (0..7).map { "fp$it" }.toSet()
     // Canonical name of a fixed calling-convention slot (asmsub/extsub arg and result slots, §2.2).
@@ -743,23 +761,7 @@ internal class AsmGen(val program: IRProgram, internal val target: ICompilationT
 
     // === label/symbol helpers ===
 
-    internal fun fixNameSymbols(name: String): String {
-        var n = name.replace("::", "_")
-        // Vasm treats a trailing ".b" / ".w" / ".l" etc as a size extension, not part of the symbol.
-        // A prog8 symbol such as "bugrepro.env_samples.b" (sub env_samples containing local var b)
-        // would therefore be mis-parsed as "bugrepro.env_samples" with size ".b", causing
-        // "bad size extension", "label redefined" and "unknown mnemonic <.b:>" errors.
-        // Mangle the last dot when it introduces a known M68k size suffix so the symbol
-        // remains unique but no longer looks like a size extension.
-        val lastDot = n.lastIndexOf('.')
-        if (lastDot != -1 && lastDot < n.length - 1) {
-            val suffix = n.substring(lastDot + 1)
-            if (suffix.length == 1 && suffix.lowercase() in setOf("b", "w", "l", "s", "q", "d", "x", "p")) {
-                n = n.substring(0, lastDot) + "_" + suffix
-            }
-        }
-        return n
-    }
+    internal fun fixNameSymbols(name: String): String = M68kRegisterConvention.asmSymbolName(name)
 
     
     fun resolveSymbolRef(name: String): String {
@@ -1050,6 +1052,7 @@ internal class AsmGen(val program: IRProgram, internal val target: ICompilationT
         
         // NOTE: the executable loader already zero-fills the BSS section (LoadSeg on Amiga HUNK, ELF loader on qemu68k); manual clear_bss_section call not needed here.
         
+        // Startup calls are invisible to the register allocator, which relies on startup keeping no register values live across them.
         if (!options.noSysInit)
             emitLine("bsr  ${fixNameSymbols("p8_sys_startup.init_system")}")
         emitLine("bsr  ${fixNameSymbols("p8_sys_startup.init_system_phase2")}")

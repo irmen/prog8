@@ -189,6 +189,191 @@ class TestM68kRegisterAllocator : FunSpec({
         result.callSiteEffects[sub] shouldBe null
     }
 
+    test("ordinary callee preserves only the registers its known callers require") {
+        val options = CompilationOptions.builder(Qemu68kTarget())
+            .output(OutputType.RAW).zeropage(ZeropageType.FLOATSAFE)
+            .compilerVersion("test").memtopAddress(0xffffu).optimize(true).build()
+        val program = IRProgram("test", IRSymbolTable(), options, DummyStringEncoder)
+        // caller: r1 is live across the call to test.callee, so the callee must
+        // preserve exactly the register r1 is colored to.
+        val callerChunk = IRCodeChunk(null, null)
+        callerChunk.instructions.add(IRInstructions.load(IRDataType.WORD, 1, 5))
+        val callSite = CallSite(CallTarget.Direct(CodeReference.Label("test.callee", 0)))
+        callerChunk.instructions.add(IRInstruction(Opcode.CALL, null, callSite = callSite))
+        callerChunk.instructions.add(IRInstructions.storeMemory(Opcode.STOREM, IRDataType.WORD, 1, IRMemory.direct("p8b_test.p8v_out")))
+        val caller = IRSubroutine("test.start", emptyList(), emptyList(), Position.DUMMY)
+        caller.chunks.add(callerChunk)
+        // callee: five simultaneously live values color all five DATA registers.
+        val calleeChunk = IRCodeChunk(null, null)
+        for (i in 1..5) calleeChunk.instructions.add(IRInstructions.load(IRDataType.WORD, i, i))
+        for (i in 1..5) calleeChunk.instructions.add(
+            IRInstructions.storeMemory(Opcode.STOREM, IRDataType.WORD, i, IRMemory.direct("p8b_test.p8v_callee_out$i"))
+        )
+        val callee = IRSubroutine("test.callee", emptyList(), emptyList(), Position.DUMMY)
+        callee.chunks.add(calleeChunk)
+        val block = IRBlock("test", false, IRBlock.Options(), Position.DUMMY)
+        block.children.add(caller)
+        block.children.add(callee)
+        program.blocks.add(block)
+
+        val result = M68kRegisterAllocator(program).allocate()
+        val liveReg = result.mapBySub[caller]!![VirtualRegister.int(1)]!!
+        val calleeColored = result.mapBySub[callee]!!.values.toSet()
+        calleeColored shouldBe setOf("d2", "d3", "d4", "d5", "d6")
+        (liveReg in calleeColored) shouldBe true
+        result.calleeSavedBySub[callee] shouldBe setOf(liveReg)
+    }
+
+    test("callee with its address taken keeps all its colored registers") {
+        val options = CompilationOptions.builder(Qemu68kTarget())
+            .output(OutputType.RAW).zeropage(ZeropageType.FLOATSAFE)
+            .compilerVersion("test").memtopAddress(0xffffu).optimize(true).build()
+        val program = IRProgram("test", IRSymbolTable(), options, DummyStringEncoder)
+        // The address of test.callee escapes, so unknown code can enter it even
+        // though there is also a known ordinary call.
+        val callerChunk = IRCodeChunk(null, null)
+        callerChunk.instructions.add(IRInstructions.loadAddress(IRDataType.POINTER, 9, "test.callee"))
+        callerChunk.instructions.add(IRInstructions.load(IRDataType.WORD, 1, 5))
+        val callSite = CallSite(CallTarget.Direct(CodeReference.Label("test.callee", 0)))
+        callerChunk.instructions.add(IRInstruction(Opcode.CALL, null, callSite = callSite))
+        callerChunk.instructions.add(IRInstructions.storeMemory(Opcode.STOREM, IRDataType.WORD, 1, IRMemory.direct("p8b_test.p8v_out")))
+        val caller = IRSubroutine("test.start", emptyList(), emptyList(), Position.DUMMY)
+        caller.chunks.add(callerChunk)
+        val calleeChunk = IRCodeChunk(null, null)
+        for (i in 1..5) calleeChunk.instructions.add(IRInstructions.load(IRDataType.WORD, i, i))
+        for (i in 1..5) calleeChunk.instructions.add(
+            IRInstructions.storeMemory(Opcode.STOREM, IRDataType.WORD, i, IRMemory.direct("p8b_test.p8v_callee_out$i"))
+        )
+        val callee = IRSubroutine("test.callee", emptyList(), emptyList(), Position.DUMMY)
+        callee.chunks.add(calleeChunk)
+        val block = IRBlock("test", false, IRBlock.Options(), Position.DUMMY)
+        block.children.add(caller)
+        block.children.add(callee)
+        program.blocks.add(block)
+
+        val result = M68kRegisterAllocator(program).allocate()
+        result.calleeSavedBySub[callee] shouldBe result.mapBySub[callee]!!.values.toSet()
+    }
+
+    test("callee without a known ordinary caller keeps all its colored registers") {
+        val options = CompilationOptions.builder(Qemu68kTarget())
+            .output(OutputType.RAW).zeropage(ZeropageType.FLOATSAFE)
+            .compilerVersion("test").memtopAddress(0xffffu).optimize(true).build()
+        val program = IRProgram("test", IRSymbolTable(), options, DummyStringEncoder)
+        // Only an indirect call exists: no caller demand is observable for the callee.
+        val callerChunk = IRCodeChunk(null, null)
+        callerChunk.instructions.add(IRInstructions.loadAddress(IRDataType.POINTER, 9, "p8b_test.p8v_fnptr"))
+        callerChunk.instructions.add(IRInstructions.call(Opcode.CALLI, CallSite(CallTarget.Direct(codeIndirect(9)))))
+        callerChunk.instructions.add(IRInstructions.load(IRDataType.WORD, 1, 5))
+        callerChunk.instructions.add(IRInstructions.storeMemory(Opcode.STOREM, IRDataType.WORD, 1, IRMemory.direct("p8b_test.p8v_out")))
+        val caller = IRSubroutine("test.start", emptyList(), emptyList(), Position.DUMMY)
+        caller.chunks.add(callerChunk)
+        val calleeChunk = IRCodeChunk(null, null)
+        for (i in 1..5) calleeChunk.instructions.add(IRInstructions.load(IRDataType.WORD, i, i))
+        for (i in 1..5) calleeChunk.instructions.add(
+            IRInstructions.storeMemory(Opcode.STOREM, IRDataType.WORD, i, IRMemory.direct("p8b_test.p8v_callee_out$i"))
+        )
+        val callee = IRSubroutine("test.callee", emptyList(), emptyList(), Position.DUMMY)
+        callee.chunks.add(calleeChunk)
+        val block = IRBlock("test", false, IRBlock.Options(), Position.DUMMY)
+        block.children.add(caller)
+        block.children.add(callee)
+        program.blocks.add(block)
+
+        val result = M68kRegisterAllocator(program).allocate()
+        result.calleeSavedBySub[callee] shouldBe result.mapBySub[callee]!!.values.toSet()
+    }
+
+    test("callee entered by a tail call keeps all its colored registers") {
+        val options = CompilationOptions.builder(Qemu68kTarget())
+            .output(OutputType.RAW).zeropage(ZeropageType.FLOATSAFE)
+            .compilerVersion("test").memtopAddress(0xffffu).optimize(true).build()
+        val program = IRProgram("test", IRSymbolTable(), options, DummyStringEncoder)
+        // Nothing is live across the call, but call+return becomes a tail branch,
+        // so the callee returns for the caller and must keep its full save set.
+        val callerChunk = IRCodeChunk(null, null)
+        callerChunk.instructions.add(IRInstructions.load(IRDataType.WORD, 1, 5))
+        val callSite = CallSite(CallTarget.Direct(CodeReference.Label("test.callee", 0)))
+        callerChunk.instructions.add(IRInstruction(Opcode.CALL, null, callSite = callSite))
+        callerChunk.instructions.add(IRInstruction(Opcode.RETURN, null))
+        val caller = IRSubroutine("test.start", emptyList(), emptyList(), Position.DUMMY)
+        caller.chunks.add(callerChunk)
+        val calleeChunk = IRCodeChunk(null, null)
+        for (i in 1..5) calleeChunk.instructions.add(IRInstructions.load(IRDataType.WORD, i, i))
+        for (i in 1..5) calleeChunk.instructions.add(
+            IRInstructions.storeMemory(Opcode.STOREM, IRDataType.WORD, i, IRMemory.direct("p8b_test.p8v_callee_out$i"))
+        )
+        val callee = IRSubroutine("test.callee", emptyList(), emptyList(), Position.DUMMY)
+        callee.chunks.add(calleeChunk)
+        val block = IRBlock("test", false, IRBlock.Options(), Position.DUMMY)
+        block.children.add(caller)
+        block.children.add(callee)
+        program.blocks.add(block)
+
+        val result = M68kRegisterAllocator(program).allocate()
+        result.calleeSavedBySub[callee] shouldBe result.mapBySub[callee]!!.values.toSet()
+    }
+
+    test("callee named in raw inline assembly keeps all its colored registers") {
+        val options = CompilationOptions.builder(Qemu68kTarget())
+            .output(OutputType.RAW).zeropage(ZeropageType.FLOATSAFE)
+            .compilerVersion("test").memtopAddress(0xffffu).optimize(true).build()
+        val program = IRProgram("test", IRSymbolTable(), options, DummyStringEncoder)
+        // The raw asm chunk calls test.callee directly, so no caller demand covers it.
+        val callerChunk = IRCodeChunk(null, null)
+        callerChunk.instructions.add(IRInstructions.load(IRDataType.WORD, 1, 5))
+        val callSite = CallSite(CallTarget.Direct(CodeReference.Label("test.callee", 0)))
+        callerChunk.instructions.add(IRInstruction(Opcode.CALL, null, callSite = callSite))
+        callerChunk.instructions.add(IRInstructions.storeMemory(Opcode.STOREM, IRDataType.WORD, 1, IRMemory.direct("p8b_test.p8v_out")))
+        val caller = IRSubroutine("test.start", emptyList(), emptyList(), Position.DUMMY)
+        caller.chunks.add(callerChunk)
+        caller.chunks.add(IRInlineAsmChunk(null, "jsr  test.callee", false, null))
+        val calleeChunk = IRCodeChunk(null, null)
+        for (i in 1..5) calleeChunk.instructions.add(IRInstructions.load(IRDataType.WORD, i, i))
+        for (i in 1..5) calleeChunk.instructions.add(
+            IRInstructions.storeMemory(Opcode.STOREM, IRDataType.WORD, i, IRMemory.direct("p8b_test.p8v_callee_out$i"))
+        )
+        val callee = IRSubroutine("test.callee", emptyList(), emptyList(), Position.DUMMY)
+        callee.chunks.add(calleeChunk)
+        val block = IRBlock("test", false, IRBlock.Options(), Position.DUMMY)
+        block.children.add(caller)
+        block.children.add(callee)
+        program.blocks.add(block)
+
+        val result = M68kRegisterAllocator(program).allocate()
+        result.calleeSavedBySub[callee] shouldBe result.mapBySub[callee]!!.values.toSet()
+    }
+
+    test("callee named by its assembler-mangled symbol in raw inline assembly keeps all its colored registers") {
+        val options = CompilationOptions.builder(Qemu68kTarget())
+            .output(OutputType.RAW).zeropage(ZeropageType.FLOATSAFE)
+            .compilerVersion("test").memtopAddress(0xffffu).optimize(true).build()
+        val program = IRProgram("test", IRSymbolTable(), options, DummyStringEncoder)
+        // "test.x" is emitted as "test_x" (a trailing size-letter dot is mangled), so the raw asm names it that way.
+        val callerChunk = IRCodeChunk(null, null)
+        callerChunk.instructions.add(IRInstructions.load(IRDataType.WORD, 1, 5))
+        val callSite = CallSite(CallTarget.Direct(CodeReference.Label("test.x", 0)))
+        callerChunk.instructions.add(IRInstruction(Opcode.CALL, null, callSite = callSite))
+        callerChunk.instructions.add(IRInstructions.storeMemory(Opcode.STOREM, IRDataType.WORD, 1, IRMemory.direct("p8b_test.p8v_out")))
+        val caller = IRSubroutine("test.start", emptyList(), emptyList(), Position.DUMMY)
+        caller.chunks.add(callerChunk)
+        caller.chunks.add(IRInlineAsmChunk(null, "jsr  test_x", false, null))
+        val calleeChunk = IRCodeChunk(null, null)
+        for (i in 1..5) calleeChunk.instructions.add(IRInstructions.load(IRDataType.WORD, i, i))
+        for (i in 1..5) calleeChunk.instructions.add(
+            IRInstructions.storeMemory(Opcode.STOREM, IRDataType.WORD, i, IRMemory.direct("p8b_test.p8v_callee_out$i"))
+        )
+        val callee = IRSubroutine("test.x", emptyList(), emptyList(), Position.DUMMY)
+        callee.chunks.add(calleeChunk)
+        val block = IRBlock("test", false, IRBlock.Options(), Position.DUMMY)
+        block.children.add(caller)
+        block.children.add(callee)
+        program.blocks.add(block)
+
+        val result = M68kRegisterAllocator(program).allocate()
+        result.calleeSavedBySub[callee] shouldBe result.mapBySub[callee]!!.values.toSet()
+    }
+
     test("non-overlapping vregs share one hardware register") {
         val options = CompilationOptions.builder(Qemu68kTarget())
             .output(OutputType.RAW).zeropage(ZeropageType.FLOATSAFE)
