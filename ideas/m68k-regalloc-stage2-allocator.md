@@ -9,10 +9,60 @@ allocator begins populating `regAllocation`.
 output with empty allocation map).
 **Additional prerequisite:** Decisions §7.1 items 1-4 of the design resolved and
 recorded (see "Decisions required before implementation" below).
-**Status:** Design decided at convention level; internals (§7.1) must be closed
-before delegating.
+**Status:** Implementation in progress. Phase A (analysis) landed; codegen wiring is
+gated behind the experimental `-m68kregalloc` flag (default off, output unchanged).
+See "Implementation progress" below for what is done and what remains.
 **Gate to next stage:** Allocator produces correct output for the test corpus
 and representative programs; tests pass; register-residency metrics improve.
+
+## Implementation progress (as of Oct 2026)
+
+**Golden harness (prerequisite):** `compiler/test/codegeneration/TestM68kGoldenAsm.kt`
+compares byte-identical `.asm` for 72 corpus entries (all 3 qemu68k examples, 13
+curated amiga examples x amiga500+amiga1200, 4 top-level examples x 3 targets;
+optimized + unoptimized). Goldens under `compiler/test/golden/m68k/`. Regenerate with
+`UPDATE_M68K_GOLDEN=1`. Verified byte-identical against the pre-Stage-0/1 commit.
+
+**New file:** `codeGenM68k/src/prog8/codegen/m68k/RegisterAllocator.kt`
+(`M68kRegisterAllocator`), returning `AllocationResult(map, calleeSavedBySub,
+spillDemandBySub)`.
+
+Done (analysis-level, gated off by default so shipping output is unchanged):
+- Step 1: convention split enforced (callee-saved-only pool D2-D6/A2-A4/FP2-FP7;
+  caller-saved kill set D0/D1/A0/A1/FP0/FP1 asserted disjoint from the pool;
+  reserved D7/A5/A6 excluded).
+- Step 2: intraprocedural liveness (gen/kill fixed-point recursing into IRLoopChunk)
+  + liveness-derived interference graph (replaces the packer's layout-order model).
+  NOT yet validated against nested loops / early returns / jump tables.
+- Step 3: class-aware greedy coloring; live-across-CALL is safe by construction
+  (callee-saved-only pool).
+- Item 4: class constraints from RegisterOperand.resolvedAllocationHint
+  (PREFER_ADDRESS -> A2-A4, PREFER_DATA -> D2-D6, float -> FP2-FP7).
+- Item 3: CALL boundary modeled (return-value vregs pinned to d0/fp0; pool and
+  kill set disjointness asserted).
+- Step 5 (partial): prologue/epilogue movem emitted and paired via emitFrameUnlk()
+  (the single exit path for returns + tail-jumps), gated behind registerAllocationEnabled.
+
+Partial / analysis-only:
+- Step 4: operand()/storeOperand() now resolve to register names under the flag, but
+  output is NOT yet sound (see Missing below).
+- Step 6: only spill DEMAND is counted; oversubscribed vregs silently fall back to
+  p8_regfile. No frame-slot budgeting / SP-reserved area / spill codegen yet.
+
+Not done (codegen-correctness blockers):
+- Step 6 full spill substrate (StackFrameLayout spill slots, frameless SP-reserved area).
+- Step 7: return-value marshalling (actual move-from-d0/fp0 at call sites).
+- Step 8: asmsub/extsub per-call-site metadata (§2.6).
+- Step 9: restrict ImmediateCallOptimization to spilled operands.
+- Step 10: per-subroutine RegisterPool reset.
+- Stage-1B blockers: JUMPI/CALLI memory-indirect on 68020+, memory-form word shifts
+  (InstrBitwise) - these break once operands resolve to registers.
+- Validation gate (§7.1 #6) and liveness validation on complex control flow.
+
+Flag plumbing: `-m68kregalloc` CLI switch -> CompilationOptions.m68kRegisterAllocation
+-> M68kCodeGenerator(allocateRegisters). Default false. Output under the flag is
+plausible but NOT correctness-validated; it is for inspection only until the items
+above land. `:codeGenM68k:test` and the golden harness pass (default path unchanged).
 
 This stage makes the allocator decide the vreg -> physical-register mapping per
 subroutine.

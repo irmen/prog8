@@ -29,7 +29,7 @@ internal fun AsmGen.translateControl(insn: IRInstruction, forwardedImmediateCall
                 is CodeReference.Label -> {
                     // a jump to a label in another subroutine ends this activation, so our frame has to be gone
                     // before we leave: whatever runs next returns to our caller, not to us
-                    if (frameActive && labelIsOutsideCurrentSub(t.name))
+                    if (labelIsOutsideCurrentSub(t.name))
                         emitFrameUnlk()
                     emitLine("bra  ${fixNameSymbols(t.name)}")     // PC-relative branch; vasm picks the optimal size and falls back to jmp if out of range
                 }
@@ -50,8 +50,10 @@ internal fun AsmGen.translateControl(insn: IRInstruction, forwardedImmediateCall
             // Keep the frame for a table whose targets all belong to this subroutine.
             if (!jumpTableStaysInCurrentSub(ref.pointer.register))
                 emitFrameUnlk()
-            if(program.options.compTarget.cpu >= CpuType.M68020) {
+            if (program.options.compTarget.cpu >= CpuType.M68020 && VirtualRegister.int(reg) !in regAllocation) {
                 // 68020+ supports memory-indirect addressing: fetch the target address from memory directly.
+                // Only valid when the operand still lives in memory (regfile/frame slot); a
+                // register-allocated vreg holds the pointer value itself, so use the movea path.
                 emitLine("jmp  ([${operand(reg)}])")
             } else {
                 emitLine("movea.l  ${operand(reg).removeSuffix("+0")}, $SCRATCH_A0")
@@ -72,8 +74,10 @@ internal fun AsmGen.translateControl(insn: IRInstruction, forwardedImmediateCall
             val ref = insn.codeTarget as? CodeReference.Indirect ?: error("CALLI needs an indirect target register")
             val reg = ref.pointer.intNumber
             invalidateD0Cache()
-            if(program.options.compTarget.cpu >= CpuType.M68020) {
+            if (program.options.compTarget.cpu >= CpuType.M68020 && VirtualRegister.int(reg) !in regAllocation) {
                 // 68020+ supports memory-indirect addressing: fetch the target address from memory directly.
+                // Only valid when the operand still lives in memory (regfile/frame slot); a
+                // register-allocated vreg holds the pointer value itself, so use the movea path.
                 emitLine("jsr  ([${operand(reg)}])")
             } else {
                 emitLine("movea.l  ${operand(reg).removeSuffix("+0")}, $SCRATCH_A0")
@@ -247,7 +251,20 @@ internal fun AsmGen.translateControl(insn: IRInstruction, forwardedImmediateCall
             val dstReg = insn.requireIntDest().intNumber
             val srcReg = insn.requireIntSourceA().intNumber
             // Big-endian: MSB is at byte offset 0 for both word and long.
-            emitLoadD0FromAddress(regAddrByte(srcReg, 0), IRDataType.BYTE)
+            val type = insn.type ?: IRDataType.WORD
+            if (VirtualRegister.int(srcReg) in regAllocation) {
+                emitLoadD0(srcReg, type)
+                when (type) {
+                    IRDataType.WORD -> emitLine("lsr.l  #8, $SCRATCH_D0")
+                    IRDataType.LONG, IRDataType.POINTER -> {
+                        emitLine("move.w  #24, $SCRATCH_D1")
+                        emitLine("lsr.l  $SCRATCH_D1, $SCRATCH_D0")
+                    }
+                    else -> {}
+                }
+            } else {
+                emitLoadD0FromAddress(regAddrByte(srcReg, 0), IRDataType.BYTE)
+            }
             emitStoreD0(dstReg, IRDataType.BYTE)
         }
 
@@ -255,7 +272,14 @@ internal fun AsmGen.translateControl(insn: IRInstruction, forwardedImmediateCall
             val dstReg = insn.requireIntDest().intNumber
             val srcReg = insn.requireIntSourceA().intNumber
             // Big-endian: word 0 (offset+0) is most significant. Extract directly.
-            emitLoadD0FromAddress(regAddrByte(srcReg, 0), IRDataType.WORD)
+            val type = insn.type ?: IRDataType.WORD
+            if (VirtualRegister.int(srcReg) in regAllocation) {
+                emitLoadD0(srcReg, type)
+                if (type == IRDataType.LONG || type == IRDataType.POINTER)
+                    emitLine("swap  $SCRATCH_D0")
+            } else {
+                emitLoadD0FromAddress(regAddrByte(srcReg, 0), IRDataType.WORD)
+            }
             emitStoreD0(dstReg, IRDataType.WORD)
         }
 
@@ -263,7 +287,13 @@ internal fun AsmGen.translateControl(insn: IRInstruction, forwardedImmediateCall
             val dstReg = insn.requireIntDest().intNumber
             val srcReg = insn.requireIntSourceA().intNumber
             // Big-endian: bits 16-23 are at byte offset 1 of a long.
-            emitLoadD0FromAddress(regAddrByte(srcReg, 1), IRDataType.BYTE)
+            if (VirtualRegister.int(srcReg) in regAllocation) {
+                emitLoadD0(srcReg, IRDataType.LONG)
+                emitLine("move.w  #16, $SCRATCH_D1")
+                emitLine("lsr.l  $SCRATCH_D1, $SCRATCH_D0")
+            } else {
+                emitLoadD0FromAddress(regAddrByte(srcReg, 1), IRDataType.BYTE)
+            }
             emitStoreD0(dstReg, IRDataType.BYTE)
         }
 
@@ -271,7 +301,12 @@ internal fun AsmGen.translateControl(insn: IRInstruction, forwardedImmediateCall
             val dstReg = insn.requireIntDest().intNumber
             val srcReg = insn.requireIntSourceA().intNumber
             // Big-endian: bits 8-15 are at byte offset 2 of a long.
-            emitLoadD0FromAddress(regAddrByte(srcReg, 2), IRDataType.BYTE)
+            if (VirtualRegister.int(srcReg) in regAllocation) {
+                emitLoadD0(srcReg, IRDataType.LONG)
+                emitLine("lsr.l  #8, $SCRATCH_D0")
+            } else {
+                emitLoadD0FromAddress(regAddrByte(srcReg, 2), IRDataType.BYTE)
+            }
             emitStoreD0(dstReg, IRDataType.BYTE)
         }
 
@@ -904,8 +939,7 @@ private fun AsmGen.translateReturnValue(ret: CallResult) {
         if (destination.isFloat) {
             emitLine("fmove.s  $hwReg, ${floatOperand(destination.floatNumber)}")
         } else {
-            val s = dtSuffix(destination.type)
-            emitLine("move$s  $hwReg, ${operand(destination.intNumber)}")
+            emitMoveToIntRegister(hwReg, destination.intNumber, destination.type)
         }
     } else {
         // Default: return value in d0 (standard m68k calling convention)

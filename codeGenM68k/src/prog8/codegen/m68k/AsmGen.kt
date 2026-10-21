@@ -17,6 +17,24 @@ internal const val SCRATCH_A1 = "a1"
 internal const val SCRATCH_FP0 = "fp0"
 internal const val SCRATCH_FP1 = "fp1"
 
+// Allocatable (callee-saved) register pools used by the Stage 2 register allocator.
+// Kept here so the allocator and the codegen share one source of truth (Step 1).
+internal val ALLOCATABLE_DATA_REGS = listOf("d2", "d3", "d4", "d5", "d6")
+internal val ALLOCATABLE_ADDR_REGS = listOf("a2", "a3", "a4")
+internal val ALLOCATABLE_FP_REGS = listOf("fp2", "fp3", "fp4", "fp5", "fp6", "fp7")
+
+// Single source of truth for the m68k register convention (Step 1). Both the
+// allocator and the codegen reference this object instead of inline literals.
+object M68kRegisterConvention {
+    val CALLER_SAVED = setOf(SCRATCH_D0, SCRATCH_D1, SCRATCH_A0, SCRATCH_A1, SCRATCH_FP0, SCRATCH_FP1)
+    val RESERVED = CALLER_SAVED + setOf("d7", "a5", "a6", "a7")
+    val CALLEE_SAVED_DATA = ALLOCATABLE_DATA_REGS
+    val CALLEE_SAVED_ADDR = ALLOCATABLE_ADDR_REGS
+    val CALLEE_SAVED_FP = ALLOCATABLE_FP_REGS
+    const val RETURN_INT = "d0"
+    const val RETURN_FLOAT = "fp0"
+}
+
 /**
  * The virtual register that an instruction writes into its primary destination slot,
  * but only when that slot is a pure definition (not a read-modify-write). This is the
@@ -120,12 +138,19 @@ internal class AsmGen(val program: IRProgram, internal val target: ICompilationT
     // Stage 2 populates vreg -> physical-register mapping. Keyed on VirtualRegister.
     internal val regAllocation: MutableMap<VirtualRegister, String> = mutableMapOf()
 
+    // Stage 2 (Phase C): when true, emit per-subroutine movem save/restore of the
+    // callee-saved registers the allocator assigned to that subroutine's vregs.
+    internal var registerAllocationEnabled = false
+    internal var calleeSavedBySub: Map<IRSubroutine, Set<String>> = emptyMap()
+    // callee-saved registers used by the subroutine currently being emitted (for its epilogue)
+    internal var currentSubCalleeSaved: Set<String> = emptySet()
+
     // Scratch + reserved registers must never hold an allocated vreg (§2.3, §2.5).
     //   SCRATCH_D0/D1/A0/A1/FP0/FP1: permanent translator scratch (§2.3).
     //   d7: physical repeat-loop counter (§2.5); clobbered by backend helpers.
     //   a5: frame pointer (§2.5); a6: AmigaOS library base (§2.5).
     //   a7: stack pointer (hardware); never a vreg target.
-    private val nonAllocatableRegs = setOf(SCRATCH_D0, SCRATCH_D1, SCRATCH_A0, SCRATCH_A1, SCRATCH_FP0, SCRATCH_FP1, "d7", "a5", "a6", "a7")
+    private val nonAllocatableRegs = M68kRegisterConvention.RESERVED
 
     private fun assertAllocatable(phys: String?) {
         if (phys != null && phys.lowercase() in nonAllocatableRegs)
@@ -239,7 +264,8 @@ internal class AsmGen(val program: IRProgram, internal val target: ICompilationT
     fun emitLoadD0(reg: Int, type: IRDataType) {
         if (d0CacheReg == reg && d0CacheType == type)
             return
-        emitLine("move${dtSuffix(type)}  ${regAddr(reg)}, $SCRATCH_D0")
+        val source = if (VirtualRegister.int(reg) in regAllocation) operand(reg) else regAddr(reg)
+        emitLine("move${dtSuffix(type)}  $source, $SCRATCH_D0")
         d0CacheReg = reg
         d0CacheType = type
     }
@@ -247,7 +273,16 @@ internal class AsmGen(val program: IRProgram, internal val target: ICompilationT
     // Store d0 to a virtual register and update the cache to reflect that d0
     // still holds that value.
     fun emitStoreD0(reg: Int, type: IRDataType) {
-        emitLine("move${dtSuffix(type)}  $SCRATCH_D0, ${regAddr(reg)}")
+        val physical = regAllocation[VirtualRegister.int(reg)]
+        if (physical != null) {
+            val destination = operand(reg)
+            if (physical.startsWith("a"))
+                emitLine("movea.l  $SCRATCH_D0, $destination")
+            else
+                emitLine("move${dtSuffix(type)}  $SCRATCH_D0, $destination")
+        } else {
+            emitLine("move${dtSuffix(type)}  $SCRATCH_D0, ${regAddr(reg)}")
+        }
         d0CacheReg = reg
         d0CacheType = type
     }
@@ -327,10 +362,56 @@ internal class AsmGen(val program: IRProgram, internal val target: ICompilationT
 
     private fun frameVregAddr(reg: Int): String? = frameVregSlots[reg]?.let { "$it(a5)" }
 
-    /** emits the frame teardown for the subroutine currently being translated, if it has a frame */
+    /** emits the frame teardown for the subroutine currently being translated, if it has a frame.
+     *  Any callee-saved registers saved in the prologue are restored first. This is called on
+     *  every genuine exit from the subroutine (returns and tail-jumps), so it is the single
+     *  place that pairs the prologue's movem save and link a5. */
     internal fun emitFrameUnlk() {
+        emitCalleeRestore()
         if (frameActive)
             emitLine("unlk  a5")
+    }
+
+    /** formats a set of data or address registers as a movem register list. */
+    private fun movemRegList(regs: Set<String>): String {
+        val d = regs.filter { it.startsWith("d") }.map { it.drop(1).toInt() }.sorted()
+        val a = regs.filter { it.startsWith("a") }.map { it.drop(1).toInt() }.sorted()
+        fun range(nums: List<Int>, prefix: String): String? = when {
+            nums.isEmpty() -> null
+            nums.size == 1 -> "$prefix${nums[0]}"
+            else -> "$prefix${nums.first()}-$prefix${nums.last()}"
+        }
+        val parts = listOfNotNull(range(d, "d"), range(a, "a"))
+        return parts.joinToString("/")
+    }
+
+    /** formats a set of floating-point registers as an fmovem register list. */
+    private fun fmovemRegList(regs: Set<String>): String {
+        val fp = regs.filter { it.startsWith("fp") }.map { it.drop(2).toInt() }.sorted()
+        return if (fp.size == 1) "fp${fp[0]}" else "fp${fp.first()}-fp${fp.last()}"
+    }
+
+    /** emits the callee-saved register save (movem into the stack) for the current subroutine. */
+    internal fun emitCalleeSave() {
+        if (!registerAllocationEnabled || currentSubCalleeSaved.isEmpty()) return
+        val cpuRegs = currentSubCalleeSaved.filterNot { it.startsWith("fp") }.toSet()
+        val fpRegs = currentSubCalleeSaved.filter { it.startsWith("fp") }.toSet()
+        if (cpuRegs.isNotEmpty())
+            emitLine("movem.l  ${movemRegList(cpuRegs)}, -(sp)")
+        if (fpRegs.isNotEmpty())
+            emitLine("fmovem.x  ${fmovemRegList(fpRegs)}, -(sp)")
+    }
+
+    /** emits the callee-saved register restore (movem out of the stack) for the current subroutine.
+     *  Called just before frame teardown / rts at every exit point. */
+    internal fun emitCalleeRestore() {
+        if (!registerAllocationEnabled || currentSubCalleeSaved.isEmpty()) return
+        val cpuRegs = currentSubCalleeSaved.filterNot { it.startsWith("fp") }.toSet()
+        val fpRegs = currentSubCalleeSaved.filter { it.startsWith("fp") }.toSet()
+        if (fpRegs.isNotEmpty())
+            emitLine("fmovem.x  (sp)+, ${fmovemRegList(fpRegs)}")
+        if (cpuRegs.isNotEmpty())
+            emitLine("movem.l  (sp)+, ${movemRegList(cpuRegs)}")
     }
 
     /**
@@ -445,12 +526,12 @@ internal class AsmGen(val program: IRProgram, internal val target: ICompilationT
     // allocated to a register of the required class; null => fall back to scratch.
     fun operandAsDataReg(op: RegisterOperand): String? {
         val phys = regAllocation[op.register] ?: return null
-        return if (phys.lowercase() in setOf("d2", "d3", "d4", "d5", "d6")) phys else null
+        return if (phys.lowercase() in ALLOCATABLE_DATA_REGS.map { it.lowercase() }.toSet()) phys else null
     }
 
     fun operandAsAddressReg(op: RegisterOperand): String? {
         val phys = regAllocation[op.register] ?: return null
-        return if (phys.lowercase() in setOf("a2", "a3", "a4")) phys else null
+        return if (phys.lowercase() in ALLOCATABLE_ADDR_REGS.map { it.lowercase() }.toSet()) phys else null
     }
 
     private fun regNumForOffset(offset: Int): Int? =
@@ -503,14 +584,38 @@ internal class AsmGen(val program: IRProgram, internal val target: ICompilationT
     }
 
     fun loadPointerToA0(reg: Int) {
-        // load a 32-bit pointer from the register file into a0
-        frameVregAddr(reg)?.let {
-            emitLine("movea.l  $it, $SCRATCH_A0")
-            return
+        val vreg = VirtualRegister.int(reg)
+        if (vreg in regAllocation) {
+            emitLine("movea.l  ${operand(reg)}, $SCRATCH_A0")
+        } else {
+            frameVregAddr(reg)?.let {
+                emitLine("movea.l  $it, $SCRATCH_A0")
+                return
+            }
+            val offset = regFileLayout.offsets[reg] ?: error("register r$reg has no layout info")
+            val addr = if (offset == 0) REGFILE_LABEL else "$REGFILE_LABEL+$offset"
+            emitLine("movea.l  $addr, $SCRATCH_A0")
         }
-        val offset = regFileLayout.offsets[reg] ?: error("register r$reg has no layout info")
-        val addr = if (offset == 0) REGFILE_LABEL else "$REGFILE_LABEL+$offset"
-        emitLine("movea.l  $addr, $SCRATCH_A0")
+    }
+
+    /** Move an integer value into a virtual register, preserving address-register allocation. */
+    fun emitMoveToIntRegister(source: String, reg: Int, type: IRDataType) {
+        val destination = operand(reg)
+        val physical = regAllocation[VirtualRegister.int(reg)]
+        if (physical?.startsWith("a") == true)
+            emitLine("movea.l  $source, $destination")
+        else
+            emitLine("move${dtSuffix(type)}  $source, $destination")
+    }
+
+    /** Store a byte constant into an integer virtual register. */
+    fun emitByteConstantToRegister(value: Int, reg: Int) {
+        val physical = regAllocation[VirtualRegister.int(reg)]
+        if (physical != null)
+            emitLine("move.b  #$value, ${operand(reg)}")
+        else
+            emitLine("move.b  #$value, ${regAddrByte(reg, 0)}")
+        invalidateD0CacheForSlot(reg)
     }
 
 
@@ -904,12 +1009,14 @@ internal class AsmGen(val program: IRProgram, internal val target: ICompilationT
             emitLine("bsr  run_global_inits")
         frameActive = sub.hasFrame
         frameVregSlots = sub.frameVregSlots
+        currentSubCalleeSaved = calleeSavedBySub[sub] ?: emptySet()
         currentSubChunks = mutableSetOf<IRCodeChunkBase>().also { set -> sub.forEachChunk { set.add(it) } }
         if (sub.hasFrame) {
             emitRaw("; stack frame: ${sub.frameSize} bytes of locals, ${sub.incomingSize} bytes of arguments")
             emitLine(if (sub.frameSize > 0) "link  a5,#-${sub.frameSize}" else "link  a5,#0")
             reportFrameSize(sub)
         }
+        emitCalleeSave()
         val livenessInstructions = sub.chunks.filterIsInstance<IRCodeChunk>().flatMap { it.instructions }
         val deadStoreSuppressionAllowed = canSuppressDeadStores(sub)
         var instructionOffset = 0
@@ -944,6 +1051,7 @@ internal class AsmGen(val program: IRProgram, internal val target: ICompilationT
         frameActive = false
         frameVregSlots = emptyMap()
         currentSubChunks = emptySet()
+        currentSubCalleeSaved = emptySet()
     }
 
     private fun emitAsmSubroutine(sub: IRAsmSubroutine) {

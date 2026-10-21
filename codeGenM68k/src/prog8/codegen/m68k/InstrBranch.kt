@@ -134,7 +134,7 @@ private val inverseBranchOps = mapOf(
 
 private fun AsmGen.emitBranch(branchOp: String, label: String, leavesSubroutine: Boolean) {
     invalidateD0Cache()
-    if (!leavesSubroutine || !frameActive) {
+    if (!leavesSubroutine) {
         emitLine("$branchOp  $label")
         return
     }

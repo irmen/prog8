@@ -210,6 +210,7 @@ internal class CompilerDaemon(private val socketPath: Path) {
             asmListfile = asmListfile,
             includeSourcelines = includeSourcelines,
             newCodegen = newCodegen,
+            m68kRegisterAllocation = m68kRegisterAllocation,
             dumpVariables = dumpVariables,
             dumpSymbols = dumpSymbols,
             varsHighBank = varsHighBank,

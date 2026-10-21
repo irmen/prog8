@@ -15,6 +15,7 @@ internal data class DaemonRequest(
     val asmListfile: Boolean,
     val includeSourcelines: Boolean,
     val newCodegen: Boolean,
+    val m68kRegisterAllocation: Boolean = false,
     val dumpVariables: Boolean,
     val dumpSymbols: Boolean,
     val varsHighBank: Int?,
@@ -64,6 +65,7 @@ internal object DaemonProtocol {
         append(prop("asmListfile", req.asmListfile))
         append(prop("includeSourcelines", req.includeSourcelines))
         append(prop("newCodegen", req.newCodegen))
+        append(prop("m68kRegisterAllocation", req.m68kRegisterAllocation))
         append(prop("dumpVariables", req.dumpVariables))
         append(prop("dumpSymbols", req.dumpSymbols))
         append(prop("varsHighBank", req.varsHighBank))
@@ -132,6 +134,7 @@ internal object DaemonProtocol {
             asmListfile = map["asmListfile"] as Boolean,
             includeSourcelines = map["includeSourcelines"] as Boolean,
             newCodegen = map["newCodegen"] as Boolean,
+            m68kRegisterAllocation = map["m68kRegisterAllocation"] as? Boolean ?: false,
             dumpVariables = map["dumpVariables"] as Boolean,
             dumpSymbols = map["dumpSymbols"] as Boolean,
             varsHighBank = (map["varsHighBank"] as? Number)?.toInt(),

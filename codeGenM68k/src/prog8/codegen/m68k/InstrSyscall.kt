@@ -88,10 +88,10 @@ private fun AsmGen.translateSyscallArrayContains(site: CallSite, dt: IRDataType)
     emitLine("$cmpInstr  ($SCRATCH_A0)+, $SCRATCH_D0")
     emitLine("beq  $labelFound")
     emitLine("dbra  $SCRATCH_D1, $labelLoop")
-    emitLine("move.b  #0, ${regAddrByte(resultReg, 0)}")
+    emitByteConstantToRegister(0, resultReg)
     emitLine("bra  $labelDone")
     emitRaw("$labelFound:")
-    emitLine("move.b  #1, ${regAddrByte(resultReg, 0)}")
+    emitByteConstantToRegister(1, resultReg)
     emitRaw("$labelDone:")
 }
 
@@ -133,10 +133,10 @@ private fun AsmGen.translateSyscallSplitWordarrayContains(site: CallSite) {
     emitLine("cmp.w  $SCRATCH_D0, d4")
     emitLine("beq  $labelFound")
     emitLine("dbra  $SCRATCH_D1, $labelLoop")
-    emitLine("move.b  #0, ${regAddrByte(resultReg, 0)}")
+    emitByteConstantToRegister(0, resultReg)
     emitLine("bra  $labelDone")
     emitRaw("$labelFound:")
-    emitLine("move.b  #1, ${regAddrByte(resultReg, 0)}")
+    emitByteConstantToRegister(1, resultReg)
     emitRaw("$labelDone:")
     emitLine("movem.l  (sp)+,d2-d4")
 }
@@ -160,10 +160,10 @@ private fun AsmGen.translateSyscallFloatarrayContains(site: CallSite) {
     emitLine("fcmp.s  ($SCRATCH_A0)+, $SCRATCH_FP0")
     emitLine("fbeq  $labelFound")
     emitLine("dbra  $SCRATCH_D1, $labelLoop")
-    emitLine("move.b  #0, ${regAddrByte(resultReg, 0)}")
+    emitByteConstantToRegister(0, resultReg)
     emitLine("bra  $labelDone")
     emitRaw("$labelFound:")
-    emitLine("move.b  #1, ${regAddrByte(resultReg, 0)}")
+    emitByteConstantToRegister(1, resultReg)
     emitRaw("$labelDone:")
 }
 
@@ -176,7 +176,7 @@ private fun AsmGen.translateSyscallStringContains(site: CallSite) {
     val labelFound = makeLabel(".sc_found")
     val labelDone = makeLabel(".sc_done")
 
-    emitLine("move.b  ${regAddrByte(regChar, 0)}, $SCRATCH_D0")
+    emitLoadD0(regChar, IRDataType.BYTE)
     emitLine("move.l  ${operand(regStr)}, $SCRATCH_A0")
     emitRaw("$labelLoop:")
     emitLine("move.b  ($SCRATCH_A0)+, $SCRATCH_D1")
@@ -185,10 +185,10 @@ private fun AsmGen.translateSyscallStringContains(site: CallSite) {
     emitLine("beq  $labelFound")
     emitLine("bra  $labelLoop")
     emitRaw("$labelFound:")
-    emitLine("move.b  #1, ${regAddrByte(resultReg, 0)}")
+    emitByteConstantToRegister(1, resultReg)
     emitLine("bra  $labelDone")
     emitRaw("$labelDone:")
-    emitLine("move.b  #0, ${regAddrByte(resultReg, 0)}")
+    emitByteConstantToRegister(0, resultReg)
 }
 
 private fun AsmGen.translateSyscallClamp(site: CallSite, dt: IRDataType, signed: Boolean) {

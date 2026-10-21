@@ -82,6 +82,7 @@ private class CompilerCli : CliktCommand(name = "prog8c") {
     val startEmulator1 by option("-emu", "--emu", help = "auto-start emulator after successful compilation").flag()
     val startEmulator2 by option("-emu2", "--emu2", help = "auto-start alternative emulator after successful compilation").flag()
     val newCodegen by option("-newcodegen", "--newcodegen", help = "use experimental/incomplete 6502 codegen based on IR instead of AST. Not for production code.").flag()
+    val m68kRegisterAllocation by option("-m68kregalloc", "--m68kregalloc", help = "experimental: use the m68k hardware register allocator (Stage 2, work in progress). Not for production code.").flag()
     val float2bytes by option("-float2bytes", "--float2bytes", help = "convert floating point number to a list of bytes for the target system")
     val ignoreFootguns by option("-ignorefootguns", "--ignorefootguns", help = "don't print warnings for 'footgun' issues").flag()
     val profilingInstrumentation by option("-profiling", "--profiling", help = "add subroutine profiling instrumentation (cx16 only)").flag()
@@ -282,7 +283,8 @@ private fun compileMain(args: Array<String>): Boolean {
                     outputFile = outputFile?.let { pathFrom(it) },
                     errors = ErrorReporter(txtcolors),
                     assemble = true,
-                    generateDocumentation = generateDocumentation
+                    generateDocumentation = generateDocumentation,
+                    m68kRegisterAllocation = m68kRegisterAllocation
                 )
                 val compilationResult = compileProgram(compilerArgs)
 
@@ -372,7 +374,8 @@ private fun compileMain(args: Array<String>): Boolean {
                 cwd = Path.of(System.getProperty("user.dir")),
                 errors = ErrorReporter(txtcolors),
                 assemble = true,
-                generateDocumentation = generateDocumentation
+                generateDocumentation = generateDocumentation,
+                m68kRegisterAllocation = m68kRegisterAllocation
             )
             val response = compileViaDaemon(compilerArgs, plainText)
             if (response == null || !response.ok)
@@ -440,7 +443,8 @@ private fun compileMain(args: Array<String>): Boolean {
                     outputFile = outputFile?.let { pathFrom(it) },
                     errors = ErrorReporter(txtcolors),
                     assemble = true,
-                    generateDocumentation = generateDocumentation
+                    generateDocumentation = generateDocumentation,
+                    m68kRegisterAllocation = m68kRegisterAllocation
                 )
                 val result = compileProgram(compilerArgs)
 
@@ -885,6 +889,7 @@ private fun communicateWithDaemon(channel: SocketChannel, compilerArgs: Compiler
             asmListfile = compilerArgs.asmListfile,
             includeSourcelines = compilerArgs.includeSourcelines,
             newCodegen = compilerArgs.newCodegen,
+            m68kRegisterAllocation = compilerArgs.m68kRegisterAllocation,
             dumpVariables = compilerArgs.dumpVariables,
             dumpSymbols = compilerArgs.dumpSymbols,
             varsHighBank = compilerArgs.varsHighBank,

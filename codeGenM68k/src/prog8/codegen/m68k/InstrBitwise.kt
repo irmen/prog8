@@ -229,9 +229,12 @@ private fun AsmGen.shiftRegister(reg: Int, count: Int, type: IRDataType, isArith
         emitStoreD0(reg, IRDataType.LONG)
         return
     }
-    if (type == IRDataType.WORD && count == 1) {
+    if (type == IRDataType.WORD && count == 1 && VirtualRegister.int(reg) !in regAllocation) {
         // m68k memory shift/rotate is supported for .w count=1; collapse the
-        // d0 round-trip into a single memory form
+        // d0 round-trip into a single memory form. Only when the operand still
+        // lives in memory (regfile/frame slot): once it is register-allocated,
+        // the register form (d0 round-trip) is used to avoid invalid
+        // `lea reg, a0` / memory-form addressing on a physical register.
         emitMemoryWordShiftOrRotate(op, operand(reg))
         invalidateD0CacheForSlot(reg)
         return
@@ -397,7 +400,11 @@ private fun AsmGen.bitOpMem(op: String, reg: Int, bit: Int, type: IRDataType) {
     }
     val byteOffset = size - 1 - bit / 8
     val bitInByte = bit % 8
-    emitLine("$op  #$bitInByte, ${regAddrByte(reg, byteOffset)}")
+    val physical = regAllocation[VirtualRegister.int(reg)]
+    if (physical != null && physical.startsWith("d"))
+        emitLine("$op  #$bit, ${operand(reg)}")
+    else
+        emitLine("$op  #$bitInByte, ${regAddrByte(reg, byteOffset)}")
 }
 
 private fun AsmGen.bitTest(reg: Int, bit: Int, type: IRDataType) {

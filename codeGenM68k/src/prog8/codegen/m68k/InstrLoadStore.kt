@@ -20,15 +20,18 @@ internal fun AsmGen.translateLoadStore(insn: IRInstruction, suppressRegfileStore
                     if (suppressRegfileStore)
                         return
                     if(value.value == 0)
-                        emitLine("clr$s  ${operand(dst)}")
+                        if (regAllocation[VirtualRegister.int(dst)]?.startsWith("a") == true)
+                            emitLine("suba.l  ${operand(dst)}, ${operand(dst)}")
+                        else
+                            emitLine("clr$s  ${operand(dst)}")
                     else
-                        emitLine("move$s  #${value.value}, ${operand(dst)}")
+                        emitMoveToIntRegister("#${value.value}", dst, type)
                     invalidateD0CacheForSlot(dst)
                 }
                 is ImmediateOperand.SymbolAddress -> {
                     val resolved = resolveSymbolRef(value.symbol)
                     val symOff = if (value.offset != 0) "$resolved+${value.offset}" else resolved
-                    emitLine("move.l  #$symOff, ${operand(dst)}")
+                    emitMoveToIntRegister("#$symOff", dst, type)
                     invalidateD0CacheForSlot(dst)
                 }
                 is ImmediateOperand.FloatValue -> error("LOAD: float immediate for an integer register")
@@ -45,7 +48,7 @@ internal fun AsmGen.translateLoadStore(insn: IRInstruction, suppressRegfileStore
         Opcode.LOADR -> {
             val dst = insn.requireIntDest().intNumber
             val src = insn.requireIntSourceA().intNumber
-            emitLine("move$s  ${operand(src)}, ${operand(dst)}")
+            emitMoveToIntRegister(operand(src), dst, type)
             invalidateD0CacheForSlot(dst)
         }
 
@@ -59,7 +62,7 @@ internal fun AsmGen.translateLoadStore(insn: IRInstruction, suppressRegfileStore
         Opcode.LOADHR -> {
             val dst = insn.requireIntDest().intNumber
             val hwReg = m68kSlotRegister(insn.requireHardwareSlot().slot)
-            emitLine("move$s  $hwReg, ${operand(dst)}")
+            emitMoveToIntRegister(hwReg, dst, type)
             invalidateD0CacheForSlot(dst)
         }
 

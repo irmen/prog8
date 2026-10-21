@@ -72,7 +72,8 @@ class CompilerArguments(val filepath: Path,
                         val cwd: Path = Path("").absolute(),
                         val errors: IErrorReporter = ErrorReporter(ErrorReporter.AnsiColors),
                         val assemble: Boolean = true,
-                        val generateDocumentation: Boolean = false)
+                        val generateDocumentation: Boolean = false,
+                        val m68kRegisterAllocation: Boolean = false)
 
 
 fun compileProgram(args: CompilerArguments): CompilationResult? {
@@ -137,6 +138,7 @@ fun compileProgram(args: CompilerArguments): CompilationResult? {
                 asmListfile = args.asmListfile
                 includeSourcelines = args.includeSourcelines
                 newCodegen = args.newCodegen
+                m68kRegisterAllocation = args.m68kRegisterAllocation
                 dumpVariables = args.dumpVariables
                 dumpSymbols = args.dumpSymbols
                 breakpointCpuInstruction = args.breakpointCpuInstruction
@@ -920,7 +922,7 @@ private fun createAssemblyAndAssemble(program: PtProgram,
             else
                 prog8.codegen.cpu6502.AsmGen6502(lastGeneratedLabelSequenceNr+1, asm6502CallIds)
         }
-        compilerOptions.compTarget.cpu.is68k -> prog8.codegen.m68k.M68kCodeGenerator(retainSSAforIR)
+        compilerOptions.compTarget.cpu.is68k -> prog8.codegen.m68k.M68kCodeGenerator(retainSSAforIR, compilerOptions.m68kRegisterAllocation)
         compilerOptions.compTarget.name == VMTarget.NAME -> VmCodeGen(retainSSAforIR, irCallIds)
         else -> throw NotImplementedError("no code generator for cpu ${compilerOptions.compTarget.cpu}")
     }

@@ -13,7 +13,7 @@ import prog8.intermediate.IRFileWriter
 import prog8.intermediate.VirtualRegister
 import prog8.intermediate.dumpVariables
 
-class M68kCodeGenerator(val retainSSA: Boolean): ICodeGeneratorBackend {
+class M68kCodeGenerator(val retainSSA: Boolean, val allocateRegisters: Boolean = false): ICodeGeneratorBackend {
     override fun generate(
         program: PtProgram,
         symbolTable: SymbolTable,
@@ -38,6 +38,12 @@ class M68kCodeGenerator(val retainSSA: Boolean): ICodeGeneratorBackend {
         IRFileWriter(irProgram, null).write()
 
         val gen = AsmGen(irProgram, irProgram.options.compTarget, errors)
+        if (allocateRegisters) {
+            gen.registerAllocationEnabled = true
+            val alloc = M68kRegisterAllocator(irProgram).allocate()
+            gen.regAllocation.putAll(alloc.map)
+            gen.calleeSavedBySub = alloc.calleeSavedBySub
+        }
         if (!gen.generate())
             throw RuntimeException("M68k assembly generation failed")
 

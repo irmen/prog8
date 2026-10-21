@@ -743,6 +743,11 @@ a new hardcoded scratch register outside the D0/D1/A0/A1/FP0/FP1 set.
 
 ### Stage 2 — the allocator decides the mapping, per subroutine
 
+**Status:** in progress - analysis (steps 1-3, partial 5) implemented behind the
+experimental `-m68kregalloc` flag (default off); spilling, return marshalling,
+asmsub metadata and validation remain. Detailed progress: see "Implementation
+progress" in `ideas/m68k-regalloc-stage2-allocator.md`.
+
 1. **Define convention constants** in the m68k backend: the caller-saved vs
    callee-saved split, the reserved set (§2.5), return-value locations (§2.7),
    asmsub arg slots.
