@@ -743,11 +743,11 @@ a new hardcoded scratch register outside the D0/D1/A0/A1/FP0/FP1 set.
 
 ### Stage 2 — the allocator decides the mapping, per subroutine
 
-**Status:** complete - all 10 steps plus the validation gate implemented behind
-the experimental `-m68kregalloc` flag (default off); corpus residency 100%,
-no spills, ELF -4..-13%. Residual work (d0-cache retirement / direct reg-to-reg
-emission, spill-under-pressure proof, branch-edge CFG) recorded in the Stage-2
-document and does not block Stage 3 teardown. Detailed progress:
+**Status:** complete - all 10 steps, the validation gate, and all three
+residual items (gated direct reg-to-reg emission, spill-under-pressure proof
+for int and float, branch-edge CFG) implemented behind the experimental
+`-m68kregalloc` flag (default off); corpus residency 100%, ELF -4..-14%,
+code lines -5..+1%. Detailed progress:
 see "Implementation progress" in `ideas/m68k-regalloc-stage2-allocator.md`.
 
 1. **Define convention constants** in the m68k backend: the caller-saved vs
@@ -830,22 +830,53 @@ Full details of these decisions, including the D0 cache retirement plan and
 frameless-subroutine spill mechanics, are in
 `ideas/m68k-regalloc-stage2-allocator.md`.
 
-### Stage 3 — teardown of the old mitigation layer
+### Stage 3 — teardown of the old mitigation layer (split into sub-steps)
 
 Much of `AsmOptimizer` exists only to undo what memory-everywhere codegen
 produces (spill-then-reload bounces, immediate forwarding that matches literal
 `p8_regfile+N` operand strings — see the many `REGFILE-DEPENDENT` comments and
 `TestInstructionSelectionOptimizations`). Once Stage 2 lands:
 
-- Delete the peepholes that the allocator subsumes rather than adapting them.
-  Keeping both is how the first attempt became "fragmented and complicated".
-- The instruction-selection optimizations that remain meaningful (e.g. constant
-  folding into `moveq`, addressing-mode choices for true memory operands) stay,
-  but must match against `operand()` output, not literal regfile strings.
-- Expect heavy churn in `TestInstructionSelectionOptimizations.kt`, which has
-  ~100 tests asserting exact `p8_regfile` instruction sequences. Rewrite these
-  to assert properties (allocated vregs never appear as `p8_regfile` operands;
-  specific sequences for known-small examples) instead of full listings.
+- **Step 3a - Delete subsumed peepholes.**
+  Remove the passes explicitly marked REGFILE-DEPENDENT that the allocator
+  subsumes: `optimizeRedundantReload`, `optimizeBounceToGlobal`,
+  `optimizeMsigbSpill`, `optimizeClampImmediate`, `optimizeFuseLoadxJumpi`
+  (and the obsolete dbra comment). Keep the register-independent passes
+  (`optimizeJmpToNextLabel`, `optimizeTailCall`, `optimizeRedundantTst`,
+  `optimizeRedundantLea`). This changes default-path output, so regenerate
+  the goldens in the same change. Risk: low-to-medium, localized to
+  `AsmOptimizer.kt`.
+- **Step 3b - Retarget surviving peepholes to `operand()` output.** Generalize
+  the remaining passes (and any instruction-selection opts elsewhere) that
+  still match literal `p8_regfile+N` strings so they match against the new
+  register-or-spill form. Do this one peephole at a time, with the corpus as
+  the regression oracle.
+- **Step 3c - Test rewrite.** Convert `TestInstructionSelectionOptimizations.kt`
+  (~91 tests) from exact `p8_regfile` sequence assertions to property
+  assertions (allocated vregs never appear as `p8_regfile` operands; specific
+  sequences only for known-small examples), per the AGENTS.md guidance (parse
+  into lines, check `lines.any { ... }` / counts, never dump raw asm). Can be
+  done incrementally alongside 3a/3b.
+- **Step 3d - Doc and exit gate.** Confirm `gradle build` green, no
+  REGFILE-DEPENDENT references left, and update this document's Stage 3
+  status.
+
+Delete the peepholes that the allocator subsumes rather than adapting them.
+Keeping both is how the first attempt became "fragmented and complicated".
+The instruction-selection optimizations that remain meaningful (e.g. constant
+folding into `moveq`, addressing-mode choices for true memory operands) stay,
+but must match against `operand()` output, not literal regfile strings.
+
+Expect heavy churn in `TestInstructionSelectionOptimizations.kt`, which has
+~91 tests asserting exact `p8_regfile` instruction sequences. Rewrite these
+to assert properties (allocated vregs never appear as `p8_regfile` operands;
+specific sequences for known-small examples) instead of full listings.
+
+### Stage 4 — default allocator and cleanup
+
+Removes the `-m68kregalloc` flag, the old memory-everywhere path, and the golden
+harness with its data files, and trims the m68k codegen comments to the project
+comment rules. Detailed in `m68k-regalloc-stage4-default.md`.
 
 ### Success metrics (tie back to §0)
 

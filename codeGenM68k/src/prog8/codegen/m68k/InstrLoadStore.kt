@@ -55,8 +55,13 @@ internal fun AsmGen.translateLoadStore(insn: IRInstruction, suppressRegfileStore
         Opcode.LOADX, Opcode.LOADI -> {
             val dst = insn.requireIntDest().intNumber
             val source = resolveMemory(insn.requireMemory())
-            emitLoadD0FromAddress(source, type)
-            emitStoreD0(dst, type)
+            if (registerAllocationEnabled) {
+                emitMoveToIntRegister(source, dst, type)
+                invalidateD0CacheForSlot(dst)
+            } else {
+                emitLoadD0FromAddress(source, type)
+                emitStoreD0(dst, type)
+            }
         }
 
         Opcode.LOADHR -> {
@@ -117,11 +122,18 @@ internal fun AsmGen.translateLoadStore(insn: IRInstruction, suppressRegfileStore
             val dst = insn.requireIntDest().intNumber
             // r1 = *a; a += sizeof(type)   where a is a pointer variable (LONG) in memory
             val target = resolveMemory(insn.requireMemory())
-            emitLine("move.l  $target, $SCRATCH_A0")
-            emitLoadD0FromAddress("($SCRATCH_A0)+", type)
-            emitLine("move.l  $SCRATCH_A0, $target")
+            if (registerAllocationEnabled) {
+                emitLine("move.l  $target, $SCRATCH_A0")
+                emitMoveToIntRegister("($SCRATCH_A0)+", dst, type)
+                emitLine("move.l  $SCRATCH_A0, $target")
+                invalidateD0CacheForSlot(dst)
+            } else {
+                emitLine("move.l  $target, $SCRATCH_A0")
+                emitLoadD0FromAddress("($SCRATCH_A0)+", type)
+                emitLine("move.l  $SCRATCH_A0, $target")
+                emitStoreD0(dst, type)
+            }
             invalidateD0CacheForAddress(target)
-            emitStoreD0(dst, type)
         }
 
         Opcode.STOREP_INC -> {
@@ -163,14 +175,14 @@ private fun AsmGen.translateFloatLoadStore(insn: IRInstruction, suppressRegfileS
                     if (suppressRegfileStore)
                         return
                     emitFloadConstantToAcc(value.value)
-                    emitLine("fmove.s  $FP_ACC, ${floatOperand(dst)}")
+                    emitFmoveFloat(FP_ACC, floatOperand(dst))
                 }
                 is ImmediateOperand.SymbolAddress -> {
                     val resolved = resolveSymbolRef(value.symbol)
                     val symOff = if (value.offset != 0) "$resolved+${value.offset}" else resolved
                     emitLine("lea  $symOff, $SCRATCH_A0")
-                    emitLine("fmove.s  ($SCRATCH_A0), $FP_ACC")
-                    emitLine("fmove.s  $FP_ACC, ${floatOperand(dst)}")
+                    emitFmoveFloat("($SCRATCH_A0)", FP_ACC)
+                    emitFmoveFloat(FP_ACC, floatOperand(dst))
                 }
                 is ImmediateOperand.Integer -> error("LOAD.f: integer immediate for a float register")
             }
@@ -179,6 +191,10 @@ private fun AsmGen.translateFloatLoadStore(insn: IRInstruction, suppressRegfileS
         Opcode.LOADM, Opcode.LOADX, Opcode.LOADI -> {
             val dst = insn.requireFloatDest().floatNumber
             val source = resolveMemory(insn.requireMemory(), forFloat = true)
+            directFloatReg(dst)?.let { d ->
+                emitLine("fmove.s  $source, $d")
+                return
+            }
             emitLine("fmove.s  $source, $FP_ACC")
             emitLine("fmove.s  $FP_ACC, ${floatOperand(dst)}")
         }
@@ -186,7 +202,11 @@ private fun AsmGen.translateFloatLoadStore(insn: IRInstruction, suppressRegfileS
         Opcode.LOADR -> {
             val dst = insn.requireFloatDest().floatNumber
             val src = insn.requireFloatSourceA().floatNumber
-            emitLine("fmove.s  ${floatOperand(src)}, $FP_ACC")
+            directFloatReg(dst)?.let { d ->
+                emitFmoveFloat(floatOperand(src), d)
+                return
+            }
+            emitFmoveFloat(floatOperand(src), FP_ACC)
             emitLine("fmove.s  $FP_ACC, ${floatOperand(dst)}")
         }
 
@@ -196,6 +216,10 @@ private fun AsmGen.translateFloatLoadStore(insn: IRInstruction, suppressRegfileS
             // Step 7, §2.8: the vreg already lives in its slot register: no move needed.
             if (registerAllocationEnabled && floatOperand(dst) == hwReg)
                 return
+            directFloatReg(dst)?.let { d ->
+                emitLine("fmove  $hwReg, $d")
+                return
+            }
             emitLine("fmove  $hwReg, $FP_ACC")
             emitLine("fmove.s  $FP_ACC, ${floatOperand(dst)}")
         }
@@ -203,6 +227,13 @@ private fun AsmGen.translateFloatLoadStore(insn: IRInstruction, suppressRegfileS
         Opcode.STOREM, Opcode.STOREX, Opcode.STOREI -> {
             val src = insn.requireFloatSourceA().floatNumber
             val target = resolveMemory(insn.requireMemory(), forFloat = true)
+            directFloatReg(src)?.let { s ->
+                // Source resident: fmove.s FPn,<ea> is legal, no accumulator
+                // needed. Null for spilled sources, keeping the fp0 bounce.
+                emitLine("fmove.s  $s, $target")
+                invalidateD0CacheForAddress(target)
+                return
+            }
             emitLine("fmove.s  ${floatOperand(src)}, $FP_ACC")
             emitLine("fmove.s  $FP_ACC, $target")
             invalidateD0CacheForAddress(target)
@@ -224,20 +255,20 @@ private fun AsmGen.translateFloatLoadStore(insn: IRInstruction, suppressRegfileS
         Opcode.LOADHFACZERO -> {
             val dst = insn.requireFloatDest().floatNumber
             emitLine($$"fmovecr  #$0f, $$FP_ACC")
-            emitLine("fmove.s  $FP_ACC, ${floatOperand(dst)}")
+            emitFmoveFloat(FP_ACC, floatOperand(dst))
         }
         Opcode.LOADHFACONE -> {
             val dst = insn.requireFloatDest().floatNumber
             emitLine("fmovecr  #$32, $FP_ACC")
-            emitLine("fmove.s  $FP_ACC, ${floatOperand(dst)}")
+            emitFmoveFloat(FP_ACC, floatOperand(dst))
         }
         Opcode.STOREHFACZERO -> {
             val src = insn.requireFloatSourceA().floatNumber
-            emitLine("fmove.s  ${floatOperand(src)}, $FP_ACC")
+            emitFmoveFloat(floatOperand(src), FP_ACC)
         }
         Opcode.STOREHFACONE -> {
             val src = insn.requireFloatSourceA().floatNumber
-            emitLine("fmove.s  ${floatOperand(src)}, $FP_SRC")
+            emitFmoveFloat(floatOperand(src), FP_SRC)
         }
 
         else -> error("Unknown float load/store opcode: ${insn.opcode}")

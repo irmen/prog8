@@ -158,7 +158,7 @@ internal fun AsmGen.translateControl(insn: IRInstruction, forwardedImmediateCall
             val type = insn.type ?: IRDataType.BYTE
             if (type == IRDataType.FLOAT) {
                 val fpReg = insn.requireFloatSourceA().floatNumber
-                emitLine("fmove.s  ${floatOperand(fpReg)}, $FP_ACC")
+                emitFmoveFloat(floatOperand(fpReg), FP_ACC)
             } else {
                 val reg = insn.requireIntSourceA().intNumber
                 emitLoadD0(reg, type)
@@ -236,6 +236,11 @@ internal fun AsmGen.translateControl(insn: IRInstruction, forwardedImmediateCall
             val dstReg = insn.requireIntDest().intNumber
             val srcReg = insn.requireIntSourceA().intNumber
             val type = insn.type ?: IRDataType.WORD
+            directDataMove(dstReg, srcReg)?.let { (d, s) ->
+                emitLine("move.b  $s, $d")
+                invalidateD0CacheForSlot(dstReg)
+                return
+            }
             emitLoadD0(srcReg, type)
             emitStoreD0(dstReg, IRDataType.BYTE)
         }
@@ -243,6 +248,11 @@ internal fun AsmGen.translateControl(insn: IRInstruction, forwardedImmediateCall
         Opcode.LSIGW -> {
             val dstReg = insn.requireIntDest().intNumber
             val srcReg = insn.requireIntSourceA().intNumber
+            directDataMove(dstReg, srcReg)?.let { (d, s) ->
+                emitLine("move.w  $s, $d")
+                invalidateD0CacheForSlot(dstReg)
+                return
+            }
             emitLoadD0(srcReg, IRDataType.LONG)
             emitStoreD0(dstReg, IRDataType.WORD)
         }
@@ -253,6 +263,21 @@ internal fun AsmGen.translateControl(insn: IRInstruction, forwardedImmediateCall
             // Big-endian: MSB is at byte offset 0 for both word and long.
             val type = insn.type ?: IRDataType.WORD
             if (VirtualRegister.int(srcReg) in regAllocation) {
+                val dd = directDataDst(dstReg, IRDataType.BYTE)
+                val mv = directDataMove(dstReg, srcReg)
+                if (dd != null && mv != null) {
+                    emitLine("move${dtSuffix(type)}  ${mv.second}, $dd")
+                    when (type) {
+                        IRDataType.WORD -> emitLine("lsr.l  #8, $dd")
+                        IRDataType.LONG, IRDataType.POINTER -> {
+                            emitLine("move.w  #24, $SCRATCH_D1")
+                            emitLine("lsr.l  $SCRATCH_D1, $dd")
+                        }
+                        else -> {}
+                    }
+                    invalidateD0CacheForSlot(dstReg)
+                    return
+                }
                 emitLoadD0(srcReg, type)
                 when (type) {
                     IRDataType.WORD -> emitLine("lsr.l  #8, $SCRATCH_D0")
@@ -274,6 +299,18 @@ internal fun AsmGen.translateControl(insn: IRInstruction, forwardedImmediateCall
             // Big-endian: word 0 (offset+0) is most significant. Extract directly.
             val type = insn.type ?: IRDataType.WORD
             if (VirtualRegister.int(srcReg) in regAllocation) {
+                val dd = directDataDst(dstReg, IRDataType.WORD)
+                val mv = directDataMove(dstReg, srcReg)
+                if (dd != null && mv != null) {
+                    if (type == IRDataType.LONG || type == IRDataType.POINTER) {
+                        emitLine("move.l  ${mv.second}, $dd")
+                        emitLine("swap  $dd")
+                    } else {
+                        emitLine("move.w  ${mv.second}, $dd")
+                    }
+                    invalidateD0CacheForSlot(dstReg)
+                    return
+                }
                 emitLoadD0(srcReg, type)
                 if (type == IRDataType.LONG || type == IRDataType.POINTER)
                     emitLine("swap  $SCRATCH_D0")
@@ -288,6 +325,15 @@ internal fun AsmGen.translateControl(insn: IRInstruction, forwardedImmediateCall
             val srcReg = insn.requireIntSourceA().intNumber
             // Big-endian: bits 16-23 are at byte offset 1 of a long.
             if (VirtualRegister.int(srcReg) in regAllocation) {
+                val dd = directDataDst(dstReg, IRDataType.BYTE)
+                val mv = directDataMove(dstReg, srcReg)
+                if (dd != null && mv != null) {
+                    emitLine("move.l  ${mv.second}, $dd")
+                    emitLine("move.w  #16, $SCRATCH_D1")
+                    emitLine("lsr.l  $SCRATCH_D1, $dd")
+                    invalidateD0CacheForSlot(dstReg)
+                    return
+                }
                 emitLoadD0(srcReg, IRDataType.LONG)
                 emitLine("move.w  #16, $SCRATCH_D1")
                 emitLine("lsr.l  $SCRATCH_D1, $SCRATCH_D0")
@@ -302,6 +348,14 @@ internal fun AsmGen.translateControl(insn: IRInstruction, forwardedImmediateCall
             val srcReg = insn.requireIntSourceA().intNumber
             // Big-endian: bits 8-15 are at byte offset 2 of a long.
             if (VirtualRegister.int(srcReg) in regAllocation) {
+                val dd = directDataDst(dstReg, IRDataType.BYTE)
+                val mv = directDataMove(dstReg, srcReg)
+                if (dd != null && mv != null) {
+                    emitLine("move.l  ${mv.second}, $dd")
+                    emitLine("lsr.l  #8, $dd")
+                    invalidateD0CacheForSlot(dstReg)
+                    return
+                }
                 emitLoadD0(srcReg, IRDataType.LONG)
                 emitLine("lsr.l  #8, $SCRATCH_D0")
             } else {
@@ -319,6 +373,12 @@ internal fun AsmGen.translateControl(insn: IRInstruction, forwardedImmediateCall
             when (type) {
                 IRDataType.BYTE -> {
                     // zero-extend byte to word
+                    directExtend(dstReg, srcReg, IRDataType.WORD)?.let { d ->
+                        emitLine("moveq  #0, $d")
+                        emitLine("move.b  ${operand(srcReg)}, $d")
+                        invalidateD0CacheForSlot(dstReg)
+                        return
+                    }
                     invalidateD0Cache()
                     emitLine("moveq  #0, $SCRATCH_D0")
                     emitLoadD0(srcReg, IRDataType.BYTE)
@@ -326,6 +386,12 @@ internal fun AsmGen.translateControl(insn: IRInstruction, forwardedImmediateCall
                 }
                 IRDataType.WORD -> {
                     // zero-extend word to long
+                    directExtend(dstReg, srcReg, IRDataType.LONG)?.let { d ->
+                        emitLine("moveq  #0, $d")
+                        emitLine("move.w  ${operand(srcReg)}, $d")
+                        invalidateD0CacheForSlot(dstReg)
+                        return
+                    }
                     invalidateD0Cache()
                     emitLine("moveq  #0, $SCRATCH_D0")
                     emitLoadD0(srcReg, IRDataType.WORD)
@@ -333,6 +399,11 @@ internal fun AsmGen.translateControl(insn: IRInstruction, forwardedImmediateCall
                 }
                 IRDataType.LONG -> {
                     // no extension needed
+                    directDataMove(dstReg, srcReg)?.let { (d, s) ->
+                        emitLine("move.l  $s, $d")
+                        invalidateD0CacheForSlot(dstReg)
+                        return
+                    }
                     emitLoadD0(srcReg, IRDataType.LONG)
                     emitStoreD0(dstReg, IRDataType.LONG)
                 }
@@ -347,18 +418,35 @@ internal fun AsmGen.translateControl(insn: IRInstruction, forwardedImmediateCall
             when (type) {
                 IRDataType.BYTE -> {
                     // sign-extend byte to word
+                    directExtend(dstReg, srcReg, IRDataType.WORD)?.let { d ->
+                        emitLine("move.b  ${operand(srcReg)}, $d")
+                        emitLine("ext.w  $d")
+                        invalidateD0CacheForSlot(dstReg)
+                        return
+                    }
                     emitLoadD0(srcReg, IRDataType.BYTE)
                     emitLine("ext.w  $SCRATCH_D0")
                     emitStoreD0(dstReg, IRDataType.WORD)
                 }
                 IRDataType.WORD -> {
                     // sign-extend word to long
+                    directExtend(dstReg, srcReg, IRDataType.LONG)?.let { d ->
+                        emitLine("move.w  ${operand(srcReg)}, $d")
+                        emitLine("ext.l  $d")
+                        invalidateD0CacheForSlot(dstReg)
+                        return
+                    }
                     emitLoadD0(srcReg, IRDataType.WORD)
                     emitLine("ext.l  $SCRATCH_D0")
                     emitStoreD0(dstReg, IRDataType.LONG)
                 }
                 IRDataType.LONG -> {
                     // no extension needed
+                    directDataMove(dstReg, srcReg)?.let { (d, s) ->
+                        emitLine("move.l  $s, $d")
+                        invalidateD0CacheForSlot(dstReg)
+                        return
+                    }
                     emitLoadD0(srcReg, IRDataType.LONG)
                     emitStoreD0(dstReg, IRDataType.LONG)
                 }
@@ -370,6 +458,12 @@ internal fun AsmGen.translateControl(insn: IRInstruction, forwardedImmediateCall
             val dstReg = insn.requireIntDest().intNumber
             val srcReg = insn.requireIntSourceA().intNumber
             // zero-extend byte to long: move.b only writes the low byte, so clear d0 first
+            directExtend(dstReg, srcReg, IRDataType.LONG)?.let { d ->
+                emitLine("moveq  #0, $d")
+                emitLine("move.b  ${operand(srcReg)}, $d")
+                invalidateD0CacheForSlot(dstReg)
+                return
+            }
             invalidateD0Cache()
             emitLine("moveq  #0, $SCRATCH_D0")
             emitLoadD0(srcReg, IRDataType.BYTE)
@@ -380,6 +474,12 @@ internal fun AsmGen.translateControl(insn: IRInstruction, forwardedImmediateCall
             val dstReg = insn.requireIntDest().intNumber
             val srcReg = insn.requireIntSourceA().intNumber
             // sign-extend byte to long
+            directExtend(dstReg, srcReg, IRDataType.LONG)?.let { d ->
+                emitLine("move.b  ${operand(srcReg)}, $d")
+                emitSignExtendByteToLong(d)
+                invalidateD0CacheForSlot(dstReg)
+                return
+            }
             emitLoadD0(srcReg, IRDataType.BYTE)
             emitSignExtendByteToLong(SCRATCH_D0)
             emitStoreD0(dstReg, IRDataType.LONG)
@@ -395,6 +495,17 @@ internal fun AsmGen.translateControl(insn: IRInstruction, forwardedImmediateCall
             when (type) {
                 IRDataType.BYTE -> {
                     // r1 = WORD(r2 as MSB, r3 as LSB)
+                    val d = directDataDst(dstReg, IRDataType.WORD)
+                    val s2 = directMoveSrc(srcReg2)
+                    val s3 = directMoveSrc(srcReg3)
+                    if (d != null && s2 != null && s3 != null) {
+                        check(s3 != d) { "concat source and destination share $d" }  // s3 is read after d is written
+                        emitLine("move.b  $s2, $d")
+                        emitLine("lsl.w  #8, $d")
+                        emitLine("or.b  $s3, $d")
+                        invalidateD0CacheForSlot(dstReg)
+                        return
+                    }
                     emitLoadD0(srcReg2, IRDataType.BYTE)
                     emitLine("lsl.w  #8, $SCRATCH_D0")
                     invalidateD0Cache()
@@ -403,6 +514,18 @@ internal fun AsmGen.translateControl(insn: IRInstruction, forwardedImmediateCall
                 }
                 IRDataType.WORD -> {
                     // r1 = LONG(r2 as MSW, r3 as LSW)
+                    val d = directDataDst(dstReg, IRDataType.LONG)
+                    val s2 = directMoveSrc(srcReg2)
+                    val s3 = directMoveSrc(srcReg3)
+                    if (d != null && s2 != null && s3 != null) {
+                        check(s3 != d) { "concat source and destination share $d" }  // s3 is read after d is written
+                        emitLine("move.w  $s2, $d")
+                        emitLine("swap  $d")
+                        emitLine("clr.w  $d")
+                        emitLine("or.w  $s3, $d")
+                        invalidateD0CacheForSlot(dstReg)
+                        return
+                    }
                     emitLoadD0(srcReg2, IRDataType.WORD)
                     emitLine("swap  $SCRATCH_D0")
                     invalidateD0Cache()
@@ -433,18 +556,35 @@ internal fun AsmGen.translateControl(insn: IRInstruction, forwardedImmediateCall
                 val s = dtSuffix(type)
                 val zeroLabel = makeLabel("sgn_zero")
                 val doneLabel = makeLabel("sgn_done")
-                emitLoadD0(srcReg, type)
-                emitLine("tst$s  $SCRATCH_D0")
-                emitLine("beq  $zeroLabel")
-                emitLine("smi  $SCRATCH_D1")
-                emitLine("bmi  $doneLabel")
-                emitLine("moveq  #1, $SCRATCH_D1")
-                emitLine("bra  $doneLabel")
-                emitLabel(zeroLabel)
-                emitLine("moveq  #0, $SCRATCH_D1")
-                emitLabel(doneLabel)
-                emitLine("move.b  $SCRATCH_D1, ${operand(dstReg)}")
-                invalidateD0CacheForSlot(dstReg)    // raw store bypasses emitStoreD0
+                val dd = directDataDst(dstReg, IRDataType.BYTE)
+                val ms = directMoveSrc(srcReg)
+                if (dd != null && ms != null) {
+                    emitLine("move$s  $ms, $dd")
+                    emitLine("tst$s  $dd")
+                    emitLine("beq  $zeroLabel")
+                    emitLine("smi  $SCRATCH_D1")
+                    emitLine("bmi  $doneLabel")
+                    emitLine("moveq  #1, $SCRATCH_D1")
+                    emitLine("bra  $doneLabel")
+                    emitLabel(zeroLabel)
+                    emitLine("moveq  #0, $SCRATCH_D1")
+                    emitLabel(doneLabel)
+                    emitLine("move.b  $SCRATCH_D1, $dd")
+                    invalidateD0CacheForSlot(dstReg)
+                } else {
+                    emitLoadD0(srcReg, type)
+                    emitLine("tst$s  $SCRATCH_D0")
+                    emitLine("beq  $zeroLabel")
+                    emitLine("smi  $SCRATCH_D1")
+                    emitLine("bmi  $doneLabel")
+                    emitLine("moveq  #1, $SCRATCH_D1")
+                    emitLine("bra  $doneLabel")
+                    emitLabel(zeroLabel)
+                    emitLine("moveq  #0, $SCRATCH_D1")
+                    emitLabel(doneLabel)
+                    emitLine("move.b  $SCRATCH_D1, ${operand(dstReg)}")
+                    invalidateD0CacheForSlot(dstReg)    // raw store bypasses emitStoreD0
+                }
             }
         }
 
@@ -457,7 +597,7 @@ internal fun AsmGen.translateControl(insn: IRInstruction, forwardedImmediateCall
             emitLine("and.l  #\$ff, $SCRATCH_D0")
             invalidateD0Cache()
             emitLine("fmove.l  $SCRATCH_D0, $FP_ACC")
-            emitLine("fmove.s  $FP_ACC, ${floatOperand(fpDst)}")
+            emitFmoveFloat(FP_ACC, floatOperand(fpDst))
         }
 
         Opcode.FFROMSB -> {
@@ -466,7 +606,7 @@ internal fun AsmGen.translateControl(insn: IRInstruction, forwardedImmediateCall
             emitLoadD0(srcReg, IRDataType.BYTE)
             emitSignExtendByteToLong(SCRATCH_D0)
             emitLine("fmove.l  $SCRATCH_D0, $FP_ACC")
-            emitLine("fmove.s  $FP_ACC, ${floatOperand(fpDst)}")
+            emitFmoveFloat(FP_ACC, floatOperand(fpDst))
         }
 
         Opcode.FFROMUW -> {
@@ -476,7 +616,7 @@ internal fun AsmGen.translateControl(insn: IRInstruction, forwardedImmediateCall
             emitLine("and.l  #\$ffff, $SCRATCH_D0")
             invalidateD0Cache()
             emitLine("fmove.l  $SCRATCH_D0, $FP_ACC")
-            emitLine("fmove.s  $FP_ACC, ${floatOperand(fpDst)}")
+            emitFmoveFloat(FP_ACC, floatOperand(fpDst))
         }
 
         Opcode.FFROMSW -> {
@@ -485,7 +625,7 @@ internal fun AsmGen.translateControl(insn: IRInstruction, forwardedImmediateCall
             emitLoadD0(srcReg, IRDataType.WORD)
             emitLine("ext.l  $SCRATCH_D0")
             emitLine("fmove.l  $SCRATCH_D0, $FP_ACC")
-            emitLine("fmove.s  $FP_ACC, ${floatOperand(fpDst)}")
+            emitFmoveFloat(FP_ACC, floatOperand(fpDst))
         }
 
         Opcode.FFROMSL -> {
@@ -493,13 +633,13 @@ internal fun AsmGen.translateControl(insn: IRInstruction, forwardedImmediateCall
             val srcReg = insn.requireIntSourceA().intNumber
             emitLoadD0(srcReg, IRDataType.LONG)
             emitLine("fmove.l  $SCRATCH_D0, $FP_ACC")
-            emitLine("fmove.s  $FP_ACC, ${floatOperand(fpDst)}")
+            emitFmoveFloat(FP_ACC, floatOperand(fpDst))
         }
 
         Opcode.FTOUB -> {
             val dstReg = insn.requireIntDest().intNumber
             val fpSrc = insn.requireFloatSourceA().floatNumber
-            emitLine("fmove.s  ${floatOperand(fpSrc)}, $FP_ACC")
+            emitFmoveFloat(floatOperand(fpSrc), FP_ACC)
             invalidateD0Cache()
             emitLine("fmove.b  $FP_ACC, $SCRATCH_D0")
             emitLine("and.l  #\$ff, $SCRATCH_D0")
@@ -509,7 +649,7 @@ internal fun AsmGen.translateControl(insn: IRInstruction, forwardedImmediateCall
         Opcode.FTOSB -> {
             val dstReg = insn.requireIntDest().intNumber
             val fpSrc = insn.requireFloatSourceA().floatNumber
-            emitLine("fmove.s  ${floatOperand(fpSrc)}, $FP_ACC")
+            emitFmoveFloat(floatOperand(fpSrc), FP_ACC)
             invalidateD0Cache()
             emitLine("fmove.b  $FP_ACC, $SCRATCH_D0")
             emitStoreD0(dstReg, IRDataType.BYTE)
@@ -518,7 +658,7 @@ internal fun AsmGen.translateControl(insn: IRInstruction, forwardedImmediateCall
         Opcode.FTOUW -> {
             val dstReg = insn.requireIntDest().intNumber
             val fpSrc = insn.requireFloatSourceA().floatNumber
-            emitLine("fmove.s  ${floatOperand(fpSrc)}, $FP_ACC")
+            emitFmoveFloat(floatOperand(fpSrc), FP_ACC)
             invalidateD0Cache()
             emitLine("fmove.w  $FP_ACC, $SCRATCH_D0")
             emitStoreD0(dstReg, IRDataType.WORD)
@@ -527,7 +667,7 @@ internal fun AsmGen.translateControl(insn: IRInstruction, forwardedImmediateCall
         Opcode.FTOSW -> {
             val dstReg = insn.requireIntDest().intNumber
             val fpSrc = insn.requireFloatSourceA().floatNumber
-            emitLine("fmove.s  ${floatOperand(fpSrc)}, $FP_ACC")
+            emitFmoveFloat(floatOperand(fpSrc), FP_ACC)
             invalidateD0Cache()
             emitLine("fmove.w  $FP_ACC, $SCRATCH_D0")
             emitStoreD0(dstReg, IRDataType.WORD)
@@ -536,7 +676,7 @@ internal fun AsmGen.translateControl(insn: IRInstruction, forwardedImmediateCall
         Opcode.FTOSL -> {
             val dstReg = insn.requireIntDest().intNumber
             val fpSrc = insn.requireFloatSourceA().floatNumber
-            emitLine("fmove.s  ${floatOperand(fpSrc)}, $FP_ACC")
+            emitFmoveFloat(floatOperand(fpSrc), FP_ACC)
             invalidateD0Cache()
             emitLine("fmove.l  $FP_ACC, $SCRATCH_D0")
             emitStoreD0(dstReg, IRDataType.LONG)
@@ -545,81 +685,121 @@ internal fun AsmGen.translateControl(insn: IRInstruction, forwardedImmediateCall
         Opcode.FABS -> {
             val dst = insn.requireFloatDest().floatNumber
             val src = insn.requireFloatSourceA().floatNumber
-            emitLine("fmove.s  ${floatOperand(src)}, $FP_ACC")
+            directFloatReg(dst)?.let { d ->
+                emitFloatOpSrc("fabs", floatOperand(src), d)
+                return
+            }
+            emitFmoveFloat(floatOperand(src), FP_ACC)
             emitLine("fabs  $FP_ACC, $FP_ACC")
-            emitLine("fmove.s  $FP_ACC, ${floatOperand(dst)}")
+            emitFmoveFloat(FP_ACC, floatOperand(dst))
         }
 
         Opcode.FSIN -> {
             val dst = insn.requireFloatDest().floatNumber
             val src = insn.requireFloatSourceA().floatNumber
-            emitLine("fmove.s  ${floatOperand(src)}, $FP_ACC")
+            directFloatReg(dst)?.let { d ->
+                emitFloatOpSrc("fsin", floatOperand(src), d)
+                return
+            }
+            emitFmoveFloat(floatOperand(src), FP_ACC)
             emitLine("fsin  $FP_ACC, $FP_ACC")
-            emitLine("fmove.s  $FP_ACC, ${floatOperand(dst)}")
+            emitFmoveFloat(FP_ACC, floatOperand(dst))
         }
 
         Opcode.FCOS -> {
             val dst = insn.requireFloatDest().floatNumber
             val src = insn.requireFloatSourceA().floatNumber
-            emitLine("fmove.s  ${floatOperand(src)}, $FP_ACC")
+            directFloatReg(dst)?.let { d ->
+                emitFloatOpSrc("fcos", floatOperand(src), d)
+                return
+            }
+            emitFmoveFloat(floatOperand(src), FP_ACC)
             emitLine("fcos  $FP_ACC, $FP_ACC")
-            emitLine("fmove.s  $FP_ACC, ${floatOperand(dst)}")
+            emitFmoveFloat(FP_ACC, floatOperand(dst))
         }
 
         Opcode.FTAN -> {
             val dst = insn.requireFloatDest().floatNumber
             val src = insn.requireFloatSourceA().floatNumber
-            emitLine("fmove.s  ${floatOperand(src)}, $FP_ACC")
+            directFloatReg(dst)?.let { d ->
+                emitFloatOpSrc("ftan", floatOperand(src), d)
+                return
+            }
+            emitFmoveFloat(floatOperand(src), FP_ACC)
             emitLine("ftan  $FP_ACC, $FP_ACC")
-            emitLine("fmove.s  $FP_ACC, ${floatOperand(dst)}")
+            emitFmoveFloat(FP_ACC, floatOperand(dst))
         }
 
         Opcode.FATAN -> {
             val dst = insn.requireFloatDest().floatNumber
             val src = insn.requireFloatSourceA().floatNumber
-            emitLine("fmove.s  ${floatOperand(src)}, $FP_ACC")
+            directFloatReg(dst)?.let { d ->
+                emitFloatOpSrc("fatan", floatOperand(src), d)
+                return
+            }
+            emitFmoveFloat(floatOperand(src), FP_ACC)
             emitLine("fatan  $FP_ACC, $FP_ACC")
-            emitLine("fmove.s  $FP_ACC, ${floatOperand(dst)}")
+            emitFmoveFloat(FP_ACC, floatOperand(dst))
         }
 
         Opcode.FPOW -> {
             val dst = insn.requireFloatDest().floatNumber
             val src = insn.requireFloatSourceA().floatNumber
-            emitLine("fmove.s  ${floatOperand(src)}, $FP_ACC")
+            directFloatReg(dst)?.let { d ->
+                emitFloatOpSrc("fpow", floatOperand(src), d)
+                return
+            }
+            emitFmoveFloat(floatOperand(src), FP_ACC)
             emitLine("fpow  $FP_ACC, $FP_ACC")
-            emitLine("fmove.s  $FP_ACC, ${floatOperand(dst)}")
+            emitFmoveFloat(FP_ACC, floatOperand(dst))
         }
 
         Opcode.FLN -> {
             val dst = insn.requireFloatDest().floatNumber
             val src = insn.requireFloatSourceA().floatNumber
-            emitLine("fmove.s  ${floatOperand(src)}, $FP_ACC")
+            directFloatReg(dst)?.let { d ->
+                emitFloatOpSrc("flogn", floatOperand(src), d)
+                return
+            }
+            emitFmoveFloat(floatOperand(src), FP_ACC)
             emitLine("flogn  $FP_ACC, $FP_ACC")
-            emitLine("fmove.s  $FP_ACC, ${floatOperand(dst)}")
+            emitFmoveFloat(FP_ACC, floatOperand(dst))
         }
 
         Opcode.FLOG -> {
             val dst = insn.requireFloatDest().floatNumber
             val src = insn.requireFloatSourceA().floatNumber
-            emitLine("fmove.s  ${floatOperand(src)}, $FP_ACC")
+            directFloatReg(dst)?.let { d ->
+                emitFloatOpSrc("flog2", floatOperand(src), d)
+                return
+            }
+            emitFmoveFloat(floatOperand(src), FP_ACC)
             emitLine("flog2  $FP_ACC, $FP_ACC")
-            emitLine("fmove.s  $FP_ACC, ${floatOperand(dst)}")
+            emitFmoveFloat(FP_ACC, floatOperand(dst))
         }
 
         Opcode.FROUND -> {
             val dst = insn.requireFloatDest().floatNumber
             val src = insn.requireFloatSourceA().floatNumber
-            emitLine("fmove.s  ${floatOperand(src)}, $FP_ACC")
+            directFloatReg(dst)?.let { d ->
+                emitFloatOpSrc("fround", floatOperand(src), d)
+                return
+            }
+            emitFmoveFloat(floatOperand(src), FP_ACC)
             emitLine("fround  $FP_ACC, $FP_ACC")
-            emitLine("fmove.s  $FP_ACC, ${floatOperand(dst)}")
+            emitFmoveFloat(FP_ACC, floatOperand(dst))
         }
 
         Opcode.FFLOOR -> {
             val dst = insn.requireFloatDest().floatNumber
             val src = insn.requireFloatSourceA().floatNumber
-            emitLine("fmove.s  ${floatOperand(src)}, $FP_ACC")
+            directFloatReg(dst)?.let { d ->
+                emitFloatOpSrc("ffloor", floatOperand(src), d)
+                return
+            }
+            emitFmoveFloat(floatOperand(src), FP_ACC)
             emitLine("ffloor  $FP_ACC, $FP_ACC")
-            emitLine("fmove.s  $FP_ACC, ${floatOperand(dst)}")
+            emitFmoveFloat(FP_ACC, floatOperand(dst))
         }
 
         Opcode.FCEIL -> {
@@ -629,8 +809,8 @@ internal fun AsmGen.translateControl(insn: IRInstruction, forwardedImmediateCall
             val isIntLabel = makeLabel("fceil_is_int")
             val doneLabel = makeLabel("fceil_done")
             val posLabel = makeLabel(".fceil_pos")
-            emitLine("fmove.s  ${floatOperand(src)}, $FP_ACC")
-            emitLine("fmove.s  $FP_ACC, $FP_SRC")
+            emitFmoveFloat(floatOperand(src), FP_ACC)
+            emitFmoveFloat(FP_ACC, FP_SRC)
             emitLine("fintrz  $FP_SRC, $FP_SRC")  // truncate toward zero
             emitLine("fcmp  $FP_ACC, $FP_SRC")
             emitLine("fbeq  $isIntLabel")              // if equal, already integer
@@ -643,7 +823,7 @@ internal fun AsmGen.translateControl(insn: IRInstruction, forwardedImmediateCall
             emitLabel(isIntLabel)
             // dst already holds the integer (from fintrz)
             emitLabel(doneLabel)
-            emitLine("fmove.s  $FP_SRC, ${floatOperand(dst)}")
+            emitFmoveFloat(FP_SRC, floatOperand(dst))
         }
 
         Opcode.FCOMP -> {
@@ -654,19 +834,32 @@ internal fun AsmGen.translateControl(insn: IRInstruction, forwardedImmediateCall
             val doneLabel = makeLabel("fcomp_done")
             val gtLabel = makeLabel("fcomp_gt")
             invalidateD0Cache()
-            emitLine("fmove.s  ${floatOperand(fr1)}, $FP_ACC")
-            emitLine("fcmp.s  ${floatOperand(fr2)}, $FP_ACC")
+            emitFmoveFloat(floatOperand(fr1), FP_ACC)
+            emitFloatOpSrc("fcmp", floatOperand(fr2), FP_ACC)
             emitLine("fbeq  $eqLabel")
             emitLine("fbgt  $gtLabel")
-            emitLine("moveq  #-1, $SCRATCH_D0")
-            emitLine("bra  $doneLabel")
-            emitLabel(gtLabel)
-            emitLine("moveq  #1, $SCRATCH_D0")
-            emitLine("bra  $doneLabel")
-            emitLabel(eqLabel)
-            emitLine("moveq  #0, $SCRATCH_D0")
-            emitLabel(doneLabel)
-            emitStoreD0(dstReg, IRDataType.BYTE)
+            val acc = directDataDst(dstReg, IRDataType.BYTE)
+            if (acc != null) {
+                emitLine("moveq  #-1, $acc")
+                emitLine("bra  $doneLabel")
+                emitLabel(gtLabel)
+                emitLine("moveq  #1, $acc")
+                emitLine("bra  $doneLabel")
+                emitLabel(eqLabel)
+                emitLine("moveq  #0, $acc")
+                emitLabel(doneLabel)
+                invalidateD0CacheForSlot(dstReg)
+            } else {
+                emitLine("moveq  #-1, $SCRATCH_D0")
+                emitLine("bra  $doneLabel")
+                emitLabel(gtLabel)
+                emitLine("moveq  #1, $SCRATCH_D0")
+                emitLine("bra  $doneLabel")
+                emitLabel(eqLabel)
+                emitLine("moveq  #0, $SCRATCH_D0")
+                emitLabel(doneLabel)
+                emitStoreD0(dstReg, IRDataType.BYTE)
+            }
         }
 
         Opcode.LOADHFACZERO, Opcode.LOADHFACONE, Opcode.STOREHFACZERO, Opcode.STOREHFACONE ->
@@ -844,7 +1037,7 @@ private fun AsmGen.translateArgument(
             if (forwarded != null) {
                 emitFloadConstantTo(hwReg, forwarded.requireImmediateFloat())
             } else {
-                emitLine("fmove.s  ${floatOperand(argReg.floatNumber)}, $hwReg")
+                emitFmoveFloat(floatOperand(argReg.floatNumber), hwReg)
             }
         } else {
             if (forwarded != null) {
@@ -889,7 +1082,7 @@ private fun AsmGen.translateArgument(
                 // the FPU has no absolute-long addressing mode, so the value has to travel
                 // through an FPU register first (fp0 is translator scratch, never holds a live vreg).
                 // The store itself reserves the slot via predecrement, so no separate subq is needed.
-                emitLine("fmove.s  ${floatOperand(argReg.floatNumber)},$FP_ACC")
+                emitFmoveFloat(floatOperand(argReg.floatNumber), FP_ACC)
                 emitLine("fmove.s  $FP_ACC,-(sp)", paramName.orEmpty())
             } else {
                 when (argReg.type) {
@@ -914,7 +1107,7 @@ private fun AsmGen.translateArgument(
         if (paramName.isNotEmpty() && fnLabel != null) {
             val target = fixNameSymbols("$fnLabel.$paramName")
             if (argReg.isFloat) {
-                emitLine("fmove.s  ${floatOperand(argReg.floatNumber)}, $FP_ACC")
+                emitFmoveFloat(floatOperand(argReg.floatNumber), FP_ACC)
                 emitLine("fmove.s  $FP_ACC, $target")
             } else {
                 val s = dtSuffix(argReg.type)
@@ -940,7 +1133,7 @@ private fun AsmGen.translateReturnValue(ret: CallResult) {
             // Step 7, §2.8: the vreg already lives in its slot register: no move needed.
             if (registerAllocationEnabled && floatOperand(destination.floatNumber) == hwReg)
                 return
-            emitLine("fmove.s  $hwReg, ${floatOperand(destination.floatNumber)}")
+            emitFmoveFloat(hwReg, floatOperand(destination.floatNumber))
         } else {
             // Step 7, §2.8: the vreg already lives in its slot register: no move needed.
             if (registerAllocationEnabled && operand(destination.intNumber) == hwReg)
@@ -955,7 +1148,7 @@ private fun AsmGen.translateReturnValue(ret: CallResult) {
         // Slightly inefficient: m68k pointers ideally live in address registers, but returning
         // them in d0 is simpler and avoids ambiguity. Explicit @A0 can be used for hot paths.
         if (destination.isFloat) {
-            emitLine("fmove.s  $FP_ACC, ${floatOperand(destination.floatNumber)}")
+            emitFmoveFloat(FP_ACC, floatOperand(destination.floatNumber))
         } else {
             emitStoreD0(destination.intNumber, destination.type)
         }

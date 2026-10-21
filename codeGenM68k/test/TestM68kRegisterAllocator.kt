@@ -672,4 +672,102 @@ class TestM68kRegisterAllocator : FunSpec({
         listOf("d2", "d3", "d4", "d5", "d6").contains(aReg) shouldBe true
         listOf("a2", "a3", "a4").contains(bReg) shouldBe true
     }
+
+    test("value carried only via a branch edge keeps its own register") {
+        // Forward skip with a killer on the fall-through path. r6 is defined in
+        // head and used only in T; head's r5 is used in head and killed in mid.
+        // Sequential-only liveness sees r6 die (mid redefines it) and shares one
+        // register for r5/r6, but on the branch path both are live at head's
+        // ADDR: the later LOAD r6 would clobber r5's value. The branch edge
+        // head->T makes them interfere.
+        val options = CompilationOptions.builder(Qemu68kTarget())
+            .output(OutputType.RAW).zeropage(ZeropageType.FLOATSAFE)
+            .compilerVersion("test").memtopAddress(0xffffu).optimize(true).build()
+        val program = IRProgram("test", IRSymbolTable(), options, DummyStringEncoder)
+        val head = IRCodeChunk(null, null)
+        head.instructions.add(IRInstructions.load(IRDataType.WORD, 5, 50))
+        head.instructions.add(IRInstructions.load(IRDataType.WORD, 6, 60))
+        // Pure register uses (no register dests): a USE_DEF dest would add its
+        // own vreg to the entry set and mask the bug in both models.
+        head.instructions.add(IRInstructions.storeMemory(Opcode.STOREM, IRDataType.WORD, 5, IRMemory.direct("p8b_test.p8v_sink")))
+        head.instructions.add(IRInstructions.branch(Opcode.BSTEQ, CodeReference.Label("test.T")))
+        val mid = IRCodeChunk("test.mid", null)
+        mid.instructions.add(IRInstructions.load(IRDataType.WORD, 5, 51))
+        mid.instructions.add(IRInstructions.load(IRDataType.WORD, 6, 61))
+        // Pure register use (no register dest): a USE_DEF dest would act as a
+        // liveness carrier and mask the bug in both models.
+        val tail = IRCodeChunk("test.T", null)
+        tail.instructions.add(IRInstructions.storeMemory(Opcode.STOREM, IRDataType.WORD, 6, IRMemory.direct("p8b_test.p8v_out")))
+        val sub = IRSubroutine("test.start", emptyList(), emptyList(), Position.DUMMY)
+        sub.chunks.add(head)
+        sub.chunks.add(mid)
+        sub.chunks.add(tail)
+        val block = IRBlock("test", false, IRBlock.Options(), Position.DUMMY)
+        block.children.add(sub)
+        program.blocks.add(block)
+
+        val alloc = M68kRegisterAllocator(program).allocate().mapBySub[sub]!!
+        alloc[VirtualRegister.int(5)] shouldNotBe null
+        alloc[VirtualRegister.int(6)] shouldNotBe null
+        alloc[VirtualRegister.int(5)] shouldNotBe alloc[VirtualRegister.int(6)]
+    }
+
+    test("unconditional jump has no fall-through: skipped killer does not hide a branch-carried value") {
+        // Same family with JUMP: mid is unreachable dead code, but the branch
+        // edge head->T still carries r6, so r5/r6 must differ.
+        val options = CompilationOptions.builder(Qemu68kTarget())
+            .output(OutputType.RAW).zeropage(ZeropageType.FLOATSAFE)
+            .compilerVersion("test").memtopAddress(0xffffu).optimize(true).build()
+        val program = IRProgram("test", IRSymbolTable(), options, DummyStringEncoder)
+        val head = IRCodeChunk(null, null)
+        head.instructions.add(IRInstructions.load(IRDataType.WORD, 5, 50))
+        head.instructions.add(IRInstructions.load(IRDataType.WORD, 6, 60))
+        // Pure register uses (no register dests): a USE_DEF dest would add its
+        // own vreg to the entry set and mask the bug in both models.
+        head.instructions.add(IRInstructions.storeMemory(Opcode.STOREM, IRDataType.WORD, 5, IRMemory.direct("p8b_test.p8v_sink")))
+        head.instructions.add(IRInstructions.jump(CodeReference.Label("test.T")))
+        val mid = IRCodeChunk("test.mid", null)
+        mid.instructions.add(IRInstructions.load(IRDataType.WORD, 5, 51))
+        mid.instructions.add(IRInstructions.load(IRDataType.WORD, 6, 61))
+        val tail = IRCodeChunk("test.T", null)
+        tail.instructions.add(IRInstructions.storeMemory(Opcode.STOREM, IRDataType.WORD, 6, IRMemory.direct("p8b_test.p8v_out")))
+        val sub = IRSubroutine("test.start", emptyList(), emptyList(), Position.DUMMY)
+        sub.chunks.add(head)
+        sub.chunks.add(mid)
+        sub.chunks.add(tail)
+        val block = IRBlock("test", false, IRBlock.Options(), Position.DUMMY)
+        block.children.add(sub)
+        program.blocks.add(block)
+
+        val alloc = M68kRegisterAllocator(program).allocate().mapBySub[sub]!!
+        alloc[VirtualRegister.int(5)] shouldNotBe alloc[VirtualRegister.int(6)]
+    }
+
+    test("dead definition does not share with a value live across it") {
+        // r9 is defined and never read afterwards. It must still interfere
+        // with r1 (live across the definition): without def-interference it
+        // would share r1's register and the direct store would clobber r1.
+        val options = CompilationOptions.builder(Qemu68kTarget())
+            .output(OutputType.RAW).zeropage(ZeropageType.FLOATSAFE)
+            .compilerVersion("test").memtopAddress(0xffffu).optimize(true).build()
+        val program = IRProgram("test", IRSymbolTable(), options, DummyStringEncoder)
+        val head = IRCodeChunk(null, null)
+        head.instructions.add(IRInstructions.load(IRDataType.WORD, 1, 50))
+        head.instructions.add(IRInstructions.load(IRDataType.WORD, 9, 90))
+        // Pure use (no register dest): a USE_DEF dest would add carriers that
+        // mask the bug in both models (see the branch-edge tests).
+        val tail = IRCodeChunk("test.tail", null)
+        tail.instructions.add(IRInstructions.storeMemory(Opcode.STOREM, IRDataType.WORD, 1, IRMemory.direct("p8b_test.p8v_out")))
+        val sub = IRSubroutine("test.start", emptyList(), emptyList(), Position.DUMMY)
+        sub.chunks.add(head)
+        sub.chunks.add(tail)
+        val block = IRBlock("test", false, IRBlock.Options(), Position.DUMMY)
+        block.children.add(sub)
+        program.blocks.add(block)
+
+        val alloc = M68kRegisterAllocator(program).allocate().mapBySub[sub]!!
+        alloc[VirtualRegister.int(1)] shouldNotBe null
+        alloc[VirtualRegister.int(9)] shouldNotBe null
+        alloc[VirtualRegister.int(9)] shouldNotBe alloc[VirtualRegister.int(1)]
+    }
 })

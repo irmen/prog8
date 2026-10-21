@@ -10,12 +10,13 @@ output with empty allocation map).
 **Additional prerequisite:** Decisions §7.1 items 1-4 of the design resolved and
 recorded (see "Decisions required before implementation" below).
 **Status:** All 10 steps implemented behind the experimental `-m68kregalloc`
-flag (default off, output unchanged). Validation gate measured (see below):
-corpus compiles/assembles/runs correctly with 100% register residency and no
-stale memory traffic; code-size reduction target partially met (ELF -4..-13%,
-instruction lines +1..+5% - direct reg-to-reg emission remains future work).
-See "Implementation progress" below.
-**Gate to next stage:** green (with the limitations recorded under Validation).
+flag (default off, output unchanged), plus all three residual items resolved:
+d0-cache retirement via gated direct emission, spill-under-pressure proof
+(int and float, end to end in QEMU), and branch-target CFG edges. Corpus
+compiles/assembles/runs correctly with 100% register residency and no stale
+memory traffic; code size falls on every metric (ELF -4..-14%, code lines
+-5..+1% - see Validation). See "Implementation progress" below.
+**Gate to next stage:** green.
 
 ## Implementation progress (as of Oct 2026)
 
@@ -85,17 +86,27 @@ Done (analysis-level, gated off by default so shipping output is unchanged):
   handles these shapes; full branch-edge modeling remains future work). Corpus
   numbers measured - see Validation below.
 
-Residual work (does not block the Stage 3 teardown):
-- Translators still route most computation through the d0 scratch
-  (`emitLoadD0`/`emitStoreD0`); direct register-to-register emission and the
-  d0-cache retirement (§7.1 #1) are future work. This is why instruction
-  counts rise slightly even as ELF size falls (see Validation).
-- Spill path (Step 6) is exercised only by unit tests: no corpus program
-  spills (max DATA pressure 5/5 on textelite, fits exactly). Frame-spill
-  correctness under real pressure is unproven beyond tests.
-- Liveness uses the coarse chunk-sequential CFG (+ loop back-edges); branch-
-  target edges are not modeled. Sound for the validated shapes; jump-heavy
-  control flow should be re-validated if the CFG is ever trusted further.
+Residual work (resolved Oct 2026 - see below):
+- Translators routed most computation through the d0 scratch
+  (`emitLoadD0`/`emitStoreD0`). RESOLVED: gated direct emission
+  (`directDataPair`/`directDataDst`/`directDataMove`/`directDataSrc`/
+  `directMoveSrc`/`directExtend`/`directFloatDst` in `AsmGen`, consumed by all
+  six translators). Gated, not deleted: the d0 cache machinery stays for the
+  legacy path because deleting it would change default-path output and break
+  the golden gate; under allocation every load-compute-store round trip that
+  can be expressed directly now is. Deviation from the "Additional design
+  notes" plan (which called for full deletion) is intentional and recorded.
+- Spill path (Step 6) was exercised only by unit tests. RESOLVED: two
+  spill-forcing programs validate it end to end (both assemble with vasm and
+  run correctly in QEMU, agreeing with the default path): seven
+  simultaneously-live WORDs spill r6/r7/r8 to A5 frame slots, and seven live
+  floats spill through the FP pool to frame slots.
+- Liveness used the coarse chunk-sequential CFG (+ loop back-edges).
+  RESOLVED: `buildCfg` now models branch-target edges (conditional taken
+  edges, unconditional/exit/return termination, JUMPI to all labeled chunks,
+  CALLI fall-through). Two discriminator tests prove the old model miscompiled
+  (shared one register for two branch-co-live values); they fail on the
+  sequential-only CFG and pass with edges.
 
 Flag plumbing: `-m68kregalloc` CLI switch -> CompilationOptions.m68kRegisterAllocation
 -> M68kCodeGenerator(allocateRegisters). Default false. Output under the flag is
@@ -111,12 +122,12 @@ Output-level metrics (default -> flag):
 
 | program      | .asm bytes | code lines | .elf bytes | regfile traffic | BSS vregfile |
 |--------------|-----------|------------|------------|-----------------|--------------|
-| fibonacci    | -3%       | +2%        | -5%        | 126 -> 0        | 126 -> 64    |
-| numbergame   | -3%       | +2%        | -5%        | 204 -> 0        | 280 -> 77    |
-| primes       | -2%       | +2%        | -4%        | 99 -> 0         | 130 -> 39    |
-| maze         | -8%       | +1%        | -13%       | 749 -> 0        | 736 -> 163   |
-| textelite    | -6%       | +5%        | -10%       | 1646 -> 0       | 2119 -> 165  |
-| qemubootinfo | -6%       | +2%        | -11%       | 543 -> 0        | 798 -> 550   |
+| fibonacci    | -4%       | -1%        | -6%        | 126 -> 0        | 126 -> 64    |
+| numbergame   | -3%       | +0%        | -5%        | 204 -> 0        | 280 -> 77    |
+| primes       | -3%       | +1%        | -4%        | 99 -> 0         | 130 -> 39    |
+| maze         | -10%      | -5%        | -14%       | 749 -> 0        | 736 -> 163   |
+| textelite    | -9%       | -1%        | -11%       | 1646 -> 0       | 2119 -> 165  |
+| qemubootinfo | -8%       | -2%        | -12%       | 543 -> 0        | 798 -> 550   |
 
 Allocator stats over the same programs (refs = operand references):
 
@@ -144,13 +155,64 @@ Bugs found and fixed by this validation:
   address-resident vreg) and never invalidated the d0 cache. Fixed with
   d-register fast path, An staging through d0, and cache invalidation on all
   modifying paths (also fixes pre-existing staleness on the default path).
+- 68881 rejects `fmove.s`/`fadd.s`/etc. with an FP-register source ("illegal
+  opcode extension"); FP-to-FP moves and FP-sourced arithmetic must use the
+  bare form, memory sources use `.s`. The latent bug (invisible while no float
+  was ever resident) surfaced in float load/store, binary ops, SQRT, FCOMP,
+  FABS/FSIN/FCOS/FTAN/FATAN/FPOW/FLN/FLOG/FROUND/FFLOOR, call-argument and
+  call-result marshalling. Fixed with `emitFmoveFloat`/`emitFloatOpSrc`
+  plus a codegen test pinning the suffix rules.
+- Direct-emission work briefly cleared the d0 cache on the legacy LOADX path
+  (`invalidateD0CacheForSlot` outside the flag gate), adding redundant loads
+  to default output. Caught by the golden harness; fixed by moving the
+  invalidation inside the gated branch. Goldens are byte-identical again.
+- Review-driven fixes (Oct 2026): 68000 LONG multiply/divide/modulo helpers
+  (`p8_umult32` etc.) clobber D2-D7 with no IR call edge, silently corrupting
+  allocated registers. Fixed by saving/restoring D2-D7 around the helper
+  `bsr`, gated on the flag (A6 needs no save: only consumed by the tail jump
+  and preserved on both continuations; D7 was already saved by the
+  loop-counter logic). Covered by an amiga500 codegen test.
+- Review-driven fix: pure definitions built no interference edges, so a dead
+  definition could share with a value live across it - which the direct
+  paths then overwrite. Interference entries now include defs
+  (`live + uses + defs`), proven by a discriminator test that shares on the
+  old model and separates on the new one. Corpus stats unchanged (still 100%
+  residency, 0 spills).
+- Review-driven hardening: multi-instruction direct sequences that read a
+  source after writing the destination (EXT/EXTS/EXTL/EXTLS, CONCAT, WORD
+  DIV/MOD) now assert source and destination differ; the allocator
+  guarantees it, so a violation fails loudly instead of miscompiling if a
+  later allocator change breaks the invariant.
+
+FP precision semantics (accepted): the bare 68881 forms compute in extended
+precision, and that matches what the legacy path always did - its accumulators
+(fp0/fp1) are extended registers and `.s` only converted at memory
+boundaries. Direct forms therefore preserve legacy value flow exactly; the
+only change is fewer single-precision round-trips through memory, i.e.
+strictly more accurate intermediates. Results can differ from default output
+in last bits where the default rounded an intermediate, and a spilled value is
+rounded on spill/reload exactly as before. This matches standard register
+allocation semantics. Assembler behavior verified with vasm 2.0f:
+`fmove.s fp0,fp2`, `fadd.s fp0,fp2` and `fcmp.s fp1,fp0` are rejected with
+error 2035, while the bare forms assemble.
 
 Read against §7.1 #6 / success metrics: residency target (>=80%) exceeded
 (100%, zero stale refs); DATA pool is the bottleneck as hypothesized (peaks at
-5/5); ADDRESS/FP pools have ample headroom; ELF size falls 4-13% but the -10%
-instruction-count target is NOT met (lines +1-+5%: movem prologues plus the
-not-yet-retired d0 round-trips outweigh eliminated loads). No corpus program
-spills, so frame-spill codegen is test-only validated.
+5/5 on the corpus, exceeded only by the spill-pressure programs); ADDRESS/FP
+pools have ample headroom. Final sizes (default -> flag): ELF -4..-14%,
+asm bytes -2..-10%, code lines -5..+1% (fibonacci -1%, numbergame +0%,
+primes +1%, maze -5%, textelite -1%, qemubootinfo -2%). The residual +1% on
+primes is movem prologue/epilogue overhead (7 added lines) outweighing bounce
+savings in a program of many tiny subroutines - inherent to the callee-saved
+design, not to codegen shape. Spill demand on the corpus is still 0, but
+frame-spill codegen is now proven end to end by the spill-pressure programs
+below, which run correctly in QEMU and agree with the default path.
+
+Spill-pressure proof (Oct 2026): `pressure.p8` (seven simultaneously-live
+WORD call results) spills r6/r7/r8 to A5 frame slots with movem saves, and
+`fpressure.p8` (seven live floats) spills through the FP pool to frame slots
+with fmovem saves. Both assemble with vasm, print SPILL-OK 28 / SPILL-OK in
+QEMU under `-m68kregalloc`, and agree with the default-path runs.
 
 This stage makes the allocator decide the vreg -> physical-register mapping per
 subroutine.
@@ -432,14 +494,19 @@ gates are green and the liveness analysis handles `IRLoopChunk` correctly.
 
 The `d0CacheReg` / `d0CacheType` cache in `AsmGen` is a transitional optimization
 over the old memory-everywhere model. It becomes redundant once values live in
-hardware registers. Phase B of Stage 2 removes the cache entirely:
+hardware registers. Phase B of Stage 2 retires it **on the allocation path**:
+direct-emission helpers (`directDataPair`, `directDataDst`, `directDataMove`,
+`directDataSrc`, `directMoveSrc`, `directExtend`, `directFloatDst`,
+`emitFmoveFloat`, `emitFloatOpSrc`) let every translator bypass the d0
+round-trip when operands are resident, falling back to the legacy path
+otherwise. The cache machinery itself is deliberately NOT deleted: removing it
+would change default-path output and break the golden gate
+(byte-identical empty-map output). All helpers return null unless allocation
+is enabled, so default output is provably unchanged (goldens green).
 
-- Delete `d0CacheReg`, `d0CacheType`, `invalidateD0Cache*`, `emitLoadD0`,
-  `emitStoreD0`, and the related comment block.
-- Replace remaining callers with direct `move` emission or with
-  `operand()`-based helpers.
-- Spilled operands pay the explicit load/store cost; the allocator is
-  responsible for keeping hot values in registers.
+- Direct paths compute in the destination register; spilled operands pay the
+  explicit load/store cost; the allocator is responsible for keeping hot
+  values in registers.
 
 ### Frameless-subroutine spill mechanics
 

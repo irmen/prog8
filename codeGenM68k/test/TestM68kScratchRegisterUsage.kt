@@ -8,6 +8,7 @@ import prog8.code.core.CompilationOptions
 import prog8.code.core.OutputType
 import prog8.code.core.Position
 import prog8.code.core.ZeropageType
+import prog8.code.target.Amiga500Target
 import prog8.code.target.Qemu68kTarget
 import prog8.codegen.m68k.AsmGen
 import prog8.intermediate.*
@@ -256,7 +257,7 @@ class TestM68kScratchRegisterUsage : FunSpec({
         )
 
         lines.any { it.startsWith("bsr") } shouldBe true
-        lines.any { it == "fmove.s  fp0,fp2" } shouldBe true
+        lines.any { it == "fmove  fp0,fp2" } shouldBe true
     }
 
     test("slot result already in its allocated register is elided") {
@@ -331,8 +332,8 @@ class TestM68kScratchRegisterUsage : FunSpec({
             registerAllocationEnabled = true,
             floats = true
         )
-        moved.any { it == "fmove  fp2,fp0" } shouldBe true
-        moved.any { it == "fmove.s  fp0,fp3" } shouldBe true
+        moved.any { it == "fmove  fp2,fp3" } shouldBe true
+        moved.none { "fp0" in it && it.startsWith("fmove") } shouldBe true
     }
 
     test("bit op on address-allocated vreg stages through d0") {
@@ -360,6 +361,168 @@ class TestM68kScratchRegisterUsage : FunSpec({
 
         lines.any { it == "bset  #3,d3" } shouldBe true
         lines.none { "p8_regfile+" in it } shouldBe true
+    }
+
+    test("direct reg-reg arithmetic skips the d0 bounce") {
+        val lines = generateAsm(
+            tempRoot.resolve("test-m68k-direct-arith"),
+            listOf(
+                IRInstructions.binary(Opcode.ADDR, IRDataType.WORD, 2, 1),
+                IRInstructions.binary(Opcode.SUBR, IRDataType.WORD, 4, 3),
+                IRInstructions.binary(Opcode.MULR, IRDataType.WORD, 6, 5),
+                IRInstruction(
+                    Opcode.CMP, IRDataType.WORD,
+                    srcA = RegisterOperand(VirtualRegister.int(8), IRDataType.WORD, OperandRole.LEFT, OperandDirection.USE),
+                    srcB = RegisterOperand(VirtualRegister.int(7), IRDataType.WORD, OperandRole.RIGHT, OperandDirection.USE)
+                )
+            ),
+            regAllocation = mapOf(
+                VirtualRegister.int(1) to "d2", VirtualRegister.int(2) to "d3",
+                VirtualRegister.int(3) to "d4", VirtualRegister.int(4) to "d5",
+                VirtualRegister.int(5) to "d2", VirtualRegister.int(6) to "d3",
+                VirtualRegister.int(7) to "d4", VirtualRegister.int(8) to "d5"
+            ),
+            registerAllocationEnabled = true
+        )
+
+        lines.any { it == "add.w  d2,d3" } shouldBe true
+        lines.any { it == "sub.w  d4,d5" } shouldBe true
+        lines.any { it == "mulu.w  d2,d3" } shouldBe true
+        lines.any { it == "cmp.w  d4,d5" } shouldBe true
+        lines.none { it == "move.w  d2,d0" } shouldBe true
+        lines.none { it == "move.w  d0,d3" } shouldBe true
+    }
+
+    test("direct shift and extension skip the d0 bounce") {
+        val lines = generateAsm(
+            tempRoot.resolve("test-m68k-direct-shift"),
+            listOf(
+                IRInstructions.binary(Opcode.LSIGB, IRDataType.WORD, 2, 1),
+                IRInstructions.binary(Opcode.EXT, IRDataType.LONG, 4, 3)
+            ),
+            regAllocation = mapOf(
+                VirtualRegister.int(1) to "d2", VirtualRegister.int(2) to "d3",
+                VirtualRegister.int(3) to "d4", VirtualRegister.int(4) to "d5"
+            ),
+            registerAllocationEnabled = true
+        )
+
+        lines.any { it == "move.b  d2,d3" } shouldBe true
+        lines.any { it == "move.l  d4,d5" } shouldBe true
+        lines.none { it == "move.b  d2,d0" || it == "move.b  d0,d3" } shouldBe true
+        lines.none { it == "move.l  d4,d0" || it == "move.l  d0,d5" } shouldBe true
+    }
+
+    test("direct float binary op computes in the destination register") {
+        val lines = generateAsm(
+            tempRoot.resolve("test-m68k-direct-float"),
+            listOf(IRInstructions.binary(Opcode.ADDR, IRDataType.FLOAT, 2, 1)),
+            regAllocation = mapOf(
+                VirtualRegister.float(1) to "fp2", VirtualRegister.float(2) to "fp3"
+            ),
+            registerAllocationEnabled = true,
+            floats = true
+        )
+
+        lines.any { it == "fadd  fp2,fp3" } shouldBe true
+        lines.none { "fp0" in it } shouldBe true
+    }
+
+    test("spilled operands keep the legacy d0 path when allocation is enabled") {
+        // Same instructions with an empty map: output must not use direct forms.
+        val lines = generateAsm(
+            tempRoot.resolve("test-m68k-direct-spilled"),
+            listOf(IRInstructions.binary(Opcode.ADDR, IRDataType.WORD, 2, 1)),
+            registerAllocationEnabled = true
+        )
+
+        lines.any { it == "move.w  p8_regfile+0,d0" || it.startsWith("move.w  p8_regfile") } shouldBe true
+        lines.none { it == "add.w  d2,d3" } shouldBe true
+    }
+
+    test("address-resident source keeps the legacy d0 path") {
+        // add.w An,Dn is illegal: an address-allocated source must bounce via d0.
+        val lines = generateAsm(
+            tempRoot.resolve("test-m68k-direct-an-src"),
+            listOf(IRInstructions.binary(Opcode.ADDR, IRDataType.WORD, 2, 1)),
+            regAllocation = mapOf(
+                VirtualRegister.int(1) to "a2", VirtualRegister.int(2) to "d3"
+            ),
+            registerAllocationEnabled = true
+        )
+
+        lines.any { it == "move.w  a2,d0" } shouldBe true
+        lines.any { it == "add.w  d0,d3" } shouldBe true
+    }
+
+    test("float moves use a source-correct size suffix") {
+        // 68881 rejects fmove.s with an FP source ("illegal opcode extension"):
+        // FP-to-FP moves use the bare form, memory sources use .s.
+        val lines = generateAsm(
+            tempRoot.resolve("test-m68k-float-suffix"),
+            listOf(
+                IRInstructions.binary(Opcode.ADDR, IRDataType.FLOAT, 2, 1),
+                IRInstructions.storeMemory(Opcode.STOREM, IRDataType.FLOAT, 2, IRMemory.direct("p8b_test.p8v_out")),
+                IRInstructions.loadMemory(Opcode.LOADM, IRDataType.FLOAT, 3, IRMemory.direct("p8b_test.p8v_in"))
+            ),
+            regAllocation = mapOf(
+                VirtualRegister.float(1) to "fp2", VirtualRegister.float(2) to "fp3",
+                VirtualRegister.float(3) to "fp4"
+            ),
+            registerAllocationEnabled = true,
+            floats = true
+        )
+
+        lines.any { it == "fadd  fp2,fp3" } shouldBe true
+        lines.any { it == "fmove.s  fp3,p8b_test.p8v_out" } shouldBe true
+        lines.any { it == "fmove.s  p8b_test.p8v_in,fp4" } shouldBe true
+        // no FP-to-FP .s move anywhere (the assembler rejects those)
+        val fpToFpSized = Regex("fmovec?[.]s +fp[0-9]+,fp[0-9]+")
+        val arithFpSized = Regex("f(add|sub|mul|div|sqrt|cmp)[.]s +fp[0-9]+,")
+        lines.none { fpToFpSized.containsMatchIn(it) } shouldBe true
+        lines.none { arithFpSized.containsMatchIn(it) } shouldBe true
+    }
+
+    test("long multiply helper saves allocated registers around the call") {
+        // On 68000 (amiga500) LONG multiply bsrs to a helper with no IR call
+        // edge (p8_umult32 clobbers D2-D7); allocated D2-D6 would be corrupted
+        // without the movem guard, and the allocator cannot protect them.
+        val target = Amiga500Target()
+        val options = CompilationOptions.builder(target)
+            .output(OutputType.RAW)
+            .zeropage(ZeropageType.FLOATSAFE)
+            .floats(false)
+            .compilerVersion("test")
+            .memtopAddress(0xffffu)
+            .optimize(true)
+            .build()
+        val program = IRProgram("test", IRSymbolTable(), options, DummyStringEncoder)
+        program.options.outputDir = tempRoot.resolve("test-m68k-longmath-save")
+        val chunk = IRCodeChunk(null, null)
+        chunk.instructions.add(IRInstructions.binary(Opcode.MULR, IRDataType.LONG, 1, 2))
+        val sub = IRSubroutine("test.start", emptyList(), emptyList(), Position.DUMMY)
+        sub.chunks.add(chunk)
+        val block = IRBlock("test", false, IRBlock.Options(), Position.DUMMY)
+        block.children.add(sub)
+        program.blocks.add(block)
+
+        val output = program.options.outputDir.toFile()
+        output.deleteRecursively()
+        output.mkdirs()
+        val asmGen = AsmGen(program, target)
+        asmGen.regAllocation.putAll(mapOf(VirtualRegister.int(1) to "d2", VirtualRegister.int(2) to "d3"))
+        asmGen.registerAllocationEnabled = true
+        asmGen.generate()
+        val asmFile = program.options.outputDir.resolve("test.asm")
+        check(asmFile.exists()) { "Assembly file not written: $asmFile" }
+        val asmLines = asmFile.readText().lines().map { it.trim() }
+
+        val save = asmLines.indexOf("movem.l  d2-d7,-(sp)")
+        val bsr = asmLines.indexOfFirst { it == "bsr  p8_umult32" }
+        val restore = asmLines.indexOf("movem.l  (sp)+,d2-d7")
+        (save >= 0) shouldBe true
+        (bsr > save) shouldBe true
+        (restore > bsr) shouldBe true
     }
 
     test("spilled default return goes to memory") {

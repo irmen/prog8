@@ -109,13 +109,44 @@ class M68kRegisterAllocator(val program: IRProgram) {
         return out
     }
 
-    // Build a coarse CFG: each chunk is a node; edges = sequential order + loop back.
-    // We approximate by treating chunk list order as layout order and adding
-    // forward edges between consecutive chunks and a back-edge for loops.
+    // Chunk CFG: sequential fall-through plus branch-target edges. A jump to
+    // an unknown label leaves the subroutine (tail jump: no successors).
+    // Indirect jumps may land on any labeled chunk (superset: sound).
     private fun buildCfg(chunks: List<IRCodeChunkBase>): List<Set<Int>> {
         val succ = MutableList(chunks.size) { mutableSetOf<Int>() }
+        val labelIndex = mutableMapOf<String, Int>()
         for (i in chunks.indices) {
-            if (i + 1 < chunks.size) succ[i].add(i + 1)
+            val label = chunks[i].label
+            if (label != null) labelIndex.putIfAbsent(label, i)
+        }
+        for (i in chunks.indices) {
+            var fallsThrough = true
+            for (ins in chunks[i].instructions) {
+                val target = ins.target as? CodeReference.Label
+                when {
+                    ins.opcode == Opcode.JUMPI -> {
+                        // Computed goto: any labeled chunk in this sub is a
+                        // possible landing site. No fall-through: control never
+                        // continues past an indirect jump.
+                        succ[i].addAll(labelIndex.values)
+                        fallsThrough = false
+                    }
+                    ins.opcode in OpcodesThatBranchUnconditionally -> {
+                        // JUMP to a known in-sub label goes only there; a jump
+                        // elsewhere (tail jump, absolute address) and any
+                        // RETURN* end the path.
+                        val idx = target?.let { labelIndex[it.name] }
+                        if (ins.opcode == Opcode.JUMP && idx != null) succ[i].add(idx)
+                        fallsThrough = false
+                    }
+                    ins.opcode in OpcodesThatEndSSAblock -> {
+                        // Conditional branch: taken edge plus fall-through.
+                        // Unknown labels leave the sub and contribute nothing.
+                        target?.let { labelIndex[it.name]?.let { idx -> succ[i].add(idx) } }
+                    }
+                }
+            }
+            if (fallsThrough && i + 1 < chunks.size) succ[i].add(i + 1)
             if (chunks[i] is IRLoopChunk) {
                 // back edge from last body chunk to loop header (approx)
                 // find index of last body chunk
@@ -316,6 +347,10 @@ class M68kRegisterAllocator(val program: IRProgram) {
                     }
                 }
                 val liveAtEntry = (live + uses).toSet()
+                // A pure definition interferes too: a never-read destination is
+                // otherwise edgeless and could share with a value live across
+                // it, which the direct paths would then overwrite.
+                val interferers = (liveAtEntry + defs).toSet()
                 var nData = 0
                 var nAddr = 0
                 var nFp = 0
@@ -329,7 +364,7 @@ class M68kRegisterAllocator(val program: IRProgram) {
                 if (nData > maxLiveData) maxLiveData = nData
                 if (nAddr > maxLiveAddress) maxLiveAddress = nAddr
                 if (nFp > maxLiveFloat) maxLiveFloat = nFp
-                val list = liveAtEntry.toList()
+                val list = interferers.toList()
                 for (a in list.indices) for (b in a + 1 until list.size) {
                     interference.getOrPut(list[a]) { mutableSetOf() }.add(list[b])
                     interference.getOrPut(list[b]) { mutableSetOf() }.add(list[a])

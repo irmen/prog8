@@ -89,6 +89,11 @@ private fun AsmGen.cmpBranchUnsignedReg(insn: IRInstruction, label: String, bran
     val left = insn.requireSrcA().intNumber
     val right = insn.requireSrcB().intNumber
     val s = dtSuffix(type)
+    directDataDst(left, type)?.let { d ->
+        emitLine("cmp$s  ${operand(right)}, $d")
+        emitBranch(branchOp, label, leavesSubroutine)
+        return
+    }
     emitLoadD0(left, type)
     emitLine("cmp$s  ${operand(right)}, $SCRATCH_D0")
     emitBranch(branchOp, label, leavesSubroutine)
@@ -117,6 +122,11 @@ private fun AsmGen.cmpBranchSignedReg(insn: IRInstruction, label: String, branch
     val left = insn.requireSrcA().intNumber
     val right = insn.requireSrcB().intNumber
     val s = dtSuffix(type)
+    directDataDst(left, type)?.let { d ->
+        emitLine("cmp$s  ${operand(right)}, $d")
+        emitBranch(branchOp, label, leavesSubroutine)
+        return
+    }
     emitLoadD0(left, type)
     emitLine("cmp$s  ${operand(right)}, $SCRATCH_D0")
     emitBranch(branchOp, label, leavesSubroutine)

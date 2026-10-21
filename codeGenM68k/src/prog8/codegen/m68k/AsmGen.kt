@@ -636,6 +636,100 @@ internal class AsmGen(val program: IRProgram, internal val target: ICompilationT
             emitLine("move${dtSuffix(type)}  $source, $destination")
     }
 
+    // Direct emission: operate on resident registers instead of bouncing
+    // through d0. Null whenever the legacy path is needed (flag off, spilled
+    // or address operand, width mismatch needing the extending d0 path).
+    // Pair form: both sides resident, widths matching (a narrower source
+    // would read stale upper bits; a narrower destination is ambiguous).
+    internal fun directDataPair(dstReg: Int, srcReg: Int, type: IRDataType): Pair<String, String>? {
+        if (!registerAllocationEnabled) return null
+        val d = regAllocation[VirtualRegister.int(dstReg)] ?: return null
+        val s = regAllocation[VirtualRegister.int(srcReg)] ?: return null
+        if (!d.startsWith("d") || !s.startsWith("d")) return null
+        if (regType(srcReg) != type || regType(dstReg) != type) return null
+        return operand(dstReg) to operand(srcReg)
+    }
+
+    // Destination form: compute in place (mulu.w d3,d4), matching the
+    // legacy load-op-store semantics for a DEF destination.
+    internal fun directDataDst(dstReg: Int, type: IRDataType): String? {
+        if (!registerAllocationEnabled) return null
+        val d = regAllocation[VirtualRegister.int(dstReg)] ?: return null
+        if (!d.startsWith("d")) return null
+        if (regType(dstReg) != type) return null
+        return operand(dstReg)
+    }
+
+    // Move form: plain copy between resident data registers. No width check:
+    // a same-or-narrower move suffix only reads bits the source holds.
+    internal fun directDataMove(dstReg: Int, srcReg: Int): Pair<String, String>? {
+        if (!registerAllocationEnabled) return null
+        val d = regAllocation[VirtualRegister.int(dstReg)] ?: return null
+        val s = regAllocation[VirtualRegister.int(srcReg)] ?: return null
+        if (!d.startsWith("d") || !s.startsWith("d")) return null
+        return operand(dstReg) to operand(srcReg)
+    }
+
+    // Extension form (moveq #0,d; move.b s,d). Source read happens after the
+    // destination write, so they must differ; the allocator guarantees it, so
+    // a violation fails loudly instead of emitting a clobbered move.
+    internal fun directExtend(dstReg: Int, srcReg: Int, dstType: IRDataType): String? {
+        if (!registerAllocationEnabled) return null
+        val d = regAllocation[VirtualRegister.int(dstReg)] ?: return null
+        if (!d.startsWith("d")) return null
+        if (regType(dstReg) != dstType) return null
+        val s = regAllocation[VirtualRegister.int(srcReg)]
+        if (s != null && !s.startsWith("d")) return null
+        check(operand(srcReg) != d) { "extension source and destination share $d" }
+        return operand(dstReg)
+    }
+
+    // Move-source form: data register or memory (move.b/move.w An,Dn is
+    // illegal, so address registers take the legacy d0 path).
+    internal fun directMoveSrc(reg: Int): String? {
+        if (!registerAllocationEnabled) return null
+        val p = regAllocation[VirtualRegister.int(reg)]
+        if (p != null && !p.startsWith("d")) return null
+        return operand(reg)
+    }
+
+    // Float form: compute into a resident FP register. The source may be any
+    // float operand; size suffixes are chosen per source by emitFmoveFloat.
+    internal fun directFloatReg(dstReg: RegisterNum): String? {
+        if (!registerAllocationEnabled) return null
+        val d = floatOperand(dstReg)
+        if (!d.startsWith("fp")) return null
+        return d
+    }
+
+    // FPU move with a source-correct size: FP-to-FP uses the bare form (.s is
+    // rejected); memory sources use .s for single-precision conversion.
+    internal fun emitFmoveFloat(source: String, dest: String) {
+        if (source.startsWith("fp") && dest.startsWith("fp"))
+            emitLine("fmove  $source, $dest")
+        else
+            emitLine("fmove.s  $source, $dest")
+    }
+
+    // FPU arithmetic with a source-correct size: bare for FP sources (as the
+    // legacy codegen emits), .s for memory sources.
+    internal fun emitFloatOpSrc(op: String, source: String, dest: String) {
+        if (source.startsWith("fp"))
+            emitLine("$op  $source, $dest")
+        else
+            emitLine("$op.s  $source, $dest")
+    }
+
+    // Source form: only the source must be resident, for reg->mem ops
+    // (add.w d3,(a0)) and d0-free moves. Same fallback rule as the pair form.
+    internal fun directDataSrc(srcReg: Int, type: IRDataType): String? {
+        if (!registerAllocationEnabled) return null
+        val s = regAllocation[VirtualRegister.int(srcReg)] ?: return null
+        if (!s.startsWith("d")) return null
+        if (regType(srcReg) != type) return null
+        return operand(srcReg)
+    }
+
     /** Store a byte constant into an integer virtual register. */
     fun emitByteConstantToRegister(value: Int, reg: Int) {
         val physical = regAllocation[VirtualRegister.int(reg)]
