@@ -11,7 +11,7 @@ import prog8.codegen.intermediate.IRCodeGen
 import prog8.codegen.intermediate.StackFrameLayout
 import prog8.intermediate.*
 
-class M68kCodeGenerator(val retainSSA: Boolean, val allocateRegisters: Boolean = false): ICodeGeneratorBackend {
+class M68kCodeGenerator(val retainSSA: Boolean): ICodeGeneratorBackend {
     override fun generate(
         program: PtProgram,
         symbolTable: SymbolTable,
@@ -27,26 +27,20 @@ class M68kCodeGenerator(val retainSSA: Boolean, val allocateRegisters: Boolean =
         }
         irProgram.verifyRegisterTypes(virtualRegisterTypes)
 
-        if (allocateRegisters) {
-            // Step 10: per-subroutine vreg reuse. When it renumbers, the type map
-            // is rebuilt from the renumbered program. No second verifyRegisterTypes:
-            // like RegisterPacker.rebuildTypeMap, the rebuilt map is consistent per
-            // subroutine but the strict program-wide check no longer applies once
-            // numbers are reused across subroutines.
-            renumberVregsPerSubroutine(irProgram)?.let {
-                virtualRegisterTypes = it
-            }
+        // Per-subroutine vreg reuse: renumbering rebuilds the type map from the
+        // renumbered program (no second verifyRegisterTypes, since numbers are now
+        // reused across subroutines and the program-wide check no longer applies).
+        renumberVregsPerSubroutine(irProgram)?.let {
+            virtualRegisterTypes = it
         }
 
         if (options.compTarget.supportsStackFrames)
             StackFrameLayout(irProgram, errors).apply()
 
-        val allocation = if (allocateRegisters) M68kRegisterAllocator(irProgram).allocate() else null
-        if (allocation != null) {
-            for ((sub, spilled) in allocation.spilledVregsBySub) {
-                if (spilled.isNotEmpty())
-                    appendSpillSlotsToFrame(sub, spilled, virtualRegisterTypes, irProgram.options.compTarget, errors)
-            }
+        val allocation = M68kRegisterAllocator(irProgram).allocate()
+        for ((sub, spilled) in allocation.spilledVregsBySub) {
+            if (spilled.isNotEmpty())
+                appendSpillSlotsToFrame(sub, spilled, virtualRegisterTypes, irProgram.options.compTarget, errors)
         }
 
         if (options.dumpVariables)
@@ -55,12 +49,9 @@ class M68kCodeGenerator(val retainSSA: Boolean, val allocateRegisters: Boolean =
         IRFileWriter(irProgram, null).write()
 
         val gen = AsmGen(irProgram, irProgram.options.compTarget, errors)
-        if (allocation != null) {
-            gen.registerAllocationEnabled = true
-            gen.regAllocationBySub = allocation.mapBySub
-            gen.calleeSavedBySub = allocation.calleeSavedBySub
-            gen.callSiteEffects = allocation.callSiteEffects
-        }
+        gen.regAllocationBySub = allocation.mapBySub
+        gen.calleeSavedBySub = allocation.calleeSavedBySub
+        gen.callSiteEffects = allocation.callSiteEffects
         if (!gen.generate())
             throw RuntimeException("M68k assembly generation failed")
 
@@ -68,7 +59,7 @@ class M68kCodeGenerator(val retainSSA: Boolean, val allocateRegisters: Boolean =
     }
 }
 
-// Stage 2 step 6: append allocator spill slots to a subroutine's A5 frame.
+// Append allocator spill slots to a subroutine's A5 frame.
 // A framed subroutine grows its existing local area downward; a frameless one
 // gains a spill-only frame. Slot geometry mirrors StackFrameLayout (natural
 // sizes, 4/2/1-byte alignment, even total). Vregs that already own a frame

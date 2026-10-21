@@ -28,7 +28,6 @@ class TestStackFrameEmission : FunSpec({
         errors: ErrorReporterForTests? = null,
         params: List<IRSubroutine.IRParam>? = null,
         regAllocation: Map<VirtualRegister, String> = emptyMap(),
-        registerAllocationEnabled: Boolean = false,
         floats: Boolean = false
     ): List<String> {
         val options = CompilationOptions.builder(Qemu68kTarget())
@@ -59,7 +58,6 @@ class TestStackFrameEmission : FunSpec({
         tempRoot.toFile().mkdirs()
         val asmGen = AsmGen(program, Qemu68kTarget(), errors)
         asmGen.regAllocation.putAll(regAllocation)
-        asmGen.registerAllocationEnabled = registerAllocationEnabled
         asmGen.generate()
         val asmFile = tempRoot.resolve("test.asm")
         check(asmFile.exists()) { "Assembly file not written: $asmFile" }
@@ -533,7 +531,6 @@ class TestStackFrameEmission : FunSpec({
             ),
             frameVregSlots = mapOf(9 to -6),
             regAllocation = mapOf(VirtualRegister.int(1) to "d2"),
-            registerAllocationEnabled = true
         )
         lines.any { it == "link  a5,#-6" } shouldBe true
         lines.any { it == "move.w  -6(a5),d0" } shouldBe true
@@ -549,7 +546,6 @@ class TestStackFrameEmission : FunSpec({
                 IRInstructions.storeMemory(Opcode.STOREM, IRDataType.FLOAT, 1, IRMemory.direct("p8b_test.p8v_out"))
             ),
             frameVregSlots = mapOf(1 to -4),
-            registerAllocationEnabled = true,
             floats = true
         )
         lines.any { it == "fmove.s  -4(a5),fp0" } shouldBe true

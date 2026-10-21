@@ -25,11 +25,10 @@ m68k code generation backend (`codeGenM68k`).
 | 1B - indexed/indirect re-selection | Implemented | `m68k-regalloc-stage1b-indexed-indirect.md` |
 | 2 - allocator (`-m68kregalloc`) | Implemented, experimental flag | `m68k-regalloc-stage2-allocator.md` |
 | 3 - teardown | Complete | `m68k-regalloc-stage3-teardown.md` |
-| 4 - default allocator | Not started | `m68k-regalloc-stage4-default.md` |
+| 4 - default allocator | In progress: flag, harness and regfile branches removed; comment trim open | `m68k-regalloc-stage4-default.md` |
 
-Open risk: the default (regfile) path is larger than HEAD after Stage 3a, until Stage 4.
-Under the allocator the removed peepholes are almost never needed (only the
-`%option noframe` startup routine is affected).
+Accepted: the noframe startup routine (`init_system`) keeps regfile round-trips under
+the allocator (decided Oct 2026). The removed peepholes are otherwise not needed.
 
 ## 0. Goals (in priority order)
 
@@ -892,7 +891,7 @@ specific sequences for known-small examples) instead of full listings.
 
 ### Stage 4 — default allocator and cleanup
 
-**Status:** not started. Stage 3 is complete, so this stage can start.
+**Status:** in progress. The flag, golden harness, and regfile-only branches are removed; the comment trim (step 5) is open. Details in `m68k-regalloc-stage4-default.md`.
 
 Removes the `-m68kregalloc` flag, the old memory-everywhere path, and the golden
 harness with its data files, and trims the m68k codegen comments to the project

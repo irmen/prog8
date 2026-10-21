@@ -3,26 +3,25 @@ package prog8.codegen.m68k
 import prog8.intermediate.*
 
 /**
- * Phase A of the Stage 2 m68k register allocator: intraprocedural liveness
+ * m68k register allocator: intraprocedural liveness
  * analysis plus class-aware greedy coloring onto the allocatable physical
  * registers (D2-D6, A2-A4, FP2-FP7). Produces a per-subroutine vreg ->
  * physical-register map that can be handed to [AsmGen.regAllocationBySub]
  * (AsmGen swaps the current subroutine's entries into [AsmGen.regAllocation]).
  *
- * This implementation is intraprocedural: it does not modify IR and does not
- * emit prologue/epilogue yet. The map may be partial under register
- * pressure; callers must treat a missing entry as "spilled to regfile".
+ * It does not modify IR. The map may be partial under register pressure;
+ * callers must treat a missing entry as memory-resident (frame slot or regfile).
  */
 class M68kRegisterAllocator(val program: IRProgram) {
 
-    /** Physical registers a fixed-register call boundary reads / defines / destroys (Step 8, §2.6). */
+    /** Physical registers a fixed-register call boundary reads / defines / destroys. */
     data class CallSiteRegisterEffects(
         val reads: Set<String>,
         val defined: Set<String>,
         val destroys: Set<String>
     )
 
-    /** Per-subroutine allocation quality metrics (validation gate, §7.1 #6). */
+    /** Per-subroutine allocation quality metrics. */
     data class SubAllocStats(
         /** total register-operand references (reads + writes; USE_DEF counts as both) */
         val totalRefs: Int,
@@ -41,13 +40,13 @@ class M68kRegisterAllocator(val program: IRProgram) {
     /** vreg -> physical register per subroutine, plus per-subroutine callee-saved usage and spill demand. */
     data class AllocationResult(
         // Authoritative mapping, keyed per subroutine: vreg numbers may be reused
-        // across subroutines (Step 10), so no program-wide flat map is provided.
+        // across subroutines, so no program-wide flat map is provided.
         val mapBySub: Map<IRSubroutine, Map<VirtualRegister, String>>,
         val calleeSavedBySub: Map<IRSubroutine, Set<String>>,
         val spillDemandBySub: Map<IRSubroutine, Int>,
         val spilledVregsBySub: Map<IRSubroutine, List<VirtualRegister>> = emptyMap(),
         // Per-call-site fixed-register boundary metadata, keyed by subroutine and by the
-        // ordinal of the call instruction in flattened chunk order (Step 8, §7.1 #4).
+        // ordinal of the call instruction in flattened chunk order.
         // Ordinary Prog8-subroutine calls use the uniform caller-saved kill set and get no entry.
         val callSiteEffects: Map<IRSubroutine, Map<Int, CallSiteRegisterEffects>> = emptyMap(),
         val statsBySub: Map<IRSubroutine, SubAllocStats> = emptyMap()
@@ -62,7 +61,7 @@ class M68kRegisterAllocator(val program: IRProgram) {
     private val ASM_WORD = Regex("[A-Za-z0-9_.]+")
     private val ASM_SIZE_SUFFIXES = setOf('b', 'w', 'l', 's')
 
-    // IRAsmSubroutines by label, for fixed-register call boundary lookup (Step 8, §2.6).
+    // IRAsmSubroutines by label, for fixed-register call boundary lookup.
     private val asmSubByLabel: Map<String, IRAsmSubroutine> by lazy {
         program.allAsmSubs().associateBy { it.label }
     }
@@ -348,7 +347,7 @@ class M68kRegisterAllocator(val program: IRProgram) {
             vregs.addAll(liveIn[i]); vregs.addAll(liveOut[i]); vregs.addAll(gens[i]); vregs.addAll(kills[i])
         }
 
-        // ---- Item 4: class constraints from allocation hints ----
+        // ---- class constraints from allocation hints ----
         // Scan every register access in the subroutine for its resolvedAllocationHint.
         // PREFER_ADDRESS has priority (an address-register operand must be an An for
         // (An)/(off,An)/(An,Dn) addressing); PREFER_DATA is the default for index uses.
@@ -365,7 +364,7 @@ class M68kRegisterAllocator(val program: IRProgram) {
             }
         }
 
-        // ---- Item 3: CALL clobbering + return-value pinning (Step 7, §2.7) ----
+        // ---- CALL clobbering + return-value pinning ----
         // A CALL kills the caller-saved registers (D0/D1/A0/A1/FP0/FP1). Since the
         // allocatable pool is callee-saved only, no allocated value is ever destroyed by
         // a CALL, so live-across-call values are safe by construction. We still model the
@@ -428,7 +427,7 @@ class M68kRegisterAllocator(val program: IRProgram) {
         // interfere. Chunk-granular liveness alone misses conflicts where a vreg is
         // defined and another is live at the same instruction (e.g. addr r5, r6
         // where r5 is USE_DEF and r6 is USE).
-        // Fixed-register call boundaries (Step 8, §2.6) additionally forbid the destroyed
+        // Fixed-register call boundaries additionally forbid the destroyed
         // pool registers for vregs whose values must survive the call, and record the
         // per-call-site metadata keyed by call ordinal.
         val forbiddenByVreg = mutableMapOf<VirtualRegister, MutableSet<String>>()
@@ -541,7 +540,7 @@ class M68kRegisterAllocator(val program: IRProgram) {
             val forbidden = forbiddenByVreg[v] ?: emptySet()
             val pick = pool.firstOrNull { it !in usedByNeighbors && it !in forbidden }
             if (pick != null) color[v] = pick
-            else spills++ // no register available for this class: spilled to regfile
+            else spills++ // no register available for this class: spilled to a frame slot
         }
 
         for ((v, p) in color) mapBySub.getOrPut(sub) { mutableMapOf() }[v] = p

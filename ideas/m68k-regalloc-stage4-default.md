@@ -5,7 +5,13 @@ Stage 4 runs after Stage 3 (teardown of the old mitigation layer) and finishes t
 transition: the allocator becomes the only code path, and the temporary tooling
 used to bring it up is removed.
 
-**Status:** Not started (Oct 2026). Stage 3 is complete, so this stage is ready to start.
+**Status:** In progress (Oct 2026, uncommitted on `m68k-register-alloc`). Done: steps 1
+(flag removed), 2 (flag-guarded regfile branches removed; spills and noframe
+subroutines keep the regfile), 3 (golden harness deleted), and 4 (`technical.rst`
+and `todo.rst` updated). Step 5 is partly done: stage/step labels, design-section
+references, and stale "legacy" and "yet" wording are removed from `codeGenM68k`;
+the comment-length rules in `AGENTS.md` are not yet audited across the module.
+The example programs run correctly on both Amiga targets (amiga500, amiga1200).
 
 ## Precondition
 
@@ -14,12 +20,13 @@ the full m68k example set.
 
 ## Inherited from Stage 3
 
-- The default regfile path is larger than HEAD until this stage removes it: about
-  +237 lines over 20 amiga500 programs and +92 over 7 qemu68k programs.
+- The default-path growth measured in Stage 3 (+237 lines over 20 amiga500 programs,
+  +92 over 7 qemu68k programs) no longer applies: the allocator is now the default
+  path. Re-measure against HEAD before the Stage 4 commit.
 - Under the allocator, `%option noframe` subroutines (the amiga startup
   `init_system`) are never allocated. They keep regfile round-trips, which is 5
-  bounce pairs per amiga program. Decide whether to keep them, or allocate noframe
-  code, before the regfile path is deleted.
+  bounce pairs per amiga program. Decision (Oct 2026): accepted as-is. Allocating
+  noframe code is not planned.
 
 ## Work
 

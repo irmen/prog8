@@ -7,9 +7,9 @@ import kotlin.math.max
 internal const val FP_ACC = "fp0"   // primary FPU scratch / accumulator
 internal const val FP_SRC = "fp1"   // secondary FPU scratch / source operand
 
-// Scratch registers: permanently reserved as translator scratch (Stage 0, item 3).
-// These never hold an allocated vreg. Route all references through these constants
-// so the scratch set is explicit and auditable.
+// Scratch registers: permanently reserved translator scratch. These never hold an
+// allocated vreg; route all references through these constants so the scratch
+// set is explicit and auditable.
 internal const val SCRATCH_D0 = "d0"
 internal const val SCRATCH_D1 = "d1"
 internal const val SCRATCH_A0 = "a0"
@@ -17,14 +17,12 @@ internal const val SCRATCH_A1 = "a1"
 internal const val SCRATCH_FP0 = "fp0"
 internal const val SCRATCH_FP1 = "fp1"
 
-// Allocatable (callee-saved) register pools used by the Stage 2 register allocator.
-// Kept here so the allocator and the codegen share one source of truth (Step 1).
+// Allocatable (callee-saved) register pools, shared by allocator and codegen.
 internal val ALLOCATABLE_DATA_REGS = listOf("d2", "d3", "d4", "d5", "d6")
 internal val ALLOCATABLE_ADDR_REGS = listOf("a2", "a3", "a4")
 internal val ALLOCATABLE_FP_REGS = listOf("fp2", "fp3", "fp4", "fp5", "fp6", "fp7")
 
-// Single source of truth for the m68k register convention (Step 1). Both the
-// allocator and the codegen reference this object instead of inline literals.
+// Single source of truth for the m68k register convention, shared by allocator and codegen.
 object M68kRegisterConvention {
     val CALLER_SAVED = setOf(SCRATCH_D0, SCRATCH_D1, SCRATCH_A0, SCRATCH_A1, SCRATCH_FP0, SCRATCH_FP1)
     val RESERVED = CALLER_SAVED + setOf("d7", "a5", "a6", "a7")
@@ -50,7 +48,7 @@ object M68kRegisterConvention {
     }
     // Every physical m68k register name, used to interpret asmsub clobber declarations.
     val ALL_HARDWARE_REGS = (0..7).map { "d$it" }.toSet() + (0..6).map { "a$it" }.toSet() + (0..7).map { "fp$it" }.toSet()
-    // Canonical name of a fixed calling-convention slot (asmsub/extsub arg and result slots, §2.2).
+    // Canonical name of a fixed calling-convention slot (asmsub/extsub arg and result slots).
     fun fixedRegister(slot: CallingConventionSlot): String = when (slot.value) {
         in 0..7 -> error("slots 0-7 should never be used on the M68K they are 6502 cpu registers")
         in 10..17 -> "d${slot.value - 10}"
@@ -159,34 +157,29 @@ internal fun nativeFloatConst(value: Double): String? = when (value) {
 internal class AsmGen(val program: IRProgram, internal val target: ICompilationTarget, internal val errors: IErrorReporter? = null) {
     private val output = StringBuilder()
     private val regsUsed by lazy { program.registersUsed() }
-    // Stage 1: location-agnostic indirection. Empty by default (Stage 1 checkpoint);
-    // Stage 2 populates vreg -> physical-register mapping. Keyed on VirtualRegister.
-    // Holds the CURRENT subroutine's entries only: vreg numbers may be reused
-    // across subroutines (Step 10), so emitSubroutine swaps in that sub's map
-    // from regAllocationBySub on entry and clears it on exit.
+    // Current subroutine's vreg -> physical-register mapping. Vreg numbers are
+    // reused across subroutines, so emitSubroutine swaps in that sub's map from
+    // regAllocationBySub on entry and clears it on exit.
     internal val regAllocation: MutableMap<VirtualRegister, String> = mutableMapOf()
-    // Authoritative per-subroutine allocation maps from the allocator (Step 10).
+    // Authoritative per-subroutine allocation maps from the allocator.
     internal var regAllocationBySub: Map<IRSubroutine, Map<VirtualRegister, String>> = emptyMap()
-    // Widths of the current subroutine's vregs (Step 10): vreg numbers may be
-    // reused with different types across subroutines, so the program-wide
-    // intRegTypes map cannot answer this. Empty outside subroutines.
+    // Widths of the current subroutine's vregs: numbers may be reused with
+    // different types across subroutines, so the program-wide intRegTypes map
+    // cannot answer this. Empty outside subroutines.
     private var currentSubRegTypes: Map<RegisterNum, IRDataType> = emptyMap()
 
-    // Stage 2 (Phase C): when true, emit per-subroutine movem save/restore of the
-    // callee-saved registers the allocator assigned to that subroutine's vregs.
-    internal var registerAllocationEnabled = false
     internal var calleeSavedBySub: Map<IRSubroutine, Set<String>> = emptyMap()
-    // Per-call-site fixed-register boundary metadata from the allocator (Step 8, §2.6),
-    // keyed by subroutine and call ordinal. Consumed by call-boundary handling
-    // (reserved-slot wrappers, Step 9); the allocator already enforces it during coloring.
+    // Per-call-site fixed-register boundary metadata, keyed by subroutine and
+    // call ordinal. Consumed by call-boundary handling (reserved-slot wrappers);
+    // the allocator already enforces it during coloring.
     internal var callSiteEffects: Map<IRSubroutine, Map<Int, M68kRegisterAllocator.CallSiteRegisterEffects>> = emptyMap()
     // callee-saved registers used by the subroutine currently being emitted (for its epilogue)
     internal var currentSubCalleeSaved: Set<String> = emptySet()
 
-    // Scratch + reserved registers must never hold an allocated vreg (§2.3, §2.5).
-    //   SCRATCH_D0/D1/A0/A1/FP0/FP1: permanent translator scratch (§2.3).
-    //   d7: physical repeat-loop counter (§2.5); clobbered by backend helpers.
-    //   a5: frame pointer (§2.5); a6: AmigaOS library base (§2.5).
+    // Scratch and reserved registers must never hold an allocated vreg.
+    //   SCRATCH_D0/D1/A0/A1/FP0/FP1: permanent translator scratch.
+    //   d7: physical repeat-loop counter; clobbered by backend helpers.
+    //   a5: frame pointer; a6: AmigaOS library base.
     //   a7: stack pointer (hardware); never a vreg target.
     private val nonAllocatableRegs = M68kRegisterConvention.RESERVED
 
@@ -215,57 +208,22 @@ internal class AsmGen(val program: IRProgram, internal val target: ICompilationT
     val dataFloatConstants = mutableListOf<Pair<String, Double>>()
 
     // -------------------------------------------------------------------------
-    // D0 peephole cache (transitional optimization)
+    // D0 reload cache
     //
-    // A cheap local optimization that avoids redundant `move mem,d0` reloads.
-    // It is NOT a register allocator. When a real allocator is added it will
-    // keep values in D0-D7/A0-Ax itself, making this cache obsolete.
+    // Skips a `move mem,d0` reload when d0 already holds the same vreg and type.
+    // Not a register allocator: allocated vregs live in hardware registers; this
+    // only helps unallocated (spilled / regfile) operands.
     //
-    // WHY IT EXISTS / WHAT IT ACTUALLY WINS
-    //   The codegen funnels every virtual-register operand through d0
-    //   (`move p8_regfile+N,d0` ... op ... `move d0,p8_regfile+M`). The cache
-    //   remembers "$SCRATCH_D0 currently holds virtual register rX of type T" and skips
-    //   a reload when the very same value is read again with no d0-clobbering
-    //   instruction in between.
+    // CCR invariant: `move.x mem,d0` DOES set N/Z (only movea leaves CCR alone),
+    // so the cache is sound only because no emitted sequence consumes those
+    // flags - every flag-dependent decision is preceded by an explicit
+    // tst/cmp. Never reorder around, or make codegen rely on, the flags of a
+    // d0 load.
     //
-    //   Measured effect (vs the pre-cache commit 687d86d36), same .p8ir input:
-    //     - DEFAULT (optimized) builds: about 0.2-1.2% smaller .text on the
-    //       amiga examples (3d -96 B, textelite -56 B, window3d -120 B);
-    //       fibonacci/primes/numbergame are byte-identical.
-    //     - `-noopt` builds: about 2.0-2.5% smaller .text.
-    //   The default-build win is small on purpose: the post-pass
-    //   AsmOptimizer.optimizeRedundantReload already deletes the *adjacent*
-    //   `move d0,MEM`/`move MEM,d0` pair (the dominant case), so this cache
-    //   only adds the *non-adjacent* reloads that a 2-line peephole cannot see
-    //   (e.g. one value stored to d0 then re-read several times across a run of
-    //   intervening ALU ops). If a program shows no delta, that is why.
-    //
-    // CORRECTNESS INVARIANT (read carefully, the obvious one is wrong)
-    //   It is tempting to say "the cache is safe because move.x mem,$SCRATCH_D0 does not
-    //   set CCR". That is FALSE on m68k: move.x to a data register DOES set N/Z
-    //   (only movea leaves CCR alone). The cache is safe for a subtler reason:
-    //   no emitted sequence ever consumes the N/Z flags left by a `move ...,d0`.
-    //   Every flag-dependent decision (branches, scc) is preceded by an explicit
-    //   `tst`/`cmp` that re-establishes CCR. So skipping the load is fine, and
-    //   we must never reorder anything around it. Keep it that way: if a future
-    //   change makes codegen rely on the flags of a d0 load, this cache breaks.
-    //
-    // MAINTENANCE COST / HOW TO KEEP IT SOUND
-    //   The cache is only as correct as its invalidation. The rule: ANY emitted
-    //   instruction that (a) writes d0, or (b) writes the cached register's
-    //   regfile slot, or (c) is a branch target / control-flow boundary, MUST
-    //   invalidate (invalidateD0Cache / invalidateD0CacheForSlot /
-    //   invalidateD0CacheForAddress). When in doubt, invalidate. Two latent bugs
-    //   found after the initial commit illustrate the failure modes, both in
-    //   multi-path sequences with internal labels:
-    //     - translateSyscallClamp: internal `labelCheckMax:`/`labelDone:` are
-    //       branch targets where d0 differs per incoming path; they now
-    //       invalidate so a load after the label is never wrongly skipped.
-    //     - SGN: a raw `move.b d1, regAddr(dst)` bypassed emitStoreD0, leaving a
-    //       stale cache entry if dst==src; it now calls invalidateD0CacheForSlot.
-    //   Both were unreachable only because the register packer is disabled
-    //   (prototype) and clamp's three args are simultaneously live; do not rely
-    //   on that. Treat every internal label as a cache barrier.
+    // Invalidation rule: any instruction that writes d0, writes the cached
+    // register's slot, or is a branch target / control-flow boundary MUST
+    // invalidate (invalidateD0Cache / ...ForSlot / ...ForAddress). Treat every
+    // internal label as a cache barrier.
     // -------------------------------------------------------------------------
     private var d0CacheReg: Int = -1          // -1 means empty
     private var d0CacheType: IRDataType? = null
@@ -431,7 +389,7 @@ internal class AsmGen(val program: IRProgram, internal val target: ICompilationT
 
     /** emits the callee-saved register save (movem into the stack) for the current subroutine. */
     internal fun emitCalleeSave() {
-        if (!registerAllocationEnabled || currentSubCalleeSaved.isEmpty()) return
+        if (currentSubCalleeSaved.isEmpty()) return
         val cpuRegs = currentSubCalleeSaved.filterNot { it.startsWith("fp") }.toSet()
         val fpRegs = currentSubCalleeSaved.filter { it.startsWith("fp") }.toSet()
         if (cpuRegs.isNotEmpty())
@@ -443,7 +401,7 @@ internal class AsmGen(val program: IRProgram, internal val target: ICompilationT
     /** emits the callee-saved register restore (movem out of the stack) for the current subroutine.
      *  Called just before frame teardown / rts at every exit point. */
     internal fun emitCalleeRestore() {
-        if (!registerAllocationEnabled || currentSubCalleeSaved.isEmpty()) return
+        if (currentSubCalleeSaved.isEmpty()) return
         val cpuRegs = currentSubCalleeSaved.filterNot { it.startsWith("fp") }.toSet()
         val fpRegs = currentSubCalleeSaved.filter { it.startsWith("fp") }.toSet()
         if (fpRegs.isNotEmpty())
@@ -529,8 +487,8 @@ internal class AsmGen(val program: IRProgram, internal val target: ICompilationT
         return "$REGFILE_LABEL+$offset"
     }
 
-    // Stage 1 location-agnostic indirection. With an empty regAllocation map these
-    // delegate to regAddr/floatRegFileAddr, so output is byte-identical (checkpoint).
+    // Location-agnostic indirection: an unallocated vreg falls back to its
+    // regfile/frame address.
     fun operand(reg: Int): String {
         // int vreg; consult map (keyed by IntReg). Empty map -> regfile address.
         val vreg = VirtualRegister.IntReg(RegisterNum(reg))
@@ -549,7 +507,7 @@ internal class AsmGen(val program: IRProgram, internal val target: ICompilationT
         if (phys != null) return phys
         // Under allocation, a spilled float vreg lives in its A5 frame slot, not the
         // static float regfile (which is unsound for re-entrant activations).
-        if (op.isFloat && registerAllocationEnabled)
+        if (op.isFloat)
             frameVregAddr(op.registerNumber)?.let { return it }
         return if (op.isFloat) floatRegFileAddr(op.number) else regAddr(op.registerNumber)
     }
@@ -562,13 +520,12 @@ internal class AsmGen(val program: IRProgram, internal val target: ICompilationT
         assertAllocatable(phys)
         if (phys != null) return phys
         // Under allocation, a spilled float vreg lives in its A5 frame slot (see operand()).
-        if (registerAllocationEnabled)
-            frameVregAddr(reg.value)?.let { return it }
+        frameVregAddr(reg.value)?.let { return it }
         return floatRegFileAddr(reg)
     }
 
-    // Stage 1B helpers: return the physical register name only if the operand is
-    // allocated to a register of the required class; null => fall back to scratch.
+    // Return the physical register name only if the operand is allocated to a
+    // register of the required class; null => fall back to scratch.
     fun operandAsDataReg(op: RegisterOperand): String? {
         val phys = regAllocation[op.register] ?: return null
         return if (phys.lowercase() in ALLOCATABLE_DATA_REGS.map { it.lowercase() }.toSet()) phys else null
@@ -655,12 +612,11 @@ internal class AsmGen(val program: IRProgram, internal val target: ICompilationT
     }
 
     // Direct emission: operate on resident registers instead of bouncing
-    // through d0. Null whenever the legacy path is needed (flag off, spilled
-    // or address operand, width mismatch needing the extending d0 path).
+    // through d0. Null whenever the d0 path is needed (spilled or address
+    // operand, width mismatch needing the extending d0 path).
     // Pair form: both sides resident, widths matching (a narrower source
     // would read stale upper bits; a narrower destination is ambiguous).
     internal fun directDataPair(dstReg: Int, srcReg: Int, type: IRDataType): Pair<String, String>? {
-        if (!registerAllocationEnabled) return null
         val d = regAllocation[VirtualRegister.int(dstReg)] ?: return null
         val s = regAllocation[VirtualRegister.int(srcReg)] ?: return null
         if (!d.startsWith("d") || !s.startsWith("d")) return null
@@ -669,9 +625,8 @@ internal class AsmGen(val program: IRProgram, internal val target: ICompilationT
     }
 
     // Destination form: compute in place (mulu.w d3,d4), matching the
-    // legacy load-op-store semantics for a DEF destination.
+    // load-op-store semantics for a DEF destination.
     internal fun directDataDst(dstReg: Int, type: IRDataType): String? {
-        if (!registerAllocationEnabled) return null
         val d = regAllocation[VirtualRegister.int(dstReg)] ?: return null
         if (!d.startsWith("d")) return null
         if (regType(dstReg) != type) return null
@@ -681,7 +636,6 @@ internal class AsmGen(val program: IRProgram, internal val target: ICompilationT
     // Move form: plain copy between resident data registers. No width check:
     // a same-or-narrower move suffix only reads bits the source holds.
     internal fun directDataMove(dstReg: Int, srcReg: Int): Pair<String, String>? {
-        if (!registerAllocationEnabled) return null
         val d = regAllocation[VirtualRegister.int(dstReg)] ?: return null
         val s = regAllocation[VirtualRegister.int(srcReg)] ?: return null
         if (!d.startsWith("d") || !s.startsWith("d")) return null
@@ -692,7 +646,6 @@ internal class AsmGen(val program: IRProgram, internal val target: ICompilationT
     // destination write, so they must differ; the allocator guarantees it, so
     // a violation fails loudly instead of emitting a clobbered move.
     internal fun directExtend(dstReg: Int, srcReg: Int, dstType: IRDataType): String? {
-        if (!registerAllocationEnabled) return null
         val d = regAllocation[VirtualRegister.int(dstReg)] ?: return null
         if (!d.startsWith("d")) return null
         if (regType(dstReg) != dstType) return null
@@ -703,9 +656,8 @@ internal class AsmGen(val program: IRProgram, internal val target: ICompilationT
     }
 
     // Move-source form: data register or memory (move.b/move.w An,Dn is
-    // illegal, so address registers take the legacy d0 path).
+    // illegal, so address registers take the d0 path).
     internal fun directMoveSrc(reg: Int): String? {
-        if (!registerAllocationEnabled) return null
         val p = regAllocation[VirtualRegister.int(reg)]
         if (p != null && !p.startsWith("d")) return null
         return operand(reg)
@@ -714,7 +666,6 @@ internal class AsmGen(val program: IRProgram, internal val target: ICompilationT
     // Float form: compute into a resident FP register. The source may be any
     // float operand; size suffixes are chosen per source by emitFmoveFloat.
     internal fun directFloatReg(dstReg: RegisterNum): String? {
-        if (!registerAllocationEnabled) return null
         val d = floatOperand(dstReg)
         if (!d.startsWith("fp")) return null
         return d
@@ -729,8 +680,8 @@ internal class AsmGen(val program: IRProgram, internal val target: ICompilationT
             emitLine("fmove.s  $source, $dest")
     }
 
-    // FPU arithmetic with a source-correct size: bare for FP sources (as the
-    // legacy codegen emits), .s for memory sources.
+    // FPU arithmetic with a source-correct size: bare for FP sources, .s for
+    // memory sources.
     internal fun emitFloatOpSrc(op: String, source: String, dest: String) {
         if (source.startsWith("fp"))
             emitLine("$op  $source, $dest")
@@ -741,7 +692,6 @@ internal class AsmGen(val program: IRProgram, internal val target: ICompilationT
     // Source form: only the source must be resident, for reg->mem ops
     // (add.w d3,(a0)) and d0-free moves. Same fallback rule as the pair form.
     internal fun directDataSrc(srcReg: Int, type: IRDataType): String? {
-        if (!registerAllocationEnabled) return null
         val s = regAllocation[VirtualRegister.int(srcReg)] ?: return null
         if (!s.startsWith("d")) return null
         if (regType(srcReg) != type) return null
@@ -1135,10 +1085,10 @@ internal class AsmGen(val program: IRProgram, internal val target: ICompilationT
         frameActive = sub.hasFrame
         frameVregSlots = sub.frameVregSlots
         currentSubCalleeSaved = calleeSavedBySub[sub] ?: emptySet()
-        // Step 10: swap in this subroutine's allocation map and type map. Vreg
-        // numbers may be reused across subroutines, so program-wide maps cannot
-        // answer for the current sub. The swap only runs when per-sub maps were
-        // provided (production path); direct flat-map injection (single-sub unit
+        // Swap in this subroutine's allocation map and type map: vreg numbers may
+        // be reused across subroutines, so program-wide maps cannot answer for the
+        // current sub. The swap only runs when per-sub maps were provided
+        // (production path); direct flat-map injection (single-sub unit
         // tests) is left untouched. Clearing the d0 cache is required for the
         // same reason (it is keyed by vreg number); with globally unique numbers
         // no cross-sub elision exists, so default output is unchanged.
@@ -1153,7 +1103,7 @@ internal class AsmGen(val program: IRProgram, internal val target: ICompilationT
                         putIfAbsent(ra.register.number, ra.type)
             }
         }
-        if (registerAllocationEnabled) invalidateD0Cache()
+        invalidateD0Cache()
         currentSubChunks = mutableSetOf<IRCodeChunkBase>().also { set -> sub.forEachChunk { set.add(it) } }
         if (sub.hasFrame) {
             emitRaw("; stack frame: ${sub.frameSize} bytes of locals, ${sub.incomingSize} bytes of arguments")
@@ -1198,7 +1148,7 @@ internal class AsmGen(val program: IRProgram, internal val target: ICompilationT
         currentSubCalleeSaved = emptySet()
         if (regAllocationBySub.isNotEmpty()) regAllocation.clear()
         currentSubRegTypes = emptyMap()
-        if (registerAllocationEnabled) invalidateD0Cache()
+        invalidateD0Cache()
     }
 
     private fun emitAsmSubroutine(sub: IRAsmSubroutine) {
@@ -1449,10 +1399,9 @@ internal class AsmGen(val program: IRProgram, internal val target: ICompilationT
         // as long as there's no intervening write to that register.
         for (arg in callSite.arguments) {
             val register = arg.source.register
-            // Step 9: under register allocation, immediate forwarding applies to spilled
-            // operands only. A register-resident argument is marshalled from its allocated
-            // physical register by the normal call-boundary path instead.
-            if (registerAllocationEnabled && register in regAllocation) continue
+            // Immediate forwarding applies to spilled operands only; a
+            // register-resident argument is marshalled by the call-boundary path.
+            if (register in regAllocation) continue
             // search backwards for the defining LOAD immediate
             for (idx in callIndex - 1 downTo chunkStartIndex) {
                 val insn = instructions[idx]

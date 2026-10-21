@@ -32,7 +32,6 @@ class TestM68kScratchRegisterUsage : FunSpec({
         outputDir: Path,
         instructions: List<IRInstruction>,
         regAllocation: Map<VirtualRegister, String> = emptyMap(),
-        registerAllocationEnabled: Boolean = false,
         floats: Boolean = false
     ): List<String> {
         val options = CompilationOptions.builder(Qemu68kTarget())
@@ -58,7 +57,6 @@ class TestM68kScratchRegisterUsage : FunSpec({
         output.mkdirs()
         val asmGen = AsmGen(program, Qemu68kTarget())
         asmGen.regAllocation.putAll(regAllocation)
-        asmGen.registerAllocationEnabled = registerAllocationEnabled
         asmGen.generate()
         val asmFile = outputDir.resolve("test.asm")
         check(asmFile.exists()) { "Assembly file not written: $asmFile" }
@@ -181,7 +179,6 @@ class TestM68kScratchRegisterUsage : FunSpec({
                 IRInstructions.call(site)
             ),
             regAllocation = mapOf(VirtualRegister.int(1) to "d2"),
-            registerAllocationEnabled = true
         )
 
         lines.any { it == "move.w  #384,d2" } shouldBe true
@@ -204,7 +201,6 @@ class TestM68kScratchRegisterUsage : FunSpec({
                 IRInstructions.load(IRDataType.WORD, 1, 384),
                 IRInstructions.call(site)
             ),
-            registerAllocationEnabled = true
         )
 
         lines.any { it == "move.w  #384,d0" } shouldBe true
@@ -222,7 +218,6 @@ class TestM68kScratchRegisterUsage : FunSpec({
             tempRoot.resolve("test-m68k-return-int"),
             listOf(IRInstructions.call(site)),
             regAllocation = mapOf(VirtualRegister.int(4) to "d2"),
-            registerAllocationEnabled = true
         )
 
         lines.any { it.startsWith("bsr") } shouldBe true
@@ -235,7 +230,6 @@ class TestM68kScratchRegisterUsage : FunSpec({
             tempRoot.resolve("test-m68k-return-callee"),
             listOf(IRInstructions.returnRegister(IRDataType.WORD, 1)),
             regAllocation = mapOf(VirtualRegister.int(1) to "d3"),
-            registerAllocationEnabled = true
         )
 
         lines.any { it == "move.w  d3,d0" } shouldBe true
@@ -252,7 +246,6 @@ class TestM68kScratchRegisterUsage : FunSpec({
             tempRoot.resolve("test-m68k-return-float"),
             listOf(IRInstructions.call(site)),
             regAllocation = mapOf(VirtualRegister.float(1) to "fp2"),
-            registerAllocationEnabled = true,
             floats = true
         )
 
@@ -271,7 +264,6 @@ class TestM68kScratchRegisterUsage : FunSpec({
             tempRoot.resolve("test-m68k-return-slot-elided"),
             listOf(IRInstructions.call(site)),
             regAllocation = mapOf(VirtualRegister.int(5) to "d2"),
-            registerAllocationEnabled = true
         )
 
         lines.any { it.startsWith("bsr") } shouldBe true
@@ -285,7 +277,6 @@ class TestM68kScratchRegisterUsage : FunSpec({
             tempRoot.resolve("test-m68k-loadhr-elided"),
             listOf(IRInstructions.hardwareLoad(IRDataType.WORD, 5, slotD2)),
             regAllocation = mapOf(VirtualRegister.int(5) to "d2"),
-            registerAllocationEnabled = true
         )
 
         lines.none { it.startsWith("move.w") } shouldBe true
@@ -299,7 +290,6 @@ class TestM68kScratchRegisterUsage : FunSpec({
             tempRoot.resolve("test-m68k-storehr-elided"),
             listOf(IRInstructions.hardwareStore(IRDataType.WORD, 5, slotD2)),
             regAllocation = mapOf(VirtualRegister.int(5) to "d2"),
-            registerAllocationEnabled = true
         )
         elided.none { it.startsWith("move.w") } shouldBe true
 
@@ -307,7 +297,6 @@ class TestM68kScratchRegisterUsage : FunSpec({
             tempRoot.resolve("test-m68k-storehr-moved"),
             listOf(IRInstructions.hardwareStore(IRDataType.WORD, 6, slotD2)),
             regAllocation = mapOf(VirtualRegister.int(6) to "d3"),
-            registerAllocationEnabled = true
         )
         moved.any { it == "move.w  d3,d2" } shouldBe true
     }
@@ -320,7 +309,6 @@ class TestM68kScratchRegisterUsage : FunSpec({
             tempRoot.resolve("test-m68k-floadhr-elided"),
             listOf(IRInstructions.hardwareLoad(IRDataType.FLOAT, 1, slotFp2)),
             regAllocation = mapOf(VirtualRegister.float(1) to "fp2"),
-            registerAllocationEnabled = true,
             floats = true
         )
         elided.none { it.startsWith("fmove") } shouldBe true
@@ -329,7 +317,6 @@ class TestM68kScratchRegisterUsage : FunSpec({
             tempRoot.resolve("test-m68k-floadhr-moved"),
             listOf(IRInstructions.hardwareLoad(IRDataType.FLOAT, 3, slotFp2)),
             regAllocation = mapOf(VirtualRegister.float(3) to "fp3"),
-            registerAllocationEnabled = true,
             floats = true
         )
         moved.any { it == "fmove  fp2,fp3" } shouldBe true
@@ -343,7 +330,6 @@ class TestM68kScratchRegisterUsage : FunSpec({
             tempRoot.resolve("test-m68k-bitop-an"),
             listOf(IRInstructions.binaryImmediate(Opcode.BITCLR, IRDataType.LONG, 5, 0)),
             regAllocation = mapOf(VirtualRegister.int(5) to "a2"),
-            registerAllocationEnabled = true
         )
         lines.any { it == "move.l  a2,d0" } shouldBe true
         lines.any { it == "bclr  #0,d0" } shouldBe true
@@ -356,7 +342,6 @@ class TestM68kScratchRegisterUsage : FunSpec({
             tempRoot.resolve("test-m68k-bitop-dn"),
             listOf(IRInstructions.binaryImmediate(Opcode.BITSET, IRDataType.LONG, 5, 3)),
             regAllocation = mapOf(VirtualRegister.int(5) to "d3"),
-            registerAllocationEnabled = true
         )
 
         lines.any { it == "bset  #3,d3" } shouldBe true
@@ -382,7 +367,6 @@ class TestM68kScratchRegisterUsage : FunSpec({
                 VirtualRegister.int(5) to "d2", VirtualRegister.int(6) to "d3",
                 VirtualRegister.int(7) to "d4", VirtualRegister.int(8) to "d5"
             ),
-            registerAllocationEnabled = true
         )
 
         lines.any { it == "add.w  d2,d3" } shouldBe true
@@ -404,7 +388,6 @@ class TestM68kScratchRegisterUsage : FunSpec({
                 VirtualRegister.int(1) to "d2", VirtualRegister.int(2) to "d3",
                 VirtualRegister.int(3) to "d4", VirtualRegister.int(4) to "d5"
             ),
-            registerAllocationEnabled = true
         )
 
         lines.any { it == "move.b  d2,d3" } shouldBe true
@@ -420,7 +403,6 @@ class TestM68kScratchRegisterUsage : FunSpec({
             regAllocation = mapOf(
                 VirtualRegister.float(1) to "fp2", VirtualRegister.float(2) to "fp3"
             ),
-            registerAllocationEnabled = true,
             floats = true
         )
 
@@ -433,7 +415,6 @@ class TestM68kScratchRegisterUsage : FunSpec({
         val lines = generateAsm(
             tempRoot.resolve("test-m68k-direct-spilled"),
             listOf(IRInstructions.binary(Opcode.ADDR, IRDataType.WORD, 2, 1)),
-            registerAllocationEnabled = true
         )
 
         lines.any { it == "move.w  p8_regfile+0,d0" || it.startsWith("move.w  p8_regfile") } shouldBe true
@@ -448,7 +429,6 @@ class TestM68kScratchRegisterUsage : FunSpec({
             regAllocation = mapOf(
                 VirtualRegister.int(1) to "a2", VirtualRegister.int(2) to "d3"
             ),
-            registerAllocationEnabled = true
         )
 
         lines.any { it == "move.w  a2,d0" } shouldBe true
@@ -469,7 +449,6 @@ class TestM68kScratchRegisterUsage : FunSpec({
                 VirtualRegister.float(1) to "fp2", VirtualRegister.float(2) to "fp3",
                 VirtualRegister.float(3) to "fp4"
             ),
-            registerAllocationEnabled = true,
             floats = true
         )
 
@@ -511,7 +490,6 @@ class TestM68kScratchRegisterUsage : FunSpec({
         output.mkdirs()
         val asmGen = AsmGen(program, target)
         asmGen.regAllocation.putAll(mapOf(VirtualRegister.int(1) to "d2", VirtualRegister.int(2) to "d3"))
-        asmGen.registerAllocationEnabled = true
         asmGen.generate()
         val asmFile = program.options.outputDir.resolve("test.asm")
         check(asmFile.exists()) { "Assembly file not written: $asmFile" }
@@ -534,7 +512,6 @@ class TestM68kScratchRegisterUsage : FunSpec({
         val lines = generateAsm(
             tempRoot.resolve("test-m68k-return-spilled"),
             listOf(IRInstructions.call(site)),
-            registerAllocationEnabled = true
         )
 
         lines.any { it.startsWith("bsr") } shouldBe true
@@ -557,7 +534,6 @@ class TestM68kScratchRegisterUsage : FunSpec({
                 VirtualRegister.int(4) to "d2",
                 VirtualRegister.int(5) to "d3"
             ),
-            registerAllocationEnabled = true
         )
 
         lines.any { it.startsWith("bsr") } shouldBe true

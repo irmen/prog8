@@ -2,7 +2,7 @@ package prog8.codegen.m68k
 
 import prog8.intermediate.*
 
-// Stage 2 step 10: per-subroutine virtual-register reuse.
+// Per-subroutine virtual-register reuse.
 //
 // The IR generator assigns globally unique vreg numbers (RegisterPool never
 // resets), so a program with many subroutines accumulates one distinct number
@@ -12,7 +12,6 @@ import prog8.intermediate.*
 // derived from it.
 //
 // Soundness notes:
-// - Only runs behind -m68kregalloc, so default output is untouched.
 // - Reserved vregs (>= 99000, syscall argument/result slots) keep their numbers.
 // - Subroutine vregs are numbered from above the highest number used outside
 //   subroutines (global inits, top-level chunks), so renumbered sub vregs can
@@ -54,16 +53,10 @@ internal fun renumberVregsPerSubroutine(program: IRProgram): Map<VirtualRegister
     for (block in program.blocks)
         for (child in block.children)
             if (child is IRCodeChunkBase) child.forEachChunkRecursive(::scanOutside)
+    for (sub in program.allSubs())
+        if (sub.noframe) sub.forEachChunk(::scanOutside)
     for (sub in program.allSubs()) {
-        if (sub.noframe) {
-            sub.forEachChunk { chunk ->
-                for (ins in chunk.instructions)
-                    for (ra in ins.registerAccesses)
-                        if (ra.register.num < RESERVED_VREG_START && ra.register.num > maxOutside)
-                            maxOutside = ra.register.num
-            }
-            continue
-        }
+        if (sub.noframe) continue
         val intNums = mutableSetOf<Int>()
         val floatNums = mutableSetOf<Int>()
         sub.forEachChunk { chunk ->

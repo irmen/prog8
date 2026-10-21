@@ -323,16 +323,12 @@ private fun AsmGen.emitLongMathCall(dstReg: Int, srcReg: Int?, imm: Int?, target
         }
     }
     invalidateD0Cache()
-    if (registerAllocationEnabled) {
-        // Helpers clobber D2-D7 with no IR call edge, so the allocator cannot
-        // protect values it placed there. A2-A4 are untouched by the helpers;
-        // A6 is only consumed by their tail jmp. D0/D1 carry args and results.
-        emitLine("movem.l  d2-d7,-(sp)")
-    }
+    // Helpers clobber D2-D7 with no IR call edge, so the allocator cannot
+    // protect values it placed there. A2-A4 are untouched by the helpers;
+    // A6 is only consumed by their tail jmp. D0/D1 carry args and results.
+    emitLine("movem.l  d2-d7,-(sp)")
     emitLine("bsr  $routine")
-    if (registerAllocationEnabled) {
-        emitLine("movem.l  (sp)+,d2-d7")
-    }
+    emitLine("movem.l  (sp)+,d2-d7")
     val storeTarget = target ?: operand(dstReg)
     if (resultReg == SCRATCH_D0) {
         emitStoreD0ToAddress(storeTarget, IRDataType.LONG)
@@ -852,8 +848,8 @@ private fun AsmGen.emitDivModOp(dstReg: Int, remainderReg: Int, type: IRDataType
 }
 
 // === Float arithmetic via 68881 FPU ===
-// Float virtual registers live in the memory regfile. Physical fp0 (FP_ACC) and
-// fp1 (FP_SRC) are used as scratch during FPU operations.
+// Float virtual registers live in fp2-fp7, in a frame slot, or in the memory regfile.
+// Physical fp0 (FP_ACC) and fp1 (FP_SRC) are used as scratch during FPU operations.
 
 private fun AsmGen.emitFloatBinaryOp(op: String, dst: RegisterNum, src: RegisterNum) {
     directFloatReg(dst)?.let { d ->

@@ -43,7 +43,7 @@ internal fun optimizeAssembly(lines: MutableList<String>) {
         if (!modified)
             break
     }
-    // M5: drop a `lea base,a0` when a0 already holds that same base.
+    // drop a `lea base,a0` when a0 already holds that same base.
     // a0 is a real CPU register, so this pass is independent of the
     // p8_regfile layout and of the register allocator.
     val leaMods = optimizeRedundantLea(pretrimmed)
@@ -53,7 +53,7 @@ internal fun optimizeAssembly(lines: MutableList<String>) {
 }
 
 /**
- * M5: remove `lea base,a0` instructions that recompute a base a0 is already known to hold.
+ * Remove `lea base,a0` instructions that recompute a base a0 is already known to hold.
  *
  * Indexed array access is emitted as `lea base,a0` followed by `(a0,d0.w*2)`. The lea itself is
  * required - absolute-indexed addressing (`base(a0,d0.w*2)`) does not exist on the m68k - but in

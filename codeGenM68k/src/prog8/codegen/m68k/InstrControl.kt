@@ -1130,13 +1130,13 @@ private fun AsmGen.translateReturnValue(ret: CallResult) {
     if (slot != null) {
         val hwReg = m68kSlotRegister(slot)
         if (destination.isFloat) {
-            // Step 7, §2.8: the vreg already lives in its slot register: no move needed.
-            if (registerAllocationEnabled && floatOperand(destination.floatNumber) == hwReg)
+            // the vreg already lives in its slot register: no move needed.
+            if (floatOperand(destination.floatNumber) == hwReg)
                 return
             emitFmoveFloat(hwReg, floatOperand(destination.floatNumber))
         } else {
-            // Step 7, §2.8: the vreg already lives in its slot register: no move needed.
-            if (registerAllocationEnabled && operand(destination.intNumber) == hwReg)
+            // the vreg already lives in its slot register: no move needed.
+            if (operand(destination.intNumber) == hwReg)
                 return
             emitMoveToIntRegister(hwReg, destination.intNumber, destination.type)
         }

@@ -6,7 +6,6 @@ import io.kotest.matchers.ints.shouldBeGreaterThanOrEqual
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.shouldNotBe
 import io.kotest.matchers.string.shouldContain
-import io.kotest.matchers.string.shouldNotContain
 import prog8.code.target.C64Target
 import prog8.code.target.Qemu68kTarget
 import prog8.intermediate.IRFileReader
@@ -33,6 +32,12 @@ class TestStackFrameLocals : FunSpec({
         require(start >= 0) { "no assembly found for subroutine $subLabel" }
         val end = lines.indexOfFirst { it.startsWith("; End of subroutine:") && it.contains(subLabel) }
         return lines.subList(start, end)
+    }
+
+    // the IR text of a single subroutine element, so vreg numbers from other subroutines don't match
+    fun subIr(ir: String, subLabel: String): String {
+        val lines = ir.lineSequence().dropWhile { !it.contains("SUB NAME=\"$subLabel\"") }.toList()
+        return lines.takeWhile { !it.startsWith("</SUB>") }.joinToString("\n")
     }
 
     test("frameable leaf subroutine gets an a5 frame") {
@@ -916,9 +921,8 @@ main {
         val slots = subLine.substringAfter("VREGSLOTS=\"").substringBefore('"').split(',').associate {
             it.substringBefore(':').toInt() to it.substringAfter(':').toInt()
         }
-        // the two call results inside rec (the call results whose registers appear in the slot
-        // map; the call from start uses a register outside it) share one slot
-        val callResults = Regex("call p8b_main\\.p8s_rec\\([^)]*\\):r(\\d+)\\.w").findAll(ir)
+        // the two call results inside rec share one slot
+        val callResults = Regex("call p8b_main\\.p8s_rec\\([^)]*\\):r(\\d+)\\.w").findAll(subIr(ir, "p8b_main.p8s_rec"))
             .map { it.groupValues[1].toInt() }
             .filter { it in slots }
             .toList()
@@ -956,12 +960,12 @@ main {
         val (_, ir) = compile(src)
         val subLine = ir.lineSequence().first { it.contains("SUB NAME=\"p8b_main.p8s_rec\"") }
         subLine.contains("FRAMESIZE=\"12\"") shouldBe true
-        subLine.contains("VREGSLOTS=\"1:-3,2:-6,3:-7,4:-10,5:-12\"") shouldBe true
         val slots = subLine.substringAfter("VREGSLOTS=\"").substringBefore('"').split(',').associate {
             it.substringBefore(':').toInt() to it.substringAfter(':').toInt()
         }
         // every register has its own dedicated slot: all offsets are distinct
         slots.values.toSet().size shouldBe slots.size
+        slots.values.sorted() shouldBe listOf(-12, -10, -7, -6, -3)
     }
 
     test("slice 5: simultaneously-live virtual registers get distinct frame slots") {
@@ -984,7 +988,7 @@ main {
         val slots = subLine.substringAfter("VREGSLOTS=\"").substringBefore('"').split(',').associate {
             it.substringBefore(':').toInt() to it.substringAfter(':').toInt()
         }
-        val callResults = Regex("call p8b_main\\.p8s_rec\\([^)]*\\):r(\\d+)\\.w").findAll(ir)
+        val callResults = Regex("call p8b_main\\.p8s_rec\\([^)]*\\):r(\\d+)\\.w").findAll(subIr(ir, "p8b_main.p8s_rec"))
             .map { it.groupValues[1].toInt() }
             .filter { it in slots }
             .toList()
@@ -992,7 +996,7 @@ main {
         slots.getValue(callResults[0]) shouldNotBe slots.getValue(callResults[1])
     }
 
-    test("slice 5: non-recursive subroutines keep the static register file and no vreg slots") {
+    test("slice 5: non-recursive subroutines allocate registers and keep no vreg slots") {
         // only re-entrant subroutines relocate their virtual registers into the frame
         val src = """
 main {
@@ -1012,7 +1016,9 @@ main {
         ir.contains("VREGSLOTS") shouldBe false
         val caller = subAssembly(lines, "p8b_main.p8s_caller")
         caller.any { it == "link  a5,#-2" } shouldBe true
-        caller.any { it.contains("p8_regfile") } shouldBe true
+        // the allocator assigned a hardware register; no register-file traffic remains
+        caller.any { it.startsWith("movem.l  ") && it.endsWith(",-(sp)") } shouldBe true
+        caller.any { it.contains("p8_regfile") } shouldBe false
     }
     test("slice 5: compiler-generated temporaries inside a subroutine are framed already") {
         // the desugarer of `on ... goto` creates its own auto_heap_value variables; plain

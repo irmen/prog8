@@ -28,7 +28,6 @@ class CompilationOptions(val output: OutputType,
                          var dumpVariables: Boolean = false,
                          var dumpSymbols: Boolean = false,
                          var newCodegen: Boolean = false,
-                         var m68kRegisterAllocation: Boolean = false,
                          var varsHighBank: Int? = null,
                          var varsGolden: Boolean = false,
                          var breakpointCpuInstruction: String? = null,
@@ -78,7 +77,6 @@ class CompilationOptions(val output: OutputType,
             private var quiet: Boolean = false
             private var profilingInstrumentation: Boolean = false
             private var newCodegen: Boolean = false
-            private var m68kRegisterAllocation: Boolean = false
             private var symbolDefs: Map<String, String> = emptyMap()
             private var outputFile: Path? = null
 
@@ -111,14 +109,13 @@ class CompilationOptions(val output: OutputType,
             fun profilingInstrumentation(profilingInstrumentation: Boolean) = apply { this.profilingInstrumentation = profilingInstrumentation }
             fun symbolDefs(symbolDefs: Map<String, String>) = apply { this.symbolDefs = symbolDefs }
             fun newCodegen(newCodegen: Boolean) = apply { this.newCodegen = newCodegen }
-            fun m68kRegisterAllocation(v: Boolean) = apply { this.m68kRegisterAllocation = v }
             fun outputFile(outputFile: Path?) = apply { this.outputFile = outputFile }
 
             fun build(): CompilationOptions {
                 return CompilationOptions(
                     output, launcher, zeropage, zpReserved, zpAllowed, floats, noSysInit, romable, compTarget, compilerVersion,
                     loadAddress, memtopAddress, varsAddress, warnSymbolShadowing, warnImplicitTypeCast, optimize, asmQuiet, asmListfile,
-                    includeSourcelines, dumpVariables, dumpSymbols, newCodegen, m68kRegisterAllocation, varsHighBank, varsGolden,
+                    includeSourcelines, dumpVariables, dumpSymbols, newCodegen, varsHighBank, varsGolden,
                     breakpointCpuInstruction, ignoreFootguns, outputDir, quiet,
                     profilingInstrumentation, symbolDefs
                 ).apply { this.outputFile = this@Builder.outputFile }

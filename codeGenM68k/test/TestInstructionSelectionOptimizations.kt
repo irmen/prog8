@@ -1165,7 +1165,7 @@ class TestInstructionSelectionOptimizations : FunSpec({
         )
 
         lines.any { it == "lea  arr+4,a0" } shouldBe true
-        lines.any { it == "move.w  (a0,d0.w*2),d0" } shouldBe true
+        lines.any { it.startsWith("move.w  (a0,d0.w*2),p8_regfile+") } shouldBe true
         // the stored value is staged in d1 because a0/d0 hold the effective address
         lines.any { it == "move.w  d1,(a0,d0.w*4)" } shouldBe true
         lines.any { it == "clr.b  (a0,d0.w*8)" } shouldBe true
@@ -1200,7 +1200,7 @@ class TestInstructionSelectionOptimizations : FunSpec({
 
         val sub = lines.subroutineLines()
         sub.any { it.startsWith("movea.l  ") && it.endsWith(",a0") } shouldBe true
-        sub.any { it == "move.w  (a0),d0" } shouldBe true
+        sub.any { it.startsWith("move.w  (a0),p8_regfile+") } shouldBe true
         sub.any { it.endsWith(",(6,a0)") } shouldBe true
         // displacements beyond the signed 16-bit range need an explicit adda
         sub.any { it == "adda.l  #40000,a0" } shouldBe true

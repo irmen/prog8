@@ -246,6 +246,13 @@ Locals are addressed at negative offsets from ``A5``. Parameters are in the inco
 area at positive offsets. The compiler establishes and removes a frame with ``link a5,#-N``
 and ``unlk a5``.
 
+Virtual registers are kept in hardware registers (``D2-D6``, ``A2-A4``, ``FP2-FP7``) by an
+intraprocedural register allocator, with values that live across calls placed in the
+callee-saved registers and saved/restored by the subroutine's ``movem`` prologue and
+epilogue. Values that cannot stay in a register spill to slots appended to the ``A5``
+frame. ``D7``, ``A5`` and ``A6`` are reserved. Ordinary subroutine locals may therefore
+never be accessed directly from assembly; go through the frame instead.
+
 Clean (non-``@dirty``) locals are zero-initialized on every call with a ``clr`` prologue, one
 store per element. This includes arrays, which on other targets are only cleared once at startup.
 A large clean local array is therefore costly; the compiler warns about framed arrays larger
