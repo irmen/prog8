@@ -5,8 +5,7 @@ Stage 4 runs after Stage 3 (teardown of the old mitigation layer) and finishes t
 transition: the allocator becomes the only code path, and the temporary tooling
 used to bring it up is removed.
 
-**Status:** Not started (Oct 2026). Stage 3 is in progress (step 3a landed, 3b
-and 3d open, 3c partial).
+**Status:** Not started (Oct 2026). Stage 3 is complete, so this stage is ready to start.
 
 ## Precondition
 

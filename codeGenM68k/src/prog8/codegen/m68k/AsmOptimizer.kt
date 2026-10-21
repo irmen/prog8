@@ -44,8 +44,8 @@ internal fun optimizeAssembly(lines: MutableList<String>) {
             break
     }
     // M5: drop a `lea base,a0` when a0 already holds that same base.
-    // NOT REGFILE-DEPENDENT: a0 is a real CPU register, so this pass is independent of the
-    // p8_regfile layout and of the planned register allocator.
+    // a0 is a real CPU register, so this pass is independent of the
+    // p8_regfile layout and of the register allocator.
     val leaMods = optimizeRedundantLea(pretrimmed)
     if (leaMods.isNotEmpty()) {
         applyModifications(leaMods, lines, pretrimmed)

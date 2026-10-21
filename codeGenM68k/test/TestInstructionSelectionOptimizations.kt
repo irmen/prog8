@@ -66,6 +66,19 @@ class TestInstructionSelectionOptimizations : FunSpec({
         results: List<CallResult> = emptyList()
     ): CallSite = CallSite(CallTarget.Direct(codeLabel(label)), arguments, results)
 
+    // Slot-agnostic assertions: instruction shapes and counts, never a regfile offset.
+    val hardwareRegister = Regex("""^(d[0-7]|a[0-7]|fp[0-9]+)$""")
+
+    fun String.firstOperand() = substringAfter("  ", "").substringBefore(',').trim()
+
+    fun String.operandIsHardwareRegister() = firstOperand().matches(hardwareRegister)
+
+    fun List<String>.subroutineLines(): List<String> {
+        val start = indexOfFirst { it == "test.start:" }
+        val end = indexOfFirst { it == "; End of subroutine: test.start" }
+        return subList(start + 1, if (end >= 0) end else size)
+    }
+
     test("uses quick address adjustments and preserves large offsets") {
         val lines = generateAsm(
             tempRoot.resolve("test-m68k-offsets"),
@@ -101,10 +114,10 @@ class TestInstructionSelectionOptimizations : FunSpec({
             listOf(IRInstructions.compare(IRDataType.BYTE, 1, 2))
         )
 
-        lines.any { it == "move.b  p8_regfile+0,d0" } shouldBe true
-        lines.any { it == "cmp.b  p8_regfile+2,d0" } shouldBe true
-        lines.any { it == "moveq  #0,d0" } shouldBe false
-        lines.any { it == "moveq  #0,d1" } shouldBe false
+        val sub = lines.subroutineLines()
+        sub.count { it.startsWith("move.b  ") && it.endsWith(",d0") } shouldBe 1
+        sub.count { it.startsWith("cmp.b  ") && !it.operandIsHardwareRegister() && it.endsWith(",d0") } shouldBe 1
+        sub.count { it.startsWith("moveq  #0") } shouldBe 0
     }
 
     test("byte modulus takes the remainder via swap without corrupting shifts") {
@@ -131,10 +144,11 @@ class TestInstructionSelectionOptimizations : FunSpec({
             )
         )
 
-        lines.count { it == "mulu.w  p8_regfile+2,d0" } shouldBe 1
-        lines.count { it == "mulu.l  p8_regfile+8,d0" } shouldBe 1
-        lines.count { it.startsWith("move.w  p8_regfile+2,d1") } shouldBe 0
-        lines.count { it.startsWith("move.l  p8_regfile+8,d1") } shouldBe 0
+        val sub = lines.subroutineLines()
+        sub.count { it.startsWith("mulu.w  ") && !it.operandIsHardwareRegister() } shouldBe 1
+        sub.count { it.startsWith("mulu.l  ") && !it.operandIsHardwareRegister() } shouldBe 1
+        sub.count { it.startsWith("move.w  ") && it.endsWith(",d1") } shouldBe 0
+        sub.count { it.startsWith("move.l  ") && it.endsWith(",d1") } shouldBe 0
     }
 
     test("indirect jumps and calls use memory-indirect addressing on 68020") {
@@ -146,9 +160,10 @@ class TestInstructionSelectionOptimizations : FunSpec({
             )
         )
 
-        lines.count { it.startsWith("jmp  ([p8_regfile+") } shouldBe 1
-        lines.count { it.startsWith("jsr  ([p8_regfile+") } shouldBe 1
-        lines.count { it.startsWith("move.l  p8_regfile+") && it.endsWith(",a0") } shouldBe 0
+        val sub = lines.subroutineLines()
+        sub.count { it.startsWith("jmp  ([") && it.endsWith("])") } shouldBe 1
+        sub.count { it.startsWith("jsr  ([") && it.endsWith("])") } shouldBe 1
+        sub.count { it.startsWith("move.l  ") && it.endsWith(",a0") } shouldBe 0
     }
 
     test("indirect jumps and calls load the target into a0 on 68000") {
@@ -161,10 +176,11 @@ class TestInstructionSelectionOptimizations : FunSpec({
             Amiga500Target()
         )
 
-        lines.count { it.startsWith("movea.l  p8_regfile") && it.endsWith(",a0") } shouldBe 2
-        lines.count { it == "jmp  (a0)" } shouldBe 1
-        lines.count { it == "jsr  (a0)" } shouldBe 1
-        lines.count { it.contains("([") } shouldBe 0
+        val sub = lines.subroutineLines()
+        sub.count { it.startsWith("movea.l  ") && it.endsWith(",a0") } shouldBe 2
+        sub.count { it == "jmp  (a0)" } shouldBe 1
+        sub.count { it == "jsr  (a0)" } shouldBe 1
+        sub.count { it.contains("([") } shouldBe 0
     }
 
     test("signed word divmod omits redundant zero extension") {
@@ -176,10 +192,11 @@ class TestInstructionSelectionOptimizations : FunSpec({
             )
         )
 
+        val sub = lines.subroutineLines()
         lines.count { it.startsWith("moveq  #0,d0") && "clear upper word" in it } shouldBe 1
         lines.count { it.startsWith("ext.l  d0") } shouldBe 1
-        lines.count { it.startsWith("divu.w  p8_regfile+") } shouldBe 1
-        lines.count { it.startsWith("divs.w  p8_regfile+") } shouldBe 1
+        sub.count { it.startsWith("divu.w  ") && !it.operandIsHardwareRegister() } shouldBe 1
+        sub.count { it.startsWith("divs.w  ") && !it.operandIsHardwareRegister() } shouldBe 1
     }
 
     test("byte and word extraction uses direct register-file loads") {
@@ -200,7 +217,8 @@ class TestInstructionSelectionOptimizations : FunSpec({
         lines.count { it.startsWith("lsr") } shouldBe 0
         lines.count { it.startsWith("swap") } shouldBe 0
         lines.count { it.startsWith("clr.w") } shouldBe 0
-        lines.count { it.startsWith("move.b  p8_regfile+") && ",d0" in it } shouldBe 4
+        val sub = lines.subroutineLines()
+        sub.count { it.startsWith("move.b  ") && !it.operandIsHardwareRegister() && it.endsWith(",d0") } shouldBe 4
     }
 
     test("lsb/msb on words and longs use direct byte loads") {
@@ -216,7 +234,8 @@ class TestInstructionSelectionOptimizations : FunSpec({
 
         lines.count { it.startsWith("lsr") } shouldBe 0
         lines.count { it.startsWith("swap") } shouldBe 0
-        lines.count { it.startsWith("move.b  p8_regfile+") && ",d0" in it } shouldBe 2
+        val sub = lines.subroutineLines()
+        sub.count { it.startsWith("move.b  ") && !it.operandIsHardwareRegister() && it.endsWith(",d0") } shouldBe 2
     }
 
     test("lsw/msw on longs use direct word loads") {
@@ -231,7 +250,8 @@ class TestInstructionSelectionOptimizations : FunSpec({
         lines.count { it.startsWith("lsr") } shouldBe 0
         lines.count { it.startsWith("swap") } shouldBe 0
         lines.count { it.startsWith("clr.w") } shouldBe 0
-        lines.count { it.startsWith("move.w  p8_regfile+") && ",d0" in it } shouldBe 1
+        val sub = lines.subroutineLines()
+        sub.count { it.startsWith("move.w  ") && !it.operandIsHardwareRegister() && it.endsWith(",d0") } shouldBe 1
     }
 
     test("lmh uses BSIGB, MIDB, LSIGB") {
@@ -245,7 +265,8 @@ class TestInstructionSelectionOptimizations : FunSpec({
         )
 
         lines.count { it.startsWith("lsr") } shouldBe 0
-        lines.count { it.startsWith("move.b  p8_regfile+") && ",d0" in it } shouldBe 2
+        val sub = lines.subroutineLines()
+        sub.count { it.startsWith("move.b  ") && !it.operandIsHardwareRegister() && it.endsWith(",d0") } shouldBe 2
     }
 
     test("forwards an immediate load into a following hardware-register call argument") {
@@ -258,9 +279,10 @@ class TestInstructionSelectionOptimizations : FunSpec({
             )
         )
 
-        lines.any { it == "move.w  #384,p8_regfile+0" } shouldBe false
-        lines.any { it == "move.w  #384,d0" } shouldBe true
-        lines.any { it == "move.w  p8_regfile+0,d0" } shouldBe false
+        val sub = lines.subroutineLines()
+        sub.count { it.startsWith("move.w  #384,") } shouldBe 1
+        sub.count { it == "move.w  #384,d0" } shouldBe 1
+        sub.count { it.startsWith("move.w  ") && !it.contains("#") && it.endsWith(",d0") } shouldBe 0
     }
 
     test("forwards all immediate loads for a multi-argument call") {
@@ -274,10 +296,11 @@ class TestInstructionSelectionOptimizations : FunSpec({
             )
         )
 
-        lines.any { it == "move.w  #384,d0" } shouldBe true
-        lines.any { it == "move.w  #1220,d1" } shouldBe true
-        lines.any { it == "move.w  #384,p8_regfile+0" } shouldBe false
-        lines.any { it == "move.w  #1220,p8_regfile+2" } shouldBe false
+        val sub = lines.subroutineLines()
+        sub.count { it == "move.w  #384,d0" } shouldBe 1
+        sub.count { it == "move.w  #1220,d1" } shouldBe 1
+        sub.count { it.startsWith("move.w  #384,") } shouldBe 1
+        sub.count { it.startsWith("move.w  #1220,") } shouldBe 1
     }
 
     test("does not partially forward a multi-argument call") {
@@ -290,8 +313,9 @@ class TestInstructionSelectionOptimizations : FunSpec({
             )
         )
 
-        lines.any { it == "move.w  #384,d0" } shouldBe true
-        lines.any { it == "move.w  p8_regfile+0,d0" } shouldBe false
+        val sub = lines.subroutineLines()
+        sub.count { it == "move.w  #384,d0" } shouldBe 1
+        sub.count { it.startsWith("move.w  ") && it.endsWith(",d0") } shouldBe 1
     }
 
     test("retains immediate loads for named call arguments") {
@@ -307,8 +331,10 @@ class TestInstructionSelectionOptimizations : FunSpec({
             )
         )
 
-        lines.any { it == "move.b  #42,p8_regfile+0" } shouldBe true
-        lines.any { it == "move.b  p8_regfile+0,callee.value" } shouldBe true
+        val sub = lines.subroutineLines()
+        sub.count { it.startsWith("move.b  #42,") } shouldBe 1
+        sub.count { it == "move.b  #42,d0" } shouldBe 0
+        sub.count { it.startsWith("move.b  ") && it.endsWith(",callee.value") && !it.firstOperand().startsWith("#") } shouldBe 1
     }
 
     test("retains the register-file store when the value is used after the call") {
@@ -322,8 +348,9 @@ class TestInstructionSelectionOptimizations : FunSpec({
             )
         )
 
-        lines.any { it == "move.w  #384,p8_regfile+0" } shouldBe true
-        lines.any { it == "move.w  #384,d0" } shouldBe true
+        val sub = lines.subroutineLines()
+        sub.count { it.startsWith("move.w  #384,") && !it.endsWith(",d0") } shouldBe 1
+        sub.count { it == "move.w  #384,d0" } shouldBe 1
     }
 
     test("uses moveq for forwarded small immediate call arguments") {
@@ -383,9 +410,9 @@ class TestInstructionSelectionOptimizations : FunSpec({
             )
         )
 
-        lines.any { it == $$"fmovecr  #$32,fp0" } shouldBe true
-        lines.any { it == "fmove.s  fp0,p8_fregfile+0" } shouldBe false
-        lines.any { it == "fmove.s  p8_fregfile+0,fp0" } shouldBe false
+        val sub = lines.subroutineLines()
+        sub.count { it == $$"fmovecr  #$32,fp0" } shouldBe 1
+        sub.count { it.startsWith("fmove.s  ") } shouldBe 0
     }
 
     test("forwards an immediate float load into a different FPU register and drops the dead fregfile store") {
@@ -398,9 +425,9 @@ class TestInstructionSelectionOptimizations : FunSpec({
             )
         )
 
-        lines.any { it == $$"fmovecr  #$34,fp1" } shouldBe true
-        lines.any { it == "fmove.s  fp0,p8_fregfile+0" } shouldBe false
-        lines.any { it == "fmove.s  p8_fregfile+0,fp1" } shouldBe false
+        val sub = lines.subroutineLines()
+        sub.count { it == $$"fmovecr  #$34,fp1" } shouldBe 1
+        sub.count { it.startsWith("fmove.s  ") } shouldBe 0
     }
 
     test("forwards both integer and float immediate loads for a mixed-argument call") {
@@ -414,11 +441,11 @@ class TestInstructionSelectionOptimizations : FunSpec({
             )
         )
 
-        lines.any { it == "move.w  #384,d0" } shouldBe true
-        lines.any { it == "move.w  #384,p8_regfile+0" } shouldBe false
-        lines.any { it == $$"fmovecr  #$32,fp0" } shouldBe true
-        lines.any { it == "fmove.s  fp0,p8_fregfile+0" } shouldBe false
-        lines.any { it == "fmove.s  p8_fregfile+0,fp0" } shouldBe false
+        val sub = lines.subroutineLines()
+        sub.count { it == "move.w  #384,d0" } shouldBe 1
+        sub.count { it.startsWith("move.w  #384,") } shouldBe 1
+        sub.count { it == $$"fmovecr  #$32,fp0" } shouldBe 1
+        sub.count { it.startsWith("fmove.s  ") } shouldBe 0
     }
 
     test("retains the fregfile store when a forwarded float value is used after the call") {
@@ -432,8 +459,10 @@ class TestInstructionSelectionOptimizations : FunSpec({
             )
         )
 
-        lines.any { it == "fmove.s  fp0,p8_fregfile+0" } shouldBe true
-        lines.count { it == "fmove.s  p8_fregfile+0,fp0" } shouldBe 1
+        val sub = lines.subroutineLines()
+        sub.count { it == $$"fmovecr  #$32,fp0" } shouldBe 2
+        sub.count { it.startsWith("fmove.s  fp0,") && !it.endsWith("p8b_test.p8v_value") } shouldBe 1
+        sub.count { it.startsWith("fmove.s  ") && it.endsWith(",fp0") } shouldBe 1
     }
 
     // === sys.memcopy inlining ===
@@ -545,8 +574,9 @@ class TestInstructionSelectionOptimizations : FunSpec({
             )
         )
 
-        lines.any { it == "move.w  #384,d0" } shouldBe true
-        lines.any { it == "fmove.s  p8_fregfile+0,fp0" } shouldBe true
+        val sub = lines.subroutineLines()
+        sub.count { it == "move.w  #384,d0" } shouldBe 1
+        sub.count { it.startsWith("fmove.s  ") && it.endsWith(",fp0") } shouldBe 1
     }
 
     test("loads pointers into a0 with movea and without a +0 offset") {
@@ -557,8 +587,9 @@ class TestInstructionSelectionOptimizations : FunSpec({
             )
         )
 
-        lines.any { it == "movea.l  p8_regfile,a0" } shouldBe true
-        lines.any { it.startsWith("move.l  p8_regfile") } shouldBe false
+        val sub = lines.subroutineLines()
+        sub.count { it.startsWith("movea.l  ") && it.endsWith(",a0") } shouldBe 1
+        sub.count { it.startsWith("move.l  ") } shouldBe 0
     }
 
     test("ADDR.P zero-extends a word source") {
@@ -570,10 +601,11 @@ class TestInstructionSelectionOptimizations : FunSpec({
             tempRoot.resolve("test-m68k-addr-p-word-src"),
             listOf(chunk)
         )
-        lines.any { it == "moveq  #0,d0" } shouldBe true
-        lines.any { it == "move.w  p8_regfile+4,d0" } shouldBe true
-        lines.any { it == "add.l  d0,p8_regfile+0" } shouldBe true
-        lines.any { it == "move.l  p8_regfile+4,d0" } shouldBe false
+        val sub = lines.subroutineLines()
+        sub.count { it == "moveq  #0,d0" } shouldBe 1
+        sub.count { it.startsWith("move.w  ") && !it.operandIsHardwareRegister() && it.endsWith(",d0") } shouldBe 1
+        sub.count { it.startsWith("add.l  d0,") } shouldBe 1
+        sub.count { it.startsWith("move.l  ") && it.endsWith(",d0") } shouldBe 0
     }
 
     test("ADDR.P does not zero-extend a long source") {
@@ -585,9 +617,10 @@ class TestInstructionSelectionOptimizations : FunSpec({
             tempRoot.resolve("test-m68k-addr-p-long-src"),
             listOf(chunk)
         )
-        lines.any { it == "move.l  p8_regfile+4,d0" } shouldBe true
-        lines.any { it == "add.l  d0,p8_regfile+0" } shouldBe true
-        lines.any { it == "moveq  #0,d0" } shouldBe false
+        val sub = lines.subroutineLines()
+        sub.count { it.startsWith("move.l  ") && it.endsWith(",d0") } shouldBe 1
+        sub.count { it.startsWith("add.l  d0,") } shouldBe 1
+        sub.count { it == "moveq  #0,d0" } shouldBe 0
     }
 
     test("SUBR.P zero-extends a word source") {
@@ -599,10 +632,11 @@ class TestInstructionSelectionOptimizations : FunSpec({
             tempRoot.resolve("test-m68k-subr-p-word-src"),
             listOf(chunk)
         )
-        lines.any { it == "moveq  #0,d0" } shouldBe true
-        lines.any { it == "move.w  p8_regfile+4,d0" } shouldBe true
-        lines.any { it == "sub.l  d0,p8_regfile+0" } shouldBe true
-        lines.any { it == "move.l  p8_regfile+4,d0" } shouldBe false
+        val sub = lines.subroutineLines()
+        sub.count { it == "moveq  #0,d0" } shouldBe 1
+        sub.count { it.startsWith("move.w  ") && !it.operandIsHardwareRegister() && it.endsWith(",d0") } shouldBe 1
+        sub.count { it.startsWith("sub.l  d0,") } shouldBe 1
+        sub.count { it.startsWith("move.l  ") && it.endsWith(",d0") } shouldBe 0
     }
 
     test("does not forward across an intervening instruction") {
@@ -616,8 +650,9 @@ class TestInstructionSelectionOptimizations : FunSpec({
             )
         )
 
-        lines.any { it == "move.w  #384,d0" } shouldBe true
-        lines.any { it == "move.w  p8_regfile+0,d0" } shouldBe false
+        val sub = lines.subroutineLines()
+        sub.count { it == "move.w  #384,d0" } shouldBe 1
+        sub.count { it.startsWith("move.w  ") && it.endsWith(",d0") } shouldBe 1
     }
 
     test("retains the register-file store when the value is read via a backward jump") {
@@ -635,8 +670,9 @@ class TestInstructionSelectionOptimizations : FunSpec({
             listOf(loopHead, loopBody)
         )
 
-        lines.any { it == "move.w  #384,d0" } shouldBe true
-        lines.any { it == "move.w  #384,p8_regfile+0" } shouldBe true
+        val sub = lines.subroutineLines()
+        sub.count { it == "move.w  #384,d0" } shouldBe 1
+        sub.count { it.startsWith("move.w  #384,") && !it.endsWith(",d0") } shouldBe 1
     }
 
     test("suppresses the register-file stores inside a loop when the registers are only used by the call") {
@@ -652,8 +688,9 @@ class TestInstructionSelectionOptimizations : FunSpec({
             listOf(loopHead, loopBody)
         )
 
-        lines.any { it == "move.w  #384,d0" } shouldBe true
-        lines.any { it == "move.w  #384,p8_regfile+0" } shouldBe false
+        val sub = lines.subroutineLines()
+        sub.count { it == "move.w  #384,d0" } shouldBe 1
+        sub.count { it.startsWith("move.w  #384,") } shouldBe 1
     }
 
     test("retains the register-file store when the value is read by a later inline asm chunk") {
@@ -667,8 +704,9 @@ class TestInstructionSelectionOptimizations : FunSpec({
             listOf(chunk, inlineAsm)
         )
 
-        lines.any { it == "move.w  #384,d0" } shouldBe true
-        lines.any { it == "move.w  #384,p8_regfile+0" } shouldBe true
+        val sub = lines.subroutineLines()
+        sub.count { it == "move.w  #384,d0" } shouldBe 1
+        sub.count { it.startsWith("move.w  #384,") && !it.endsWith(",d0") } shouldBe 1
     }
 
     test("still suppresses the register-file store when an inline asm chunk does not read the register file") {
@@ -682,8 +720,9 @@ class TestInstructionSelectionOptimizations : FunSpec({
             listOf(chunk, inlineAsm)
         )
 
-        lines.any { it == "move.w  #384,d0" } shouldBe true
-        lines.any { it == "move.w  #384,p8_regfile+0" } shouldBe false
+        val sub = lines.subroutineLines()
+        sub.count { it == "move.w  #384,d0" } shouldBe 1
+        sub.count { it.startsWith("move.w  #384,") } shouldBe 1
     }
 
     test("removes jmp to immediately following label") {
@@ -789,8 +828,8 @@ class TestInstructionSelectionOptimizations : FunSpec({
     test("removes redundant tst after move to same location") {
         // Test the optimizer directly on raw assembly lines
         val lines = mutableListOf(
-            "    move.b  d0, p8_regfile+198",
-            "    tst.b   p8_regfile+198",
+            "    move.b  d0, p8b_test.p8v_value",
+            "    tst.b   p8b_test.p8v_value",
             "    beq     somewhere"
         )
         optimizeAssembly(lines)
@@ -802,8 +841,8 @@ class TestInstructionSelectionOptimizations : FunSpec({
     test("removes redundant tst after move with label on move line") {
         val lines = mutableListOf(
             "mylabel:",
-            "    move.w  d0, p8_regfile+200",
-            "    tst.w   p8_regfile+200",
+            "    move.w  d0, p8b_test.p8v_other",
+            "    tst.w   p8b_test.p8v_other",
             "    bne     somewhere"
         )
         optimizeAssembly(lines)
@@ -815,8 +854,8 @@ class TestInstructionSelectionOptimizations : FunSpec({
 
     test("does not remove tst when target is different from move destination") {
         val lines = mutableListOf(
-            "    move.b  d0, p8_regfile+198",
-            "    tst.b   p8_regfile+200",
+            "    move.b  d0, p8b_test.p8v_value",
+            "    tst.b   p8b_test.p8v_other",
             "    beq     somewhere"
         )
         optimizeAssembly(lines)
@@ -826,8 +865,8 @@ class TestInstructionSelectionOptimizations : FunSpec({
 
     test("does not remove tst when size differs from move") {
         val lines = mutableListOf(
-            "    move.b  d0, p8_regfile+198",
-            "    tst.w   p8_regfile+198",
+            "    move.b  d0, p8b_test.p8v_value",
+            "    tst.w   p8b_test.p8v_value",
             "    beq     somewhere"
         )
         optimizeAssembly(lines)
@@ -846,8 +885,8 @@ class TestInstructionSelectionOptimizations : FunSpec({
             tempRoot.resolve("test-m68k-single-return-a0"),
             listOf(IRInstructions.call(site))
         )
-        // Should emit a store from a0 to virtual register
-        lines.any { it.contains("move.l") && it.contains("a0") && it.contains("p8_regfile") } shouldBe true
+        // Should emit a store from a0 to the virtual register location
+        lines.subroutineLines().count { it.startsWith("move.l  a0,") } shouldBe 1
     }
 
     test("single-return expression call with @FP0 (slot 25) emits store instruction") {
@@ -875,15 +914,14 @@ class TestInstructionSelectionOptimizations : FunSpec({
             listOf(IRInstructions.call(site))
         )
         // Find the bsr line
-        val jsrIndex = lines.indexOfFirst { it.startsWith("bsr") && it.contains("test.asmsub") }
+        val sub = lines.subroutineLines()
+        val jsrIndex = sub.indexOfFirst { it.startsWith("bsr") && it.contains("test.asmsub") }
         jsrIndex shouldBeGreaterThan -1
         // There should be NO move from d0 between jsr and any branch instruction (beq/bne)
-        val afterJsr = lines.subList(jsrIndex + 1, lines.size)
+        val afterJsr = sub.drop(jsrIndex + 1)
         val branchIndex = afterJsr.indexOfFirst { it.startsWith("beq") || it.startsWith("bne") || it.startsWith("bmi") || it.startsWith("bpl") }
-        if (branchIndex > 0) {
-            val betweenJsrAndBranch = afterJsr.subList(0, branchIndex)
-            betweenJsrAndBranch.any { it.contains("move") && it.contains("d0") && it.contains("p8_regfile") } shouldBe false
-        }
+        val betweenJsrAndBranch = if (branchIndex >= 0) afterJsr.subList(0, branchIndex) else afterJsr
+        betweenJsrAndBranch.count { it.startsWith("move") && it.firstOperand() == "d0" } shouldBe 0
     }
 
     test("CALLFAR multi-assign with slot + flag return does not emit move between jsr and branch") {
@@ -925,15 +963,14 @@ class TestInstructionSelectionOptimizations : FunSpec({
         val lines = asmFile.readText().lines().map { it.trim() }
 
         // Find the jsr line
-        val jsrIndex = lines.indexOfFirst { it.startsWith("jsr") }
+        val subLines = lines.subroutineLines()
+        val jsrIndex = subLines.indexOfFirst { it.startsWith("jsr") }
         jsrIndex shouldBeGreaterThan -1
         // There should be NO move from a0 between jsr and any branch instruction
-        val afterJsr = lines.subList(jsrIndex + 1, lines.size)
+        val afterJsr = subLines.drop(jsrIndex + 1)
         val branchIndex = afterJsr.indexOfFirst { it.startsWith("beq") || it.startsWith("bne") }
-        if (branchIndex > 0) {
-            val betweenJsrAndBranch = afterJsr.subList(0, branchIndex)
-            betweenJsrAndBranch.any { it.contains("move") && it.contains("a0") && it.contains("p8_regfile") } shouldBe false
-        }
+        val betweenJsrAndBranch = if (branchIndex >= 0) afterJsr.subList(0, branchIndex) else afterJsr
+        betweenJsrAndBranch.count { it.startsWith("move") && it.firstOperand() == "a0" } shouldBe 0
     }
 
     test("dbra via IRLoopChunk for repeat word loop 1000") {
@@ -962,10 +999,10 @@ class TestInstructionSelectionOptimizations : FunSpec({
 
     test("dbra peephole does not trigger when body uses d7") {
         val lines = mutableListOf(
-            "    move.w  #100,p8_regfile+4",
+            "    move.w  #100,p8b_main.p8v_count",
             "p8_label_gen_2:",
             "    move.w  d7,p8b_main.p8v_sum",
-            "    subq.w  #1,p8_regfile+4",
+            "    subq.w  #1,p8b_main.p8v_count",
             "    bne  p8_label_gen_2"
         )
         optimizeAssembly(lines)
@@ -974,10 +1011,10 @@ class TestInstructionSelectionOptimizations : FunSpec({
 
     test("dbra peephole does not trigger when body contains bsr call") {
         val lines = mutableListOf(
-            "    move.w  #100,p8_regfile+4",
+            "    move.w  #100,p8b_main.p8v_count",
             "p8_label_gen_2:",
             "    bsr  some_sub",
-            "    subq.w  #1,p8_regfile+4",
+            "    subq.w  #1,p8b_main.p8v_count",
             "    bne  p8_label_gen_2"
         )
         optimizeAssembly(lines)
@@ -1047,15 +1084,15 @@ class TestInstructionSelectionOptimizations : FunSpec({
 
     test("dbra peephole does not trigger when body reads the counter slot") {
         val lines = mutableListOf(
-            "    move.w  #100,p8_regfile+4",
+            "    move.w  #100,p8b_main.p8v_count",
             "p8_label_gen_2:",
-            "    move.w  p8_regfile+4,d0",
-            "    subq.w  #1,p8_regfile+4",
+            "    move.w  p8b_main.p8v_count,d0",
+            "    subq.w  #1,p8b_main.p8v_count",
             "    bne  p8_label_gen_2"
         )
         optimizeAssembly(lines)
         lines.any { it.contains("dbra") } shouldBe false
-        lines.any { it.contains("move.w  p8_regfile+4,d0") } shouldBe true
+        lines.any { it.contains("move.w  p8b_main.p8v_count,d0") } shouldBe true
     }
 
     // === D0 peephole cache ===
@@ -1070,7 +1107,7 @@ class TestInstructionSelectionOptimizations : FunSpec({
         )
 
         // ADDR loads r1 into d0 and leaves it there; ADDM reuses the cached r1.
-        lines.count { it.startsWith("move.w  p8_regfile+") && it.endsWith(",d0") } shouldBe 1
+        lines.subroutineLines().count { it.startsWith("move.w  ") && it.endsWith(",d0") } shouldBe 1
     }
 
     test("re-emits d0 load after the cached slot is written directly") {
@@ -1084,7 +1121,7 @@ class TestInstructionSelectionOptimizations : FunSpec({
         )
 
         // ADDR caches r1; INC writes r1 directly; ADDM must reload.
-        lines.count { it.startsWith("move.w  p8_regfile+") && it.endsWith(",d0") } shouldBe 2
+        lines.subroutineLines().count { it.startsWith("move.w  ") && it.endsWith(",d0") } shouldBe 2
     }
 
     test("re-emits d0 load after d0 is clobbered by another register load") {
@@ -1098,7 +1135,7 @@ class TestInstructionSelectionOptimizations : FunSpec({
         )
 
         // ADDR caches r1, second ADDR overwrites d0 with r2; ADDM must reload r1.
-        lines.count { it.startsWith("move.w  p8_regfile+") && it.endsWith(",d0") } shouldBe 3
+        lines.subroutineLines().count { it.startsWith("move.w  ") && it.endsWith(",d0") } shouldBe 3
     }
 
     test("d0 cache is invalidated at chunk boundaries") {
@@ -1112,7 +1149,7 @@ class TestInstructionSelectionOptimizations : FunSpec({
         )
 
         // ADDR in chunk1 caches r1, but chunk2 is a new basic block.
-        lines.count { it.startsWith("move.w  p8_regfile+") && it.endsWith(",d0") } shouldBe 2
+        lines.subroutineLines().count { it.startsWith("move.w  ") && it.endsWith(",d0") } shouldBe 2
     }
 
     // === centralized MemoryReference lowering (Direct/Indexed/Indirect) ===
@@ -1161,11 +1198,12 @@ class TestInstructionSelectionOptimizations : FunSpec({
             )
         )
 
-        lines.any { it.startsWith("movea.l  p8_regfile") && it.endsWith(",a0") } shouldBe true
-        lines.any { it == "move.w  (a0),d0" } shouldBe true
-        lines.any { it.endsWith(",(6,a0)") } shouldBe true
+        val sub = lines.subroutineLines()
+        sub.any { it.startsWith("movea.l  ") && it.endsWith(",a0") } shouldBe true
+        sub.any { it == "move.w  (a0),d0" } shouldBe true
+        sub.any { it.endsWith(",(6,a0)") } shouldBe true
         // displacements beyond the signed 16-bit range need an explicit adda
-        lines.any { it == "adda.l  #40000,a0" } shouldBe true
+        sub.any { it == "adda.l  #40000,a0" } shouldBe true
     }
 
     test("float indexed memory lowering uses full width d0.l indexing") {
@@ -1193,9 +1231,11 @@ class TestInstructionSelectionOptimizations : FunSpec({
             )
         )
 
-        lines.any { it == "move.w  var+4,p8_regfile+0" } shouldBe true
-        lines.any { it == "move.w  p8_regfile+0,\$00dff180" } shouldBe true
-        lines.any { it == "move.w  #1234,var" } shouldBe true
+        val sub = lines.subroutineLines()
+        sub.count { it.startsWith("move.w  var+4,") } shouldBe 1
+        sub.count { it == "move.w  var+4,d0" } shouldBe 0
+        sub.count { it.endsWith(",\$00dff180") } shouldBe 1
+        sub.any { it == "move.w  #1234,var" } shouldBe true
     }
 
     // === extb.l gate hardening ===

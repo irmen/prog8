@@ -2,8 +2,7 @@
 
 **Parent design:** `ideas/m68k-register-allocation.md`
 **Prerequisite:** Stage 2 gate green (allocator correct and metrics validated).
-**Status:** In progress (Oct 2026). Step 3a landed in the working tree, goldens
-regenerated. Steps 3b and 3d are open, and 3c is partial. See "Progress" below.
+**Status:** Complete (Oct 2026). Steps 3a to 3d are done. See "Progress" below.
 **Gate:** Tests pass after churn; peepholes deleted; remaining optimizations
 match against `operand()` output, not literal regfile strings.
 
@@ -50,6 +49,7 @@ The compiler builds throughout. Output changes (peephole removal) but functional
 correctness is preserved. The gate is test-suite green plus representative
 program verification. This stage is intentionally last because it depends on
 Stage 2 having landed and its metrics validated.
+
 ## Progress (Oct 2026)
 
 **Step 3a - done (working tree, not yet committed).**
@@ -84,19 +84,20 @@ Decision: the default-path regression was accepted for now. It is reversed by
 Stage 4, when the regfile path is removed. Until then, default-path output is
 larger than HEAD.
 
-**Step 3c - partial.**
+**Step 3b - done.** The surviving `AsmOptimizer` passes contain no literal
+`p8_regfile` matches (only comments). The backend has no literal `p8_regfile`
+operand matching outside the `REG_FILE_LABEL` constant.
+
+**Step 3c - done.**
 - Removed the 7 LOADX/CALLI fusion tests that asserted the deleted passes.
+- Rewrote the `p8_regfile`-sequence assertions in
+  `TestInstructionSelectionOptimizations.kt` as shape and count checks. They
+  ignore regfile offsets and use a `subroutineLines()` helper, so only one
+  `p8_regfile` reference remains (an inline-asm input string).
 - Added one 68000 test for `JUMPI`/`CALLI` (`Amiga500Target`, `movea.l ...,a0`
   then `jmp (a0)` / `jsr (a0)`). The existing 68020 test covers the
   memory-indirect form.
-- Not done: converting the remaining `p8_regfile`-sequence assertions (about 90
-  tests in `TestInstructionSelectionOptimizations.kt`) to property assertions.
 
-**Step 3b - not started.** The surviving `AsmOptimizer` passes contain no literal
-`p8_regfile` matches (only comments). Regfile string matching elsewhere in the
-backend has not been audited.
-
-**Step 3d - open.** `gradle build` has not been run as the exit gate. The
-`REGFILE-DEPENDENT` literal occurs once, in a comment that negates it
-(`AsmOptimizer.kt`, M5 `optimizeRedundantLea`). Stale `.actual.asm` and experiment
-artifacts are still untracked in the repository.
+**Step 3d - done.** `gradle build` passes (Oct 2026). No `REGFILE-DEPENDENT`
+references remain in the Kotlin sources. Untracked `.actual.asm` and experiment
+artifacts remain in the repository and are not part of this stage.

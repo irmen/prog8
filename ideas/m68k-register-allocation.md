@@ -24,7 +24,7 @@ m68k code generation backend (`codeGenM68k`).
 | 1A - location-agnostic selection | Implemented | `m68k-regalloc-stage1-location-agnostic.md` |
 | 1B - indexed/indirect re-selection | Implemented | `m68k-regalloc-stage1b-indexed-indirect.md` |
 | 2 - allocator (`-m68kregalloc`) | Implemented, experimental flag | `m68k-regalloc-stage2-allocator.md` |
-| 3 - teardown | In progress: 3a done, 3c partial, 3b and 3d open | `m68k-regalloc-stage3-teardown.md` |
+| 3 - teardown | Complete | `m68k-regalloc-stage3-teardown.md` |
 | 4 - default allocator | Not started | `m68k-regalloc-stage4-default.md` |
 
 Open risk: the default (regfile) path is larger than HEAD after Stage 3a, until Stage 4.
@@ -847,8 +847,8 @@ frameless-subroutine spill mechanics, are in
 
 ### Stage 3 — teardown of the old mitigation layer (split into sub-steps)
 
-**Status:** in progress. Step 3a landed (working tree, goldens regenerated), 3c is
-partial, 3b and 3d are open. Details in `m68k-regalloc-stage3-teardown.md`.
+**Status:** complete (Oct 2026). Steps 3a to 3d done; `gradle build` passes.
+Details in `m68k-regalloc-stage3-teardown.md`.
 
 Much of `AsmOptimizer` exists only to undo what memory-everywhere codegen
 produces (spill-then-reload bounces, immediate forwarding that matches literal
@@ -892,7 +892,7 @@ specific sequences for known-small examples) instead of full listings.
 
 ### Stage 4 — default allocator and cleanup
 
-**Status:** not started. Waits for Stage 3.
+**Status:** not started. Stage 3 is complete, so this stage can start.
 
 Removes the `-m68kregalloc` flag, the old memory-everywhere path, and the golden
 harness with its data files, and trims the m68k codegen comments to the project
