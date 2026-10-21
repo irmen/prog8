@@ -1177,8 +1177,9 @@ p8b_trader.p8s_do_cash:
     move.l  p8_regfile+332,-(sp)        ; string
     bsr  p8b_conv.p8s_str2uword
     addq.l  #4,sp
+    move.w  d0,p8_regfile+336
         ; storem.w r130.w,[p8b_ship.p8v_cash]
-    move.w  d0, p8b_ship.p8v_cash
+    move.w  p8_regfile+336,p8b_ship.p8v_cash
         ; return
     rts
 ; End of subroutine: p8b_trader.p8s_do_cash
@@ -1206,8 +1207,9 @@ p8b_trader.p8s_do_hold:
     move.l  p8_regfile+346,-(sp)        ; string
     bsr  p8b_conv.p8s_str2ubyte
     addq.l  #4,sp
+    move.b  d0,p8_regfile+350
         ; storem.b r134.b,[p8b_ship.p8v_Max_cargo]
-    move.b  d0, p8b_ship.p8v_Max_cargo
+    move.b  p8_regfile+350,p8b_ship.p8v_Max_cargo
         ; return
     rts
 ; End of subroutine: p8b_trader.p8s_do_hold
@@ -1267,8 +1269,9 @@ p8b_trader.p8s_do_info:
     move.l  p8_regfile+368,-(sp)        ; buffer
     bsr  p8b_txt.p8s_input_chars
     addq.l  #4,sp
+    move.b  d0,p8_regfile+372
         ; storem.b r142.b,[p8b_trader.p8v_num_chars]
-    move.b  d0, p8b_trader.p8v_num_chars
+    move.b  p8_regfile+372,p8b_trader.p8v_num_chars
         ; loadm.b r143.b,[p8b_trader.p8v_num_chars]
     move.b  p8b_trader.p8v_num_chars,p8_regfile+374
         ; bsteq p8_label_gen_36
@@ -1379,8 +1382,9 @@ p8b_trader.p8s_do_map:
     move.l  p8_regfile+414,-(sp)        ; buffer
     bsr  p8b_txt.p8s_input_chars
     addq.l  #4,sp
+    move.b  d0,p8_regfile+418
         ; storem.b r161.b,[p8b_trader.p8v_num_chars]
-    move.b  d0, p8b_trader.p8v_num_chars
+    move.b  p8_regfile+418,p8b_trader.p8v_num_chars
         ; loadm.b r162.b,[p8b_trader.p8v_num_chars]
     move.b  p8b_trader.p8v_num_chars,p8_regfile+420
         ; bsteq p8_label_gen_39
@@ -2020,24 +2024,27 @@ p8b_galaxy.p8s_nextgalaxy:
     move.w  p8_regfile+620,-(sp)        ; x
     bsr  p8b_galaxy.p8s_twist
     addq.l  #2,sp
+    move.w  d0,p8_regfile+622
         ; storem.w r256.w,[p8b_galaxy.p8v_seed]
-    move.w  d0, p8b_galaxy.p8v_seed
+    move.w  p8_regfile+622,p8b_galaxy.p8v_seed
         ; loadm.w r257.w,[p8b_galaxy.p8v_seed+2]
     move.w  p8b_galaxy.p8v_seed+2,p8_regfile+624
         ; call p8b_galaxy.p8s_twist(frame:8=r257.w):r258.w
     move.w  p8_regfile+624,-(sp)        ; x
     bsr  p8b_galaxy.p8s_twist
     addq.l  #2,sp
+    move.w  d0,p8_regfile+626
         ; storem.w r258.w,[p8b_galaxy.p8v_seed+2]
-    move.w  d0, p8b_galaxy.p8v_seed+2
+    move.w  p8_regfile+626,p8b_galaxy.p8v_seed+2
         ; loadm.w r259.w,[p8b_galaxy.p8v_seed+4]
     move.w  p8b_galaxy.p8v_seed+4,p8_regfile+628
         ; call p8b_galaxy.p8s_twist(frame:8=r259.w):r260.w
     move.w  p8_regfile+628,-(sp)        ; x
     bsr  p8b_galaxy.p8s_twist
     addq.l  #2,sp
+    move.w  d0,p8_regfile+630
         ; storem.w r260.w,[p8b_galaxy.p8v_seed+4]
-    move.w  d0, p8b_galaxy.p8v_seed+4
+    move.w  p8_regfile+630,p8b_galaxy.p8v_seed+4
         ; incm.b [p8b_galaxy.p8v_number]
     addq.b  #1,p8b_galaxy.p8v_number
         ; loadm.b r261.b,[p8b_galaxy.p8v_number]
@@ -2116,8 +2123,9 @@ p8b_galaxy.p8s_init_market_for_planet:
     move.w  p8_regfile+646,d0
     move.b  d0,p8_regfile+648
         ; loadm.w r268.w,[p8b_galaxy.p8v_seed+4]
+    move.w  p8b_galaxy.p8v_seed+4,p8_regfile+650
         ; msigb.w r269.b,r268.w
-    move.b  p8b_galaxy.p8v_seed+4,d0
+    move.b  p8_regfile+650,d0
     move.b  d0,p8_regfile+652
         ; addr.b r267.b,r269.b
     add.b  d0,p8_regfile+648
@@ -2551,8 +2559,9 @@ p8b_galaxy.p8s_starmap.p8_label_gen_4_untilloop:
     move.b  p8_regfile+818,-(sp)        ; char (note: pushed as a word)
     bsr  strings.upperchar
     addq.l  #2,sp
+    move.b  d0,p8_regfile+820
         ; storem.b r337.b,[p8b_planet.p8v_name]
-    move.b  d0, p8b_planet.p8v_name
+    move.b  p8_regfile+820,p8b_planet.p8v_name
         ; loadm.b r338.b,[p8b_planet.p8v_x]
     move.b  p8b_planet.p8v_x,p8_regfile+822
         ; ext.b r339.w,r338.b
@@ -2831,55 +2840,63 @@ p8_label_gen_79:
         ; storem.b r385.b,[p8b_galaxy.p8v_longname]
     move.b  p8_regfile+920,p8b_galaxy.p8v_longname
         ; loadm.w r386.w,[p8b_galaxy.p8v_seed+4]
+    move.w  p8b_galaxy.p8v_seed+4,p8_regfile+922
         ; msigb.w r387.b,r386.w
-    move.b  p8b_galaxy.p8v_seed+4,d0
+    move.b  p8_regfile+922,d0
     move.b  d0,p8_regfile+924
         ; and.b r387.b,#$1f.b
     andi.b  #31,p8_regfile+924
         ; lsl.b r387.b
     move.b  p8_regfile+924,d0
     lsl.b  #1,d0
+    move.b  d0,p8_regfile+924
         ; storem.b r387.b,[p8b_galaxy.p8v_pn_pair1]
-    move.b  d0, p8b_galaxy.p8v_pn_pair1
+    move.b  p8_regfile+924,p8b_galaxy.p8v_pn_pair1
         ; call p8b_galaxy.p8s_tweakseed()
     bsr  p8b_galaxy.p8s_tweakseed
         ; loadm.w r388.w,[p8b_galaxy.p8v_seed+4]
+    move.w  p8b_galaxy.p8v_seed+4,p8_regfile+926
         ; msigb.w r389.b,r388.w
-    move.b  p8b_galaxy.p8v_seed+4,d0
+    move.b  p8_regfile+926,d0
     move.b  d0,p8_regfile+928
         ; and.b r389.b,#$1f.b
     andi.b  #31,p8_regfile+928
         ; lsl.b r389.b
     move.b  p8_regfile+928,d0
     lsl.b  #1,d0
+    move.b  d0,p8_regfile+928
         ; storem.b r389.b,[p8b_galaxy.p8v_pn_pair2]
-    move.b  d0, p8b_galaxy.p8v_pn_pair2
+    move.b  p8_regfile+928,p8b_galaxy.p8v_pn_pair2
         ; call p8b_galaxy.p8s_tweakseed()
     bsr  p8b_galaxy.p8s_tweakseed
         ; loadm.w r390.w,[p8b_galaxy.p8v_seed+4]
+    move.w  p8b_galaxy.p8v_seed+4,p8_regfile+930
         ; msigb.w r391.b,r390.w
-    move.b  p8b_galaxy.p8v_seed+4,d0
+    move.b  p8_regfile+930,d0
     move.b  d0,p8_regfile+932
         ; and.b r391.b,#$1f.b
     andi.b  #31,p8_regfile+932
         ; lsl.b r391.b
     move.b  p8_regfile+932,d0
     lsl.b  #1,d0
+    move.b  d0,p8_regfile+932
         ; storem.b r391.b,[p8b_galaxy.p8v_pn_pair3]
-    move.b  d0, p8b_galaxy.p8v_pn_pair3
+    move.b  p8_regfile+932,p8b_galaxy.p8v_pn_pair3
         ; call p8b_galaxy.p8s_tweakseed()
     bsr  p8b_galaxy.p8s_tweakseed
         ; loadm.w r392.w,[p8b_galaxy.p8v_seed+4]
+    move.w  p8b_galaxy.p8v_seed+4,p8_regfile+934
         ; msigb.w r393.b,r392.w
-    move.b  p8b_galaxy.p8v_seed+4,d0
+    move.b  p8_regfile+934,d0
     move.b  d0,p8_regfile+936
         ; and.b r393.b,#$1f.b
     andi.b  #31,p8_regfile+936
         ; lsl.b r393.b
     move.b  p8_regfile+936,d0
     lsl.b  #1,d0
+    move.b  d0,p8_regfile+936
         ; storem.b r393.b,[p8b_galaxy.p8v_pn_pair4]
-    move.b  d0, p8b_galaxy.p8v_pn_pair4
+    move.b  p8_regfile+936,p8b_galaxy.p8v_pn_pair4
         ; call p8b_galaxy.p8s_tweakseed()
     bra  p8b_galaxy.p8s_tweakseed
         ; return
@@ -3259,15 +3276,19 @@ p8b_galaxy.p8s_determine_planet_properties:
         ; incm.b [p8b_planet.p8v_number]
     addq.b  #1,p8b_planet.p8v_number
         ; loadm.w r462.w,[p8b_galaxy.p8v_seed+2]
+    move.w  p8b_galaxy.p8v_seed+2,p8_regfile+1076
         ; msigb.w r463.b,r462.w
-    move.b  p8b_galaxy.p8v_seed+2,d0
+    move.b  p8_regfile+1076,d0
+    move.b  d0,p8_regfile+1078
         ; storem.b r463.b,[p8b_planet.p8v_x]
-    move.b  d0, p8b_planet.p8v_x
+    move.b  p8_regfile+1078,p8b_planet.p8v_x
         ; loadm.w r464.w,[p8b_galaxy.p8v_seed]
+    move.w  p8b_galaxy.p8v_seed,p8_regfile+1080
         ; msigb.w r465.b,r464.w
-    move.b  p8b_galaxy.p8v_seed,d0
+    move.b  p8_regfile+1080,d0
+    move.b  d0,p8_regfile+1082
         ; storem.b r465.b,[p8b_planet.p8v_y]
-    move.b  d0, p8b_planet.p8v_y
+    move.b  p8_regfile+1082,p8b_planet.p8v_y
         ; loadm.w r466.w,[p8b_galaxy.p8v_seed+2]
     move.w  p8b_galaxy.p8v_seed+2,p8_regfile+1084
         ; lsigb.w r467.b,r466.w
@@ -3281,8 +3302,9 @@ p8b_galaxy.p8s_determine_planet_properties:
         ; storem.b r467.b,[p8b_planet.p8v_govtype]
     move.b  p8_regfile+1086,p8b_planet.p8v_govtype
         ; loadm.w r468.w,[p8b_galaxy.p8v_seed]
+    move.w  p8b_galaxy.p8v_seed,p8_regfile+1088
         ; msigb.w r469.b,r468.w
-    move.b  p8b_galaxy.p8v_seed,d0
+    move.b  p8_regfile+1088,d0
     move.b  d0,p8_regfile+1090
         ; and.b r469.b,#7.b
     andi.b  #7,p8_regfile+1090
@@ -3303,8 +3325,9 @@ p8b_galaxy.p8s_determine_planet_properties:
 p8_label_gen_89:
 ; source: textelite.p8:627
         ; loadm.w r472.w,[p8b_galaxy.p8v_seed+2]
+    move.w  p8b_galaxy.p8v_seed+2,p8_regfile+1096
         ; msigb.w r473.b,r472.w
-    move.b  p8b_galaxy.p8v_seed+2,d0
+    move.b  p8_regfile+1096,d0
     move.b  d0,p8_regfile+1098
         ; and.b r473.b,#3.b
     andi.b  #3,p8_regfile+1098
@@ -3378,8 +3401,9 @@ p8_label_gen_90:
         ; ext.b r482.w,r480.b
     moveq  #0,d0
     move.b  p8_regfile+1112,d0
+    move.w  d0,p8_regfile+1116
         ; storem.w r482.w,[p8b_planet.p8v_productivity]
-    move.w  d0, p8b_planet.p8v_productivity
+    move.w  p8_regfile+1116,p8b_planet.p8v_productivity
         ; loadm.b r483.b,[p8b_planet.p8v_population]
     move.b  p8b_planet.p8v_population,p8_regfile+1118
         ; lsli.b r483.b,#3.b
@@ -3394,8 +3418,9 @@ p8_label_gen_90:
     mulu.w  p8b_planet.p8v_productivity,d0
     move.w  d0,p8b_planet.p8v_productivity
         ; loadm.w r485.w,[p8b_galaxy.p8v_seed+4]
+    move.w  p8b_galaxy.p8v_seed+4,p8_regfile+1122
         ; msigb.w r486.b,r485.w
-    move.b  p8b_galaxy.p8v_seed+4,d0
+    move.b  p8_regfile+1122,d0
     move.b  d0,p8_regfile+1124
         ; storem.b r486.b,[frame:-1]
     move.b  p8_regfile+1124,-1(a5)
@@ -3411,8 +3436,9 @@ p8_label_gen_90:
     move.b  p8_regfile+1128,d0
     lsl.w  #8,d0
     or.b  p8_regfile+1130,d0
+    move.w  d0,p8_regfile+1126
         ; storem.w r487.w,[p8b_planet.p8v_radius]
-    move.w  d0, p8b_planet.p8v_radius
+    move.w  p8_regfile+1126,p8b_planet.p8v_radius
         ; loadm.w r490.w,[p8b_galaxy.p8v_seed+4]
     move.w  p8b_galaxy.p8v_seed+4,p8_regfile+1132
         ; lsigb.w r491.b,r490.w
@@ -3455,11 +3481,13 @@ p8_label_gen_92:
         ; lsri.b r495.b,#5.b
     move.b  p8_regfile+1142,d0
     lsr.b  #5,d0
+    move.b  d0,p8_regfile+1142
         ; storem.b r495.b,[p8b_planet.p8v_species_color]
-    move.b  d0, p8b_planet.p8v_species_color
+    move.b  p8_regfile+1142,p8b_planet.p8v_species_color
         ; loadm.w r496.w,[p8b_galaxy.p8v_seed+2]
+    move.w  p8b_galaxy.p8v_seed+2,p8_regfile+1144
         ; msigb.w r497.b,r496.w
-    move.b  p8b_galaxy.p8v_seed+2,d0
+    move.b  p8_regfile+1144,d0
     move.b  d0,p8_regfile+1146
         ; loadm.b r498.b,[frame:-1]
     move.b  -1(a5),p8_regfile+1148
@@ -3490,19 +3518,23 @@ p8_label_gen_93:
     move.w  p8b_galaxy.p8v_seed+2,p8_regfile+1154
         ; lsigb.w r502.b,r501.w
     move.w  p8_regfile+1154,d0
+    move.b  d0,p8_regfile+1156
         ; storem.b r502.b,[p8b_planet.p8v_goatsoup_seed]
-    move.b  d0, p8b_planet.p8v_goatsoup_seed
+    move.b  p8_regfile+1156,p8b_planet.p8v_goatsoup_seed
         ; loadm.w r503.w,[p8b_galaxy.p8v_seed+2]
+    move.w  p8b_galaxy.p8v_seed+2,p8_regfile+1158
         ; msigb.w r504.b,r503.w
-    move.b  p8b_galaxy.p8v_seed+2,d0
+    move.b  p8_regfile+1158,d0
+    move.b  d0,p8_regfile+1160
         ; storem.b r504.b,[p8b_planet.p8v_goatsoup_seed+1]
-    move.b  d0, p8b_planet.p8v_goatsoup_seed+1
+    move.b  p8_regfile+1160,p8b_planet.p8v_goatsoup_seed+1
         ; loadm.w r505.w,[p8b_galaxy.p8v_seed+4]
     move.w  p8b_galaxy.p8v_seed+4,p8_regfile+1162
         ; lsigb.w r506.b,r505.w
     move.w  p8_regfile+1162,d0
+    move.b  d0,p8_regfile+1164
         ; storem.b r506.b,[p8b_planet.p8v_goatsoup_seed+2]
-    move.b  d0, p8b_planet.p8v_goatsoup_seed+2
+    move.b  p8_regfile+1164,p8b_planet.p8v_goatsoup_seed+2
         ; loadm.b r507.b,[frame:-1]
     move.b  -1(a5),p8_regfile+1166
         ; storem.b r507.b,[p8b_planet.p8v_goatsoup_seed+3]
@@ -3593,6 +3625,7 @@ p8b_galaxy.p8s_twist:
     or.b  p8_regfile+1192,d0
     move.w  d0,p8_regfile+1188
         ; returnr.w r518.w
+    move.w  p8_regfile+1188,d0
     unlk  a5
     rts
 ; End of subroutine: p8b_galaxy.p8s_twist
@@ -3685,6 +3718,7 @@ p8b_galaxy.p8s_starmap.p8s_display_scale_x:
     move.w  p8_regfile+1220,d0
     move.b  d0,p8_regfile+1222
         ; returnr.b r533.b
+    move.b  p8_regfile+1222,d0
     unlk  a5
     rts
 
@@ -3699,6 +3733,7 @@ p8_label_gen_96:
         ; lsigb.w r535.b,r534.w
     move.b  d0,p8_regfile+1226
         ; returnr.b r535.b
+    move.b  p8_regfile+1226,d0
     unlk  a5
     rts
 
@@ -3716,8 +3751,10 @@ p8_label_gen_95:
     lsr.w  #1,d0
     move.w  d0,p8_regfile+1230
         ; lsigb.w r538.b,r537.w
+    move.w  p8_regfile+1230,d0
     move.b  d0,p8_regfile+1232
         ; returnr.b r538.b
+    move.b  p8_regfile+1232,d0
     unlk  a5
     rts
 
@@ -3732,6 +3769,7 @@ p8_label_gen_97:
         ; lsigb.w r540.b,r539.w
     move.b  d0,p8_regfile+1236
         ; returnr.b r540.b
+    move.b  p8_regfile+1236,d0
     unlk  a5
     rts
 ; End of subroutine: p8b_galaxy.p8s_starmap.p8s_display_scale_x
@@ -3762,8 +3800,10 @@ p8b_galaxy.p8s_starmap.p8s_display_scale_y:
     lsr.w  #1,d0
     move.w  d0,p8_regfile+1242
         ; lsigb.w r544.b,r543.w
+    move.w  p8_regfile+1242,d0
     move.b  d0,p8_regfile+1244
         ; returnr.b r544.b
+    move.b  p8_regfile+1244,d0
     unlk  a5
     rts
 
@@ -3778,6 +3818,7 @@ p8_label_gen_99:
         ; lsigb.w r546.b,r545.w
     move.b  d0,p8_regfile+1248
         ; returnr.b r546.b
+    move.b  p8_regfile+1248,d0
     unlk  a5
     rts
 
@@ -3797,6 +3838,7 @@ p8_label_gen_98:
         ; lsigb.w r549.b,r548.w
     move.b  d0,p8_regfile+1254
         ; returnr.b r549.b
+    move.b  p8_regfile+1254,d0
     unlk  a5
     rts
 
@@ -3811,6 +3853,7 @@ p8_label_gen_100:
         ; lsigb.w r551.b,r550.w
     move.b  d0,p8_regfile+1258
         ; returnr.b r551.b
+    move.b  p8_regfile+1258,d0
     unlk  a5
     rts
 ; End of subroutine: p8b_galaxy.p8s_starmap.p8s_display_scale_y
@@ -3831,26 +3874,30 @@ p8b_planet.p8s_set_seed:
     move.w  10(a5),p8_regfile+1260
         ; lsigb.w r553.b,r552.w
     move.w  p8_regfile+1260,d0
+    move.b  d0,p8_regfile+1262
         ; storem.b r553.b,[p8b_planet.p8v_goatsoup_seed]
-    move.b  d0, p8b_planet.p8v_goatsoup_seed
+    move.b  p8_regfile+1262,p8b_planet.p8v_goatsoup_seed
         ; loadm.w r554.w,[frame:10]
     move.w  10(a5),p8_regfile+1264
         ; msigb.w r555.b,r554.w
     move.b  p8_regfile+1264,d0
+    move.b  d0,p8_regfile+1266
         ; storem.b r555.b,[p8b_planet.p8v_goatsoup_seed+1]
-    move.b  d0, p8b_planet.p8v_goatsoup_seed+1
+    move.b  p8_regfile+1266,p8b_planet.p8v_goatsoup_seed+1
         ; loadm.w r556.w,[frame:8]
     move.w  8(a5),p8_regfile+1268
         ; lsigb.w r557.b,r556.w
     move.w  p8_regfile+1268,d0
+    move.b  d0,p8_regfile+1270
         ; storem.b r557.b,[p8b_planet.p8v_goatsoup_seed+2]
-    move.b  d0, p8b_planet.p8v_goatsoup_seed+2
+    move.b  p8_regfile+1270,p8b_planet.p8v_goatsoup_seed+2
         ; loadm.w r558.w,[frame:8]
     move.w  8(a5),p8_regfile+1272
         ; msigb.w r559.b,r558.w
     move.b  p8_regfile+1272,d0
+    move.b  d0,p8_regfile+1274
         ; storem.b r559.b,[p8b_planet.p8v_goatsoup_seed+3]
-    move.b  d0, p8b_planet.p8v_goatsoup_seed+3
+    move.b  p8_regfile+1274,p8b_planet.p8v_goatsoup_seed+3
         ; call p8b_planet.p8s_reset_rnd()
     bsr  p8b_planet.p8s_reset_rnd
         ; return
@@ -4027,8 +4074,9 @@ p8_label_gen_102:
     move.b  p8_regfile+1326,-(sp)        ; char (note: pushed as a word)
     bsr  strings.upperchar
     addq.l  #2,sp
+    move.b  d0,p8_regfile+1328
         ; storem.b r586.b,[p8b_planet.p8s_random_name.p8v_randname]
-    move.b  d0, p8b_planet.p8s_random_name.p8v_randname
+    move.b  p8_regfile+1328,p8b_planet.p8s_random_name.p8v_randname
         ; load.p r587.p,#p8b_planet.p8s_random_name.p8v_randname
     move.l  #p8b_planet.p8s_random_name.p8v_randname,p8_regfile+1330
         ; returnr.p r587.p
@@ -4085,8 +4133,9 @@ p8_label_gen_109:
     move.w  -2(a5),p8_regfile+1346
         ; lsigb.w r595.b,r594.w
     move.w  p8_regfile+1346,d0
+    move.b  d0,p8_regfile+1348
         ; storem.b r595.b,[p8b_planet.p8v_goatsoup_rnd]
-    move.b  d0, p8b_planet.p8v_goatsoup_rnd
+    move.b  p8_regfile+1348,p8b_planet.p8v_goatsoup_rnd
         ; loadm.b r596.b,[frame:-4]
     move.b  -4(a5),p8_regfile+1350
         ; storem.b r596.b,[p8b_planet.p8v_goatsoup_rnd+2]
@@ -4269,6 +4318,7 @@ p8_label_gen_114:
     lsl.b  #2,d0
     move.b  d0,p8_regfile+1412
         ; returnr.b r627.b
+    move.b  p8_regfile+1412,d0
     unlk  a5
     rts
 ; End of subroutine: p8b_planet.p8s_distance
@@ -4737,6 +4787,7 @@ p8_label_gen_125:
     addq.l  #2,sp
     move.b  d0,p8_regfile+1628
         ; call p8b_txt.p8s_chrout(r706.b@s10)
+    move.b  p8_regfile+1628,d0
     bsr  p8b_txt.p8s_chrout
         ; inc.w r703.w
     addq.w  #1,p8_regfile+1622
@@ -4807,6 +4858,7 @@ p8b_planet.p8s_getword:
     move.l  (a0),d0
     move.l  d0,p8_regfile+1658
         ; returnr.l r715.l
+    move.l  p8_regfile+1658,d0
     unlk  a5
     rts
 ; End of subroutine: p8b_planet.p8s_getword
@@ -5281,6 +5333,7 @@ p8b_util.p8s_print_right:
     bsr  strings.length
     move.b  d0,p8_regfile+1782
         ; subr.b r776.b,r778.b
+    move.b  p8_regfile+1782,d0
     sub.b  d0,p8_regfile+1776
         ; bsteq p8_label_gen_153
     beq  p8_label_gen_153
@@ -5489,6 +5542,7 @@ p8_label_gen_156:
     move.b  p8_regfile+1826,d0
     move.l  d0,p8_regfile+1828
         ; addr.p r795.p,r797.p
+    move.l  p8_regfile+1828,d0
     add.l  d0,p8_regfile+1822
         ; storezi.b [r795.p]
     movea.l  p8_regfile+1822,a0
@@ -5569,6 +5623,7 @@ p8_label_gen_158:
     move.b  p8_regfile+1852,d0
     move.l  d0,p8_regfile+1854
         ; addr.p r806.p,r808.p
+    move.l  p8_regfile+1854,d0
     add.l  d0,p8_regfile+1848
         ; storei.b r805.b,[r806.p]
     movea.l  p8_regfile+1848,a0
@@ -5591,6 +5646,7 @@ p8b_txt.p8s_input_chars.p8_label_gen_11_afterwhile:
     move.b  p8_regfile+1862,d0
     move.l  d0,p8_regfile+1864
         ; addr.p r809.p,r811.p
+    move.l  p8_regfile+1864,d0
     add.l  d0,p8_regfile+1858
         ; storezi.b [r809.p]
     movea.l  p8_regfile+1858,a0
@@ -6185,6 +6241,7 @@ p8b_conv.p8s_str2ubyte:
         ; lsigb.w r886.b,r885.w
     move.b  d0,p8_regfile+2030
         ; returnr.b r886.b
+    move.b  p8_regfile+2030,d0
     unlk  a5
     rts
 ; End of subroutine: p8b_conv.p8s_str2ubyte
@@ -6213,6 +6270,7 @@ p8b_conv.p8s_str2uword.p8_label_gen_15_whileloop:
     move.b  p8_regfile+2038,d0
     move.l  d0,p8_regfile+2040
         ; addr.p r888.p,r890.p
+    move.l  p8_regfile+2040,d0
     add.l  d0,p8_regfile+2034
         ; loadi.b r887.b,[r888.p]
     movea.l  p8_regfile+2034,a0
@@ -6230,6 +6288,7 @@ p8b_conv.p8s_str2uword.p8_label_gen_15_whileloop:
     move.b  p8_regfile+2050,d0
     move.l  d0,p8_regfile+2052
         ; addr.p r892.p,r894.p
+    move.l  p8_regfile+2052,d0
     add.l  d0,p8_regfile+2046
         ; loadi.b r891.b,[r892.p]
     movea.l  p8_regfile+2046,a0
@@ -6254,6 +6313,7 @@ p8b_conv.p8s_str2uword.p8_label_gen_15_whileloop:
     move.b  p8_regfile+2064,d0
     move.l  d0,p8_regfile+2066
         ; addr.p r897.p,r899.p
+    move.l  p8_regfile+2066,d0
     add.l  d0,p8_regfile+2060
         ; loadi.b r896.b,[r897.p]
     movea.l  p8_regfile+2060,a0
@@ -6557,8 +6617,9 @@ qemu.bootinfo_next:
         ; loadi.w r912.w,[r911.p]
     movea.l  p8_regfile+2094,a0
     move.w  (a0),d0
+    move.w  d0,p8_regfile+2098
         ; storem.w r912.w,[qemu.bootinfo_next.tag]
-    move.w  d0, qemu.bootinfo_next.tag
+    move.w  p8_regfile+2098,qemu.bootinfo_next.tag
         ; loadm.w r913.w,[qemu.bootinfo_next.tag]
     move.w  qemu.bootinfo_next.tag,p8_regfile+2100
         ; bstne p8_label_gen_164

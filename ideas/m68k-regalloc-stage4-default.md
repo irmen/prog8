@@ -5,10 +5,22 @@ Stage 4 runs after Stage 3 (teardown of the old mitigation layer) and finishes t
 transition: the allocator becomes the only code path, and the temporary tooling
 used to bring it up is removed.
 
+**Status:** Not started (Oct 2026). Stage 3 is in progress (step 3a landed, 3b
+and 3d open, 3c partial).
+
 ## Precondition
 
 Stage 3 is complete, and the allocator path passes the Stage 3 property tests on
 the full m68k example set.
+
+## Inherited from Stage 3
+
+- The default regfile path is larger than HEAD until this stage removes it: about
+  +237 lines over 20 amiga500 programs and +92 over 7 qemu68k programs.
+- Under the allocator, `%option noframe` subroutines (the amiga startup
+  `init_system`) are never allocated. They keep regfile round-trips, which is 5
+  bounce pairs per amiga program. Decide whether to keep them, or allocate noframe
+  code, before the regfile path is deleted.
 
 ## Work
 

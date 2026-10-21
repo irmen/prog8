@@ -151,6 +151,22 @@ class TestInstructionSelectionOptimizations : FunSpec({
         lines.count { it.startsWith("move.l  p8_regfile+") && it.endsWith(",a0") } shouldBe 0
     }
 
+    test("indirect jumps and calls load the target into a0 on 68000") {
+        val lines = generateAsm(
+            tempRoot.resolve("test-m68k-indirect-68000"),
+            listOf(
+                IRInstructions.jumpIndirect(1),
+                IRInstructions.call(Opcode.CALLI, CallSite(CallTarget.Direct(codeIndirect(2))))
+            ),
+            Amiga500Target()
+        )
+
+        lines.count { it.startsWith("movea.l  p8_regfile") && it.endsWith(",a0") } shouldBe 2
+        lines.count { it == "jmp  (a0)" } shouldBe 1
+        lines.count { it == "jsr  (a0)" } shouldBe 1
+        lines.count { it.contains("([") } shouldBe 0
+    }
+
     test("signed word divmod omits redundant zero extension") {
         val lines = generateAsm(
             tempRoot.resolve("test-m68k-divmod-word"),
@@ -1042,79 +1058,6 @@ class TestInstructionSelectionOptimizations : FunSpec({
         lines.any { it.contains("move.w  p8_regfile+4,d0") } shouldBe true
     }
 
-    // === on..goto / on..call dispatch fusion (LOADX+JUMPI/CALLI) ===
-
-    test("fuses LOADX+JUMPI on qemu68k (68020 memory-indirect jmp)") {
-        val lines = mutableListOf(
-            "    lea  mytable,a0",
-            "    move.l  (a0,d0.w),d0",
-            "    move.l  d0,p8_regfile+6",
-            "    jmp  ([p8_regfile+6])"
-        )
-        optimizeAssembly(lines)
-        lines.any { it.contains("move.l  (a0,d0.w), a0") } shouldBe true
-        lines.any { it.contains("move.l  d0,p8_regfile+6") } shouldBe false
-        lines.any { it.contains("jmp  ([p8_regfile+6])") } shouldBe false
-        lines.any { it.trim() == "jmp  (a0)" } shouldBe true
-    }
-
-    test("fuses LOADX+JUMPI on amiga500 (68000 movea reload)") {
-        val lines = mutableListOf(
-            "    lea  mytable,a0",
-            "    move.l  (a0,d0.w),d0",
-            "    move.l  d0,p8_regfile+6",
-            "    movea.l  p8_regfile+6,a0",
-            "    jmp  (a0)"
-        )
-        optimizeAssembly(lines)
-        lines.any { it.contains("move.l  (a0,d0.w), a0") } shouldBe true
-        lines.any { it.contains("move.l  d0,p8_regfile+6") } shouldBe false
-        lines.any { it.contains("movea.l  p8_regfile+6,a0") } shouldBe false
-        lines.count { it.trim() == "jmp  (a0)" } shouldBe 1
-    }
-
-    test("fuses LOADX+CALLI on qemu68k (68020 memory-indirect jsr)") {
-        val lines = mutableListOf(
-            "    lea  mytable,a0",
-            "    move.l  (a0,d0.w),d0",
-            "    move.l  d0,p8_regfile+6",
-            "    jsr  ([p8_regfile+6])"
-        )
-        optimizeAssembly(lines)
-        lines.any { it.contains("move.l  (a0,d0.w), a0") } shouldBe true
-        lines.any { it.contains("move.l  d0,p8_regfile+6") } shouldBe false
-        lines.any { it.contains("jsr  ([p8_regfile+6])") } shouldBe false
-        lines.any { it.trim() == "jsr  (a0)" } shouldBe true
-    }
-
-    test("fuses LOADX+CALLI on amiga500 (68000 movea reload)") {
-        val lines = mutableListOf(
-            "    lea  mytable,a0",
-            "    move.l  (a0,d0.w),d0",
-            "    move.l  d0,p8_regfile+6",
-            "    movea.l  p8_regfile+6,a0",
-            "    jsr  (a0)"
-        )
-        optimizeAssembly(lines)
-        lines.any { it.contains("move.l  (a0,d0.w), a0") } shouldBe true
-        lines.any { it.contains("move.l  d0,p8_regfile+6") } shouldBe false
-        lines.any { it.contains("movea.l  p8_regfile+6,a0") } shouldBe false
-        lines.any { it.trim() == "jsr  (a0)" } shouldBe true
-    }
-
-    test("does not fuse LOADX+JUMPI when spill slot is a jump target") {
-        val lines = mutableListOf(
-            "    lea  mytable,a0",
-            "    move.l  (a0,d0.w),d0",
-            "target:  move.l  d0,p8_regfile+6",
-            "    jmp  ([p8_regfile+6])"
-        )
-        optimizeAssembly(lines)
-        // spill has label, must be kept
-        lines.any { it.contains("move.l  d0,p8_regfile+6") } shouldBe true
-        lines.any { it.contains("move.l  (a0,d0.w), a0") } shouldBe false
-    }
-
     // === D0 peephole cache ===
 
     test("skips redundant d0 load when the value is already cached") {
@@ -1206,41 +1149,6 @@ class TestInstructionSelectionOptimizations : FunSpec({
         lines.any { it == "lsl.w  #2,d0" } shouldBe true
         lines.any { it == "muls.w  #8,d0" } shouldBe true
         lines.count { it.contains("(a0,d0.w*") } shouldBe 0
-    }
-
-    test("loadx+jumpi fusion removes the regfile roundtrip and keeps the scaled index operand") {
-        // a pointer-array dispatch (on..goto / rewritten when) emits the scale in the addressing mode
-        val lines = generateAsm(
-            tempRoot.resolve("test-m68k-fuse-loadx-jumpi-scaled"),
-            listOf(
-                IRInstructions.loadMemory(Opcode.LOADX, IRDataType.POINTER, 6, IRMemory.indexed("table", 3, IRDataType.WORD, 4)),
-                IRInstructions.jumpIndirect(6)
-            )
-        )
-
-        lines.any { it == "move.l  (a0,d0.w*4), a0" } shouldBe true
-        lines.any { it == "jmp  (a0)" } shouldBe true
-        // the spill and the reload it feeds are gone
-        lines.count { it.startsWith("move.l  d0,p8_regfile") } shouldBe 0
-        lines.count { it.startsWith("movea.l") } shouldBe 0
-        lines.any { it.startsWith("jmp  ([p8_regfile") } shouldBe false
-    }
-
-    test("loadx+jumpi fusion keeps the unscaled index operand on 68000") {
-        val lines = generateAsm(
-            tempRoot.resolve("test-m68k-fuse-loadx-jumpi-unscaled"),
-            listOf(
-                IRInstructions.loadMemory(Opcode.LOADX, IRDataType.POINTER, 6, IRMemory.indexed("table", 3, IRDataType.WORD, 4)),
-                IRInstructions.jumpIndirect(6)
-            ),
-            target = Amiga500Target()
-        )
-
-        // on 68000 the scale is applied to d0 by hand, so the addressing mode stays unscaled
-        lines.any { it == "lsl.w  #2,d0" } shouldBe true
-        lines.any { it == "move.l  (a0,d0.w), a0" } shouldBe true
-        lines.any { it == "jmp  (a0)" } shouldBe true
-        lines.count { it.startsWith("move.l  d0,p8_regfile") } shouldBe 0
     }
 
     test("indirect memory lowering picks displacement addressing or explicit pointer adjustment") {

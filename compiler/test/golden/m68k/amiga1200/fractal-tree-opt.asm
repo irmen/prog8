@@ -3516,8 +3516,9 @@ p8b_main.p8s_update_geometry:
     move.b  d0,p8_regfile+4
         ; exts.b r3.w,r2.b
     ext.w  d0
+    move.w  d0,p8_regfile+6
         ; storem.w r3.w,[p8b_main.p8v_border_left]
-    move.w  d0, p8b_main.p8v_border_left
+    move.w  p8_regfile+6,p8b_main.p8v_border_left
         ; loadm.p r4.p,[frame:8]
     move.l  8(a5),p8_regfile+8
         ; loadi.b r5.b,[r4.p+55]
@@ -3526,8 +3527,9 @@ p8b_main.p8s_update_geometry:
     move.b  d0,p8_regfile+12
         ; exts.b r6.w,r5.b
     ext.w  d0
+    move.w  d0,p8_regfile+14
         ; storem.w r6.w,[p8b_main.p8v_border_top]
-    move.w  d0, p8b_main.p8v_border_top
+    move.w  p8_regfile+14,p8b_main.p8v_border_top
         ; loadm.p r7.p,[frame:8]
     move.l  8(a5),p8_regfile+16
         ; loadi.w r8.w,[r7.p+8]
@@ -3689,8 +3691,9 @@ p8_label_gen_1:
     divs.l  p8_regfile+120,d0
     move.l  d0,p8_regfile+116
         ; lsigw.l r43.w,r41.l
+    move.w  d0,p8_regfile+124
         ; storem.w r43.w,[p8b_main.p8v_xscale]
-    move.w  d0, p8b_main.p8v_xscale
+    move.w  p8_regfile+124,p8b_main.p8v_xscale
         ; loadm.w r44.w,[p8b_main.p8v_xscale]
     move.w  p8b_main.p8v_xscale,p8_regfile+126
         ; bstne p8_label_gen_3
@@ -4174,8 +4177,9 @@ p8_label_gen_5:
     move.l  sys.IntuitionBase,a6
     movea.l  p8_regfile+324,a0
     jsr  intuition.OpenWindow(a6)
+    move.l  d0,p8_regfile+328
         ; storem.p r132.p,[p8b_main.p8s_start.p8v_win]
-    move.l  d0, p8b_main.p8s_start.p8v_win
+    move.l  p8_regfile+328,p8b_main.p8s_start.p8v_win
         ; loadm.p r133.p,[p8b_main.p8s_start.p8v_win]
     move.l  p8b_main.p8s_start.p8v_win,p8_regfile+332
         ; bstne p8_label_gen_6
@@ -4203,8 +4207,9 @@ p8_label_gen_6:
         ; loadi.p r136.p,[r135.p+50]
     movea.l  p8_regfile+338,a0
     move.l  (50,a0),d0
+    move.l  d0,p8_regfile+342
         ; storem.p r136.p,[p8b_main.p8v_rp]
-    move.l  d0, p8b_main.p8v_rp
+    move.l  p8_regfile+342,p8b_main.p8v_rp
         ; loadm.p r137.p,[p8b_main.p8s_start.p8v_win]
     move.l  p8b_main.p8s_start.p8v_win,p8_regfile+346
         ; call p8b_main.p8s_update_geometry(frame:8=r137.p)
@@ -4458,8 +4463,9 @@ proc_CLI = 172
     movea.l  p8_regfile+420,a1
     move.l  p8_regfile+424,d0
     jsr  exec.OpenLibrary(a6)
+    move.l  d0,p8_regfile+428
         ; storem.l r159.l,[sys.DOSBase]
-    move.l  d0, sys.DOSBase
+    move.l  p8_regfile+428,sys.DOSBase
         ; load.p r160.p,#prog8_interned_strings.string_3
     move.l  #prog8_interned_strings.string_3,p8_regfile+432
         ; load.l r161.l,#0.l
@@ -4469,8 +4475,9 @@ proc_CLI = 172
     movea.l  p8_regfile+432,a1
     move.l  p8_regfile+436,d0
     jsr  exec.OpenLibrary(a6)
+    move.l  d0,p8_regfile+440
         ; storem.l r162.l,[sys.GfxBase]
-    move.l  d0, sys.GfxBase
+    move.l  p8_regfile+440,sys.GfxBase
         ; load.p r163.p,#prog8_interned_strings.string_4
     move.l  #prog8_interned_strings.string_4,p8_regfile+444
         ; load.l r164.l,#0.l
@@ -4480,8 +4487,9 @@ proc_CLI = 172
     movea.l  p8_regfile+444,a1
     move.l  p8_regfile+448,d0
     jsr  exec.OpenLibrary(a6)
+    move.l  d0,p8_regfile+452
         ; storem.l r165.l,[sys.IntuitionBase]
-    move.l  d0, sys.IntuitionBase
+    move.l  p8_regfile+452,sys.IntuitionBase
         ; load.p r166.p,#prog8_interned_strings.string_5
     move.l  #prog8_interned_strings.string_5,p8_regfile+456
         ; load.l r167.l,#0.l
@@ -4491,8 +4499,9 @@ proc_CLI = 172
     movea.l  p8_regfile+456,a1
     move.l  p8_regfile+460,d0
     jsr  exec.OpenLibrary(a6)
+    move.l  d0,p8_regfile+464
         ; storem.l r168.l,[sys.IconBase]
-    move.l  d0, sys.IconBase
+    move.l  p8_regfile+464,sys.IconBase
         ; load.p r169.p,#prog8_interned_strings.string_6
     move.l  #prog8_interned_strings.string_6,p8_regfile+468
         ; load.l r170.l,#0.l
@@ -4502,8 +4511,9 @@ proc_CLI = 172
     movea.l  p8_regfile+468,a1
     move.l  p8_regfile+472,d0
     jsr  exec.OpenLibrary(a6)
+    move.l  d0,p8_regfile+476
         ; storem.l r171.l,[sys.UtilityBase]
-    move.l  d0, sys.UtilityBase
+    move.l  p8_regfile+476,sys.UtilityBase
         ; return
     rts
 ; End of subroutine: p8_sys_startup.init_system

@@ -1685,8 +1685,9 @@ p8b_main.p8s_start.p8_label_gen_5_whileloop:
 p8b_main.p8s_start.p8_label_gen_1_untilloop:
 ; source: rasters.p8:17
         ; loadm.w r2.w,[$dff006]
+    move.w  $00dff006,p8_regfile+2
         ; msigb.w r3.b,r2.w
-    move.b  $00dff006,d0
+    move.b  p8_regfile+2,d0
     move.b  d0,p8_regfile+4
         ; cmpi.b r3.b,#$50.b
     cmpi.b  #80,p8_regfile+4
@@ -1726,8 +1727,9 @@ p8b_main.p8s_start.p8_label_gen_3_whileloop:
 p8b_main.p8s_start.p8_label_gen_2_untilloop:
 ; source: rasters.p8:29
         ; loadm.w r9.w,[$dff006]
+    move.w  $00dff006,p8_regfile+16
         ; msigb.w r10.b,r9.w
-    move.b  $00dff006,d0
+    move.b  p8_regfile+16,d0
     move.b  d0,p8_regfile+18
         ; loadm.b r11.b,[frame:-9]
     move.b  -9(a5),p8_regfile+20
@@ -1819,8 +1821,9 @@ p8_label_gen_3:
     move.b  p8_regfile+48,d0
     lsl.w  #8,d0
     or.b  p8_regfile+50,d0
+    move.w  d0,p8_regfile+46
         ; storem.w r24.w,[$dff180]
-    move.w  d0, $00dff180
+    move.w  p8_regfile+46,$00dff180
         ; addim.b #4.b,[frame:-9]
     addq.b  #4,-9(a5)
         ; loadm.b r28.b,[frame:-4]
@@ -1986,8 +1989,9 @@ proc_CLI = 172
     movea.l  p8_regfile+74,a1
     move.l  p8_regfile+78,d0
     jsr  exec.OpenLibrary(a6)
+    move.l  d0,p8_regfile+82
         ; storem.l r39.l,[sys.DOSBase]
-    move.l  d0, sys.DOSBase
+    move.l  p8_regfile+82,sys.DOSBase
         ; load.p r40.p,#prog8_interned_strings.string_28
     move.l  #prog8_interned_strings.string_28,p8_regfile+86
         ; load.l r41.l,#0.l
@@ -1997,8 +2001,9 @@ proc_CLI = 172
     movea.l  p8_regfile+86,a1
     move.l  p8_regfile+90,d0
     jsr  exec.OpenLibrary(a6)
+    move.l  d0,p8_regfile+94
         ; storem.l r42.l,[sys.GfxBase]
-    move.l  d0, sys.GfxBase
+    move.l  p8_regfile+94,sys.GfxBase
         ; load.p r43.p,#prog8_interned_strings.string_29
     move.l  #prog8_interned_strings.string_29,p8_regfile+98
         ; load.l r44.l,#0.l
@@ -2008,8 +2013,9 @@ proc_CLI = 172
     movea.l  p8_regfile+98,a1
     move.l  p8_regfile+102,d0
     jsr  exec.OpenLibrary(a6)
+    move.l  d0,p8_regfile+106
         ; storem.l r45.l,[sys.IntuitionBase]
-    move.l  d0, sys.IntuitionBase
+    move.l  p8_regfile+106,sys.IntuitionBase
         ; load.p r46.p,#prog8_interned_strings.string_30
     move.l  #prog8_interned_strings.string_30,p8_regfile+110
         ; load.l r47.l,#0.l
@@ -2019,8 +2025,9 @@ proc_CLI = 172
     movea.l  p8_regfile+110,a1
     move.l  p8_regfile+114,d0
     jsr  exec.OpenLibrary(a6)
+    move.l  d0,p8_regfile+118
         ; storem.l r48.l,[sys.IconBase]
-    move.l  d0, sys.IconBase
+    move.l  p8_regfile+118,sys.IconBase
         ; load.p r49.p,#prog8_interned_strings.string_31
     move.l  #prog8_interned_strings.string_31,p8_regfile+122
         ; load.l r50.l,#0.l
@@ -2030,8 +2037,9 @@ proc_CLI = 172
     movea.l  p8_regfile+122,a1
     move.l  p8_regfile+126,d0
     jsr  exec.OpenLibrary(a6)
+    move.l  d0,p8_regfile+130
         ; storem.l r51.l,[sys.UtilityBase]
-    move.l  d0, sys.UtilityBase
+    move.l  p8_regfile+130,sys.UtilityBase
         ; return
     rts
 ; End of subroutine: p8_sys_startup.init_system

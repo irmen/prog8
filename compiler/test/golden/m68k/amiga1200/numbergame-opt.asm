@@ -1597,8 +1597,9 @@ proc_CLI = 172
     movea.l  p8_regfile+106,a1
     move.l  p8_regfile+110,d0
     jsr  exec.OpenLibrary(a6)
+    move.l  d0,p8_regfile+114
         ; storem.l r36.l,[sys.DOSBase]
-    move.l  d0, sys.DOSBase
+    move.l  p8_regfile+114,sys.DOSBase
         ; load.p r37.p,#prog8_interned_strings.string_41
     move.l  #prog8_interned_strings.string_41,p8_regfile+118
         ; load.l r38.l,#0.l
@@ -1608,8 +1609,9 @@ proc_CLI = 172
     movea.l  p8_regfile+118,a1
     move.l  p8_regfile+122,d0
     jsr  exec.OpenLibrary(a6)
+    move.l  d0,p8_regfile+126
         ; storem.l r39.l,[sys.GfxBase]
-    move.l  d0, sys.GfxBase
+    move.l  p8_regfile+126,sys.GfxBase
         ; load.p r40.p,#prog8_interned_strings.string_42
     move.l  #prog8_interned_strings.string_42,p8_regfile+130
         ; load.l r41.l,#0.l
@@ -1619,8 +1621,9 @@ proc_CLI = 172
     movea.l  p8_regfile+130,a1
     move.l  p8_regfile+134,d0
     jsr  exec.OpenLibrary(a6)
+    move.l  d0,p8_regfile+138
         ; storem.l r42.l,[sys.IntuitionBase]
-    move.l  d0, sys.IntuitionBase
+    move.l  p8_regfile+138,sys.IntuitionBase
         ; load.p r43.p,#prog8_interned_strings.string_43
     move.l  #prog8_interned_strings.string_43,p8_regfile+142
         ; load.l r44.l,#0.l
@@ -1630,8 +1633,9 @@ proc_CLI = 172
     movea.l  p8_regfile+142,a1
     move.l  p8_regfile+146,d0
     jsr  exec.OpenLibrary(a6)
+    move.l  d0,p8_regfile+150
         ; storem.l r45.l,[sys.IconBase]
-    move.l  d0, sys.IconBase
+    move.l  p8_regfile+150,sys.IconBase
         ; load.p r46.p,#prog8_interned_strings.string_44
     move.l  #prog8_interned_strings.string_44,p8_regfile+154
         ; load.l r47.l,#0.l
@@ -1641,8 +1645,9 @@ proc_CLI = 172
     movea.l  p8_regfile+154,a1
     move.l  p8_regfile+158,d0
     jsr  exec.OpenLibrary(a6)
+    move.l  d0,p8_regfile+162
         ; storem.l r48.l,[sys.UtilityBase]
-    move.l  d0, sys.UtilityBase
+    move.l  p8_regfile+162,sys.UtilityBase
         ; return
     rts
 ; End of subroutine: p8_sys_startup.init_system
@@ -1906,8 +1911,9 @@ p8b_txt.p8s_print_ub:
         ; ext.b r68.w,r67.b
     moveq  #0,d0
     move.b  p8_regfile+238,d0
+    move.w  d0,p8_regfile+240
         ; storem.w r68.w,[p8b_txt.p8v_fmt_value_w]
-    move.w  d0, p8b_txt.p8v_fmt_value_w
+    move.w  p8_regfile+240,p8b_txt.p8v_fmt_value_w
         ; load.p r69.p,#prog8_interned_strings.string_15
     move.l  #prog8_interned_strings.string_15,p8_regfile+242
         ; load.p r70.p,#p8b_txt.p8v_fmt_value_w
@@ -2052,6 +2058,7 @@ p8_label_gen_20:
     move.b  p8_regfile+318,d0
     move.l  d0,p8_regfile+320
         ; addr.p r90.p,r92.p
+    move.l  p8_regfile+320,d0
     add.l  d0,p8_regfile+314
         ; storezi.b [r90.p]
     movea.l  p8_regfile+314,a0
@@ -2449,6 +2456,7 @@ p8b_conv.p8s_str2ubyte:
         ; lsigb.w r96.b,r95.w
     move.b  d0,p8_regfile+332
         ; returnr.b r96.b
+    move.b  p8_regfile+332,d0
     unlk  a5
     rts
 ; End of subroutine: p8b_conv.p8s_str2ubyte
@@ -2477,6 +2485,7 @@ p8b_conv.p8s_str2uword.p8_label_gen_3_whileloop:
     move.b  p8_regfile+340,d0
     move.l  d0,p8_regfile+342
         ; addr.p r98.p,r100.p
+    move.l  p8_regfile+342,d0
     add.l  d0,p8_regfile+336
         ; loadi.b r97.b,[r98.p]
     movea.l  p8_regfile+336,a0
@@ -2494,6 +2503,7 @@ p8b_conv.p8s_str2uword.p8_label_gen_3_whileloop:
     move.b  p8_regfile+352,d0
     move.l  d0,p8_regfile+354
         ; addr.p r102.p,r104.p
+    move.l  p8_regfile+354,d0
     add.l  d0,p8_regfile+348
         ; loadi.b r101.b,[r102.p]
     movea.l  p8_regfile+348,a0
@@ -2518,6 +2528,7 @@ p8b_conv.p8s_str2uword.p8_label_gen_3_whileloop:
     move.b  p8_regfile+366,d0
     move.l  d0,p8_regfile+368
         ; addr.p r107.p,r109.p
+    move.l  p8_regfile+368,d0
     add.l  d0,p8_regfile+362
         ; loadi.b r106.b,[r107.p]
     movea.l  p8_regfile+362,a0
@@ -2682,6 +2693,7 @@ math.rnd:
         ; lsigb.w r113.b,r112.w
     move.b  d0,p8_regfile+378
         ; returnr.b r113.b
+    move.b  p8_regfile+378,d0
     rts
 ; End of subroutine: math.rnd
 

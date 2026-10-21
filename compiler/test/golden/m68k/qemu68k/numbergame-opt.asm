@@ -528,6 +528,7 @@ p8_label_gen_11:
     move.b  p8_regfile+122,d0
     move.l  d0,p8_regfile+124
         ; addr.p r39.p,r41.p
+    move.l  p8_regfile+124,d0
     add.l  d0,p8_regfile+118
         ; storezi.b [r39.p]
     movea.l  p8_regfile+118,a0
@@ -608,6 +609,7 @@ p8_label_gen_13:
     move.b  p8_regfile+148,d0
     move.l  d0,p8_regfile+150
         ; addr.p r50.p,r52.p
+    move.l  p8_regfile+150,d0
     add.l  d0,p8_regfile+144
         ; storei.b r49.b,[r50.p]
     movea.l  p8_regfile+144,a0
@@ -630,6 +632,7 @@ p8b_txt.p8s_input_chars.p8_label_gen_2_afterwhile:
     move.b  p8_regfile+158,d0
     move.l  d0,p8_regfile+160
         ; addr.p r53.p,r55.p
+    move.l  p8_regfile+160,d0
     add.l  d0,p8_regfile+154
         ; storezi.b [r53.p]
     movea.l  p8_regfile+154,a0
@@ -799,6 +802,7 @@ p8b_conv.p8s_str2ubyte:
         ; lsigb.w r75.b,r74.w
     move.b  d0,p8_regfile+204
         ; returnr.b r75.b
+    move.b  p8_regfile+204,d0
     unlk  a5
     rts
 ; End of subroutine: p8b_conv.p8s_str2ubyte
@@ -827,6 +831,7 @@ p8b_conv.p8s_str2uword.p8_label_gen_6_whileloop:
     move.b  p8_regfile+212,d0
     move.l  d0,p8_regfile+214
         ; addr.p r77.p,r79.p
+    move.l  p8_regfile+214,d0
     add.l  d0,p8_regfile+208
         ; loadi.b r76.b,[r77.p]
     movea.l  p8_regfile+208,a0
@@ -844,6 +849,7 @@ p8b_conv.p8s_str2uword.p8_label_gen_6_whileloop:
     move.b  p8_regfile+224,d0
     move.l  d0,p8_regfile+226
         ; addr.p r81.p,r83.p
+    move.l  p8_regfile+226,d0
     add.l  d0,p8_regfile+220
         ; loadi.b r80.b,[r81.p]
     movea.l  p8_regfile+220,a0
@@ -868,6 +874,7 @@ p8b_conv.p8s_str2uword.p8_label_gen_6_whileloop:
     move.b  p8_regfile+238,d0
     move.l  d0,p8_regfile+240
         ; addr.p r86.p,r88.p
+    move.l  p8_regfile+240,d0
     add.l  d0,p8_regfile+234
         ; loadi.b r85.b,[r86.p]
     movea.l  p8_regfile+234,a0
@@ -1032,6 +1039,7 @@ math.rnd:
         ; lsigb.w r92.b,r91.w
     move.b  d0,p8_regfile+250
         ; returnr.b r92.b
+    move.b  p8_regfile+250,d0
     rts
 ; End of subroutine: math.rnd
 
@@ -1602,8 +1610,9 @@ qemu.bootinfo_next:
         ; loadi.w r95.w,[r94.p]
     movea.l  p8_regfile+256,a0
     move.w  (a0),d0
+    move.w  d0,p8_regfile+260
         ; storem.w r95.w,[qemu.bootinfo_next.tag]
-    move.w  d0, qemu.bootinfo_next.tag
+    move.w  p8_regfile+260,qemu.bootinfo_next.tag
         ; loadm.w r96.w,[qemu.bootinfo_next.tag]
     move.w  qemu.bootinfo_next.tag,p8_regfile+262
         ; bstne p8_label_gen_17

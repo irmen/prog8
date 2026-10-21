@@ -4589,8 +4589,9 @@ proc_CLI = 172
     movea.l  p8_regfile+424,a1
     move.l  p8_regfile+428,d0
     jsr  exec.OpenLibrary(a6)
+    move.l  d0,p8_regfile+432
         ; storem.l r180.l,[sys.DOSBase]
-    move.l  d0, sys.DOSBase
+    move.l  p8_regfile+432,sys.DOSBase
         ; load.p r181.p,#prog8_interned_strings.string_27
     move.l  #prog8_interned_strings.string_27,p8_regfile+436
         ; load.l r182.l,#0.l
@@ -4600,8 +4601,9 @@ proc_CLI = 172
     movea.l  p8_regfile+436,a1
     move.l  p8_regfile+440,d0
     jsr  exec.OpenLibrary(a6)
+    move.l  d0,p8_regfile+444
         ; storem.l r183.l,[sys.GfxBase]
-    move.l  d0, sys.GfxBase
+    move.l  p8_regfile+444,sys.GfxBase
         ; load.p r184.p,#prog8_interned_strings.string_28
     move.l  #prog8_interned_strings.string_28,p8_regfile+448
         ; load.l r185.l,#0.l
@@ -4611,8 +4613,9 @@ proc_CLI = 172
     movea.l  p8_regfile+448,a1
     move.l  p8_regfile+452,d0
     jsr  exec.OpenLibrary(a6)
+    move.l  d0,p8_regfile+456
         ; storem.l r186.l,[sys.IntuitionBase]
-    move.l  d0, sys.IntuitionBase
+    move.l  p8_regfile+456,sys.IntuitionBase
         ; load.p r187.p,#prog8_interned_strings.string_29
     move.l  #prog8_interned_strings.string_29,p8_regfile+460
         ; load.l r188.l,#0.l
@@ -4622,8 +4625,9 @@ proc_CLI = 172
     movea.l  p8_regfile+460,a1
     move.l  p8_regfile+464,d0
     jsr  exec.OpenLibrary(a6)
+    move.l  d0,p8_regfile+468
         ; storem.l r189.l,[sys.IconBase]
-    move.l  d0, sys.IconBase
+    move.l  p8_regfile+468,sys.IconBase
         ; load.p r190.p,#prog8_interned_strings.string_30
     move.l  #prog8_interned_strings.string_30,p8_regfile+472
         ; load.l r191.l,#0.l
@@ -4633,8 +4637,9 @@ proc_CLI = 172
     movea.l  p8_regfile+472,a1
     move.l  p8_regfile+476,d0
     jsr  exec.OpenLibrary(a6)
+    move.l  d0,p8_regfile+480
         ; storem.l r192.l,[sys.UtilityBase]
-    move.l  d0, sys.UtilityBase
+    move.l  p8_regfile+480,sys.UtilityBase
         ; return
     rts
 ; End of subroutine: p8_sys_startup.init_system

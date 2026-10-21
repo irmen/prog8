@@ -2,7 +2,8 @@
 
 **Parent design:** `ideas/m68k-register-allocation.md`
 **Prerequisite:** Stage 2 gate green (allocator correct and metrics validated).
-**Status:** Decided and delegable once Stage 2 lands.
+**Status:** In progress (Oct 2026). Step 3a landed in the working tree, goldens
+regenerated. Steps 3b and 3d are open, and 3c is partial. See "Progress" below.
 **Gate:** Tests pass after churn; peepholes deleted; remaining optimizations
 match against `operand()` output, not literal regfile strings.
 
@@ -49,3 +50,53 @@ The compiler builds throughout. Output changes (peephole removal) but functional
 correctness is preserved. The gate is test-suite green plus representative
 program verification. This stage is intentionally last because it depends on
 Stage 2 having landed and its metrics validated.
+## Progress (Oct 2026)
+
+**Step 3a - done (working tree, not yet committed).**
+- Deleted the five REGFILE-DEPENDENT passes from `AsmOptimizer.kt`:
+  `optimizeRedundantReload`, `optimizeBounceToGlobal`, `optimizeMsigbSpill`,
+  `optimizeClampImmediate`, `optimizeFuseLoadxJumpi`, with their helpers. The
+  obsolete dbra comment is removed. The register-independent passes remain:
+  `optimizeJmpToNextLabel`, `optimizeTailCall`, `optimizeRedundantTst`,
+  `optimizeRedundantLea`.
+- Regenerated the 41 `-opt` goldens. Unoptimized goldens are unchanged.
+- Removed the dead `d0IndexOperand` regex left behind by the fusion pass.
+
+**Regression and decision (gate item "no large regression" is not met).** The
+default regfile path, which is still the production path, grows. Line counts for
+the full `.asm` outputs, HEAD optimizer to Stage 3a:
+
+| path                     | programs | lines before | lines after | change |
+|--------------------------|----------|--------------|-------------|--------|
+| default, amiga500        | 20       | 120153       | 120390      | +237   |
+| default, qemu68k         | 7        | 21876        | 21968       | +92    |
+
+The added lines are `p8_regfile` store and reload pairs, for example
+`move.w d0,p8_regfile+106` followed by `move.w p8_regfile+106,<global>`. The
+largest growth is `qemu68k/textelite` (+100/-39 in its golden).
+
+The peepholes are not needed by allocated code. Under `-m68kregalloc` the only
+removed-pattern hits are in the `%option noframe` startup routine `init_system`,
+which the allocator never allocates. That is 5 bounce pairs per amiga program
+(10 added and 5 removed lines), and zero on qemu68k.
+
+Decision: the default-path regression was accepted for now. It is reversed by
+Stage 4, when the regfile path is removed. Until then, default-path output is
+larger than HEAD.
+
+**Step 3c - partial.**
+- Removed the 7 LOADX/CALLI fusion tests that asserted the deleted passes.
+- Added one 68000 test for `JUMPI`/`CALLI` (`Amiga500Target`, `movea.l ...,a0`
+  then `jmp (a0)` / `jsr (a0)`). The existing 68020 test covers the
+  memory-indirect form.
+- Not done: converting the remaining `p8_regfile`-sequence assertions (about 90
+  tests in `TestInstructionSelectionOptimizations.kt`) to property assertions.
+
+**Step 3b - not started.** The surviving `AsmOptimizer` passes contain no literal
+`p8_regfile` matches (only comments). Regfile string matching elsewhere in the
+backend has not been audited.
+
+**Step 3d - open.** `gradle build` has not been run as the exit gate. The
+`REGFILE-DEPENDENT` literal occurs once, in a comment that negates it
+(`AsmOptimizer.kt`, M5 `optimizeRedundantLea`). Stale `.actual.asm` and experiment
+artifacts are still untracked in the repository.

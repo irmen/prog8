@@ -153,6 +153,8 @@ will break once `regAllocation` is populated:
    belongs to Stage 2 because it requires the allocator to honor the
    `INDIRECT_TARGET` / `PREFER_ADDRESS` class constraint (or a fallback to `a0`
    staging when the constraint cannot be met).
+   **Resolved in Stage 2** by the `a0` staging fallback: `InstrControl.kt` uses
+   `jmp ([...])` / `jsr ([...])` only when the target vreg is not in `regAllocation`.
 
 2. **Memory-form word shifts/rotates in `InstrBitwise.kt`.** `LSRM`, `ROLM`,
    `ROXLM`, etc. emit `op.w  operand(reg)`, which is only valid when the operand
@@ -160,6 +162,9 @@ will break once `regAllocation` is populated:
    misinterpreted as a register-count shift. This requires either a spill policy
    that keeps these operands in memory or instruction re-selection to the
    register form when the operand is allocated — both allocator-stage concerns.
+   **Resolved in Stage 2** by the second option: `InstrBitwise.kt` uses the memory
+   form only when the operand is not in `regAllocation`; otherwise it uses the
+   register form through `d0`.
 
 With an empty allocation map, output must still be byte-identical to Stage 1A.
 With a populated map, indexed/indirect operands should use the allocated

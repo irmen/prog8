@@ -1357,8 +1357,9 @@ p8_label_gen_1:
     bsr  dos.read_file
     addq.l  #6,sp
         ; loadhr.l r11.l,s10.l
+    move.l  d0,p8_regfile+28
         ; storem.l r11.l,[p8b_main.p8s_start.p8v_mod]
-    move.l  d0, p8b_main.p8s_start.p8v_mod
+    move.l  p8_regfile+28,p8b_main.p8s_start.p8v_mod
         ; loadhr.l r12.l,s11.l
     move.l  d1,p8_regfile+32
         ; storem.l r12.l,[p8b_main.p8s_start.p8v_modSize]
@@ -1729,8 +1730,9 @@ proc_CLI = 172
     movea.l  p8_regfile+162,a1
     move.l  p8_regfile+166,d0
     jsr  exec.OpenLibrary(a6)
+    move.l  d0,p8_regfile+170
         ; storem.l r60.l,[sys.DOSBase]
-    move.l  d0, sys.DOSBase
+    move.l  p8_regfile+170,sys.DOSBase
         ; load.p r61.p,#prog8_interned_strings.string_37
     move.l  #prog8_interned_strings.string_37,p8_regfile+174
         ; load.l r62.l,#0.l
@@ -1740,8 +1742,9 @@ proc_CLI = 172
     movea.l  p8_regfile+174,a1
     move.l  p8_regfile+178,d0
     jsr  exec.OpenLibrary(a6)
+    move.l  d0,p8_regfile+182
         ; storem.l r63.l,[sys.GfxBase]
-    move.l  d0, sys.GfxBase
+    move.l  p8_regfile+182,sys.GfxBase
         ; load.p r64.p,#prog8_interned_strings.string_38
     move.l  #prog8_interned_strings.string_38,p8_regfile+186
         ; load.l r65.l,#0.l
@@ -1751,8 +1754,9 @@ proc_CLI = 172
     movea.l  p8_regfile+186,a1
     move.l  p8_regfile+190,d0
     jsr  exec.OpenLibrary(a6)
+    move.l  d0,p8_regfile+194
         ; storem.l r66.l,[sys.IntuitionBase]
-    move.l  d0, sys.IntuitionBase
+    move.l  p8_regfile+194,sys.IntuitionBase
         ; load.p r67.p,#prog8_interned_strings.string_39
     move.l  #prog8_interned_strings.string_39,p8_regfile+198
         ; load.l r68.l,#0.l
@@ -1762,8 +1766,9 @@ proc_CLI = 172
     movea.l  p8_regfile+198,a1
     move.l  p8_regfile+202,d0
     jsr  exec.OpenLibrary(a6)
+    move.l  d0,p8_regfile+206
         ; storem.l r69.l,[sys.IconBase]
-    move.l  d0, sys.IconBase
+    move.l  p8_regfile+206,sys.IconBase
         ; load.p r70.p,#prog8_interned_strings.string_40
     move.l  #prog8_interned_strings.string_40,p8_regfile+210
         ; load.l r71.l,#0.l
@@ -1773,8 +1778,9 @@ proc_CLI = 172
     movea.l  p8_regfile+210,a1
     move.l  p8_regfile+214,d0
     jsr  exec.OpenLibrary(a6)
+    move.l  d0,p8_regfile+218
         ; storem.l r72.l,[sys.UtilityBase]
-    move.l  d0, sys.UtilityBase
+    move.l  p8_regfile+218,sys.UtilityBase
         ; return
     rts
 ; End of subroutine: p8_sys_startup.init_system
@@ -1998,8 +2004,9 @@ p8_label_gen_16:
     move.l  p8_regfile+302,d1
     move.l  p8_regfile+306,d2
     jsr  dos.Lock(a6)
+    move.l  d0,p8_regfile+310
         ; storem.l r97.l,[dos.read_file.lock]
-    move.l  d0, dos.read_file.lock
+    move.l  p8_regfile+310,dos.read_file.lock
         ; loadm.l r98.l,[dos.read_file.lock]
     move.l  dos.read_file.lock,p8_regfile+314
         ; bstne p8_label_gen_17
@@ -2037,8 +2044,9 @@ p8_label_gen_17:
     move.l  p8_regfile+328,d0
     move.l  p8_regfile+332,d1
     jsr  exec.AllocMem(a6)
+    move.l  d0,p8_regfile+336
         ; storem.p r104.p,[dos.read_file.fib]
-    move.l  d0, dos.read_file.fib
+    move.l  p8_regfile+336,dos.read_file.fib
         ; loadm.p r105.p,[dos.read_file.fib]
     move.l  dos.read_file.fib,p8_regfile+340
         ; bstne p8_label_gen_18
@@ -2166,8 +2174,9 @@ p8_label_gen_21:
     move.l  p8_regfile+410,d1
     move.l  p8_regfile+414,d2
     jsr  dos.Open(a6)
+    move.l  d0,p8_regfile+418
         ; storem.l r125.l,[dos.read_file.fh]
-    move.l  d0, dos.read_file.fh
+    move.l  p8_regfile+418,dos.read_file.fh
         ; loadm.l r126.l,[dos.read_file.fh]
     move.l  dos.read_file.fh,p8_regfile+422
         ; bstne p8_label_gen_22
@@ -2841,8 +2850,9 @@ p8b_txt.p8s_print_ub:
         ; ext.b r164.w,r163.b
     moveq  #0,d0
     move.b  p8_regfile+560,d0
+    move.w  d0,p8_regfile+562
         ; storem.w r164.w,[p8b_txt.p8v_fmt_value_w]
-    move.w  d0, p8b_txt.p8v_fmt_value_w
+    move.w  p8_regfile+562,p8b_txt.p8v_fmt_value_w
         ; load.p r165.p,#prog8_interned_strings.string_11
     move.l  #prog8_interned_strings.string_11,p8_regfile+564
         ; load.p r166.p,#p8b_txt.p8v_fmt_value_w
@@ -2869,8 +2879,9 @@ p8b_txt.p8s_print_ub0:
         ; ext.b r168.w,r167.b
     moveq  #0,d0
     move.b  p8_regfile+572,d0
+    move.w  d0,p8_regfile+574
         ; storem.w r168.w,[p8b_txt.p8v_fmt_value_w]
-    move.w  d0, p8b_txt.p8v_fmt_value_w
+    move.w  p8_regfile+574,p8b_txt.p8v_fmt_value_w
         ; load.p r169.p,#prog8_interned_strings.string_12
     move.l  #prog8_interned_strings.string_12,p8_regfile+576
         ; load.p r170.p,#p8b_txt.p8v_fmt_value_w
@@ -3015,6 +3026,7 @@ p8_label_gen_31:
     move.b  p8_regfile+652,d0
     move.l  d0,p8_regfile+654
         ; addr.p r190.p,r192.p
+    move.l  p8_regfile+654,d0
     add.l  d0,p8_regfile+648
         ; storezi.b [r190.p]
     movea.l  p8_regfile+648,a0

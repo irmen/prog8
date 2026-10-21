@@ -3669,8 +3669,9 @@ p8_label_gen_2:
     movea.l  p8_regfile+26,a0
     movea.l  p8_regfile+30,a1
     jsr  intuition.OpenScreenTagList(a6)
+    move.l  d0,p8_regfile+34
         ; storem.p r13.p,[p8b_main.p8s_start.p8v_myScreen]
-    move.l  d0, p8b_main.p8s_start.p8v_myScreen
+    move.l  p8_regfile+34,p8b_main.p8s_start.p8v_myScreen
         ; loadm.p r14.p,[p8b_main.p8s_start.p8v_myScreen]
     move.l  p8b_main.p8s_start.p8v_myScreen,p8_regfile+38
         ; bstne p8_label_gen_3
@@ -3704,8 +3705,9 @@ p8_label_gen_3:
     movea.l  p8_regfile+48,a0
     movea.l  p8_regfile+52,a1
     jsr  intuition.OpenWindowTagList(a6)
+    move.l  d0,p8_regfile+56
         ; storem.p r19.p,[p8b_main.p8s_start.p8v_myWindow]
-    move.l  d0, p8b_main.p8s_start.p8v_myWindow
+    move.l  p8_regfile+56,p8b_main.p8s_start.p8v_myWindow
         ; loadm.p r20.p,[p8b_main.p8s_start.p8v_myWindow]
     move.l  p8b_main.p8s_start.p8v_myWindow,p8_regfile+60
         ; bstne p8_label_gen_4
@@ -3811,8 +3813,9 @@ p8_label_gen_7:
         ; callfar #14,-30,iffparse.AllocIFF():r31.p@s10
     move.l  sys.IFFParseBase,a6
     jsr  iffparse.AllocIFF(a6)
+    move.l  d0,p8_regfile+92
         ; storem.p r31.p,[p8b_main.p8s_loadIFFimage.p8v_iff]
-    move.l  d0, p8b_main.p8s_loadIFFimage.p8v_iff
+    move.l  p8_regfile+92,p8b_main.p8s_loadIFFimage.p8v_iff
         ; loadm.p r32.p,[p8b_main.p8s_loadIFFimage.p8v_iff]
     move.l  p8b_main.p8s_loadIFFimage.p8v_iff,p8_regfile+96
         ; bstne p8_label_gen_8
@@ -4136,8 +4139,9 @@ p8_label_gen_16:
     move.l  p8_regfile+294,d0
     move.l  p8_regfile+298,d1
     jsr  exec.AllocVec(a6)
+    move.l  d0,p8_regfile+302
         ; storem.l r88.l,[p8b_main.p8s_loadIFFimage.p8v_bodyBuffer]
-    move.l  d0, p8b_main.p8s_loadIFFimage.p8v_bodyBuffer
+    move.l  p8_regfile+302,p8b_main.p8s_loadIFFimage.p8v_bodyBuffer
         ; loadm.l r89.l,[p8b_main.p8s_loadIFFimage.p8v_bodyBuffer]
     move.l  p8b_main.p8s_loadIFFimage.p8v_bodyBuffer,p8_regfile+306
         ; bstne p8_label_gen_17
@@ -4314,8 +4318,9 @@ p8b_main.p8s_loadIFFimage.p8s_decode:
         ; ext.w r111.l,r110.w
     moveq  #0,d0
     move.w  p8_regfile+382,d0
+    move.l  d0,p8_regfile+384
         ; storem.l r111.l,[p8b_main.p8s_loadIFFimage.p8s_decode.p8v_bytesPerRow]
-    move.l  d0, p8b_main.p8s_loadIFFimage.p8s_decode.p8v_bytesPerRow
+    move.l  p8_regfile+384,p8b_main.p8s_loadIFFimage.p8s_decode.p8v_bytesPerRow
         ; loadm.p r112.p,[p8b_main.p8s_loadIFFimage.p8v_scr]
     move.l  p8b_main.p8s_loadIFFimage.p8v_scr,p8_regfile+388
         ; call intuition.GetScreenBitMap(r112.p@s18):r113.p@s19
@@ -4329,8 +4334,9 @@ p8b_main.p8s_loadIFFimage.p8s_decode:
         ; loadi.b r115.b,[r114.p+10]
     movea.l  p8_regfile+396,a0
     move.b  (10,a0),d0
+    move.b  d0,p8_regfile+400
         ; storem.b r115.b,[p8b_main.p8s_loadIFFimage.p8s_decode.p8v_compressionType]
-    move.b  d0, p8b_main.p8s_loadIFFimage.p8s_decode.p8v_compressionType
+    move.b  p8_regfile+400,p8b_main.p8s_loadIFFimage.p8s_decode.p8v_compressionType
         ; load.w r116.w,#0.w
     clr.w  p8_regfile+402
         ; loadm.p r117.p,[p8b_main.p8s_loadIFFimage.p8s_decode.p8v_hdr]
@@ -4792,8 +4798,9 @@ proc_CLI = 172
     movea.l  p8_regfile+560,a1
     move.l  p8_regfile+564,d0
     jsr  exec.OpenLibrary(a6)
+    move.l  d0,p8_regfile+568
         ; storem.l r169.l,[sys.DOSBase]
-    move.l  d0, sys.DOSBase
+    move.l  p8_regfile+568,sys.DOSBase
         ; load.p r170.p,#prog8_interned_strings.string_31
     move.l  #prog8_interned_strings.string_31,p8_regfile+572
         ; load.l r171.l,#0.l
@@ -4803,8 +4810,9 @@ proc_CLI = 172
     movea.l  p8_regfile+572,a1
     move.l  p8_regfile+576,d0
     jsr  exec.OpenLibrary(a6)
+    move.l  d0,p8_regfile+580
         ; storem.l r172.l,[sys.GfxBase]
-    move.l  d0, sys.GfxBase
+    move.l  p8_regfile+580,sys.GfxBase
         ; load.p r173.p,#prog8_interned_strings.string_32
     move.l  #prog8_interned_strings.string_32,p8_regfile+584
         ; load.l r174.l,#0.l
@@ -4814,8 +4822,9 @@ proc_CLI = 172
     movea.l  p8_regfile+584,a1
     move.l  p8_regfile+588,d0
     jsr  exec.OpenLibrary(a6)
+    move.l  d0,p8_regfile+592
         ; storem.l r175.l,[sys.IntuitionBase]
-    move.l  d0, sys.IntuitionBase
+    move.l  p8_regfile+592,sys.IntuitionBase
         ; load.p r176.p,#prog8_interned_strings.string_33
     move.l  #prog8_interned_strings.string_33,p8_regfile+596
         ; load.l r177.l,#0.l
@@ -4825,8 +4834,9 @@ proc_CLI = 172
     movea.l  p8_regfile+596,a1
     move.l  p8_regfile+600,d0
     jsr  exec.OpenLibrary(a6)
+    move.l  d0,p8_regfile+604
         ; storem.l r178.l,[sys.IconBase]
-    move.l  d0, sys.IconBase
+    move.l  p8_regfile+604,sys.IconBase
         ; load.p r179.p,#prog8_interned_strings.string_34
     move.l  #prog8_interned_strings.string_34,p8_regfile+608
         ; load.l r180.l,#0.l
@@ -4836,8 +4846,9 @@ proc_CLI = 172
     movea.l  p8_regfile+608,a1
     move.l  p8_regfile+612,d0
     jsr  exec.OpenLibrary(a6)
+    move.l  d0,p8_regfile+616
         ; storem.l r181.l,[sys.UtilityBase]
-    move.l  d0, sys.UtilityBase
+    move.l  p8_regfile+616,sys.UtilityBase
         ; return
     rts
 ; End of subroutine: p8_sys_startup.init_system
@@ -5670,8 +5681,9 @@ iffparse.openlib:
     movea.l  p8_regfile+692,a1
     move.l  p8_regfile+696,d0
     jsr  exec.OpenLibrary(a6)
+    move.l  d0,p8_regfile+700
         ; storem.l r202.l,[sys.IFFParseBase]
-    move.l  d0, sys.IFFParseBase
+    move.l  p8_regfile+700,sys.IFFParseBase
         ; loadm.l r203.l,[sys.IFFParseBase]
     move.l  sys.IFFParseBase,p8_regfile+704
         ; bstne p8_label_gen_57
@@ -5995,6 +6007,7 @@ p8_label_gen_62:
     move.b  p8_regfile+786,d0
     move.l  d0,p8_regfile+788
         ; addr.p r226.p,r228.p
+    move.l  p8_regfile+788,d0
     add.l  d0,p8_regfile+782
         ; storezi.b [r226.p]
     movea.l  p8_regfile+782,a0

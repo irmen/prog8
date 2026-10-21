@@ -1660,8 +1660,9 @@ proc_CLI = 172
     movea.l  p8_regfile+156,a1
     move.l  p8_regfile+160,d0
     jsr  exec.OpenLibrary(a6)
+    move.l  d0,p8_regfile+164
         ; storem.l r54.l,[sys.DOSBase]
-    move.l  d0, sys.DOSBase
+    move.l  p8_regfile+164,sys.DOSBase
         ; load.p r55.p,#prog8_interned_strings.string_31
     move.l  #prog8_interned_strings.string_31,p8_regfile+168
         ; load.l r56.l,#0.l
@@ -1671,8 +1672,9 @@ proc_CLI = 172
     movea.l  p8_regfile+168,a1
     move.l  p8_regfile+172,d0
     jsr  exec.OpenLibrary(a6)
+    move.l  d0,p8_regfile+176
         ; storem.l r57.l,[sys.GfxBase]
-    move.l  d0, sys.GfxBase
+    move.l  p8_regfile+176,sys.GfxBase
         ; load.p r58.p,#prog8_interned_strings.string_32
     move.l  #prog8_interned_strings.string_32,p8_regfile+180
         ; load.l r59.l,#0.l
@@ -1682,8 +1684,9 @@ proc_CLI = 172
     movea.l  p8_regfile+180,a1
     move.l  p8_regfile+184,d0
     jsr  exec.OpenLibrary(a6)
+    move.l  d0,p8_regfile+188
         ; storem.l r60.l,[sys.IntuitionBase]
-    move.l  d0, sys.IntuitionBase
+    move.l  p8_regfile+188,sys.IntuitionBase
         ; load.p r61.p,#prog8_interned_strings.string_33
     move.l  #prog8_interned_strings.string_33,p8_regfile+192
         ; load.l r62.l,#0.l
@@ -1693,8 +1696,9 @@ proc_CLI = 172
     movea.l  p8_regfile+192,a1
     move.l  p8_regfile+196,d0
     jsr  exec.OpenLibrary(a6)
+    move.l  d0,p8_regfile+200
         ; storem.l r63.l,[sys.IconBase]
-    move.l  d0, sys.IconBase
+    move.l  p8_regfile+200,sys.IconBase
         ; load.p r64.p,#prog8_interned_strings.string_34
     move.l  #prog8_interned_strings.string_34,p8_regfile+204
         ; load.l r65.l,#0.l
@@ -1704,8 +1708,9 @@ proc_CLI = 172
     movea.l  p8_regfile+204,a1
     move.l  p8_regfile+208,d0
     jsr  exec.OpenLibrary(a6)
+    move.l  d0,p8_regfile+212
         ; storem.l r66.l,[sys.UtilityBase]
-    move.l  d0, sys.UtilityBase
+    move.l  p8_regfile+212,sys.UtilityBase
         ; return
     rts
 ; End of subroutine: p8_sys_startup.init_system
@@ -1962,6 +1967,7 @@ p8_label_gen_14:
     addq.l  #8,sp
     move.b  d0,p8_regfile+314
         ; returnr.b r98.b
+    move.b  p8_regfile+314,d0
     unlk  a5
     rts
 ; End of subroutine: audio.init
@@ -2256,6 +2262,7 @@ audio.get_queued_io:
     addq.l  #2,sp
     move.l  d0,p8_regfile+430
         ; returnr.p r145.p
+    move.l  p8_regfile+430,d0
     unlk  a5
     rts
 
@@ -3268,6 +3275,7 @@ audio.period:
         ; lsigw.l r329.w,r326.l
     move.w  d0,p8_regfile+1054
         ; returnr.w r329.w
+    move.w  p8_regfile+1054,d0
     unlk  a5
     rts
 ; End of subroutine: audio.period

@@ -112,9 +112,16 @@ Residual work (resolved Oct 2026 - see below):
   sequential-only CFG and pass with edges.
 
 Flag plumbing: `-m68kregalloc` CLI switch -> CompilationOptions.m68kRegisterAllocation
--> M68kCodeGenerator(allocateRegisters). Default false. Output under the flag is
-plausible but NOT correctness-validated; it is for inspection only until the items
-above land. `:codeGenM68k:test` and the golden harness pass (default path unchanged).
+-> M68kCodeGenerator(allocateRegisters). Default false. The residual items above
+have landed and the spill-forcing programs were validated in QEMU. The flag stays
+experimental until Stage 4 makes the allocator the only path. `:codeGenM68k:test`
+and the golden harness pass (default path output is unchanged by Stage 2).
+
+Stage 3 finding (Oct 2026): under `-m68kregalloc`, the peepholes removed in Stage
+3a fire only in the `%option noframe` startup routine `init_system` (amiga500 and
+amiga1200). The allocator never allocates noframe subroutines, so that code keeps
+its regfile round-trips: 5 bounce pairs per amiga program, none on qemu68k. See
+`m68k-regalloc-stage3-teardown.md`.
 
 ## Validation (Step 10 gate, measured Oct 2026)
 
@@ -258,11 +265,13 @@ convention, IR format 8, stack model already implemented):
 - asmsub/extsub boundaries are not uniform CALLs; they carry per-call-site
   metadata (regs read, defined, destroyed) (§2.6).
 
-## Known blockers carried from Stage 1B
+## Known blockers carried from Stage 1B (resolved)
 
 Stage 1B deliberately left two opcode groups location-agnostic in name only.
-They generate correct assembly with the empty `regAllocation` map but will break
-once the allocator populates it. These must be resolved as part of Stage 2.
+They generate correct assembly with the empty `regAllocation` map but break
+once the allocator populates it. Both are now guarded, so the allocator never
+produces an invalid operand for them. The guards use the fallback path below,
+not the `PREFER_ADDRESS` constraint.
 
 ### `JUMPI`/`CALLI` memory-indirect addressing on 68020+
 

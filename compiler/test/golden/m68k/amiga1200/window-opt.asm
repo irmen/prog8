@@ -3909,8 +3909,9 @@ p8_label_gen_1:
     move.l  sys.IntuitionBase,a6
     movea.l  p8_regfile+12,a0
     jsr  intuition.OpenWindow(a6)
+    move.l  d0,p8_regfile+16
         ; storem.p r7.p,[p8b_main.p8s_start.p8v_win]
-    move.l  d0, p8b_main.p8s_start.p8v_win
+    move.l  p8_regfile+16,p8b_main.p8s_start.p8v_win
         ; loadm.p r8.p,[p8b_main.p8s_start.p8v_win]
     move.l  p8b_main.p8s_start.p8v_win,p8_regfile+20
         ; bstne p8_label_gen_2
@@ -3944,8 +3945,9 @@ p8_label_gen_2:
         ; loadi.p r12.p,[r11.p+50]
     movea.l  p8_regfile+30,a0
     move.l  (50,a0),d0
+    move.l  d0,p8_regfile+34
         ; storem.p r12.p,[p8b_main.p8s_start.p8v_rp]
-    move.l  d0, p8b_main.p8s_start.p8v_rp
+    move.l  p8_regfile+34,p8b_main.p8s_start.p8v_rp
         ; loadm.p r13.p,[p8b_main.p8s_start.p8v_rp]
     move.l  p8b_main.p8s_start.p8v_rp,p8_regfile+38
         ; loadi.w r14.w,[r13.p+62]
@@ -4000,8 +4002,9 @@ p8_label_gen_2:
     move.b  d0,p8_regfile+68
         ; exts.b r24.w,r23.b
     ext.w  d0
+    move.w  d0,p8_regfile+70
         ; storem.w r24.w,[p8b_main.p8s_start.p8v_border_left]
-    move.w  d0, p8b_main.p8s_start.p8v_border_left
+    move.w  p8_regfile+70,p8b_main.p8s_start.p8v_border_left
         ; loadm.p r25.p,[p8b_main.p8s_start.p8v_win]
     move.l  p8b_main.p8s_start.p8v_win,p8_regfile+72
         ; loadi.b r26.b,[r25.p+55]
@@ -4010,8 +4013,9 @@ p8_label_gen_2:
     move.b  d0,p8_regfile+76
         ; exts.b r27.w,r26.b
     ext.w  d0
+    move.w  d0,p8_regfile+78
         ; storem.w r27.w,[p8b_main.p8s_start.p8v_border_top]
-    move.w  d0, p8b_main.p8s_start.p8v_border_top
+    move.w  p8_regfile+78,p8b_main.p8s_start.p8v_border_top
         ; loadm.p r28.p,[p8b_main.p8s_start.p8v_win]
     move.l  p8b_main.p8s_start.p8v_win,p8_regfile+80
         ; loadi.b r29.b,[r28.p+56]
@@ -4548,8 +4552,9 @@ proc_CLI = 172
     movea.l  p8_regfile+288,a1
     move.l  p8_regfile+292,d0
     jsr  exec.OpenLibrary(a6)
+    move.l  d0,p8_regfile+296
         ; storem.l r104.l,[sys.DOSBase]
-    move.l  d0, sys.DOSBase
+    move.l  p8_regfile+296,sys.DOSBase
         ; load.p r105.p,#prog8_interned_strings.string_28
     move.l  #prog8_interned_strings.string_28,p8_regfile+300
         ; load.l r106.l,#0.l
@@ -4559,8 +4564,9 @@ proc_CLI = 172
     movea.l  p8_regfile+300,a1
     move.l  p8_regfile+304,d0
     jsr  exec.OpenLibrary(a6)
+    move.l  d0,p8_regfile+308
         ; storem.l r107.l,[sys.GfxBase]
-    move.l  d0, sys.GfxBase
+    move.l  p8_regfile+308,sys.GfxBase
         ; load.p r108.p,#prog8_interned_strings.string_29
     move.l  #prog8_interned_strings.string_29,p8_regfile+312
         ; load.l r109.l,#0.l
@@ -4570,8 +4576,9 @@ proc_CLI = 172
     movea.l  p8_regfile+312,a1
     move.l  p8_regfile+316,d0
     jsr  exec.OpenLibrary(a6)
+    move.l  d0,p8_regfile+320
         ; storem.l r110.l,[sys.IntuitionBase]
-    move.l  d0, sys.IntuitionBase
+    move.l  p8_regfile+320,sys.IntuitionBase
         ; load.p r111.p,#prog8_interned_strings.string_30
     move.l  #prog8_interned_strings.string_30,p8_regfile+324
         ; load.l r112.l,#0.l
@@ -4581,8 +4588,9 @@ proc_CLI = 172
     movea.l  p8_regfile+324,a1
     move.l  p8_regfile+328,d0
     jsr  exec.OpenLibrary(a6)
+    move.l  d0,p8_regfile+332
         ; storem.l r113.l,[sys.IconBase]
-    move.l  d0, sys.IconBase
+    move.l  p8_regfile+332,sys.IconBase
         ; load.p r114.p,#prog8_interned_strings.string_31
     move.l  #prog8_interned_strings.string_31,p8_regfile+336
         ; load.l r115.l,#0.l
@@ -4592,8 +4600,9 @@ proc_CLI = 172
     movea.l  p8_regfile+336,a1
     move.l  p8_regfile+340,d0
     jsr  exec.OpenLibrary(a6)
+    move.l  d0,p8_regfile+344
         ; storem.l r116.l,[sys.UtilityBase]
-    move.l  d0, sys.UtilityBase
+    move.l  p8_regfile+344,sys.UtilityBase
         ; return
     rts
 ; End of subroutine: p8_sys_startup.init_system

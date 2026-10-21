@@ -1485,8 +1485,9 @@ p8b_maze.p8s_bfs.p8_label_gen_5_whileloop:
     move.w  p8_regfile+370,-(sp)        ; H
     bsr  p8b_maze.p8s_reconstructPath
     addq.l  #2,sp
+    move.w  d0,p8_regfile+372
         ; storem.w r181.w,[p8b_maze.p8v_pathlength]
-    move.w  d0, p8b_maze.p8v_pathlength
+    move.w  p8_regfile+372,p8b_maze.p8v_pathlength
         ; returni.b #1.b
     moveq  #1,d0
     unlk  a5
@@ -2108,6 +2109,7 @@ p8_label_gen_56:
     addq.l  #4,sp
     move.b  d0,p8_regfile+540
         ; call p8b_txt.p8s_chrout(r265.b@s10)
+    move.b  p8_regfile+540,d0
     bsr  p8b_txt.p8s_chrout
         ; incm.b [frame:-1]
     addq.b  #1,-1(a5)
@@ -2985,6 +2987,7 @@ math.rnd:
         ; lsigb.w r349.b,r348.w
     move.b  d0,p8_regfile+706
         ; returnr.b r349.b
+    move.b  p8_regfile+706,d0
     rts
 ; End of subroutine: math.rnd
 
@@ -3555,8 +3558,9 @@ qemu.bootinfo_next:
         ; loadi.w r352.w,[r351.p]
     movea.l  p8_regfile+712,a0
     move.w  (a0),d0
+    move.w  d0,p8_regfile+716
         ; storem.w r352.w,[qemu.bootinfo_next.tag]
-    move.w  d0, qemu.bootinfo_next.tag
+    move.w  p8_regfile+716,qemu.bootinfo_next.tag
         ; loadm.w r353.w,[qemu.bootinfo_next.tag]
     move.w  qemu.bootinfo_next.tag,p8_regfile+718
         ; bstne p8_label_gen_83

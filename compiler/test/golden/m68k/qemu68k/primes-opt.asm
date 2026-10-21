@@ -741,8 +741,9 @@ qemu.bootinfo_next:
         ; loadi.w r50.w,[r49.p]
     movea.l  p8_regfile+106,a0
     move.w  (a0),d0
+    move.w  d0,p8_regfile+110
         ; storem.w r50.w,[qemu.bootinfo_next.tag]
-    move.w  d0, qemu.bootinfo_next.tag
+    move.w  p8_regfile+110,qemu.bootinfo_next.tag
         ; loadm.w r51.w,[qemu.bootinfo_next.tag]
     move.w  qemu.bootinfo_next.tag,p8_regfile+112
         ; bstne p8_label_gen_2

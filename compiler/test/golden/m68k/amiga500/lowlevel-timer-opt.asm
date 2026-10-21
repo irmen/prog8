@@ -1941,8 +1941,9 @@ proc_CLI = 172
     movea.l  p8_regfile+200,a1
     move.l  p8_regfile+204,d0
     jsr  exec.OpenLibrary(a6)
+    move.l  d0,p8_regfile+208
         ; storem.l r60.l,[sys.DOSBase]
-    move.l  d0, sys.DOSBase
+    move.l  p8_regfile+208,sys.DOSBase
         ; load.p r61.p,#prog8_interned_strings.string_45
     move.l  #prog8_interned_strings.string_45,p8_regfile+212
         ; load.l r62.l,#0.l
@@ -1952,8 +1953,9 @@ proc_CLI = 172
     movea.l  p8_regfile+212,a1
     move.l  p8_regfile+216,d0
     jsr  exec.OpenLibrary(a6)
+    move.l  d0,p8_regfile+220
         ; storem.l r63.l,[sys.GfxBase]
-    move.l  d0, sys.GfxBase
+    move.l  p8_regfile+220,sys.GfxBase
         ; load.p r64.p,#prog8_interned_strings.string_46
     move.l  #prog8_interned_strings.string_46,p8_regfile+224
         ; load.l r65.l,#0.l
@@ -1963,8 +1965,9 @@ proc_CLI = 172
     movea.l  p8_regfile+224,a1
     move.l  p8_regfile+228,d0
     jsr  exec.OpenLibrary(a6)
+    move.l  d0,p8_regfile+232
         ; storem.l r66.l,[sys.IntuitionBase]
-    move.l  d0, sys.IntuitionBase
+    move.l  p8_regfile+232,sys.IntuitionBase
         ; load.p r67.p,#prog8_interned_strings.string_47
     move.l  #prog8_interned_strings.string_47,p8_regfile+236
         ; load.l r68.l,#0.l
@@ -1974,8 +1977,9 @@ proc_CLI = 172
     movea.l  p8_regfile+236,a1
     move.l  p8_regfile+240,d0
     jsr  exec.OpenLibrary(a6)
+    move.l  d0,p8_regfile+244
         ; storem.l r69.l,[sys.IconBase]
-    move.l  d0, sys.IconBase
+    move.l  p8_regfile+244,sys.IconBase
         ; load.p r70.p,#prog8_interned_strings.string_48
     move.l  #prog8_interned_strings.string_48,p8_regfile+248
         ; load.l r71.l,#0.l
@@ -1985,8 +1989,9 @@ proc_CLI = 172
     movea.l  p8_regfile+248,a1
     move.l  p8_regfile+252,d0
     jsr  exec.OpenLibrary(a6)
+    move.l  d0,p8_regfile+256
         ; storem.l r72.l,[sys.UtilityBase]
-    move.l  d0, sys.UtilityBase
+    move.l  p8_regfile+256,sys.UtilityBase
         ; return
     rts
 ; End of subroutine: p8_sys_startup.init_system
@@ -2177,8 +2182,9 @@ lowlevel.openlib:
     movea.l  p8_regfile+332,a1
     move.l  p8_regfile+336,d0
     jsr  exec.OpenLibrary(a6)
+    move.l  d0,p8_regfile+340
         ; storem.l r93.l,[sys.LowLevelBase]
-    move.l  d0, sys.LowLevelBase
+    move.l  p8_regfile+340,sys.LowLevelBase
         ; loadm.l r94.l,[sys.LowLevelBase]
     move.l  sys.LowLevelBase,p8_regfile+344
         ; bstne p8_label_gen_19
@@ -2491,8 +2497,9 @@ p8b_txt.p8s_print_uw:
         ; ext.w r99.l,r98.w
     moveq  #0,d0
     move.w  p8_regfile+358,d0
+    move.l  d0,p8_regfile+360
         ; storem.l r99.l,[p8b_txt.p8v_fmt_value_l]
-    move.l  d0, p8b_txt.p8v_fmt_value_l
+    move.l  p8_regfile+360,p8b_txt.p8v_fmt_value_l
         ; load.p r100.p,#prog8_interned_strings.string_20
     move.l  #prog8_interned_strings.string_20,p8_regfile+364
         ; load.p r101.p,#p8b_txt.p8v_fmt_value_l
@@ -2885,8 +2892,9 @@ p8_label_gen_22:
     move.l  p8_regfile+396,d0
     move.l  p8_regfile+400,d1
     jsr  exec.AllocMem(a6)
+    move.l  d0,p8_regfile+404
         ; storem.p r110.p,[timer.TimerIO]
-    move.l  d0, timer.TimerIO
+    move.l  p8_regfile+404,timer.TimerIO
         ; loadm.p r111.p,[timer.TimerIO]
     move.l  timer.TimerIO,p8_regfile+408
         ; bstne p8_label_gen_23
@@ -2987,8 +2995,9 @@ p8_label_gen_23:
         ; loadi.l r133.l,[r132.p+20]
     movea.l  p8_regfile+484,a0
     move.l  (20,a0),d0
+    move.l  d0,p8_regfile+488
         ; storem.l r133.l,[sys.TimerBase]
-    move.l  d0, sys.TimerBase
+    move.l  p8_regfile+488,sys.TimerBase
         ; returni.b #1.b
     moveq  #1,d0
     unlk  a5
@@ -3135,6 +3144,7 @@ timer.getsystime:
     move.l  (32,a0),d0
     move.l  d0,p8_regfile+576
         ; storehr.l r157.l,s10.l
+    move.l  p8_regfile+576,d0
         ; return
     rts
 ; End of subroutine: timer.getsystime

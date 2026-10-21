@@ -2693,6 +2693,7 @@ p8b_main.p8s_sin8_fixed:
     move.l  p8_regfile+468,d0
     move.w  d0,p8_regfile+476
         ; returnr.w r202.w
+    move.w  p8_regfile+476,d0
     unlk  a5
     rts
 ; End of subroutine: p8b_main.p8s_sin8_fixed
@@ -2715,6 +2716,7 @@ p8b_main.p8s_cos8_fixed:
     addq.l  #2,sp
     move.w  d0,p8_regfile+480
         ; returnr.w r204.w
+    move.w  p8_regfile+480,d0
     unlk  a5
     rts
 ; End of subroutine: p8b_main.p8s_cos8_fixed
@@ -3524,8 +3526,9 @@ proc_CLI = 172
     movea.l  p8_regfile+992,a1
     move.l  p8_regfile+996,d0
     jsr  exec.OpenLibrary(a6)
+    move.l  d0,p8_regfile+1000
         ; storem.l r454.l,[sys.DOSBase]
-    move.l  d0, sys.DOSBase
+    move.l  p8_regfile+1000,sys.DOSBase
         ; load.p r455.p,#prog8_interned_strings.string_2
     move.l  #prog8_interned_strings.string_2,p8_regfile+1004
         ; load.l r456.l,#0.l
@@ -3535,8 +3538,9 @@ proc_CLI = 172
     movea.l  p8_regfile+1004,a1
     move.l  p8_regfile+1008,d0
     jsr  exec.OpenLibrary(a6)
+    move.l  d0,p8_regfile+1012
         ; storem.l r457.l,[sys.GfxBase]
-    move.l  d0, sys.GfxBase
+    move.l  p8_regfile+1012,sys.GfxBase
         ; load.p r458.p,#prog8_interned_strings.string_3
     move.l  #prog8_interned_strings.string_3,p8_regfile+1016
         ; load.l r459.l,#0.l
@@ -3546,8 +3550,9 @@ proc_CLI = 172
     movea.l  p8_regfile+1016,a1
     move.l  p8_regfile+1020,d0
     jsr  exec.OpenLibrary(a6)
+    move.l  d0,p8_regfile+1024
         ; storem.l r460.l,[sys.IntuitionBase]
-    move.l  d0, sys.IntuitionBase
+    move.l  p8_regfile+1024,sys.IntuitionBase
         ; load.p r461.p,#prog8_interned_strings.string_4
     move.l  #prog8_interned_strings.string_4,p8_regfile+1028
         ; load.l r462.l,#0.l
@@ -3557,8 +3562,9 @@ proc_CLI = 172
     movea.l  p8_regfile+1028,a1
     move.l  p8_regfile+1032,d0
     jsr  exec.OpenLibrary(a6)
+    move.l  d0,p8_regfile+1036
         ; storem.l r463.l,[sys.IconBase]
-    move.l  d0, sys.IconBase
+    move.l  p8_regfile+1036,sys.IconBase
         ; load.p r464.p,#prog8_interned_strings.string_5
     move.l  #prog8_interned_strings.string_5,p8_regfile+1040
         ; load.l r465.l,#0.l
@@ -3568,8 +3574,9 @@ proc_CLI = 172
     movea.l  p8_regfile+1040,a1
     move.l  p8_regfile+1044,d0
     jsr  exec.OpenLibrary(a6)
+    move.l  d0,p8_regfile+1048
         ; storem.l r466.l,[sys.UtilityBase]
-    move.l  d0, sys.UtilityBase
+    move.l  p8_regfile+1048,sys.UtilityBase
         ; return
     rts
 ; End of subroutine: p8_sys_startup.init_system
@@ -5016,6 +5023,7 @@ math.sin8:
     move.b  (a0,d0.w),d0
     move.b  d0,p8_regfile+1132
         ; returnr.b r489.b
+    move.b  p8_regfile+1132,d0
     unlk  a5
     rts
 ; End of subroutine: math.sin8

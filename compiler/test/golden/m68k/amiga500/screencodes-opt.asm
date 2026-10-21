@@ -1497,8 +1497,9 @@ proc_CLI = 172
     movea.l  p8_regfile+56,a1
     move.l  p8_regfile+60,d0
     jsr  exec.OpenLibrary(a6)
+    move.l  d0,p8_regfile+64
         ; storem.l r24.l,[sys.DOSBase]
-    move.l  d0, sys.DOSBase
+    move.l  p8_regfile+64,sys.DOSBase
         ; load.p r25.p,#prog8_interned_strings.string_33
     move.l  #prog8_interned_strings.string_33,p8_regfile+68
         ; load.l r26.l,#0.l
@@ -1508,8 +1509,9 @@ proc_CLI = 172
     movea.l  p8_regfile+68,a1
     move.l  p8_regfile+72,d0
     jsr  exec.OpenLibrary(a6)
+    move.l  d0,p8_regfile+76
         ; storem.l r27.l,[sys.GfxBase]
-    move.l  d0, sys.GfxBase
+    move.l  p8_regfile+76,sys.GfxBase
         ; load.p r28.p,#prog8_interned_strings.string_34
     move.l  #prog8_interned_strings.string_34,p8_regfile+80
         ; load.l r29.l,#0.l
@@ -1519,8 +1521,9 @@ proc_CLI = 172
     movea.l  p8_regfile+80,a1
     move.l  p8_regfile+84,d0
     jsr  exec.OpenLibrary(a6)
+    move.l  d0,p8_regfile+88
         ; storem.l r30.l,[sys.IntuitionBase]
-    move.l  d0, sys.IntuitionBase
+    move.l  p8_regfile+88,sys.IntuitionBase
         ; load.p r31.p,#prog8_interned_strings.string_35
     move.l  #prog8_interned_strings.string_35,p8_regfile+92
         ; load.l r32.l,#0.l
@@ -1530,8 +1533,9 @@ proc_CLI = 172
     movea.l  p8_regfile+92,a1
     move.l  p8_regfile+96,d0
     jsr  exec.OpenLibrary(a6)
+    move.l  d0,p8_regfile+100
         ; storem.l r33.l,[sys.IconBase]
-    move.l  d0, sys.IconBase
+    move.l  p8_regfile+100,sys.IconBase
         ; load.p r34.p,#prog8_interned_strings.string_36
     move.l  #prog8_interned_strings.string_36,p8_regfile+104
         ; load.l r35.l,#0.l
@@ -1541,8 +1545,9 @@ proc_CLI = 172
     movea.l  p8_regfile+104,a1
     move.l  p8_regfile+108,d0
     jsr  exec.OpenLibrary(a6)
+    move.l  d0,p8_regfile+112
         ; storem.l r36.l,[sys.UtilityBase]
-    move.l  d0, sys.UtilityBase
+    move.l  p8_regfile+112,sys.UtilityBase
         ; return
     rts
 ; End of subroutine: p8_sys_startup.init_system
@@ -1835,8 +1840,9 @@ p8b_txt.p8s_print_ub:
         ; ext.b r56.w,r55.b
     moveq  #0,d0
     move.b  p8_regfile+188,d0
+    move.w  d0,p8_regfile+190
         ; storem.w r56.w,[p8b_txt.p8v_fmt_value_w]
-    move.w  d0, p8b_txt.p8v_fmt_value_w
+    move.w  p8_regfile+190,p8b_txt.p8v_fmt_value_w
         ; load.p r57.p,#prog8_interned_strings.string_7
     move.l  #prog8_interned_strings.string_7,p8_regfile+192
         ; load.p r58.p,#p8b_txt.p8v_fmt_value_w

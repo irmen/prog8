@@ -4332,8 +4332,9 @@ p8b_main.p8s_interact.p8_label_gen_3_whileloop:
 ; source: tictactoe.p8:142
         ; call p8b_easygfx.p8s_imsg_wait():r116.p
     bsr  p8b_easygfx.p8s_imsg_wait
+    move.l  d0,p8_regfile+266
         ; storem.p r116.p,[p8b_main.p8s_interact.p8v_msg]
-    move.l  d0, p8b_main.p8s_interact.p8v_msg
+    move.l  p8_regfile+266,p8b_main.p8s_interact.p8v_msg
 
 p8b_main.p8s_interact.p8_label_gen_1_whileloop:
 ; source: tictactoe.p8:143
@@ -4390,8 +4391,9 @@ p8_label_gen_21:
     move.l  p8_regfile+282,-(sp)        ; msg
     bsr  p8b_easygfx.p8s_imsg_reply
     addq.l  #4,sp
+    move.l  d0,p8_regfile+286
         ; storem.p r121.p,[p8b_main.p8s_interact.p8v_msg]
-    move.l  d0, p8b_main.p8s_interact.p8v_msg
+    move.l  p8_regfile+286,p8b_main.p8s_interact.p8v_msg
         ; jump p8b_main.p8s_interact.p8_label_gen_1_whileloop
     bra  p8b_main.p8s_interact.p8_label_gen_1_whileloop
 
@@ -4839,8 +4841,9 @@ proc_CLI = 172
     movea.l  p8_regfile+384,a1
     move.l  p8_regfile+388,d0
     jsr  exec.OpenLibrary(a6)
+    move.l  d0,p8_regfile+392
         ; storem.l r162.l,[sys.DOSBase]
-    move.l  d0, sys.DOSBase
+    move.l  p8_regfile+392,sys.DOSBase
         ; load.p r163.p,#prog8_interned_strings.string_11
     move.l  #prog8_interned_strings.string_11,p8_regfile+396
         ; load.l r164.l,#0.l
@@ -4850,8 +4853,9 @@ proc_CLI = 172
     movea.l  p8_regfile+396,a1
     move.l  p8_regfile+400,d0
     jsr  exec.OpenLibrary(a6)
+    move.l  d0,p8_regfile+404
         ; storem.l r165.l,[sys.GfxBase]
-    move.l  d0, sys.GfxBase
+    move.l  p8_regfile+404,sys.GfxBase
         ; load.p r166.p,#prog8_interned_strings.string_12
     move.l  #prog8_interned_strings.string_12,p8_regfile+408
         ; load.l r167.l,#0.l
@@ -4861,8 +4865,9 @@ proc_CLI = 172
     movea.l  p8_regfile+408,a1
     move.l  p8_regfile+412,d0
     jsr  exec.OpenLibrary(a6)
+    move.l  d0,p8_regfile+416
         ; storem.l r168.l,[sys.IntuitionBase]
-    move.l  d0, sys.IntuitionBase
+    move.l  p8_regfile+416,sys.IntuitionBase
         ; load.p r169.p,#prog8_interned_strings.string_13
     move.l  #prog8_interned_strings.string_13,p8_regfile+420
         ; load.l r170.l,#0.l
@@ -4872,8 +4877,9 @@ proc_CLI = 172
     movea.l  p8_regfile+420,a1
     move.l  p8_regfile+424,d0
     jsr  exec.OpenLibrary(a6)
+    move.l  d0,p8_regfile+428
         ; storem.l r171.l,[sys.IconBase]
-    move.l  d0, sys.IconBase
+    move.l  p8_regfile+428,sys.IconBase
         ; load.p r172.p,#prog8_interned_strings.string_14
     move.l  #prog8_interned_strings.string_14,p8_regfile+432
         ; load.l r173.l,#0.l
@@ -4883,8 +4889,9 @@ proc_CLI = 172
     movea.l  p8_regfile+432,a1
     move.l  p8_regfile+436,d0
     jsr  exec.OpenLibrary(a6)
+    move.l  d0,p8_regfile+440
         ; storem.l r174.l,[sys.UtilityBase]
-    move.l  d0, sys.UtilityBase
+    move.l  p8_regfile+440,sys.UtilityBase
         ; return
     rts
 ; End of subroutine: p8_sys_startup.init_system
@@ -5251,8 +5258,9 @@ p8_label_gen_61:
     move.l  sys.IntuitionBase,a6
     movea.l  p8_regfile+618,a0
     jsr  intuition.OpenScreen(a6)
+    move.l  d0,p8_regfile+622
         ; storem.p r227.p,[p8b_easygfx.p8v_screen]
-    move.l  d0, p8b_easygfx.p8v_screen
+    move.l  p8_regfile+622,p8b_easygfx.p8v_screen
         ; loadm.p r228.p,[p8b_easygfx.p8v_screen]
     move.l  p8b_easygfx.p8v_screen,p8_regfile+626
         ; bstne p8_label_gen_62
@@ -5352,8 +5360,9 @@ p8_label_gen_63:
     move.l  sys.IntuitionBase,a6
     movea.l  p8_regfile+680,a0
     jsr  intuition.OpenWindow(a6)
+    move.l  d0,p8_regfile+684
         ; storem.p r247.p,[p8b_easygfx.p8v_window]
-    move.l  d0, p8b_easygfx.p8v_window
+    move.l  p8_regfile+684,p8b_easygfx.p8v_window
         ; loadm.p r248.p,[p8b_easygfx.p8v_window]
     move.l  p8b_easygfx.p8v_window,p8_regfile+688
         ; bstne p8_label_gen_65
@@ -5932,6 +5941,7 @@ p8b_easygfx.p8s_imsg_wait:
     jsr  exec.GetMsg(a6)
     move.l  d0,p8_regfile+940
         ; returnr.p r341.p
+    move.l  p8_regfile+940,d0
     rts
 ; End of subroutine: p8b_easygfx.p8s_imsg_wait
 
@@ -5961,6 +5971,7 @@ p8b_easygfx.p8s_imsg_reply:
     jsr  exec.GetMsg(a6)
     move.l  d0,p8_regfile+956
         ; returnr.p r345.p
+    move.l  p8_regfile+956,d0
     unlk  a5
     rts
 ; End of subroutine: p8b_easygfx.p8s_imsg_reply
@@ -6017,6 +6028,7 @@ p8_label_gen_77:
     lsl.w  #2,d0
     move.w  d0,p8_regfile+966
         ; returnr.w r349.w
+    move.w  p8_regfile+966,d0
     unlk  a5
     rts
 
@@ -6030,6 +6042,7 @@ p8_label_gen_78:
     divs.w  #2,d0
     move.w  d0,p8_regfile+968
         ; returnr.w r350.w
+    move.w  p8_regfile+968,d0
     unlk  a5
     rts
 
@@ -6108,8 +6121,9 @@ p8b_easygfx.p8s_finish_open:
         ; loadi.p r360.p,[r359.p+50]
     movea.l  p8_regfile+1002,a0
     move.l  (50,a0),d0
+    move.l  d0,p8_regfile+1006
         ; storem.p r360.p,[p8b_easygfx.p8v_rastport]
-    move.l  d0, p8b_easygfx.p8v_rastport
+    move.l  p8_regfile+1006,p8b_easygfx.p8v_rastport
         ; loadm.p r361.p,[p8b_easygfx.p8v_window]
     move.l  p8b_easygfx.p8v_window,p8_regfile+1010
         ; loadi.b r362.b,[r361.p+54]
@@ -6118,8 +6132,9 @@ p8b_easygfx.p8s_finish_open:
     move.b  d0,p8_regfile+1014
         ; exts.b r363.w,r362.b
     ext.w  d0
+    move.w  d0,p8_regfile+1016
         ; storem.w r363.w,[p8b_easygfx.p8v_origin_x]
-    move.w  d0, p8b_easygfx.p8v_origin_x
+    move.w  p8_regfile+1016,p8b_easygfx.p8v_origin_x
         ; loadm.p r364.p,[p8b_easygfx.p8v_window]
     move.l  p8b_easygfx.p8v_window,p8_regfile+1018
         ; loadi.b r365.b,[r364.p+55]
@@ -6128,8 +6143,9 @@ p8b_easygfx.p8s_finish_open:
     move.b  d0,p8_regfile+1022
         ; exts.b r366.w,r365.b
     ext.w  d0
+    move.w  d0,p8_regfile+1024
         ; storem.w r366.w,[p8b_easygfx.p8v_origin_y]
-    move.w  d0, p8b_easygfx.p8v_origin_y
+    move.w  p8_regfile+1024,p8b_easygfx.p8v_origin_y
         ; loadm.p r367.p,[p8b_easygfx.p8v_window]
     move.l  p8b_easygfx.p8v_window,p8_regfile+1026
         ; loadi.w r368.w,[r367.p+8]
@@ -6346,8 +6362,9 @@ p8_label_gen_87:
         ; ext.w r405.l,r402.w
     moveq  #0,d0
     move.w  p8_regfile+1120,d0
+    move.l  d0,p8_regfile+1128
         ; storem.l r405.l,[p8b_easygfx.p8v_tmpras_size]
-    move.l  d0, p8b_easygfx.p8v_tmpras_size
+    move.l  p8_regfile+1128,p8b_easygfx.p8v_tmpras_size
         ; loadm.l r406.l,[p8b_easygfx.p8v_tmpras_size]
     move.l  p8b_easygfx.p8v_tmpras_size,p8_regfile+1132
         ; load.l r407.l,#2.l
@@ -6357,8 +6374,9 @@ p8_label_gen_87:
     move.l  p8_regfile+1132,d0
     move.l  p8_regfile+1136,d1
     jsr  exec.AllocMem(a6)
+    move.l  d0,p8_regfile+1140
         ; storem.l r408.l,[p8b_easygfx.p8v_tmpras_buf]
-    move.l  d0, p8b_easygfx.p8v_tmpras_buf
+    move.l  p8_regfile+1140,p8b_easygfx.p8v_tmpras_buf
 
 p8_label_gen_88:
 ; source: shared_amiga_easygfx.p8:385
@@ -6953,8 +6971,9 @@ diskfont.openlib:
     movea.l  p8_regfile+1144,a1
     move.l  p8_regfile+1148,d0
     jsr  exec.OpenLibrary(a6)
+    move.l  d0,p8_regfile+1152
         ; storem.l r411.l,[sys.DiskfontBase]
-    move.l  d0, sys.DiskfontBase
+    move.l  p8_regfile+1152,sys.DiskfontBase
         ; loadm.l r412.l,[sys.DiskfontBase]
     move.l  sys.DiskfontBase,p8_regfile+1156
         ; bstne p8_label_gen_89
@@ -7059,6 +7078,7 @@ diskfont.openfont:
     jsr  diskfont.OpenDiskFont(a6)
     move.l  d0,p8_regfile+1206
         ; returnr.p r427.p
+    move.l  p8_regfile+1206,d0
     unlk  a5
     rts
 ; End of subroutine: diskfont.openfont

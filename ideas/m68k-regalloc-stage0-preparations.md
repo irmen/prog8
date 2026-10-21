@@ -1,7 +1,7 @@
 # M68k Register Allocation - Stage 0: Preparations
 
 **Parent design:** `ideas/m68k-register-allocation.md`
-**Status:** Decided and delegable. No behavior change.
+**Status:** Complete (Oct 2026). All five items landed. No behavior change.
 **Gate to next stage:** All five items complete and verified individually; compiler builds,
 tests pass, and output remains byte-identical for items that touch code.
 
@@ -243,9 +243,11 @@ must still model these as hidden call boundaries (Item 1 catalog).
 standard scratch set, and `translateSyscallSplitWordarrayContains` now saves and
 restores `d2`–`d4` with `movem`.
 
-## Item 2 - Status
+## Item 2 - Status (completed)
 
-A full byte-identical golden harness is not yet in place. The existing
-`TestStackFrameEmission.kt` provides the pattern (compile to .asm, read lines,
-assert). Building the corpus harness is deferred to Stage 1 prep where it gates
-the refactor; it can reuse that pattern. No code change in this stage.
+The golden harness is `compiler/test/codegeneration/TestM68kGoldenAsm.kt`. It
+compares the `.asm` output for 72 corpus entries (optimized and unoptimized)
+against `compiler/test/golden/m68k/`. Regenerate with `UPDATE_M68K_GOLDEN=1`.
+On a mismatch it writes `<name>-<opt|noopt>.actual.asm` next to the golden.
+Stage 1 and Stage 2 were verified byte-identical against the pre-Stage-0/1
+commit using this harness.

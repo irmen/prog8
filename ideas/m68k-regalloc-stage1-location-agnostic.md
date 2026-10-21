@@ -4,7 +4,7 @@
 **Prerequisite:** Stage 0 complete (at minimum: byte-identical test harness from
 Stage 0 item 2; named scratch constants from item 3 are part of this stage's
 enforcement work).
-**Status:** Decided and delegable. Behavior-neutral by construction.
+**Status:** Implemented (Oct 2026). Behavior-neutral by construction; see the status section below.
 **Gate to next stage:** With an empty allocation map, generated assembly is
 byte-identical to pre-change output for the test corpus. Compiler builds and
 tests pass.

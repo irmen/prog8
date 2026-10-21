@@ -16,6 +16,21 @@ frames.
 This document describes the design for a **true register allocator** for the
 m68k code generation backend (`codeGenM68k`).
 
+### Progress (Oct 2026)
+
+| Stage | Status | Details |
+|-------|--------|---------|
+| 0 - preparations | Complete | `m68k-regalloc-stage0-preparations.md` |
+| 1A - location-agnostic selection | Implemented | `m68k-regalloc-stage1-location-agnostic.md` |
+| 1B - indexed/indirect re-selection | Implemented | `m68k-regalloc-stage1b-indexed-indirect.md` |
+| 2 - allocator (`-m68kregalloc`) | Implemented, experimental flag | `m68k-regalloc-stage2-allocator.md` |
+| 3 - teardown | In progress: 3a done, 3c partial, 3b and 3d open | `m68k-regalloc-stage3-teardown.md` |
+| 4 - default allocator | Not started | `m68k-regalloc-stage4-default.md` |
+
+Open risk: the default (regfile) path is larger than HEAD after Stage 3a, until Stage 4.
+Under the allocator the removed peepholes are almost never needed (only the
+`%option noframe` startup routine is affected).
+
 ## 0. Goals (in priority order)
 
 1. **Values live in CPU registers.** Virtual-register values must reside in the
@@ -832,6 +847,9 @@ frameless-subroutine spill mechanics, are in
 
 ### Stage 3 — teardown of the old mitigation layer (split into sub-steps)
 
+**Status:** in progress. Step 3a landed (working tree, goldens regenerated), 3c is
+partial, 3b and 3d are open. Details in `m68k-regalloc-stage3-teardown.md`.
+
 Much of `AsmOptimizer` exists only to undo what memory-everywhere codegen
 produces (spill-then-reload bounces, immediate forwarding that matches literal
 `p8_regfile+N` operand strings — see the many `REGFILE-DEPENDENT` comments and
@@ -873,6 +891,8 @@ to assert properties (allocated vregs never appear as `p8_regfile` operands;
 specific sequences for known-small examples) instead of full listings.
 
 ### Stage 4 — default allocator and cleanup
+
+**Status:** not started. Waits for Stage 3.
 
 Removes the `-m68kregalloc` flag, the old memory-everywhere path, and the golden
 harness with its data files, and trims the m68k codegen comments to the project

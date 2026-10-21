@@ -1766,8 +1766,9 @@ p8b_conv.p8s_str_ubhex:
         ; loadx.b r198.b,[p8b_conv.p8v_hex_digits+r197.w]
     lea  p8b_conv.p8v_hex_digits,a0
     move.b  (a0,d0.w),d0
+    move.b  d0,p8_regfile+642
         ; storem.b r198.b,[p8b_conv.p8v_string_out]
-    move.b  d0, p8b_conv.p8v_string_out
+    move.b  p8_regfile+642,p8b_conv.p8v_string_out
         ; loadm.b r199.b,[frame:8]
     move.b  8(a5),p8_regfile+644
         ; and.b r199.b,#15.b
@@ -1778,8 +1779,9 @@ p8b_conv.p8s_str_ubhex:
     move.w  d0,p8_regfile+646
         ; loadx.b r201.b,[p8b_conv.p8v_hex_digits+r200.w]
     move.b  (a0,d0.w),d0
+    move.b  d0,p8_regfile+648
         ; storem.b r201.b,[p8b_conv.p8v_string_out+1]
-    move.b  d0, p8b_conv.p8v_string_out+1
+    move.b  p8_regfile+648,p8b_conv.p8v_string_out+1
     clr.b  p8b_conv.p8v_string_out+2
         ; load.p r202.p,#p8b_conv.p8v_string_out
     move.l  #p8b_conv.p8v_string_out,p8_regfile+650
@@ -1818,8 +1820,9 @@ p8b_conv.p8s_str_uwhex:
         ; loadx.b r207.b,[p8b_conv.p8v_hex_digits+r206.w]
     lea  p8b_conv.p8v_hex_digits,a0
     move.b  (a0,d0.w),d0
+    move.b  d0,p8_regfile+662
         ; storem.b r207.b,[p8b_conv.p8v_string_out]
-    move.b  d0, p8b_conv.p8v_string_out
+    move.b  p8_regfile+662,p8b_conv.p8v_string_out
         ; loadm.b r208.b,[frame:-1]
     move.b  -1(a5),p8_regfile+664
         ; and.b r208.b,#15.b
@@ -1830,8 +1833,9 @@ p8b_conv.p8s_str_uwhex:
     move.w  d0,p8_regfile+666
         ; loadx.b r210.b,[p8b_conv.p8v_hex_digits+r209.w]
     move.b  (a0,d0.w),d0
+    move.b  d0,p8_regfile+668
         ; storem.b r210.b,[p8b_conv.p8v_string_out+1]
-    move.b  d0, p8b_conv.p8v_string_out+1
+    move.b  p8_regfile+668,p8b_conv.p8v_string_out+1
         ; loadm.w r211.w,[frame:8]
     move.w  8(a5),p8_regfile+670
         ; lsigb.w r212.b,r211.w
@@ -1851,8 +1855,9 @@ p8b_conv.p8s_str_uwhex:
     move.w  d0,p8_regfile+676
         ; loadx.b r215.b,[p8b_conv.p8v_hex_digits+r214.w]
     move.b  (a0,d0.w),d0
+    move.b  d0,p8_regfile+678
         ; storem.b r215.b,[p8b_conv.p8v_string_out+2]
-    move.b  d0, p8b_conv.p8v_string_out+2
+    move.b  p8_regfile+678,p8b_conv.p8v_string_out+2
         ; loadm.b r216.b,[frame:-1]
     move.b  -1(a5),p8_regfile+680
         ; and.b r216.b,#15.b
@@ -1863,8 +1868,9 @@ p8b_conv.p8s_str_uwhex:
     move.w  d0,p8_regfile+682
         ; loadx.b r218.b,[p8b_conv.p8v_hex_digits+r217.w]
     move.b  (a0,d0.w),d0
+    move.b  d0,p8_regfile+684
         ; storem.b r218.b,[p8b_conv.p8v_string_out+3]
-    move.b  d0, p8b_conv.p8v_string_out+3
+    move.b  p8_regfile+684,p8b_conv.p8v_string_out+3
     clr.b  p8b_conv.p8v_string_out+4
         ; load.p r219.p,#p8b_conv.p8v_string_out
     move.l  #p8b_conv.p8v_string_out,p8_regfile+686
@@ -1918,8 +1924,9 @@ p8b_conv.p8s_str_ulhex:
         ; loadx.b r228.b,[p8b_conv.p8v_hex_digits+r227.w]
     lea  p8b_conv.p8v_hex_digits,a0
     move.b  (a0,d0.w),d0
+    move.b  d0,p8_regfile+710
         ; storem.b r228.b,[p8b_conv.p8v_string_out]
-    move.b  d0, p8b_conv.p8v_string_out
+    move.b  p8_regfile+710,p8b_conv.p8v_string_out
         ; loadm.b r229.b,[frame:-5]
     move.b  -5(a5),p8_regfile+712
         ; and.b r229.b,#15.b
@@ -1930,8 +1937,9 @@ p8b_conv.p8s_str_ulhex:
     move.w  d0,p8_regfile+714
         ; loadx.b r231.b,[p8b_conv.p8v_hex_digits+r230.w]
     move.b  (a0,d0.w),d0
+    move.b  d0,p8_regfile+716
         ; storem.b r231.b,[p8b_conv.p8v_string_out+1]
-    move.b  d0, p8b_conv.p8v_string_out+1
+    move.b  p8_regfile+716,p8b_conv.p8v_string_out+1
         ; loadm.w r232.w,[frame:-4]
     move.w  -4(a5),p8_regfile+718
         ; lsigb.w r233.b,r232.w
@@ -1951,8 +1959,9 @@ p8b_conv.p8s_str_ulhex:
     move.w  d0,p8_regfile+724
         ; loadx.b r236.b,[p8b_conv.p8v_hex_digits+r235.w]
     move.b  (a0,d0.w),d0
+    move.b  d0,p8_regfile+726
         ; storem.b r236.b,[p8b_conv.p8v_string_out+2]
-    move.b  d0, p8b_conv.p8v_string_out+2
+    move.b  p8_regfile+726,p8b_conv.p8v_string_out+2
         ; loadm.b r237.b,[frame:-5]
     move.b  -5(a5),p8_regfile+728
         ; and.b r237.b,#15.b
@@ -1963,8 +1972,9 @@ p8b_conv.p8s_str_ulhex:
     move.w  d0,p8_regfile+730
         ; loadx.b r239.b,[p8b_conv.p8v_hex_digits+r238.w]
     move.b  (a0,d0.w),d0
+    move.b  d0,p8_regfile+732
         ; storem.b r239.b,[p8b_conv.p8v_string_out+3]
-    move.b  d0, p8b_conv.p8v_string_out+3
+    move.b  p8_regfile+732,p8b_conv.p8v_string_out+3
         ; loadm.w r240.w,[frame:-2]
     move.w  -2(a5),p8_regfile+734
         ; msigb.w r241.b,r240.w
@@ -1984,8 +1994,9 @@ p8b_conv.p8s_str_ulhex:
     move.w  d0,p8_regfile+740
         ; loadx.b r244.b,[p8b_conv.p8v_hex_digits+r243.w]
     move.b  (a0,d0.w),d0
+    move.b  d0,p8_regfile+742
         ; storem.b r244.b,[p8b_conv.p8v_string_out+4]
-    move.b  d0, p8b_conv.p8v_string_out+4
+    move.b  p8_regfile+742,p8b_conv.p8v_string_out+4
         ; loadm.b r245.b,[frame:-5]
     move.b  -5(a5),p8_regfile+744
         ; and.b r245.b,#15.b
@@ -1996,8 +2007,9 @@ p8b_conv.p8s_str_ulhex:
     move.w  d0,p8_regfile+746
         ; loadx.b r247.b,[p8b_conv.p8v_hex_digits+r246.w]
     move.b  (a0,d0.w),d0
+    move.b  d0,p8_regfile+748
         ; storem.b r247.b,[p8b_conv.p8v_string_out+5]
-    move.b  d0, p8b_conv.p8v_string_out+5
+    move.b  p8_regfile+748,p8b_conv.p8v_string_out+5
         ; loadm.w r248.w,[frame:-2]
     move.w  -2(a5),p8_regfile+750
         ; lsigb.w r249.b,r248.w
@@ -2017,8 +2029,9 @@ p8b_conv.p8s_str_ulhex:
     move.w  d0,p8_regfile+756
         ; loadx.b r252.b,[p8b_conv.p8v_hex_digits+r251.w]
     move.b  (a0,d0.w),d0
+    move.b  d0,p8_regfile+758
         ; storem.b r252.b,[p8b_conv.p8v_string_out+6]
-    move.b  d0, p8b_conv.p8v_string_out+6
+    move.b  p8_regfile+758,p8b_conv.p8v_string_out+6
         ; loadm.b r253.b,[frame:-5]
     move.b  -5(a5),p8_regfile+760
         ; and.b r253.b,#15.b
@@ -2029,8 +2042,9 @@ p8b_conv.p8s_str_ulhex:
     move.w  d0,p8_regfile+762
         ; loadx.b r255.b,[p8b_conv.p8v_hex_digits+r254.w]
     move.b  (a0,d0.w),d0
+    move.b  d0,p8_regfile+764
         ; storem.b r255.b,[p8b_conv.p8v_string_out+7]
-    move.b  d0, p8b_conv.p8v_string_out+7
+    move.b  p8_regfile+764,p8b_conv.p8v_string_out+7
     clr.b  p8b_conv.p8v_string_out+8
         ; load.p r256.p,#p8b_conv.p8v_string_out
     move.l  #p8b_conv.p8v_string_out,p8_regfile+766
@@ -2237,8 +2251,9 @@ qemu.bootinfo_next:
         ; loadi.w r259.w,[r258.p]
     movea.l  p8_regfile+774,a0
     move.w  (a0),d0
+    move.w  d0,p8_regfile+778
         ; storem.w r259.w,[qemu.bootinfo_next.tag]
-    move.w  d0, qemu.bootinfo_next.tag
+    move.w  p8_regfile+778,qemu.bootinfo_next.tag
         ; loadm.w r260.w,[qemu.bootinfo_next.tag]
     move.w  qemu.bootinfo_next.tag,p8_regfile+780
         ; bstne p8_label_gen_59
