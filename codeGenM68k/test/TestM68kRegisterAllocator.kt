@@ -491,7 +491,31 @@ class TestM68kRegisterAllocator : FunSpec({
 
         val result = M68kRegisterAllocator(program).allocate()
         result.callSiteEffects[sub]?.get(0)?.reads shouldBe setOf("d2")
-        result.mapBySub[sub]!![VirtualRegister.int(1)] shouldNotBe "d2"
+        result.mapBySub[sub]?.get(VirtualRegister.int(1)) shouldNotBe "d2"
+    }
+
+    test("constant call argument feeding a hardware argument takes no register or slot") {
+        val options = CompilationOptions.builder(Qemu68kTarget())
+            .output(OutputType.RAW).zeropage(ZeropageType.FLOATSAFE)
+            .compilerVersion("test").memtopAddress(0xffffu).optimize(true).build()
+        val program = IRProgram("test", IRSymbolTable(), options, DummyStringEncoder)
+        val chunk = IRCodeChunk(null, null)
+        val slotD2 = CallLocation.HardwareRegister(CallingConventionSlot(12))
+        chunk.instructions.add(IRInstructions.load(IRDataType.WORD, 5, 7))
+        val callSite = CallSite(
+            CallTarget.Direct(CodeReference.Label("p8_other", 0)),
+            arguments = listOf(Calls.argument(5, IRDataType.WORD, slotD2))
+        )
+        chunk.instructions.add(IRInstruction(Opcode.CALL, null, callSite = callSite))
+        val sub = IRSubroutine("test.start", emptyList(), emptyList(), Position.DUMMY)
+        sub.chunks.add(chunk)
+        val block = IRBlock("test", false, IRBlock.Options(), Position.DUMMY)
+        block.children.add(sub)
+        program.blocks.add(block)
+
+        val result = M68kRegisterAllocator(program).allocate()
+        (VirtualRegister.int(5) in result.mapBySub[sub].orEmpty()) shouldBe false
+        (VirtualRegister.int(5) in result.spilledVregsBySub[sub].orEmpty()) shouldBe false
     }
 
     test("fixed result slot register is avoided for live-across vregs") {

@@ -470,8 +470,9 @@ class M68kRegisterAllocator(val program: IRProgram) {
         }
         if (subCallEffects.isNotEmpty()) callSiteEffects[sub] = subCallEffects
 
+        val forwarded = forwardedCallArgVregs(chunks)
         // Greedy coloring per class, highest degree first
-        val ordered = vregs.sortedByDescending { interference[it]!!.size }
+        val ordered = vregs.filter { it !in forwarded }.sortedByDescending { interference[it]!!.size }
         val color = mutableMapOf<VirtualRegister, String>()
         var spills = 0
         for (v in ordered) {
@@ -493,7 +494,7 @@ class M68kRegisterAllocator(val program: IRProgram) {
                 for (v in liveSet) color[v]?.let { demanded.add(it) }
         }
         spillDemandBySub[sub] = spills
-        val spilled = vregs.filter { it !in color }.toList()
+        val spilled = vregs.filter { it !in color && it !in forwarded }.toList()
         spilledVregsBySub[sub] = spilled
         var totalRefs = 0
         var allocatedRefs = 0
@@ -507,5 +508,35 @@ class M68kRegisterAllocator(val program: IRProgram) {
             }
         }
         statsBySub[sub] = SubAllocStats(totalRefs, allocatedRefs, spilled.size, maxLiveData, maxLiveAddress, maxLiveFloat)
+    }
+
+    // Vregs whose only accesses are one immediate LOAD and one hardware-register call argument, in the
+    // same chunk. AsmGen forwards such constants straight into the argument register, so they take no
+    // register and no frame slot. Must stay a subset of what AsmGen.immediateLoadsForCall forwards.
+    private fun forwardedCallArgVregs(chunks: List<IRCodeChunkBase>): Set<VirtualRegister> {
+        val accesses = mutableMapOf<VirtualRegister, Int>()
+        for (chunk in chunks)
+            for (ins in chunk.instructions)
+                for (ra in ins.registerAccesses)
+                    accesses.merge(ra.register, 1, Int::plus)
+        val forwarded = mutableSetOf<VirtualRegister>()
+        for (chunk in chunks) {
+            val instructions = chunk.instructions
+            for (callIndex in instructions.indices) {
+                val call = instructions[callIndex]
+                val callSite = call.callSite ?: continue
+                if (call.opcode != Opcode.CALL || callSite.arguments.isEmpty() ||
+                    callSite.arguments.any { it.location !is CallLocation.HardwareRegister }) continue
+                for (arg in callSite.arguments) {
+                    val reg = arg.source.register
+                    if (accesses[reg] != 2) continue
+                    val definition = (callIndex - 1 downTo 0).firstNotNullOfOrNull { idx ->
+                        instructions[idx].takeIf { it.exclusiveDestination() == reg }
+                    } ?: continue
+                    if (definition.forwardableImmediateFor(reg, arg.source.type) != null) forwarded.add(reg)
+                }
+            }
+        }
+        return forwarded
     }
 }

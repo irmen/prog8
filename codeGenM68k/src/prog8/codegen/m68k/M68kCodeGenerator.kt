@@ -35,16 +35,34 @@ class M68kCodeGenerator(val retainSSA: Boolean): ICodeGeneratorBackend {
         if (options.compTarget.supportsStackFrames)
             StackFrameLayout(irProgram, errors).apply()
 
+        if (options.dumpVariables)
+            dumpVariables(irProgram)
+
+        // Register allocation is done as late as possible: after frame layout and variable dump,
+        // but before the IR is serialized (spill slots are patched into frames first) and before AsmGen.
         val allocation = M68kRegisterAllocator(irProgram).allocate()
         for ((sub, spilled) in allocation.spilledVregsBySub) {
             if (spilled.isNotEmpty())
                 appendSpillSlotsToFrame(sub, spilled, virtualRegisterTypes, irProgram.options.compTarget, errors)
         }
 
-        if (options.dumpVariables)
-            dumpVariables(irProgram)
-
         IRFileWriter(irProgram, null).write()
+
+        // Aggregate register-allocation statistics (printed for every m68k compile, unless quiet).
+        // Safe to print after the IR is written: this block has no side effects.
+        if (!options.quiet) {
+            val stats = allocation.statsBySub
+            val totalSubs = stats.size
+            val totalVregs = allocation.mapBySub.values.sumOf { it.size }
+            val totalRefs = stats.values.sumOf { it.totalRefs }
+            val allocatedRefs = stats.values.sumOf { it.allocatedRefs }
+            val residency = if (totalRefs == 0) 1.0 else allocatedRefs.toDouble() / totalRefs
+            val totalSpills = stats.values.sumOf { it.spillCount }
+            val totalSpillDemand = allocation.spillDemandBySub.values.sum()
+            val totalSpilledVregs = allocation.spilledVregsBySub.values.sumOf { it.size }
+            val residencyPct = String.format(java.util.Locale.US, "%.1f", residency * 100.0)
+            println("m68k register allocation: $totalSubs subs, $totalVregs vregs, $allocatedRefs/$totalRefs refs ($residencyPct% residency), spills=$totalSpills ($totalSpilledVregs vregs, demand $totalSpillDemand)")
+        }
 
         val gen = AsmGen(irProgram, irProgram.options.compTarget, errors)
         gen.regAllocationBySub = allocation.mapBySub

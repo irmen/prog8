@@ -24,6 +24,17 @@ the full m68k example set.
   bounce pairs per amiga program. Decision (Oct 2026): accepted as-is. Allocating
   noframe code is not planned.
 
+## Follow-up: constant call arguments (Oct 2026)
+
+Re-measured against `master` (the last commit before the allocator): amiga500 went
+from 103,457 to 102,398 non-comment lines (-1.0%) and qemu68k from 16,034 to 15,494
+(-3.4%). The first allocator default had grown `3d` and `blitcop`, because constants
+feeding a hardware-register call argument were loaded into an allocated register and
+then copied into the argument register. `RegisterAllocator.forwardedCallArgVregs`
+now leaves such vregs out of coloring and spilling, so `AsmGen` forwards the
+constant straight into the argument register. `3d` and `blitcop` are now below
+master (4,785 and 4,139 lines). The rule is a subset of `AsmGen.immediateLoadsForCall`.
+
 ## Work
 
 1. **Remove the `-m68kregalloc` flag.** The allocator path is the only path.
