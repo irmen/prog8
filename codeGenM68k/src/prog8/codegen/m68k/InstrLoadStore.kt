@@ -216,8 +216,7 @@ private fun AsmGen.translateFloatLoadStore(insn: IRInstruction, suppressRegfileS
             val src = insn.requireFloatSourceA().floatNumber
             val target = resolveMemory(insn.requireMemory(), forFloat = true)
             directFloatReg(src)?.let { s ->
-                // Source resident: fmove.s FPn,<ea> is legal, no accumulator
-                // needed. Null for spilled sources, keeping the fp0 bounce.
+                // Source resident: fmove.s FPn,<ea> is legal, so no accumulator is needed.
                 emitLine("fmove.s  $s, $target")
                 invalidateD0CacheForAddress(target)
                 return
@@ -237,9 +236,7 @@ private fun AsmGen.translateFloatLoadStore(insn: IRInstruction, suppressRegfileS
             emitLine("fmove  $FP_ACC, $hwReg")
         }
 
-        // The 'FAC' hardware float registers only exist on the 6502 targets. On m68k they are
-        // modelled with the two FPU scratch registers; loading them yields the 0.0 / 1.0 constants
-        // that the 6502 targets keep in FAC1 / FAC2.
+        // 'FAC' registers only exist on the 6502 targets; here they are the 0.0 / 1.0 FPU constants.
         Opcode.LOADHFACZERO -> {
             val dst = insn.requireFloatDest().floatNumber
             emitLine($$"fmovecr  #$0f, $$FP_ACC")

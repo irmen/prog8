@@ -27,9 +27,7 @@ class M68kCodeGenerator(val retainSSA: Boolean): ICodeGeneratorBackend {
         }
         irProgram.verifyRegisterTypes(virtualRegisterTypes)
 
-        // Per-subroutine vreg reuse: renumbering rebuilds the type map from the
-        // renumbered program (no second verifyRegisterTypes, since numbers are now
-        // reused across subroutines and the program-wide check no longer applies).
+        // Per-subroutine vreg reuse: renumbering rebuilds the type map; the program-wide check no longer applies.
         renumberVregsPerSubroutine(irProgram)?.let {
             virtualRegisterTypes = it
         }
@@ -59,15 +57,9 @@ class M68kCodeGenerator(val retainSSA: Boolean): ICodeGeneratorBackend {
     }
 }
 
-// Append allocator spill slots to a subroutine's A5 frame.
-// A framed subroutine grows its existing local area downward; a frameless one
-// gains a spill-only frame. Slot geometry mirrors StackFrameLayout (natural
-// sizes, 4/2/1-byte alignment, even total). Vregs that already own a frame
-// slot (re-entrant subs) need no extra slot.
-// A %option noframe subroutine manages the machine stack itself and must never
-// gain a frame: spilling there is rejected with an error instead. Falling back
-// to the static register file would be unsound (shared slots under vreg reuse),
-// so failing loudly is the only safe option.
+// Append allocator spill slots to a subroutine's A5 frame; a frameless sub gains a spill-only
+// frame. A %option noframe sub manages the machine stack itself and must never gain a frame:
+// failing loudly is the only sound option, as the static register file shares slots under vreg reuse.
 internal fun appendSpillSlotsToFrame(
     sub: IRSubroutine,
     spilled: List<VirtualRegister>,
@@ -83,9 +75,7 @@ internal fun appendSpillSlotsToFrame(
     if (fresh.isEmpty()) return
     var cursor = -sub.frameSize
     val slots = mutableMapOf<Int, Int>()
-    // Build a per-subroutine type map: after per-subroutine vreg reuse the same vreg
-    // number can have different types in different subroutines, so the global
-    // virtualRegisterTypes map is not reliable here.
+    // Per-sub vreg reuse gives one number different types per sub, so the global map is not reliable.
     val subTypes = mutableMapOf<VirtualRegister, IRDataType>()
     sub.forEachInstruction { ins ->
         for (ra in ins.registerAccesses) {

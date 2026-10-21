@@ -5,13 +5,9 @@ Stage 4 runs after Stage 3 (teardown of the old mitigation layer) and finishes t
 transition: the allocator becomes the only code path, and the temporary tooling
 used to bring it up is removed.
 
-**Status:** In progress (Oct 2026, uncommitted on `m68k-register-alloc`). Done: steps 1
-(flag removed), 2 (flag-guarded regfile branches removed; spills and noframe
-subroutines keep the regfile), 3 (golden harness deleted), and 4 (`technical.rst`
-and `todo.rst` updated). Step 5 is partly done: stage/step labels, design-section
-references, and stale "legacy" and "yet" wording are removed from `codeGenM68k`;
-the comment-length rules in `AGENTS.md` are not yet audited across the module.
-The example programs run correctly on both Amiga targets (amiga500, amiga1200).
+**Status:** Complete. Flag and golden harness removed; old memory-everywhere
+branches deleted; docs updated; comment audit applied (AGENTS.md rules). Full
+build green. Representative programs run on amiga500, amiga1200 and qemu68k.
 
 ## Precondition
 

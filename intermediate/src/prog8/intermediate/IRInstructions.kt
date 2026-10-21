@@ -1,34 +1,5 @@
 package prog8.intermediate
 
-/**
- * Inline value class representing a memory address (up to 32-bit).
- */
-@JvmInline
-value class MemoryAddress(val value: UInt) {
-    init { require(value <= 0xffffffffu) { "address out of range: $value" } }
-    override fun toString(): String = "$" + value.toString(16).padStart(2, '0')
-    fun toHex(): String = "$" + value.toString(16)
-    operator fun plus(other: UInt): MemoryAddress = MemoryAddress(value + other)
-    operator fun plus(other: Int): MemoryAddress = MemoryAddress(value + other.toUInt())
-    operator fun minus(other: UInt): MemoryAddress = MemoryAddress(value - other)
-    operator fun minus(other: Int): MemoryAddress = MemoryAddress(value - other.toUInt())
-}
-
-/** Convert a UInt to a MemoryAddress. */
-fun UInt.toAddress(): MemoryAddress = MemoryAddress(this)
-
-/**
- * Inline value class representing a virtual register number (0-99999).
- * Supports comparison with Int and other RegisterNum values.
- */
-@JvmInline
-value class RegisterNum(val value: Int): Comparable<RegisterNum> {
-    init { require(value in 0..99999) { "register number out of range: $value" } }
-    override fun toString(): String = "r$value"
-    override fun compareTo(other: RegisterNum): Int = value.compareTo(other.value)
-    operator fun compareTo(other: Int): Int = value.compareTo(other)
-}
-
 /*
  
 Intermediate Representation instructions for the IR Virtual machine.
@@ -807,4 +778,35 @@ data class IRInstruction(
     }
 
     override fun toString(): String = IRTextCodec.print(this)
+}
+
+
+
+/**
+ * Inline value class representing a memory address (up to 32-bit).
+ */
+@JvmInline
+value class MemoryAddress(val value: UInt) {
+    init { require(value <= 0xffffffffu) { "address out of range: $value" } }
+    override fun toString(): String = "$" + value.toString(16).padStart(2, '0')
+    fun toHex(): String = "$" + value.toString(16)
+    operator fun plus(other: UInt): MemoryAddress = MemoryAddress(value + other)
+    operator fun plus(other: Int): MemoryAddress = MemoryAddress(value + other.toUInt())
+    operator fun minus(other: UInt): MemoryAddress = MemoryAddress(value - other)
+    operator fun minus(other: Int): MemoryAddress = MemoryAddress(value - other.toUInt())
+}
+
+/** Convert a UInt to a MemoryAddress. */
+fun UInt.toAddress(): MemoryAddress = MemoryAddress(this)
+
+/**
+ * Inline value class representing a virtual register number (0-99999).
+ * Supports comparison with Int and other RegisterNum values.
+ */
+@JvmInline
+value class RegisterNum(val value: Int): Comparable<RegisterNum> {
+    init { require(value in 0..99999) { "register number out of range: $value" } }
+    override fun toString(): String = "r$value"
+    override fun compareTo(other: RegisterNum): Int = value.compareTo(other.value)
+    operator fun compareTo(other: Int): Int = value.compareTo(other)
 }

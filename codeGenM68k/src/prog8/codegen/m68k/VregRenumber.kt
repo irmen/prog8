@@ -2,33 +2,17 @@ package prog8.codegen.m68k
 
 import prog8.intermediate.*
 
-// Per-subroutine virtual-register reuse.
+// Per-subroutine virtual-register reuse. The IR generator assigns globally unique vreg numbers
+// (RegisterPool never resets) while the m68k allocator colors each subroutine independently, so
+// renumbering every sub's vregs into a compact per-sub range shrinks the program-wide register
+// file and the BSS derived from it.
 //
-// The IR generator assigns globally unique vreg numbers (RegisterPool never
-// resets), so a program with many subroutines accumulates one distinct number
-// per temporary. The m68k allocator colors each subroutine independently, so
-// global uniqueness buys nothing: renumbering every subroutine's vregs into a
-// compact per-sub range shrinks the program-wide register file and the BSS
-// derived from it.
-//
-// Soundness notes:
-// - Reserved vregs (>= 99000, syscall argument/result slots) keep their numbers.
-// - Subroutine vregs are numbered from above the highest number used outside
-//   subroutines (global inits, top-level chunks), so renumbered sub vregs can
-//   never collide with those. Different subroutines intentionally share numbers;
-//   every consumer of vreg-number-keyed state is per-subroutine (the allocation
-//   map is swapped per sub in AsmGen, spill slots and callee-saved sets are
-//   per-sub, the d0 cache is cleared on sub entry).
-// - Rewriting goes through IRInstruction.mapRegisters, which covers every place
-//   a vreg can occur: dest/src, memory operands, indirect targets, and call
-//   sites (arguments, results, bank registers).
-// - Under allocation no subroutine vreg resolves to BSS: allocated vregs resolve
-//   to physical registers and spilled vregs to per-activation frame slots (see
-//   operand() and regAddr()). registersUsed() therefore runs in its permissive
-//   (wasPackingApplied) mode, which is exactly the "same slot number, different
-//   types in different subroutines" case.
-// - Raw (non-IR) inline assembly that names p8_regfile/p8_fregfile textually
-//   would observe the new layout, so renumbering bails out (returns null) then.
+// Reserved vregs (>= 99000, syscall slots) keep their numbers; sub ranges start above the highest
+// number used outside subroutines, so they can never collide. Different subs intentionally share
+// numbers: every consumer of vreg-number-keyed state is per-subroutine (allocation map, spill slots,
+// callee-saved sets, d0 cache). Under allocation no sub vreg resolves to BSS, hence the permissive
+// registersUsed() mode set via wasPackingApplied. Raw (non-IR) inline asm naming
+// p8_regfile/p8_fregfile would observe the new layout, so renumbering bails out then.
 
 /** vreg numbers at or above this are reserved (syscall slots) and never renumbered. */
 private const val RESERVED_VREG_START = 99000

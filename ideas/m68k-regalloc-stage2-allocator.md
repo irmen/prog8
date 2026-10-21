@@ -9,8 +9,8 @@ allocator begins populating `regAllocation`.
 output with empty allocation map).
 **Additional prerequisite:** Decisions §7.1 items 1-4 of the design resolved and
 recorded (see "Decisions required before implementation" below).
-**Status:** All 10 steps implemented behind the experimental `-m68kregalloc`
-flag (default off, output unchanged), plus all three residual items resolved:
+**Status:** Complete. All 10 steps implemented; allocator is now the default
+path (Stage 4).
 d0-cache retirement via gated direct emission, spill-under-pressure proof
 (int and float, end to end in QEMU), and branch-target CFG edges. Corpus
 compiles/assembles/runs correctly with 100% register residency and no stale

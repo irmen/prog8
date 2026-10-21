@@ -1,19 +1,8 @@
 package prog8.codegen.m68k
 
-// M68k assembly-level peephole optimizer.
-//
-// It operates on a MutableList<String> of assembly lines. Only instructions that a peephole
-// actually matches are modified or removed; every other line (including all comments) is left
-// completely untouched. This keeps the generated .asm readable and comments intact.
-//
-// To add a new peephole:
-//   1. Write a private function `optimizeXxx(window: Sequence<List<TrimmedLine>>): List<Modification>`
-//      that inspects a sliding window of consecutive instructions and returns the Modifications
-//      it wants to apply.
-//   2. Register it in optimizeAssembly() by adding a line:
-//          byN = runPass(optimizeXxx(byN), N, byN)
-// The optimizer re-runs all passes until a full pass makes no changes (so cascading optimizations
-// are picked up too).
+// M68k assembly-level peephole optimizer over a MutableList<String> of assembly lines: only
+// lines a peephole matches are modified or removed (comments stay intact), and all passes
+// re-run until a full pass makes no changes. Add a pass by registering it in optimizeAssembly().
 
 internal fun optimizeAssembly(lines: MutableList<String>) {
     val pretrimmed = lines.map { it.trimStart() }.toMutableList()
@@ -53,27 +42,12 @@ internal fun optimizeAssembly(lines: MutableList<String>) {
 }
 
 /**
- * Remove `lea base,a0` instructions that recompute a base a0 is already known to hold.
- *
- * Indexed array access is emitted as `lea base,a0` followed by `(a0,d0.w*2)`. The lea itself is
- * required - absolute-indexed addressing (`base(a0,d0.w*2)`) does not exist on the m68k - but in
- * a sequence of accesses to the same array the base is reloaded several times over.
- *
- * A tracked value is dropped (a0 treated as unknown) whenever the scan sees:
- *  - a label: incoming control flow may not be the fallthrough path
- *  - any control transfer: a branch may reach elsewhere, and a call clobbers a0 (it is a
- *    scratch register in the m68k calling convention)
- *  - any instruction that names a0 outside a parenthesised address, i.e. writes it
- *
- * Anything else - including pure reads such as `move.w (a0,d0.w),d1` - leaves it untouched.
+ * Remove `lea base,a0` instructions that recompute a base a0 is already known to hold. The lea
+ * itself is required (the m68k has no absolute-indexed addressing), but a sequence of accesses
+ * to the same array reloads the base several times over.
  */
 private fun optimizeRedundantLea(allPretrimmed: List<String>): List<Modification> {
-    // Unconditional control flow, calls and returns end the tracked value: control leaves via a
-    // path where a0's contents are unknown (and a call clobbers a0, a scratch register in the
-    // m68k calling convention). The whole DBcc family is included as loop control.
-    // Plain condition-code branches (bne, bge, ...) are deliberately NOT in this set: they do not
-    // modify a0, and their target is always a label, which resets the tracked value below. So the
-    // fallthrough keeps the tracked value and the branch target is re-entered conservatively.
+    // Control transfers end the tracked value (a call clobbers a0); cc branches are excluded, their label resets it.
     val controlTransfers = setOf(
         "bra", "bsr", "jmp", "jsr", "rts", "rtr", "rte", "trap",
         "dbcc", "dbcs", "dbhi", "dbhs", "dblo", "dbls", "dbne", "dbnz", "dbeq", "dbz",
@@ -100,8 +74,7 @@ private fun optimizeRedundantLea(allPretrimmed: List<String>): List<Modification
     for (line in filtered) {
         val instr = line.instruction
         if (hasLabel(line.value)) {
-            // fallthrough into a label is fine, but the label may also be entered from
-            // elsewhere, so the tracked value is no longer known to hold
+            // fallthrough into a label is fine, but the label may also be entered from elsewhere
             a0Base = null
             continue
         }
@@ -148,8 +121,7 @@ private fun applyModifications(modifications: List<Modification>, lines: Mutable
         val idx = modification.lineIndex
         if (modification.remove) {
             val pretrim = pretrimmed.getOrNull(idx)
-            // If the line carries a label we must keep it (other code may jump to it);
-            // otherwise the line is dropped entirely.
+            // Keep the line if it carries a label (other code may jump to it), else drop it entirely.
             if (pretrim.isNullOrBlank() || pretrim.startsWith(';')) {
                 lines.removeAt(idx)
             } else if (hasLabel(pretrim)) {
@@ -186,10 +158,9 @@ private fun keepLabel(line: String): String {
     return if (idx >= 0) line.substring(0, idx + 1) else ""
 }
 
-// Deliberately only recognizes move.b/w/l (data register moves), not movea or movem:
-// movea always writes to an address register (rejected by isSafeMemoryOperand), and
-// movem uses register-list operands (also rejected). So they can never participate in
-// the patterns we optimize, and excluding them keeps moveOperands() simple.
+// Deliberately only recognizes move.b/w/l, not movea or movem: movea always writes to an address
+// register and movem uses register-list operands, both rejected by isSafeMemoryOperand, so they
+// never participate in the patterns we optimize.
 private fun String.isMove(): Boolean =
     startsWith("move.b") || startsWith("move.w") || startsWith("move.l")
 
@@ -212,9 +183,8 @@ private fun String.isRegister(): Boolean =
 
 /**
  * A plain memory operand that can be safely read twice and assumed to hit the same location
- * (e.g. "p8_regfile+268", "sys.DOSBase", "$1234", "symbol"). Excludes data/address registers
- * and any indirect/indexed addressing ((a0), (a0)+, ($1234,a0), ...) whose effective address may
- * change between the two accesses.
+ * (e.g. "p8_regfile+268", "sys.DOSBase", "$1234", "symbol"); excludes registers and indirect
+ * or indexed addressing whose effective address may change between the two accesses.
  */
 private fun String.isSafeMemoryOperand(): Boolean {
     if (isEmpty()) return false
@@ -226,11 +196,7 @@ private fun String.isSafeMemoryOperand(): Boolean {
 // === peephole passes ===
 
 private fun optimizeJmpToNextLabel(linesBy: Sequence<List<TrimmedLine>>): List<Modification> {
-    //  bra  LABEL
-    //  LABEL:          ->  remove the branch (keep any label on the branch line itself)
-    //
-    // The branch is dead code because the target label immediately follows.
-    // (also handles the older jmp form)
+    //  bra  LABEL / LABEL:  ->  remove the branch; keep any label on the branch line (also the jmp form)
     val mods = mutableListOf<Modification>()
     for (lines in linesBy) {
         val firstInstr = lines[0].instruction
@@ -260,13 +226,7 @@ private fun optimizeJmpToNextLabel(linesBy: Sequence<List<TrimmedLine>>): List<M
 }
 
 private fun optimizeTailCall(linesBy: Sequence<List<TrimmedLine>>): List<Modification> {
-    //  bsr  LABEL
-    //  rts              ->  bra  LABEL
-    //
-    // When a subroutine call is immediately followed by a return, replace the call with a branch.
-    // The called routine will return directly to the caller's caller (tail call optimization).
-    // Only handles direct label targets, not indirect (bsr (a0) etc.).
-    // (also handles the older jsr form, normalizing it to bra as well)
+    //  bsr  LABEL / rts  ->  bra  LABEL (tail call); only direct targets, also handles the jsr form
     val mods = mutableListOf<Modification>()
     for (lines in linesBy) {
         val firstInstr = lines[0].instruction
@@ -301,17 +261,7 @@ private fun optimizeTailCall(linesBy: Sequence<List<TrimmedLine>>): List<Modific
 }
 
 private fun optimizeRedundantTst(linesBy: Sequence<List<TrimmedLine>>): List<Modification> {
-    //  move.S  SRC, DST
-    //  tst.S   DST              ->  remove the tst
-    //
-    //  andi.S  #imm, DST
-    //  tst.S   DST              ->  remove the tst
-    //
-    //  ori.S   #imm, DST
-    //  tst.S   DST              ->  remove the tst
-    //
-    // On M68k, move/andi/ori/eori set N, Z based on the result. So a tst
-    // immediately after to the same location is redundant.
+    //  move.S / andi.S / ori.S  X, DST followed by  tst.S  DST  ->  remove the tst: they set N/Z.
     val mods = mutableListOf<Modification>()
     for (lines in linesBy) {
         val first = lines[0].instruction
@@ -335,16 +285,14 @@ private fun optimizeRedundantTst(linesBy: Sequence<List<TrimmedLine>>): List<Mod
 
 /**
  * If this instruction sets N/Z flags and writes to a single destination, return that destination.
- * Covers move, andi, ori, eori (the ones the codegen emits before tst).
- * Note: add/sub also set condition codes, but the codegen always inserts a move before branching,
- * so add/sub are never followed by a redundant tst.
+ * Covers move, andi, ori, eori (the ones the codegen emits before tst); add/sub also set condition
+ * codes but the codegen always inserts a move before branching, so they are never followed by a tst.
  */
 private fun String.flagSettingDest(): String? {
     val stripped = if (';' in this) substring(0, indexOf(';')).trim() else this
     return when {
         isMove() -> moveOperands()?.second
         startsWith("andi.") || startsWith("ori.") || startsWith("eori.") -> {
-            // andi.S #imm, dst
             val sp = stripped.indexOf(' ')
             if (sp < 0) return null
             val ops = stripped.substring(sp + 1).split(',', limit = 2)

@@ -211,17 +211,9 @@ private fun AsmGen.shiftOpcode(isLeft: Boolean, isArithmetic: Boolean, isRotate:
 
 // === Shifts by 1 (constant count 1) ===
 
-// Emit a .w count=1 memory-form shift/rotate. The absolute form (`op.w addr`)
-// is one instruction and optimal, but QEMU's 68020 emulation is broken for
-// word-sized memory *right* shifts in both addressing forms:
-//   `asr.w addr`  -> sign-extends the 16-bit operand instead of zero-extending
-//                    it, producing a logical shift result for negative values
-//   `lsr.w (a0)`  -> sign-extends, producing an arithmetic shift result
-// The register form (`move.w addr,d0` / `op.w #1,d0` / `move.w d0,addr`) is
-// correct in QEMU, and both the absolute and `(a0)` forms are correct on a real
-// 68000 (vamos). Left shifts and rotates are unaffected, so they keep the
-// compact memory form. d0 is scratch for the shift, matching the callers which
-// already invalidate their d0 cache.
+// Emit a .w count=1 memory-form shift/rotate. QEMU's 68020 emulation sign-extends word-sized
+// memory right shifts (asr.w and lsr.w, in both addressing forms), so those take the register
+// form there; left shifts and rotates are unaffected and keep the compact memory form.
 private fun AsmGen.emitMemoryWordShiftOrRotate(op: String, address: String) {
     when (target.name) {
         Qemu68kTarget.NAME if (op == "asr" || op == "lsr") -> {
@@ -249,8 +241,7 @@ private fun AsmGen.shiftRegister(reg: Int, count: Int, type: IRDataType, isArith
         } else if (count in 1..8) {
             emitLine("$op$s  #$count, $d")
         } else {
-            // m68k immediate-shift range is 1..8; for larger counts the count
-            // has to go into a data register first.
+            // m68k immediate-shift range is 1..8; larger counts need the count in a data register.
             emitLine("move.w  #$count, $SCRATCH_D1")
             emitLine("$op$s  $SCRATCH_D1, $d")
         }
@@ -258,10 +249,7 @@ private fun AsmGen.shiftRegister(reg: Int, count: Int, type: IRDataType, isArith
         return
     }
     if (isLeft && type == IRDataType.LONG && count == 16) {
-        // x << 16 for long: `swap; clr.w`. Left shift by 16 has the same
-        // result for signed and unsigned long: the sign bit lives in the
-        // top half, which is replaced by the bottom half; the bottom
-        // half is always cleared.
+        // x << 16 for long: swap; clr.w (the sign bit lives in the top half, which the bottom half replaces).
         emitLoadD0(reg, IRDataType.LONG)
         emitLine("swap  $SCRATCH_D0")
         emitLine("clr.w  $SCRATCH_D0")
@@ -269,11 +257,7 @@ private fun AsmGen.shiftRegister(reg: Int, count: Int, type: IRDataType, isArith
         return
     }
     if (type == IRDataType.WORD && count == 1 && VirtualRegister.int(reg) !in regAllocation) {
-        // m68k memory shift/rotate is supported for .w count=1; collapse the
-        // d0 round-trip into a single memory form. Only when the operand still
-        // lives in memory (regfile/frame slot): once it is register-allocated,
-        // the register form (d0 round-trip) is used to avoid invalid
-        // `lea reg, a0` / memory-form addressing on a physical register.
+        // collapse the d0 round-trip into a .w count=1 memory form; only while in memory, not when register-allocated.
         emitMemoryWordShiftOrRotate(op, operand(reg))
         invalidateD0CacheForSlot(reg)
         return
@@ -283,10 +267,7 @@ private fun AsmGen.shiftRegister(reg: Int, count: Int, type: IRDataType, isArith
         emitLine("$op$s  #$count, $SCRATCH_D0")
         emitStoreD0(reg, type)
     } else {
-        // m68k immediate-shift range is 1..8; for larger counts the count
-        // has to go into a data register first. `move.w` preserves the
-        // count up to 32767 (Prog8 shift counts are 0..255, so this is
-        // always safe).
+        // m68k immediate-shift range is 1..8; larger counts go via a data register (move.w keeps counts <= 32767).
         emitLine("move.w  #$count, $SCRATCH_D1")
         emitLoadD0(reg, type)
         emitLine("$op$s  $SCRATCH_D1, $SCRATCH_D0")
@@ -295,13 +276,11 @@ private fun AsmGen.shiftRegister(reg: Int, count: Int, type: IRDataType, isArith
 }
 
 private fun AsmGen.memoryShiftRotate(target: String, count: Int, type: IRDataType, isArithmetic: Boolean, isLeft: Boolean, isRotate: Boolean, throughCarry: Boolean) {
-    // For logical rotates (ROL/ROR), clear X before roxl/roxr
-    // so the injected bit is 0 (logical rotate, not through-carry).
+    // For logical rotates (ROL/ROR), clear X before roxl/roxr so the injected bit is 0, not the carry.
     if (isRotate && !throughCarry) {
         emitLine($$"andi  #$ef, ccr")
     }
-    // On 68k, shift/rotate instructions can operate directly on memory operands
-    // (only for .w size, and shift/rotate count must be 1)
+    // On 68k, shift/rotate can operate directly on memory (.w size, count must be 1)
     if (type == IRDataType.WORD && count == 1) {
         val op = shiftOpcode(isLeft, isArithmetic, isRotate)
         emitMemoryWordShiftOrRotate(op, target)
@@ -379,11 +358,9 @@ private fun AsmGen.shiftMemoryLeftVar(target: String, countReg: Int, type: IRDat
 }
 
 // === Rotates ===
-// On M68k, the X (extend/CCR bit 4) bit serves as the "carry for rotates",
-// while C (carry/CCR bit 0) is used for comparisons.
-// This maps naturally: ROL/ROR IR (logical rotate) = clear X + roxl/roxr,
-// ROXL/ROXR IR (rotate through carry) = roxl/roxr directly.
-// CLC/SEC manage both C+X to keep them in sync.
+// On M68k, X (extend/CCR bit 4) serves as the "carry for rotates" while C is used for comparisons:
+// ROL/ROR (logical) = clear X + roxl/roxr, ROXL/ROXR = roxl/roxr directly, and CLC/SEC manage
+// both C+X to keep them in sync.
 
 private fun AsmGen.rotateLeft(reg: Int, type: IRDataType) {
     // IR ROL: logical rotate left (inject 0 into LSB)
@@ -468,9 +445,7 @@ private fun AsmGen.rotateRightThroughCarry(reg: Int, type: IRDataType) {
 // === Bit manipulation ===
 
 private fun AsmGen.bitOpMem(op: String, reg: Int, bit: Int, type: IRDataType) {
-    // The register slot is big-endian in memory, so the target bit lives in
-    // byte (size-1-bit/8) at bit position (bit % 8). A byte-sized bit op with
-    // an immediate bit number operates on that byte directly, no d0 round-trip.
+    // Big-endian slot: target bit is in byte (size-1-bit/8) at bit (bit % 8), so a byte op needs no d0 trip.
     val size = when(type) {
         IRDataType.BYTE -> 1
         IRDataType.WORD -> 2
@@ -484,10 +459,7 @@ private fun AsmGen.bitOpMem(op: String, reg: Int, bit: Int, type: IRDataType) {
         emitLine("$op  #$bit, ${operand(reg)}")
         if (op != "btst") invalidateD0CacheForSlot(reg)
     } else if (physical != null) {
-        // Bit ops accept Dn or memory, never An: stage an address-resident
-        // value through d0 (full width, so the untouched bits survive).
-        // The final full clear drops the stale d0 cache entry (d0 was
-        // clobbered) and any slot entry for the modified register.
+        // Bit ops accept Dn or memory, never An: stage through d0 at full width, then invalidate the cache.
         invalidateD0Cache()
         emitLine("move.l  $physical, $SCRATCH_D0")
         emitLine("$op  #$bit, $SCRATCH_D0")

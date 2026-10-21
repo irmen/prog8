@@ -172,8 +172,7 @@ internal fun AsmGen.translateArithmetic(insn: IRInstruction) {
             invalidateD0CacheForAddress(target)
         }
 
-        // --- Multiply (unsigned) ---
-        // M68k has no mulu.b or muls.b; use .w with zero-extension for byte.
+        // --- Multiply (unsigned): M68k has no mulu.b, so .w with zero-extension for byte ---
 
         Opcode.MULR -> emitMulOp(insn.requireIntDest().intNumber, insn.requireIntSourceA().intNumber, type, unsigned=true, imm=null, target=null)
         Opcode.MUL -> emitMulOp(insn.requireIntDest().intNumber, null, type, unsigned=true, imm=insn.requireImmediateInt(), target=null)
@@ -197,16 +196,14 @@ internal fun AsmGen.translateArithmetic(insn: IRInstruction) {
         Opcode.DIVS -> emitDivOp(insn.requireIntDest().intNumber, null, type, unsigned=false, imm=insn.requireImmediateInt(), target=null)
         Opcode.DIVSM -> emitDivOp(insn.requireIntSourceA().intNumber, null, type, unsigned=false, imm=null, target=resolveMemory(insn.requireMemory()))
 
-        // --- Modulus ---
-        // Use divu.w/divs.w remainder (upper 16 bits) for byte/word; divul/divsl for long (68020+)
+        // --- Modulus: divu.w/divs.w remainder for byte/word, divul/divsl for long (68020+) ---
 
         Opcode.MODR -> emitModOp(insn.requireIntDest().intNumber, insn.requireIntSourceA().intNumber, type, unsigned=true, imm=null)
         Opcode.MOD -> emitModOp(insn.requireIntDest().intNumber, null, type, unsigned=true, imm=insn.requireImmediateInt())
         Opcode.MODSR -> emitModOp(insn.requireIntDest().intNumber, insn.requireIntSourceA().intNumber, type, unsigned=false, imm=null)
         Opcode.MODS -> emitModOp(insn.requireIntDest().intNumber, null, type, unsigned=false, imm=insn.requireImmediateInt())
 
-        // --- DIVMOD (unsigned) ---
-        // 68020+ divul.l gives quotient + remainder in one instruction
+        // --- DIVMOD (unsigned): 68020+ divul.l gives quotient + remainder in one instruction ---
 
         Opcode.DIVMODR -> emitDivModOp(insn.requireIntDest().intNumber, insn.requireDestB().intNumber, type, unsigned=true, imm=null)
         Opcode.DIVMOD -> emitDivModOp(insn.requireIntDest().intNumber, insn.requireDestB().intNumber, type, unsigned=true, imm=insn.requireImmediateInt())
@@ -323,9 +320,7 @@ private fun AsmGen.emitLongMathCall(dstReg: Int, srcReg: Int?, imm: Int?, target
         }
     }
     invalidateD0Cache()
-    // Helpers clobber D2-D7 with no IR call edge, so the allocator cannot
-    // protect values it placed there. A2-A4 are untouched by the helpers;
-    // A6 is only consumed by their tail jmp. D0/D1 carry args and results.
+    // Helpers clobber D2-D7 with no IR call edge, so save them; A2-A4 are untouched, A6 only consumed.
     emitLine("movem.l  d2-d7,-(sp)")
     emitLine("bsr  $routine")
     emitLine("movem.l  (sp)+,d2-d7")
@@ -392,8 +387,7 @@ private fun AsmGen.emitMulOp(dstReg: Int, srcReg: Int?, type: IRDataType, unsign
         }
 
         IRDataType.WORD -> {
-            // mulu.w/muls.w is native (16x16→32, lower 16 are result)
-            // destination must be a data register, not memory
+            // mulu.w/muls.w is native (16x16→32, lower 16 are result); destination must be a data register.
             when {
                 srcReg != null -> {
                     directDataPair(dstReg, srcReg, IRDataType.WORD)?.let { (d, s) ->
@@ -432,8 +426,7 @@ private fun AsmGen.emitMulOp(dstReg: Int, srcReg: Int?, type: IRDataType, unsign
                 val routine = if (unsigned) "p8_umult32" else "p8_smult32"
                 emitLongMathCall(dstReg, srcReg, imm, target, routine, SCRATCH_D0)
             } else {
-                // 68020+ mulu.l/muls.l (32x32→64, lower 32 are result)
-                // destination must be a data register, not memory
+                // 68020+ mulu.l/muls.l (32x32→64, lower 32 are result); destination must be a data register.
                 when {
                     srcReg != null -> {
                         directDataPair(dstReg, srcReg, IRDataType.LONG)?.let { (d, s) ->
@@ -523,11 +516,7 @@ private fun AsmGen.emitDivOp(dstReg: Int, srcReg: Int?, type: IRDataType, unsign
         }
 
         IRDataType.WORD -> {
-            // divu.w/divs.w divide a 32-bit dividend (Dd) by a 16-bit divisor.
-            // divs.w requires the 32-bit dividend to be SIGN-extended; for unsigned it
-            // must be ZERO-extended. A plain `move.w` does not extend the upper word, so
-            // extend explicitly here (this is what was wrong: signed dividends ended up
-            // zero-extended, e.g. -1000 became +64536).
+            // divu.w/divs.w take a 32-bit dividend: sign-extend for divs.w, zero-extend for divu.w.
             fun loadDividend() {
                 emitLoadD0(dstReg, IRDataType.WORD)
                 if (unsigned) {
@@ -678,10 +667,7 @@ private fun AsmGen.emitModOp(dstReg: Int, srcReg: Int?, type: IRDataType, unsign
         }
 
         IRDataType.WORD -> {
-            // divu.w/divs.w: remainder in upper 16 bits, swap to get it.
-            // divs.w requires the 32-bit dividend to be SIGN-extended; for unsigned it
-            // must be ZERO-extended. A plain `move.w` does not extend the upper word, so
-            // extend explicitly (signed dividends were wrongly zero-extended before).
+            // divu.w/divs.w: remainder in upper 16 bits, swap to get it; extend the dividend as above.
             fun loadDividend() {
                 emitLoadD0(dstReg, IRDataType.WORD)
                 if (unsigned) {

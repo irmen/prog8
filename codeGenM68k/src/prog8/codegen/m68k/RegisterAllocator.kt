@@ -117,10 +117,7 @@ class M68kRegisterAllocator(val program: IRProgram) {
                 }
             }
         }
-        // Mirrors AsmOptimizer.optimizeTailCall (bsr/jsr followed by rts becomes bra).
-        // The check here is over IR, so it is a superset of the text-level pattern.
-        // The called subroutine then returns on behalf of this caller, so its entry
-        // is not covered by the ordinary caller-demand scan and must keep the full set.
+        // Mirrors AsmOptimizer.optimizeTailCall (bsr/jsr + rts -> bra): such a callee returns on our behalf.
         for (sub in program.allSubs()) {
             val instructions = allChunks(sub).flatMap { it.instructions }
             for (index in 0 until instructions.lastIndex) {
@@ -169,9 +166,7 @@ class M68kRegisterAllocator(val program: IRProgram) {
             .toSet()
         val destroys = buildSet {
             if (asmSub != null) addAll(declaredClobbers(asmSub))
-            // the backend loads the AmigaOS library base into a6 around every library call.
-            // The AmigaOS library ABI preserves only d2-d5/a2-a5/a6; d6 is volatile, so a
-            // value the allocator parked in d6 must not stay live across the call.
+            // The AmigaOS library ABI preserves only d2-d5/a2-a5/a6: d6 is volatile, so it must not stay live.
             if (target is CallTarget.AmigaLibrary) {
                 add("a6")
                 add("d6")
@@ -196,9 +191,7 @@ class M68kRegisterAllocator(val program: IRProgram) {
         return out
     }
 
-    // Chunk CFG: sequential fall-through plus branch-target edges. A jump to
-    // an unknown label leaves the subroutine (tail jump: no successors).
-    // Indirect jumps may land on any labeled chunk (superset: sound).
+    // Chunk CFG: fall-through plus branch-target edges; unknown labels leave the sub, indirect jumps land anywhere.
     private fun buildCfg(chunks: List<IRCodeChunkBase>): List<Set<Int>> {
         val succ = MutableList(chunks.size) { mutableSetOf<Int>() }
         val labelIndex = mutableMapOf<String, Int>()
@@ -212,23 +205,18 @@ class M68kRegisterAllocator(val program: IRProgram) {
                 val target = ins.target as? CodeReference.Label
                 when {
                     ins.opcode == Opcode.JUMPI -> {
-                        // Computed goto: any labeled chunk in this sub is a
-                        // possible landing site. No fall-through: control never
-                        // continues past an indirect jump.
+                        // Computed goto: any labeled chunk may be the landing site; control never continues past it.
                         succ[i].addAll(labelIndex.values)
                         fallsThrough = false
                     }
                     ins.opcode in OpcodesThatBranchUnconditionally -> {
-                        // JUMP to a known in-sub label goes only there; a jump
-                        // elsewhere (tail jump, absolute address) and any
-                        // RETURN* end the path.
+                        // JUMP to a known in-sub label goes only there; elsewhere and RETURN* end the path.
                         val idx = target?.let { labelIndex[it.name] }
                         if (ins.opcode == Opcode.JUMP && idx != null) succ[i].add(idx)
                         fallsThrough = false
                     }
                     ins.opcode in OpcodesThatEndSSAblock -> {
-                        // Conditional branch: taken edge plus fall-through.
-                        // Unknown labels leave the sub and contribute nothing.
+                        // Conditional branch: taken edge plus fall-through; unknown labels leave the sub.
                         target?.let { labelIndex[it.name]?.let { idx -> succ[i].add(idx) } }
                     }
                 }
@@ -236,7 +224,6 @@ class M68kRegisterAllocator(val program: IRProgram) {
             if (fallsThrough && i + 1 < chunks.size) succ[i].add(i + 1)
             if (chunks[i] is IRLoopChunk) {
                 // back edge from last body chunk to loop header (approx)
-                // find index of last body chunk
                 val body = (chunks[i] as IRLoopChunk).body
                 // body chunks are also in flattened list; add edge from each to header i
                 for (j in i + 1 until chunks.size) {
@@ -273,8 +260,7 @@ class M68kRegisterAllocator(val program: IRProgram) {
         val spilledVregsBySub = mutableMapOf<IRSubroutine, List<VirtualRegister>>()
         val callSiteEffects = mutableMapOf<IRSubroutine, MutableMap<Int, CallSiteRegisterEffects>>()
         val statsBySub = mutableMapOf<IRSubroutine, SubAllocStats>()
-        // Physical registers each ordinary callee must preserve, demanded by its known
-        // ordinary callers. A target key exists iff at least one such caller is known.
+        // Physical registers each ordinary callee must preserve, demanded by its known ordinary callers.
         val demandedByCallee = mutableMapOf<String, MutableSet<String>>()
         for (block in program.blocks) {
             for (child in block.children) {
@@ -283,13 +269,7 @@ class M68kRegisterAllocator(val program: IRProgram) {
                         callSiteEffects, statsBySub, demandedByCallee)
             }
         }
-        // Second pass: an ordinary callee only has to preserve what its known callers
-        // actually keep live across the call. Callers allocated above under the old
-        // "preserve every pool register" assumption stay valid because the demanded
-        // set covers every register they rely on. A callee with any other possible
-        // entry (no known ordinary caller, address taken, raw asm reference, fixed
-        // address; startup-called subs have no IR caller) keeps its full colored set. Coverage is whole-program:
-        // the IR plus its inline asm is assumed to be all code that can enter a sub.
+        // Second pass: a callee with only known ordinary callers preserves just what they keep live; any other entry keeps its full set.
         val externalEntries = externalEntryLabels()
         for (sub in program.allSubs()) {
             val colored = calleeSavedBySub[sub] ?: continue
@@ -347,10 +327,7 @@ class M68kRegisterAllocator(val program: IRProgram) {
             vregs.addAll(liveIn[i]); vregs.addAll(liveOut[i]); vregs.addAll(gens[i]); vregs.addAll(kills[i])
         }
 
-        // ---- class constraints from allocation hints ----
-        // Scan every register access in the subroutine for its resolvedAllocationHint.
-        // PREFER_ADDRESS has priority (an address-register operand must be an An for
-        // (An)/(off,An)/(An,Dn) addressing); PREFER_DATA is the default for index uses.
+        // ---- class constraints from allocation hints: PREFER_ADDRESS wins, PREFER_DATA is the index default ----
         val hints = mutableMapOf<VirtualRegister, AllocationHint>()
         for (chunk in chunks) {
             for (ins in chunk.instructions) {
@@ -364,19 +341,9 @@ class M68kRegisterAllocator(val program: IRProgram) {
             }
         }
 
-        // ---- CALL clobbering + return-value pinning ----
-        // A CALL kills the caller-saved registers (D0/D1/A0/A1/FP0/FP1). Since the
-        // allocatable pool is callee-saved only, no allocated value is ever destroyed by
-        // a CALL, so live-across-call values are safe by construction. We still model the
-        // kill explicitly so the invariant is enforced and so return-value vregs are
-        // pinned to their CALL-boundary register. The callee produces default-location
-        // results in D0 (int/pointer) or FP0 (float); slot-annotated results arrive in
-        // their slot register. Memory and status-flag results are not pinned.
-        // A pinned result takes the class of its boundary register regardless of any
-        // conflicting hint from later uses; codegen moves it from there to the
-        // allocated register.
+        // ---- CALL clobbering + return-value pinning: the pool is callee-saved, so only results need pinning ----
         val callerSavedKillSet = M68kRegisterConvention.CALLER_SAVED
-        val returnPin = mutableMapOf<VirtualRegister, String>() // vreg -> pinned return register
+        val returnPin = mutableMapOf<VirtualRegister, String>()
         for (chunk in chunks) {
             for (ins in chunk.instructions) {
                 val cs = ins.callSite ?: continue
@@ -393,8 +360,7 @@ class M68kRegisterAllocator(val program: IRProgram) {
                             returnPin[d.register] = pinned
                     }
                 }
-                // caller-saved kill: nothing to do for allocated vregs (pool is callee-saved),
-                // but assert none of our allocatable pools overlaps the kill set.
+                // caller-saved kill: nothing to do for allocated vregs (pool is callee-saved), but assert no overlap.
                 require(callerSavedKillSet.none { it in dataRegs || it in addrRegs || it in fpRegs }) {
                     "allocatable pool overlaps caller-saved kill set"
                 }
@@ -418,22 +384,10 @@ class M68kRegisterAllocator(val program: IRProgram) {
 
         val interference = mutableMapOf<VirtualRegister, MutableSet<VirtualRegister>>()
         for (v in vregs) interference[v] = mutableSetOf()
-        // Instruction-level interference: two vregs interfere iff simultaneously live at
-        // the same instruction. The backward scan below seeds from the chunk live-out
-        // set and visits every instruction, so chunk-boundary liveness is covered too;
-        // no coarser clique is needed (and a liveIn/liveOut/gens clique would wrongly
-        // forbid coalescing of vregs that never overlap).
-        // Instruction-level: within each chunk, vregs live at the same instruction
-        // interfere. Chunk-granular liveness alone misses conflicts where a vreg is
-        // defined and another is live at the same instruction (e.g. addr r5, r6
-        // where r5 is USE_DEF and r6 is USE).
-        // Fixed-register call boundaries additionally forbid the destroyed
-        // pool registers for vregs whose values must survive the call, and record the
-        // per-call-site metadata keyed by call ordinal.
+        // Instruction-level interference: chunk-granular liveness misses conflicts, a coarser clique forbids valid coalescing.
         val forbiddenByVreg = mutableMapOf<VirtualRegister, MutableSet<String>>()
         val subCallEffects = mutableMapOf<Int, CallSiteRegisterEffects>()
-        // Ordinary-call targets -> the vregs this caller keeps live across the call.
-        // Mapped to physical registers after coloring, then used by the second pass.
+        // Ordinary-call targets -> vregs this caller keeps live across the call (mapped to physical regs later).
         val liveAcrossByTarget = mutableMapOf<String, MutableList<Set<VirtualRegister>>>()
         // Ordinals count every instruction carrying a callSite, in flattened chunk order.
         val callOrdinal = java.util.IdentityHashMap<IRInstruction, Int>()
@@ -461,9 +415,7 @@ class M68kRegisterAllocator(val program: IRProgram) {
                     }
                 }
                 val liveAtEntry = (live + uses).toSet()
-                // A pure definition interferes too: a never-read destination is
-                // otherwise edgeless and could share with a value live across
-                // it, which the direct paths would then overwrite.
+                // A pure definition interferes too, else it could share with a value live across it.
                 val interferers = (liveAtEntry + defs).toSet()
                 var nData = 0
                 var nAddr = 0
@@ -483,12 +435,7 @@ class M68kRegisterAllocator(val program: IRProgram) {
                     interference.getOrPut(list[a]) { mutableSetOf() }.add(list[b])
                     interference.getOrPut(list[b]) { mutableSetOf() }.add(list[a])
                 }
-                // Fixed-register call boundaries: values that must survive the call (live
-                // after it, excluding what the call itself defines) cannot sit in physical
-                // registers the call touches. That is the union of reads, defined and
-                // destroys: argument marshalling overwrites the read slots before the
-                // call, and the callee overwrites the defined slots during it.
-                // Argument sources consumed by the call itself need no such protection.
+                // Fixed-register call boundaries: values surviving the call cannot sit in registers it touches.
                 ins.callSite?.let { cs ->
                     val ordinaryTarget = ordinaryCallLabel(cs)
                     if (ordinaryTarget != null) {
@@ -500,12 +447,7 @@ class M68kRegisterAllocator(val program: IRProgram) {
                     val effects = fixedBoundaryEffects(cs)
                     if (effects != null) {
                         subCallEffects[callOrdinal[ins]!!] = effects
-                        // Unknown fixed boundaries may use any pool register as
-                        // scratch. Asmsubs with a declared clobber list (even an
-                        // empty one) and known Amiga-library ABI effects are
-                        // precise; an asmsub without a declaration is unknown,
-                        // and ordinary Prog8 subroutines preserve the registers
-                        // their known callers demand.
+                        // Unknown fixed boundaries may use any pool register as scratch; declared clobbers make it precise.
                         val target = cs.target
                         val asmSub = (target as? CallTarget.Direct)?.reference?.let {
                             (it as? CodeReference.Label)?.name?.let { name -> asmSubByLabel[name] }
@@ -528,8 +470,7 @@ class M68kRegisterAllocator(val program: IRProgram) {
         }
         if (subCallEffects.isNotEmpty()) callSiteEffects[sub] = subCallEffects
 
-        // Greedy coloring per class
-        // order vregs by degree desc
+        // Greedy coloring per class, highest degree first
         val ordered = vregs.sortedByDescending { interference[it]!!.size }
         val color = mutableMapOf<VirtualRegister, String>()
         var spills = 0
@@ -545,8 +486,7 @@ class M68kRegisterAllocator(val program: IRProgram) {
 
         for ((v, p) in color) mapBySub.getOrPut(sub) { mutableMapOf() }[v] = p
         calleeSavedBySub[sub] = color.values.toSet()
-        // The caller's demand is what it actually placed in registers across each call;
-        // a spilled value needs nothing preserved.
+        // The caller's demand is what it actually placed in registers across each call; spilled values need nothing.
         for ((targetLabel, liveSets) in liveAcrossByTarget) {
             val demanded = demandedByCallee.getOrPut(targetLabel) { mutableSetOf() }
             for (liveSet in liveSets)

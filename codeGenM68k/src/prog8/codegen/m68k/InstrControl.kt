@@ -27,15 +27,13 @@ internal fun AsmGen.translateControl(insn: IRInstruction, forwardedImmediateCall
             invalidateD0Cache()
             when (val t = insn.requireTarget()) {
                 is CodeReference.Label -> {
-                    // a jump to a label in another subroutine ends this activation, so our frame has to be gone
-                    // before we leave: whatever runs next returns to our caller, not to us
+                    // a jump to a label in another subroutine ends this activation: our frame must be gone first
                     if (labelIsOutsideCurrentSub(t.name))
                         emitFrameUnlk()
                     emitLine("bra  ${fixNameSymbols(t.name)}")     // PC-relative branch; vasm picks the optimal size and falls back to jmp if out of range
                 }
                 is CodeReference.Absolute -> {
-                    // a fixed address can't be resolved to a chunk of this subroutine, so assume it
-                    // leaves for good: whatever runs there returns to our caller, not to us
+                    // a fixed address can't be resolved to a chunk of this sub, so assume it leaves for good
                     emitFrameUnlk()
                     emitLine("jmp  ${t.address.value.toHex()}")
                 }
@@ -51,9 +49,7 @@ internal fun AsmGen.translateControl(insn: IRInstruction, forwardedImmediateCall
             if (!jumpTableStaysInCurrentSub(ref.pointer.register))
                 emitFrameUnlk()
             if (program.options.compTarget.cpu >= CpuType.M68020 && VirtualRegister.int(reg) !in regAllocation) {
-                // 68020+ supports memory-indirect addressing: fetch the target address from memory directly.
-                // Only valid when the operand still lives in memory (regfile/frame slot); a
-                // register-allocated vreg holds the pointer value itself, so use the movea path.
+                // 68020+ memory-indirect addressing is only valid while the operand still lives in memory
                 emitLine("jmp  ([${operand(reg)}])")
             } else {
                 emitLine("movea.l  ${operand(reg).removeSuffix("+0")}, $SCRATCH_A0")
@@ -75,9 +71,7 @@ internal fun AsmGen.translateControl(insn: IRInstruction, forwardedImmediateCall
             val reg = ref.pointer.intNumber
             invalidateD0Cache()
             if (program.options.compTarget.cpu >= CpuType.M68020 && VirtualRegister.int(reg) !in regAllocation) {
-                // 68020+ supports memory-indirect addressing: fetch the target address from memory directly.
-                // Only valid when the operand still lives in memory (regfile/frame slot); a
-                // register-allocated vreg holds the pointer value itself, so use the movea path.
+                // 68020+ memory-indirect addressing is only valid while the operand still lives in memory
                 emitLine("jsr  ([${operand(reg)}])")
             } else {
                 emitLine("movea.l  ${operand(reg).removeSuffix("+0")}, $SCRATCH_A0")
@@ -86,10 +80,7 @@ internal fun AsmGen.translateControl(insn: IRInstruction, forwardedImmediateCall
         }
 
         Opcode.CALLFAR -> {
-            // On the amiga target, CALLFAR is repurposed to encode automatic library LVO calls:
-            // library = library number (1=exec, 2=dos, 3=graphics, 4=intuition, ...)
-            // lvo = negative LVO offset (the offset into the library's jump table)
-            // name = symbolic function name, emitted as the displacement in jsr Symbol(a6)
+            // On amiga targets CALLFAR encodes a library LVO call: library number, lvo offset, name = jsr Symbol(a6)
             if(program.options.compTarget.name.contains("amiga")) {
                 val callSite = insn.requireCallSite()
                 val amigaTarget = callSite.target as? CallTarget.AmigaLibrary ?: error("CALLFAR needs an amiga library target")
@@ -113,14 +104,7 @@ internal fun AsmGen.translateControl(insn: IRInstruction, forwardedImmediateCall
                 } else {
                     emitLine("jsr  $offset(a6)")    // do the actual call
                 }
-                // Skip status flag returns: handled by IR branch pattern.
-                // In multi-assign context (returns.size > 1), also skip slot-based returns:
-                // the IR generates LOADHR for them.
-                // In single-return context, process slot returns normally.
-                // Multiple status flag returns in one multi-assign are protected by the IR:
-                // it wraps each flag's extraction in PUSHST/POPST so they don't clobber each other.
-                // On the 68000 cpu this fails, because it cannot save/restore the CCR with a
-                // nonprivileged instruction (compile for 68010 or higher to use this).
+                // Skip status flag returns (handled by the IR branch pattern), and slot returns in multi-assign (LOADHR).
                 val isMultiReturn = callSite.results.size > 1
                 for(ret in callSite.results) {
                     if (ret.location is CallLocation.StatusFlag)
@@ -201,8 +185,7 @@ internal fun AsmGen.translateControl(insn: IRInstruction, forwardedImmediateCall
         // === Status flag stack ops via Scc ===
 
         Opcode.PUSHST -> {
-            // Save CCR to the stack. The 68010+ memory form keeps the CCR save
-            // register-neutral (no data register is clobbered) and word-aligned.
+            // Save CCR to the stack; the 68010+ memory form is register-neutral and word-aligned.
             if(program.options.compTarget.cpu == CpuType.M68000)
                 error("the 68000 cpu cannot save/restore the status bits using a nonprivileged instruction. This is required to implement the 'PUSHST/POPST' IR opcodes. Compile for 68010 or higher cpu or change the code such that PUSHST/POPST are no longer used (sometimes complicated rol/ror operations need it)")
             emitLine("move  ccr, -(sp)")
@@ -217,9 +200,7 @@ internal fun AsmGen.translateControl(insn: IRInstruction, forwardedImmediateCall
 
         // === Flag manipulation ===
 
-        // On M68k, X (extend/CCR bit 4) serves as the rotate-carry,
-        // while C (carry/CCR bit 0) is used for comparisons.
-        // CLC/SEC must manage both to keep them in sync.
+        // X (extend/CCR bit 4) is the rotate-carry and C (bit 0) is for comparisons; CLC/SEC manage both.
         Opcode.CLC -> emitLine($$"andi  #$ee, ccr")   // clear C and X
         Opcode.SEC -> emitLine($$"ori  #$11, ccr")    // set C and X
         Opcode.CLI -> emitLine($$"andi  #$fb, ccr")
@@ -875,11 +856,7 @@ private fun AsmGen.translateCall(fnLabel: String, callSite: CallSite, forwardedI
     if (fnLabel == "sys.memcopy" && emitInlineMemcopyCall(callSite, forwardedImmediateCall))
         return
 
-    // Emit non-constant arguments first (from regfile), then constant immediates
-    // just before the BSR/JSR to avoid clobbering the constant registers while
-    // evaluating non-const arguments (e.g. address calculations that may use D0/A0 as scratch).
-    // Parameter names are resolved by argument index so each stack push can be
-    // annotated with the parameter it fills; unknown callees get no annotation.
+    // Emit non-constant arguments first, then constant immediates just before the call to avoid clobbering.
     val paramNames = program.allSubs().find { it.label == fnLabel }?.parameters?.map { it.name } ?: emptyList()
     fun paramNameFor(index: Int): String? =
         paramNames.getOrNull(index)?.substringAfterLast('.')?.removePrefix("p8v_")
@@ -902,9 +879,7 @@ private fun AsmGen.translateCall(fnLabel: String, callSite: CallSite, forwardedI
         emitLine("bsr  $fnLabel")
     }
 
-    // caller cleanup of the all-stack argument area:
-    // each argument was pushed into its own word-packed slot (2-byte slots for byte/word args,
-    // 4-byte slots for wide args); the total area size is always even
+    // caller cleanup of the all-stack argument area (each argument was pushed into its own word-packed slot)
     val pushedSlots = callSite.arguments.count { it.location is CallLocation.FrameSlot }
     if (pushedSlots > 0) {
         val totalSize = callSite.arguments
@@ -912,24 +887,13 @@ private fun AsmGen.translateCall(fnLabel: String, callSite: CallSite, forwardedI
             .sumOf { incomingSlotSize(it.source.type, target) }
         val needsCcr = callSite.results.any { it.location is CallLocation.StatusFlag }
         when {
-            // addq is compact but updates CCR; lea preserves CCR so status-flag returns
-            // remain visible to the IR's branch pattern.
+            // addq is compact but updates CCR; lea preserves it so status-flag returns stay visible.
             totalSize in 1..8 && !needsCcr -> emitLine("addq.l  #$totalSize,sp")
             else -> emitLine("lea  $totalSize(sp),sp")
         }
     }
 
-    // Move return values back to virtual registers.
-    // Skip status flag returns: always handled by IR's bsteq/bstneg/bstvs branch pattern.
-    // In multi-assign context (results.size > 1), also skip slot-based returns:
-    // the IR generates LOADHR for them, and emitting here would clobber CPU flags
-    // before the branch pattern can read them.
-    // In single-return expression context, process all slot returns normally
-    // (the IR doesn't generate LOADHR for single-return calls).
-    // Multiple status flag returns in one multi-assign are protected by the IR:
-    // it wraps each flag's extraction in PUSHST/POPST so they don't clobber each other.
-    // On the 68000 cpu this fails, because it cannot save/restore the CCR with a
-    // nonprivileged instruction (compile for 68010 or higher to use this).
+    // Skip status flag returns (IR branch pattern) and, in multi-assign, slot returns (LOADHR would clobber flags).
     val isMultiReturn = callSite.results.size > 1
     for (ret in callSite.results) {
         if (ret.location is CallLocation.StatusFlag)
@@ -951,17 +915,14 @@ private fun AsmGen.emitInlineMemcopyCall(callSite: CallSite, forwardedImmediateC
     val count = countLoad.immediate?.integerValue ?: return false
     if (count <= 0) return true
 
-    // Only use .w/.l if we can 100% prove both pointers are aligned.
-    // At codegen we only know immediates; computed addresses (e.g. &arr[i]) are not immediate
-    // so we conservatively fall back to byte copies. A future IR alignment analysis could prove more.
+    // Only .w/.l when both pointers are provably aligned; computed addresses fall back to byte copies.
     val srcImm = fwd.loads[srcArg.source.register]?.immediate?.integerValue
     val tgtImm = fwd.loads[tgtArg.source.register]?.immediate?.integerValue
     val bothEven = srcImm != null && tgtImm != null && srcImm % 2 == 0 && tgtImm % 2 == 0
     val bothLongAligned = srcImm != null && tgtImm != null && srcImm % 4 == 0 && tgtImm % 4 == 0
     val useLong = bothLongAligned && count % 4 == 0
     val useWord = bothEven && count % 2 == 0
-    // Heuristics: inline small copies; use a dbra loop for the medium "small" range
-    // to keep code size reasonable. The call to memcopy/CopyMem wins for large copies.
+    // Heuristics: inline small copies, dbra loop for the medium range; memcopy/CopyMem wins for large ones.
     val threshold = when {
         useLong -> 64
         useWord -> 32
@@ -972,9 +933,7 @@ private fun AsmGen.emitInlineMemcopyCall(callSite: CallSite, forwardedImmediateC
     translateArgument(srcArg, "sys.memcopy", fwd)
     translateArgument(tgtArg, "sys.memcopy", fwd)
     // count is constant, no need to load d0
-    // For larger small counts, a dbra loop is smaller than unrolled moves.
-    // Threshold: a dbra loop needs ~10 bytes setup (move.w #count,dN + label + dbra),
-    // so it wins over more than ~5 unrolled moves of the same size.
+    // For larger small counts a dbra loop is smaller than unrolled moves (~10 bytes setup vs ~5 moves).
     val unrolledLimit = 5
     when {
         useLong -> {
@@ -1053,8 +1012,7 @@ private fun AsmGen.translateArgument(
                     if (value == 0)
                         emitLine("clr$s  $hwReg")
                     else {
-                        // use moveq (2 bytes, 4 cycles) when the value fits in its signed 8-bit range;
-                        // for byte args the value is unsigned 0-255, so map 128-255 to -128--1 (low byte is the same)
+                        // use moveq (2 bytes, 4 cycles) when the value fits its signed 8-bit range; bytes 128-255 map to -128..-1
                         val moveqValue = if (argReg.type == IRDataType.BYTE && value in 128..255) value - 256 else value
                         if (moveqValue in -128..127)
                             emitLine("moveq  #$moveqValue, $hwReg")
@@ -1074,23 +1032,16 @@ private fun AsmGen.translateArgument(
             }
         }
     } else {
-        // Stack argument: push into the parameter's word-packed slot, landing at the slot
-        // base byte (2-byte slots for byte/word args, 4-byte slots for wide args).
-        // The caller pops the whole argument area after the return, so the callee never needs to know the argument count.
+        // Stack argument: push into the parameter's word-packed slot, landing at the slot's base byte.
         if (arg.location is CallLocation.FrameSlot) {
             if (argReg.isFloat) {
-                // the FPU has no absolute-long addressing mode, so the value has to travel
-                // through an FPU register first (fp0 is translator scratch, never holds a live vreg).
-                // The store itself reserves the slot via predecrement, so no separate subq is needed.
+                // the FPU has no absolute-long addressing mode, so the value travels via fp0; the push reserves the slot
                 emitFmoveFloat(floatOperand(argReg.floatNumber), FP_ACC)
                 emitLine("fmove.s  $FP_ACC,-(sp)", paramName.orEmpty())
             } else {
                 when (argReg.type) {
                     IRDataType.BYTE ->
-                        // one-instruction push: on the stack pointer a byte predecrement
-                        // steps by 2 (not 1), so this reserves the 2-byte slot in one go;
-                        // the byte lands at the slot's base byte, matching the zero
-                        // within-slot displacement that byte parameters use
+                        // on the stack pointer a byte predecrement steps by 2, so this reserves the 2-byte slot in one go
                         emitLine("move.b  ${operand(argReg.intNumber)},-(sp)",
                             (if (paramName != null) "$paramName " else "") + "(note: pushed as a word)")
                     // a 2-byte predecrement push reserves and stores the word slot in one instruction
@@ -1118,8 +1069,7 @@ private fun AsmGen.translateArgument(
 }
 
 private fun AsmGen.translateReturnValue(ret: CallResult) {
-    // Status flag returns are handled by the IR's branch-based pattern (bsteq/bstneg/bstvs).
-    // Do NOT emit Scc here - it would clobber the flags before the branch can read them.
+    // Status flag returns are handled by the IR's branch pattern; emitting Scc here would clobber the flags.
     if (ret.location is CallLocation.StatusFlag)
         return
 
@@ -1141,12 +1091,7 @@ private fun AsmGen.translateReturnValue(ret: CallResult) {
             emitMoveToIntRegister(hwReg, destination.intNumber, destination.type)
         }
     } else {
-        // Default: return value in d0 (standard m68k calling convention)
-        // All non-float returns go through d0-d7 (not a0-a6) because the calling convention
-        // expects values in data registers. Using A0 for pointers would be inconsistent:
-        // callers read return values from data regs unless the slot annotation says otherwise.
-        // Slightly inefficient: m68k pointers ideally live in address registers, but returning
-        // them in d0 is simpler and avoids ambiguity. Explicit @A0 can be used for hot paths.
+        // Default: return value in d0; all non-float returns use data registers, explicit @A0 serves hot paths.
         if (destination.isFloat) {
             emitFmoveFloat(FP_ACC, floatOperand(destination.floatNumber))
         } else {
@@ -1157,8 +1102,7 @@ private fun AsmGen.translateReturnValue(ret: CallResult) {
 
 // === Slot to M68k hardware register mapping ===
 
-// Slots 0..7 are the 6502/cx16-style scalar registers (A, X, Y, AX, AY, XY,
-// FAC1, FAC2) used by target-independent builtins (e.g. divmod returns its
-// quotient in AY). Map them onto distinct M68k hardware registers so the
-// backend can emit code for them.
+// Slots 0..7 are the 6502/cx16-style scalar registers (A, X, Y, AX, AY, XY, FAC1, FAC2) used by
+// target-independent builtins (e.g. divmod returns its quotient in AY); map them onto distinct
+// M68k hardware registers so the backend can emit code for them.
 fun m68kSlotRegister(slot: CallingConventionSlot): String = M68kRegisterConvention.fixedRegister(slot)
