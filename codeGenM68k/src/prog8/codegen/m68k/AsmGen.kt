@@ -28,11 +28,18 @@ internal val ALLOCATABLE_FP_REGS = listOf("fp2", "fp3", "fp4", "fp5", "fp6", "fp
 object M68kRegisterConvention {
     val CALLER_SAVED = setOf(SCRATCH_D0, SCRATCH_D1, SCRATCH_A0, SCRATCH_A1, SCRATCH_FP0, SCRATCH_FP1)
     val RESERVED = CALLER_SAVED + setOf("d7", "a5", "a6", "a7")
-    val CALLEE_SAVED_DATA = ALLOCATABLE_DATA_REGS
-    val CALLEE_SAVED_ADDR = ALLOCATABLE_ADDR_REGS
-    val CALLEE_SAVED_FP = ALLOCATABLE_FP_REGS
     const val RETURN_INT = "d0"
     const val RETURN_FLOAT = "fp0"
+    // Every physical m68k register name, used to interpret asmsub clobber declarations.
+    val ALL_HARDWARE_REGS = (0..7).map { "d$it" }.toSet() + (0..6).map { "a$it" }.toSet() + (0..7).map { "fp$it" }.toSet()
+    // Canonical name of a fixed calling-convention slot (asmsub/extsub arg and result slots, §2.2).
+    fun fixedRegister(slot: CallingConventionSlot): String = when (slot.value) {
+        in 0..7 -> error("slots 0-7 should never be used on the M68K they are 6502 cpu registers")
+        in 10..17 -> "d${slot.value - 10}"
+        in 18..24 -> "a${slot.value - 18}"
+        in 25..32 -> "fp${slot.value - 25}"
+        else -> error("unknown calling convention slot: $slot")
+    }
 }
 
 /**
@@ -136,12 +143,25 @@ internal class AsmGen(val program: IRProgram, internal val target: ICompilationT
     private val regsUsed by lazy { program.registersUsed() }
     // Stage 1: location-agnostic indirection. Empty by default (Stage 1 checkpoint);
     // Stage 2 populates vreg -> physical-register mapping. Keyed on VirtualRegister.
+    // Holds the CURRENT subroutine's entries only: vreg numbers may be reused
+    // across subroutines (Step 10), so emitSubroutine swaps in that sub's map
+    // from regAllocationBySub on entry and clears it on exit.
     internal val regAllocation: MutableMap<VirtualRegister, String> = mutableMapOf()
+    // Authoritative per-subroutine allocation maps from the allocator (Step 10).
+    internal var regAllocationBySub: Map<IRSubroutine, Map<VirtualRegister, String>> = emptyMap()
+    // Widths of the current subroutine's vregs (Step 10): vreg numbers may be
+    // reused with different types across subroutines, so the program-wide
+    // intRegTypes map cannot answer this. Empty outside subroutines.
+    private var currentSubRegTypes: Map<RegisterNum, IRDataType> = emptyMap()
 
     // Stage 2 (Phase C): when true, emit per-subroutine movem save/restore of the
     // callee-saved registers the allocator assigned to that subroutine's vregs.
     internal var registerAllocationEnabled = false
     internal var calleeSavedBySub: Map<IRSubroutine, Set<String>> = emptyMap()
+    // Per-call-site fixed-register boundary metadata from the allocator (Step 8, §2.6),
+    // keyed by subroutine and call ordinal. Consumed by call-boundary handling
+    // (reserved-slot wrappers, Step 9); the allocator already enforces it during coloring.
+    internal var callSiteEffects: Map<IRSubroutine, Map<Int, M68kRegisterAllocator.CallSiteRegisterEffects>> = emptyMap()
     // callee-saved registers used by the subroutine currently being emitted (for its epilogue)
     internal var currentSubCalleeSaved: Set<String> = emptySet()
 
@@ -509,6 +529,10 @@ internal class AsmGen(val program: IRProgram, internal val target: ICompilationT
         val phys = regAllocation[vreg]
         assertAllocatable(phys)
         if (phys != null) return phys
+        // Under allocation, a spilled float vreg lives in its A5 frame slot, not the
+        // static float regfile (which is unsound for re-entrant activations).
+        if (op.isFloat && registerAllocationEnabled)
+            frameVregAddr(op.registerNumber)?.let { return it }
         return if (op.isFloat) floatRegFileAddr(op.number) else regAddr(op.registerNumber)
     }
 
@@ -519,6 +543,9 @@ internal class AsmGen(val program: IRProgram, internal val target: ICompilationT
         val phys = regAllocation[vreg]
         assertAllocatable(phys)
         if (phys != null) return phys
+        // Under allocation, a spilled float vreg lives in its A5 frame slot (see operand()).
+        if (registerAllocationEnabled)
+            frameVregAddr(reg.value)?.let { return it }
         return floatRegFileAddr(reg)
     }
 
@@ -560,7 +587,8 @@ internal class AsmGen(val program: IRProgram, internal val target: ICompilationT
     }
 
     /** Returns the IR data type of the given integer virtual register. */
-    fun regType(reg: Int): IRDataType = intRegTypes[RegisterNum(reg)] ?: IRDataType.BYTE
+    fun regType(reg: Int): IRDataType =
+        currentSubRegTypes[RegisterNum(reg)] ?: intRegTypes[RegisterNum(reg)] ?: IRDataType.BYTE
 
     /** Load a virtual register into d0, zero-extending if its natural width is smaller than [requiredType]. */
     fun loadRegOrZeroExtendToD0(reg: Int, requiredType: IRDataType) {
@@ -1010,6 +1038,25 @@ internal class AsmGen(val program: IRProgram, internal val target: ICompilationT
         frameActive = sub.hasFrame
         frameVregSlots = sub.frameVregSlots
         currentSubCalleeSaved = calleeSavedBySub[sub] ?: emptySet()
+        // Step 10: swap in this subroutine's allocation map and type map. Vreg
+        // numbers may be reused across subroutines, so program-wide maps cannot
+        // answer for the current sub. The swap only runs when per-sub maps were
+        // provided (production path); direct flat-map injection (single-sub unit
+        // tests) is left untouched. Clearing the d0 cache is required for the
+        // same reason (it is keyed by vreg number); with globally unique numbers
+        // no cross-sub elision exists, so default output is unchanged.
+        if (regAllocationBySub.isNotEmpty()) {
+            regAllocation.clear()
+            regAllocationBySub[sub]?.let { regAllocation.putAll(it) }
+        }
+        currentSubRegTypes = buildMap {
+            sub.forEachInstruction { ins ->
+                for (ra in ins.registerAccesses)
+                    if (ra.register is VirtualRegister.IntReg)
+                        putIfAbsent(ra.register.number, ra.type)
+            }
+        }
+        if (registerAllocationEnabled) invalidateD0Cache()
         currentSubChunks = mutableSetOf<IRCodeChunkBase>().also { set -> sub.forEachChunk { set.add(it) } }
         if (sub.hasFrame) {
             emitRaw("; stack frame: ${sub.frameSize} bytes of locals, ${sub.incomingSize} bytes of arguments")
@@ -1052,6 +1099,9 @@ internal class AsmGen(val program: IRProgram, internal val target: ICompilationT
         frameVregSlots = emptyMap()
         currentSubChunks = emptySet()
         currentSubCalleeSaved = emptySet()
+        if (regAllocationBySub.isNotEmpty()) regAllocation.clear()
+        currentSubRegTypes = emptyMap()
+        if (registerAllocationEnabled) invalidateD0Cache()
     }
 
     private fun emitAsmSubroutine(sub: IRAsmSubroutine) {
@@ -1302,6 +1352,10 @@ internal class AsmGen(val program: IRProgram, internal val target: ICompilationT
         // as long as there's no intervening write to that register.
         for (arg in callSite.arguments) {
             val register = arg.source.register
+            // Step 9: under register allocation, immediate forwarding applies to spilled
+            // operands only. A register-resident argument is marshalled from its allocated
+            // physical register by the normal call-boundary path instead.
+            if (registerAllocationEnabled && register in regAllocation) continue
             // search backwards for the defining LOAD immediate
             for (idx in callIndex - 1 downTo chunkStartIndex) {
                 val insn = instructions[idx]

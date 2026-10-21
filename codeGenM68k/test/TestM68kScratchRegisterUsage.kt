@@ -31,6 +31,7 @@ class TestM68kScratchRegisterUsage : FunSpec({
         outputDir: Path,
         instructions: List<IRInstruction>,
         regAllocation: Map<VirtualRegister, String> = emptyMap(),
+        registerAllocationEnabled: Boolean = false,
         floats: Boolean = false
     ): List<String> {
         val options = CompilationOptions.builder(Qemu68kTarget())
@@ -56,6 +57,7 @@ class TestM68kScratchRegisterUsage : FunSpec({
         output.mkdirs()
         val asmGen = AsmGen(program, Qemu68kTarget())
         asmGen.regAllocation.putAll(regAllocation)
+        asmGen.registerAllocationEnabled = registerAllocationEnabled
         asmGen.generate()
         val asmFile = outputDir.resolve("test.asm")
         check(asmFile.exists()) { "Assembly file not written: $asmFile" }
@@ -160,5 +162,242 @@ class TestM68kScratchRegisterUsage : FunSpec({
 
         lines.any { it == "fmove.s  (0,a0,d0.l),fp0" } shouldBe true
         lines.any { it == "lsl.l  #2,d0" } shouldBe true
+    }
+
+    test("does not forward immediates for register-allocated call arguments") {
+        // Step 9: a register-resident argument must be marshalled from its allocated
+        // register, not via immediate forwarding into the hardware slot.
+        val site = CallSite(
+            CallTarget.Direct(CodeReference.Label("copper.move", 0)),
+            arguments = listOf(
+                Calls.argument(1, IRDataType.WORD, CallLocation.HardwareRegister(CallingConventionSlot(10)))
+            )
+        )
+        val lines = generateAsm(
+            tempRoot.resolve("test-m68k-no-forward-allocated"),
+            listOf(
+                IRInstructions.load(IRDataType.WORD, 1, 384),
+                IRInstructions.call(site)
+            ),
+            regAllocation = mapOf(VirtualRegister.int(1) to "d2"),
+            registerAllocationEnabled = true
+        )
+
+        lines.any { it == "move.w  #384,d2" } shouldBe true
+        lines.any { it == "move.w  d2,d0" } shouldBe true
+        lines.any { it == "move.w  #384,d0" } shouldBe false
+    }
+
+    test("still forwards immediates for spilled call arguments under allocation") {
+        // Step 9: a spilled (non-allocated) argument keeps the immediate-forwarding path,
+        // including dead-store suppression, even with allocation enabled.
+        val site = CallSite(
+            CallTarget.Direct(CodeReference.Label("copper.move", 0)),
+            arguments = listOf(
+                Calls.argument(1, IRDataType.WORD, CallLocation.HardwareRegister(CallingConventionSlot(10)))
+            )
+        )
+        val lines = generateAsm(
+            tempRoot.resolve("test-m68k-forward-spilled"),
+            listOf(
+                IRInstructions.load(IRDataType.WORD, 1, 384),
+                IRInstructions.call(site)
+            ),
+            registerAllocationEnabled = true
+        )
+
+        lines.any { it == "move.w  #384,d0" } shouldBe true
+        lines.any { it == "move.w  #384,p8_regfile+0" } shouldBe false
+        lines.any { it == "move.w  p8_regfile+0,d0" } shouldBe false
+    }
+
+    test("caller moves default int return from d0 to the allocated register") {
+        // Step 7: single scalar result arrives in d0; the caller moves it out.
+        val site = CallSite(
+            CallTarget.Direct(CodeReference.Label("p8_other", 0)),
+            results = listOf(Calls.result(4, IRDataType.WORD))
+        )
+        val lines = generateAsm(
+            tempRoot.resolve("test-m68k-return-int"),
+            listOf(IRInstructions.call(site)),
+            regAllocation = mapOf(VirtualRegister.int(4) to "d2"),
+            registerAllocationEnabled = true
+        )
+
+        lines.any { it.startsWith("bsr") } shouldBe true
+        lines.any { it == "move.w  d0,d2" } shouldBe true
+    }
+
+    test("callee moves allocated source to d0 on return") {
+        // Step 7: the callee produces its single scalar result in d0 before rts.
+        val lines = generateAsm(
+            tempRoot.resolve("test-m68k-return-callee"),
+            listOf(IRInstructions.returnRegister(IRDataType.WORD, 1)),
+            regAllocation = mapOf(VirtualRegister.int(1) to "d3"),
+            registerAllocationEnabled = true
+        )
+
+        lines.any { it == "move.w  d3,d0" } shouldBe true
+        lines.any { it == "rts" } shouldBe true
+    }
+
+    test("caller moves default float return from fp0 to the allocated register") {
+        // Step 7: single float result arrives in fp0; the caller moves it out.
+        val site = CallSite(
+            CallTarget.Direct(CodeReference.Label("p8_other", 0)),
+            results = listOf(Calls.result(1, IRDataType.FLOAT))
+        )
+        val lines = generateAsm(
+            tempRoot.resolve("test-m68k-return-float"),
+            listOf(IRInstructions.call(site)),
+            regAllocation = mapOf(VirtualRegister.float(1) to "fp2"),
+            registerAllocationEnabled = true,
+            floats = true
+        )
+
+        lines.any { it.startsWith("bsr") } shouldBe true
+        lines.any { it == "fmove.s  fp0,fp2" } shouldBe true
+    }
+
+    test("slot result already in its allocated register is elided") {
+        // Step 7, section 2.8: the vreg already lives in its slot register: no move.
+        val slotD2 = CallLocation.HardwareRegister(CallingConventionSlot(12))
+        val site = CallSite(
+            CallTarget.Direct(CodeReference.Label("p8_other", 0)),
+            results = listOf(Calls.result(5, IRDataType.WORD, slotD2))
+        )
+        val lines = generateAsm(
+            tempRoot.resolve("test-m68k-return-slot-elided"),
+            listOf(IRInstructions.call(site)),
+            regAllocation = mapOf(VirtualRegister.int(5) to "d2"),
+            registerAllocationEnabled = true
+        )
+
+        lines.any { it.startsWith("bsr") } shouldBe true
+        lines.none { it == "move.w  d2,d2" } shouldBe true
+    }
+
+    test("LOADHR into its allocated slot register is elided") {
+        // Step 7, section 2.8: LOADHR r5,D2 where r5 is allocated to d2 is a no-op.
+        val slotD2 = CallingConventionSlot(12)
+        val lines = generateAsm(
+            tempRoot.resolve("test-m68k-loadhr-elided"),
+            listOf(IRInstructions.hardwareLoad(IRDataType.WORD, 5, slotD2)),
+            regAllocation = mapOf(VirtualRegister.int(5) to "d2"),
+            registerAllocationEnabled = true
+        )
+
+        lines.none { it.startsWith("move.w") } shouldBe true
+    }
+
+    test("STOREHR from its allocated slot register is elided, other regs still move") {
+        // Step 7, section 2.8: STOREHR r5,D2 where r5 is allocated to d2 is a no-op,
+        // while r6 in d3 still emits the register-to-register move.
+        val slotD2 = CallingConventionSlot(12)
+        val elided = generateAsm(
+            tempRoot.resolve("test-m68k-storehr-elided"),
+            listOf(IRInstructions.hardwareStore(IRDataType.WORD, 5, slotD2)),
+            regAllocation = mapOf(VirtualRegister.int(5) to "d2"),
+            registerAllocationEnabled = true
+        )
+        elided.none { it.startsWith("move.w") } shouldBe true
+
+        val moved = generateAsm(
+            tempRoot.resolve("test-m68k-storehr-moved"),
+            listOf(IRInstructions.hardwareStore(IRDataType.WORD, 6, slotD2)),
+            regAllocation = mapOf(VirtualRegister.int(6) to "d3"),
+            registerAllocationEnabled = true
+        )
+        moved.any { it == "move.w  d3,d2" } shouldBe true
+    }
+
+    test("float LOADHR into its allocated slot register is elided") {
+        // Step 7, section 2.8: float LOADHR fr1,FP2 where fr1 lives in fp2 is a no-op,
+        // while fr3 in fp3 still emits the FPU round trip.
+        val slotFp2 = CallingConventionSlot(27)
+        val elided = generateAsm(
+            tempRoot.resolve("test-m68k-floadhr-elided"),
+            listOf(IRInstructions.hardwareLoad(IRDataType.FLOAT, 1, slotFp2)),
+            regAllocation = mapOf(VirtualRegister.float(1) to "fp2"),
+            registerAllocationEnabled = true,
+            floats = true
+        )
+        elided.none { it.startsWith("fmove") } shouldBe true
+
+        val moved = generateAsm(
+            tempRoot.resolve("test-m68k-floadhr-moved"),
+            listOf(IRInstructions.hardwareLoad(IRDataType.FLOAT, 3, slotFp2)),
+            regAllocation = mapOf(VirtualRegister.float(3) to "fp3"),
+            registerAllocationEnabled = true,
+            floats = true
+        )
+        moved.any { it == "fmove  fp2,fp0" } shouldBe true
+        moved.any { it == "fmove.s  fp0,fp3" } shouldBe true
+    }
+
+    test("bit op on address-allocated vreg stages through d0") {
+        // bset/bclr accept Dn or memory, never An: an address-resident value
+        // must round-trip through d0 at full width, never touch the regfile.
+        val lines = generateAsm(
+            tempRoot.resolve("test-m68k-bitop-an"),
+            listOf(IRInstructions.binaryImmediate(Opcode.BITCLR, IRDataType.LONG, 5, 0)),
+            regAllocation = mapOf(VirtualRegister.int(5) to "a2"),
+            registerAllocationEnabled = true
+        )
+        lines.any { it == "move.l  a2,d0" } shouldBe true
+        lines.any { it == "bclr  #0,d0" } shouldBe true
+        lines.any { it == "move.l  d0,a2" } shouldBe true
+        lines.none { "p8_regfile+" in it } shouldBe true
+    }
+
+    test("bit op on data-allocated vreg stays a single instruction") {
+        val lines = generateAsm(
+            tempRoot.resolve("test-m68k-bitop-dn"),
+            listOf(IRInstructions.binaryImmediate(Opcode.BITSET, IRDataType.LONG, 5, 3)),
+            regAllocation = mapOf(VirtualRegister.int(5) to "d3"),
+            registerAllocationEnabled = true
+        )
+
+        lines.any { it == "bset  #3,d3" } shouldBe true
+        lines.none { "p8_regfile+" in it } shouldBe true
+    }
+
+    test("spilled default return goes to memory") {
+        // Step 7: a spilled destination resolves to its regfile slot, not a register.
+        val site = CallSite(
+            CallTarget.Direct(CodeReference.Label("p8_other", 0)),
+            results = listOf(Calls.result(4, IRDataType.WORD))
+        )
+        val lines = generateAsm(
+            tempRoot.resolve("test-m68k-return-spilled"),
+            listOf(IRInstructions.call(site)),
+            registerAllocationEnabled = true
+        )
+
+        lines.any { it.startsWith("bsr") } shouldBe true
+        lines.any { it.startsWith("move.w  d0,p8_regfile") } shouldBe true
+    }
+
+    test("multi-value call emits no return moves") {
+        // Step 7: multi-value returns stay memory-based; the call emits no d0 moves.
+        val site = CallSite(
+            CallTarget.Direct(CodeReference.Label("p8_other", 0)),
+            results = listOf(
+                Calls.result(4, IRDataType.WORD),
+                Calls.result(5, IRDataType.WORD)
+            )
+        )
+        val lines = generateAsm(
+            tempRoot.resolve("test-m68k-return-multi"),
+            listOf(IRInstructions.call(site)),
+            regAllocation = mapOf(
+                VirtualRegister.int(4) to "d2",
+                VirtualRegister.int(5) to "d3"
+            ),
+            registerAllocationEnabled = true
+        )
+
+        lines.any { it.startsWith("bsr") } shouldBe true
+        lines.none { it.startsWith("move.") && "d0," in it } shouldBe true
     }
 })

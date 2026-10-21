@@ -9,11 +9,13 @@ allocator begins populating `regAllocation`.
 output with empty allocation map).
 **Additional prerequisite:** Decisions §7.1 items 1-4 of the design resolved and
 recorded (see "Decisions required before implementation" below).
-**Status:** Implementation in progress. Phase A (analysis) landed; codegen wiring is
-gated behind the experimental `-m68kregalloc` flag (default off, output unchanged).
-See "Implementation progress" below for what is done and what remains.
-**Gate to next stage:** Allocator produces correct output for the test corpus
-and representative programs; tests pass; register-residency metrics improve.
+**Status:** All 10 steps implemented behind the experimental `-m68kregalloc`
+flag (default off, output unchanged). Validation gate measured (see below):
+corpus compiles/assembles/runs correctly with 100% register residency and no
+stale memory traffic; code-size reduction target partially met (ELF -4..-13%,
+instruction lines +1..+5% - direct reg-to-reg emission remains future work).
+See "Implementation progress" below.
+**Gate to next stage:** green (with the limitations recorded under Validation).
 
 ## Implementation progress (as of Oct 2026)
 
@@ -28,9 +30,11 @@ optimized + unoptimized). Goldens under `compiler/test/golden/m68k/`. Regenerate
 spillDemandBySub)`.
 
 Done (analysis-level, gated off by default so shipping output is unchanged):
-- Step 1: convention split enforced (callee-saved-only pool D2-D6/A2-A4/FP2-FP7;
-  caller-saved kill set D0/D1/A0/A1/FP0/FP1 asserted disjoint from the pool;
-  reserved D7/A5/A6 excluded).
+- Step 1: convention fully centralized in `M68kRegisterConvention` (caller-saved
+  split, reserved set, return-value locations, callee-saved pools). The asmsub
+  arg/return slot table (`CallingConventionSlot` -> register name) is shared
+  between codegen and allocator via `fixedRegister`; per-call-site actual slots
+  come from the Step 8 IR metadata.
 - Step 2: intraprocedural liveness (gen/kill fixed-point recursing into IRLoopChunk)
   + liveness-derived interference graph (replaces the packer's layout-order model).
   NOT yet validated against nested loops / early returns / jump tables.
@@ -42,27 +46,111 @@ Done (analysis-level, gated off by default so shipping output is unchanged):
   kill set disjointness asserted).
 - Step 5 (partial): prologue/epilogue movem emitted and paired via emitFrameUnlk()
   (the single exit path for returns + tail-jumps), gated behind registerAllocationEnabled.
+- Step 6: spill slots are appended to the A5 frame for framed and frameless
+  subs alike (`appendSpillSlotsToFrame`, mirroring StackFrameLayout geometry);
+  spilled vregs resolve to their slots through `operand()`/`storeOperand()`/
+  `floatOperand()` at use points. Covered by frame-layout and codegen unit tests.
+  `%option noframe` subroutines are exempt: they manage the machine stack
+  themselves, so framing them is rejected with a compile error instead of
+  silently emitting `link`/`unlk` (falling back to the static register file
+  would be unsound under vreg reuse). Covered by unit test.
+- Step 7: return-value pinning wired end to end (§2.7): the allocator pins each
+  call result to its boundary register (D0 for default int/pointer, FP0 for
+  default float, slot register for slot-annotated results; memory and
+  status-flag results unpinned) and colors it into that register's class
+  regardless of later-use hints. Caller and callee marshal through D0/FP0;
+  self-moves where the vreg already lives in its slot register are elided
+  (`translateReturnValue`, `LOADHR`/`STOREHR`, int and float). Multi-value
+  calls stay memory-based and emit no return moves. Covered by allocator
+  pinning tests and call-boundary codegen tests.
+- Step 8: per-call-site fixed-register boundary metadata keyed by subroutine and
+  call ordinal (`AllocationResult.callSiteEffects`): slot reads/defs from IR
+  locations plus declared asmsub clobbers (and a6 for Amiga library calls).
+  The allocator forbids destroyed pool registers for values live across the call
+  (`forbiddenByVreg`); ordinary Prog8 calls use the uniform caller-saved kill
+  set and get no entry. Covered by allocator unit tests.
+- Step 9: `ImmediateCallOptimization` applies to spilled operands only; register-
+  resident arguments skip forwarding and use the normal call-boundary path.
+  Covered by codegen unit tests.
+- Step 10: per-subroutine vreg reuse (`renumberVregsPerSubroutine`, flag-gated).
+  Each subroutine's vregs are compacted above the highest number used outside
+  subroutines (reserved >= 99000 untouched; raw regfile-referencing asm bails
+  out). Because numbers are shared across subroutines, all number-keyed state
+  is per-sub: the allocation map lives in `AllocationResult.mapBySub` and is
+  swapped into `AsmGen.regAllocation` at sub boundaries (with per-sub type map
+  and d0-cache clears). Covered by renumber + cross-sub independence tests.
+- Validation gate (§7.1 #6): `AllocationResult.statsBySub` reports per-sub
+  residency, spill count and max live per class; liveness validated by unit
+  tests over nested loops, early returns and jump tables (current coarse CFG
+  handles these shapes; full branch-edge modeling remains future work). Corpus
+  numbers measured - see Validation below.
 
-Partial / analysis-only:
-- Step 4: operand()/storeOperand() now resolve to register names under the flag, but
-  output is NOT yet sound (see Missing below).
-- Step 6: only spill DEMAND is counted; oversubscribed vregs silently fall back to
-  p8_regfile. No frame-slot budgeting / SP-reserved area / spill codegen yet.
-
-Not done (codegen-correctness blockers):
-- Step 6 full spill substrate (StackFrameLayout spill slots, frameless SP-reserved area).
-- Step 7: return-value marshalling (actual move-from-d0/fp0 at call sites).
-- Step 8: asmsub/extsub per-call-site metadata (§2.6).
-- Step 9: restrict ImmediateCallOptimization to spilled operands.
-- Step 10: per-subroutine RegisterPool reset.
-- Stage-1B blockers: JUMPI/CALLI memory-indirect on 68020+, memory-form word shifts
-  (InstrBitwise) - these break once operands resolve to registers.
-- Validation gate (§7.1 #6) and liveness validation on complex control flow.
+Residual work (does not block the Stage 3 teardown):
+- Translators still route most computation through the d0 scratch
+  (`emitLoadD0`/`emitStoreD0`); direct register-to-register emission and the
+  d0-cache retirement (§7.1 #1) are future work. This is why instruction
+  counts rise slightly even as ELF size falls (see Validation).
+- Spill path (Step 6) is exercised only by unit tests: no corpus program
+  spills (max DATA pressure 5/5 on textelite, fits exactly). Frame-spill
+  correctness under real pressure is unproven beyond tests.
+- Liveness uses the coarse chunk-sequential CFG (+ loop back-edges); branch-
+  target edges are not modeled. Sound for the validated shapes; jump-heavy
+  control flow should be re-validated if the CFG is ever trusted further.
 
 Flag plumbing: `-m68kregalloc` CLI switch -> CompilationOptions.m68kRegisterAllocation
 -> M68kCodeGenerator(allocateRegisters). Default false. Output under the flag is
 plausible but NOT correctness-validated; it is for inspection only until the items
 above land. `:codeGenM68k:test` and the golden harness pass (default path unchanged).
+
+## Validation (Step 10 gate, measured Oct 2026)
+
+Corpus: fibonacci, numbergame, primes (top-level) + maze, textelite,
+qemubootinfo (qemu68k), each compiled with and without `-m68kregalloc`.
+
+Output-level metrics (default -> flag):
+
+| program      | .asm bytes | code lines | .elf bytes | regfile traffic | BSS vregfile |
+|--------------|-----------|------------|------------|-----------------|--------------|
+| fibonacci    | -3%       | +2%        | -5%        | 126 -> 0        | 126 -> 64    |
+| numbergame   | -3%       | +2%        | -5%        | 204 -> 0        | 280 -> 77    |
+| primes       | -2%       | +2%        | -4%        | 99 -> 0         | 130 -> 39    |
+| maze         | -8%       | +1%        | -13%       | 749 -> 0        | 736 -> 163   |
+| textelite    | -6%       | +5%        | -10%       | 1646 -> 0       | 2119 -> 165  |
+| qemubootinfo | -6%       | +2%        | -11%       | 543 -> 0        | 798 -> 550   |
+
+Allocator stats over the same programs (refs = operand references):
+
+| program      | subs | refs | residency | spills | max live D/A/F |
+|--------------|------|------|-----------|--------|----------------|
+| fibonacci    | 11   | 151  | 100%      | 0      | 2/1/0          |
+| numbergame   | 19   | 242  | 100%      | 0      | 3/1/0          |
+| primes       | 11   | 122  | 100%      | 0      | 3/1/0          |
+| maze         | 27   | 977  | 100%      | 0      | 4/1/0          |
+| textelite    | 75   | 2108 | 100%      | 0      | 5/1/0          |
+| qemubootinfo | 18   | 631  | 100%      | 0      | 3/1/0          |
+
+Correctness: all 6 flag outputs assemble cleanly (vasm with backend flags);
+fibonacci, primes and qemubootinfo run correctly in QEMU (correct fib
+sequence, 54 primes, bootinfo tables + clean exit). maze/textelite/numbergame
+are interactive and were compile+assemble validated only. Default-path output
+is byte-identical (golden harness green).
+
+Bugs found and fixed by this validation:
+- Naive per-sub renumbering collided in the program-wide allocation map (same
+  number, two subs -> wrong register, e.g. byte vreg emitted as `move.b a2`).
+  Fixed with per-sub maps swapped at sub boundaries (+ per-sub type map and
+  d0-cache clears).
+- `bitOpMem` bypassed the allocation map (`bclr` on a stale BSS slot for an
+  address-resident vreg) and never invalidated the d0 cache. Fixed with
+  d-register fast path, An staging through d0, and cache invalidation on all
+  modifying paths (also fixes pre-existing staleness on the default path).
+
+Read against §7.1 #6 / success metrics: residency target (>=80%) exceeded
+(100%, zero stale refs); DATA pool is the bottleneck as hypothesized (peaks at
+5/5); ADDRESS/FP pools have ample headroom; ELF size falls 4-13% but the -10%
+instruction-count target is NOT met (lines +1-+5%: movem prologues plus the
+not-yet-retired d0 round-trips outweigh eliminated loads). No corpus program
+spills, so frame-spill codegen is test-only validated.
 
 This stage makes the allocator decide the vreg -> physical-register mapping per
 subroutine.

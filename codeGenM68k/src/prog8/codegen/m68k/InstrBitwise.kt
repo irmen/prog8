@@ -401,10 +401,24 @@ private fun AsmGen.bitOpMem(op: String, reg: Int, bit: Int, type: IRDataType) {
     val byteOffset = size - 1 - bit / 8
     val bitInByte = bit % 8
     val physical = regAllocation[VirtualRegister.int(reg)]
-    if (physical != null && physical.startsWith("d"))
+    if (physical != null && physical.startsWith("d")) {
         emitLine("$op  #$bit, ${operand(reg)}")
-    else
-        emitLine("$op  #$bitInByte, ${regAddrByte(reg, byteOffset)}")
+        if (op != "btst") invalidateD0CacheForSlot(reg)
+    } else if (physical != null) {
+        // Bit ops accept Dn or memory, never An: stage an address-resident
+        // value through d0 (full width, so the untouched bits survive).
+        // The final full clear drops the stale d0 cache entry (d0 was
+        // clobbered) and any slot entry for the modified register.
+        invalidateD0Cache()
+        emitLine("move.l  $physical, $SCRATCH_D0")
+        emitLine("$op  #$bit, $SCRATCH_D0")
+        emitLine("move.l  $SCRATCH_D0, $physical")
+        invalidateD0Cache()
+    } else {
+        val address = regAddrByte(reg, byteOffset)
+        emitLine("$op  #$bitInByte, $address")
+        if (op != "btst") invalidateD0CacheForSlot(reg)
+    }
 }
 
 private fun AsmGen.bitTest(reg: Int, bit: Int, type: IRDataType) {

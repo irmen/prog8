@@ -62,7 +62,9 @@ internal fun AsmGen.translateLoadStore(insn: IRInstruction, suppressRegfileStore
         Opcode.LOADHR -> {
             val dst = insn.requireIntDest().intNumber
             val hwReg = m68kSlotRegister(insn.requireHardwareSlot().slot)
-            emitMoveToIntRegister(hwReg, dst, type)
+            // Step 7, §2.8: the vreg already lives in its slot register: no move needed.
+            if (!(registerAllocationEnabled && operand(dst) == hwReg))
+                emitMoveToIntRegister(hwReg, dst, type)
             invalidateD0CacheForSlot(dst)
         }
 
@@ -100,7 +102,9 @@ internal fun AsmGen.translateLoadStore(insn: IRInstruction, suppressRegfileStore
         Opcode.STOREHR -> {
             val src = insn.requireIntSourceA().intNumber
             val hwReg = m68kSlotRegister(insn.requireHardwareSlot().slot)
-            emitLine("move$s  ${operand(src)}, $hwReg")
+            // Step 7, §2.8: the vreg already lives in its slot register: no move needed.
+            if (!(registerAllocationEnabled && operand(src) == hwReg))
+                emitLine("move$s  ${operand(src)}, $hwReg")
         }
 
         Opcode.STOREI -> {
@@ -189,6 +193,9 @@ private fun AsmGen.translateFloatLoadStore(insn: IRInstruction, suppressRegfileS
         Opcode.LOADHR -> {
             val dst = insn.requireFloatDest().floatNumber
             val hwReg = m68kSlotRegister(insn.requireHardwareSlot().slot)
+            // Step 7, §2.8: the vreg already lives in its slot register: no move needed.
+            if (registerAllocationEnabled && floatOperand(dst) == hwReg)
+                return
             emitLine("fmove  $hwReg, $FP_ACC")
             emitLine("fmove.s  $FP_ACC, ${floatOperand(dst)}")
         }
@@ -204,6 +211,9 @@ private fun AsmGen.translateFloatLoadStore(insn: IRInstruction, suppressRegfileS
         Opcode.STOREHR -> {
             val src = insn.requireFloatSourceA().floatNumber
             val hwReg = m68kSlotRegister(insn.requireHardwareSlot().slot)
+            // Step 7, §2.8: the vreg already lives in its slot register: no move needed.
+            if (registerAllocationEnabled && floatOperand(src) == hwReg)
+                return
             emitLine("fmove.s  ${floatOperand(src)}, $FP_ACC")
             emitLine("fmove  $FP_ACC, $hwReg")
         }

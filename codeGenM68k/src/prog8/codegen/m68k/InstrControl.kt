@@ -937,8 +937,14 @@ private fun AsmGen.translateReturnValue(ret: CallResult) {
     if (slot != null) {
         val hwReg = m68kSlotRegister(slot)
         if (destination.isFloat) {
+            // Step 7, §2.8: the vreg already lives in its slot register: no move needed.
+            if (registerAllocationEnabled && floatOperand(destination.floatNumber) == hwReg)
+                return
             emitLine("fmove.s  $hwReg, ${floatOperand(destination.floatNumber)}")
         } else {
+            // Step 7, §2.8: the vreg already lives in its slot register: no move needed.
+            if (registerAllocationEnabled && operand(destination.intNumber) == hwReg)
+                return
             emitMoveToIntRegister(hwReg, destination.intNumber, destination.type)
         }
     } else {
@@ -962,10 +968,4 @@ private fun AsmGen.translateReturnValue(ret: CallResult) {
 // FAC1, FAC2) used by target-independent builtins (e.g. divmod returns its
 // quotient in AY). Map them onto distinct M68k hardware registers so the
 // backend can emit code for them.
-fun m68kSlotRegister(slot: CallingConventionSlot): String = when (slot.value) {
-    in 0..7 -> error("slots 0-7 should never be used on the M68K they are 6502 cpu registers")
-    in 10..17 -> "d${slot.value - 10}"     // M68k slots: D0-D7
-    in 18..24 -> "a${slot.value - 18}"     // M68k slots: A0-A6
-    in 25..32 -> "fp${slot.value - 25}"    // M68k slots: FP0-FP7
-    else -> error("unknown calling convention slot: $slot")
-}
+fun m68kSlotRegister(slot: CallingConventionSlot): String = M68kRegisterConvention.fixedRegister(slot)
