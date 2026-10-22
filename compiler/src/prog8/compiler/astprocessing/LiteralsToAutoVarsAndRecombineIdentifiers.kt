@@ -220,7 +220,7 @@ internal class LiteralsToAutoVarsAndRecombineIdentifiers(private val program: Pr
             }
         }
 
-        if(target==null && identifier.nameInSource.size>1) {
+        if(identifier.nameInSource.size>1) {
             // First component might be an alias
             val tgt2 = identifier.definingScope.lookup(identifier.nameInSource[0]) as? Alias
             if(tgt2!=null && parent !is Alias) {

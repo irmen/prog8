@@ -359,6 +359,167 @@ main {
             compileText(Amiga500Target(), false, src, outputDir, errors=errors) shouldBe null
             errors.errors.any { it.contains("alias loop") } shouldBe true
         }
+
+        test("alias to label") {
+            val src="""
+main {
+    sub start() {
+        alias target2 = target
+        goto target2
+        cx16.r0 = 666
+        target:
+        cx16.r1 = 42
+    }
+}"""
+            compileText(C64Target(), false, src, outputDir, writeAssembly=false) shouldNotBe null
+            compileText(VMTarget(), false, src, outputDir, writeAssembly=false) shouldNotBe null
+        }
+
+        test("alias to builtin function") {
+            val src="""
+main {
+    sub start() {
+        alias pw = peekw
+        alias pb = peek
+        cx16.r0 = pw($2000)
+        cx16.r1 = pb($2001)
+    }
+}"""
+            compileText(C64Target(), false, src, outputDir, writeAssembly=false) shouldNotBe null
+            compileText(VMTarget(), false, src, outputDir, writeAssembly=false) shouldNotBe null
+        }
+
+        test("alias to array supports indexing") {
+            val src="""
+main {
+    sub start() {
+        alias a = other.arr
+        a[0] = 42
+        a[1] = 99
+        cx16.r0 = a[1]
+    }
+}
+other {
+    ubyte[4] @shared arr
+}"""
+            compileText(C64Target(), false, src, outputDir, writeAssembly=false) shouldNotBe null
+            compileText(VMTarget(), false, src, outputDir, writeAssembly=false) shouldNotBe null
+        }
+
+        test("private alias cannot be accessed from outside its block") {
+            val src="""
+main {
+    sub start() {
+        helper.myReg = 42
+    }
+}
+helper {
+    private alias myReg = cx16.r0
+}"""
+            val errors = ErrorReporterForTests()
+            compileText(VMTarget(), false, src, outputDir, writeAssembly=false, errors=errors) shouldBe null
+            errors.errors.size shouldBe 1
+            errors.errors[0] shouldContain "cannot access private alias 'myReg' from outside its block"
+        }
+
+        test("alias name conflict with existing symbol gives error") {
+            val src="""
+main {
+    sub start() {
+        ubyte x
+        alias x = cx16.r0
+        x = 1
+    }
+}"""
+            val errors = ErrorReporterForTests()
+            compileText(VMTarget(), false, src, outputDir, writeAssembly=false, errors=errors) shouldBe null
+            errors.errors.size shouldBe 1
+            errors.errors[0] shouldContain "name conflict 'x'"
+        }
+
+        test("alias to block: calling subroutine through it") {
+            val src="""
+main {
+    sub start() {
+        alias gfx = gfx_hires
+        gfx.graphics_mode()
+        gfx.somevar = 42
+        cx16.r0 = gfx.somevar
+        cx16.r1 = gfx.MODE
+    }
+}
+gfx_hires {
+    ubyte @shared somevar
+    const ubyte MODE = 2
+    sub graphics_mode() {
+        cx16.r2++
+    }
+}"""
+            val errors = ErrorReporterForTests()
+            compileText(C64Target(), false, src, outputDir, writeAssembly=false, errors=errors) shouldNotBe null
+            errors.errors.size shouldBe 0
+            errors.clear()
+            compileText(VMTarget(), false, src, outputDir, writeAssembly=false, errors=errors) shouldNotBe null
+            errors.errors.size shouldBe 0
+        }
+
+        test("alias to block declared in block scope used in subroutine") {
+            val src="""
+main {
+    alias gfx = gfx_hires
+    sub start() {
+        gfx.graphics_mode()
+    }
+}
+gfx_hires {
+    sub graphics_mode() {
+        cx16.r0++
+    }
+}"""
+            compileText(C64Target(), false, src, outputDir, writeAssembly=false) shouldNotBe null
+            compileText(VMTarget(), false, src, outputDir, writeAssembly=false) shouldNotBe null
+        }
+
+        test("alias to block: calling nested subroutine through it") {
+            val src="""
+main {
+    sub start() {
+        alias tb = testblock
+        tb.sub1.sub2()
+    }
+}
+testblock {
+    sub sub1() {
+        sub sub2() {
+            cx16.r1++
+        }
+    }
+}"""
+            compileText(C64Target(), false, src, outputDir, writeAssembly=false) shouldNotBe null
+            compileText(VMTarget(), false, src, outputDir, writeAssembly=false) shouldNotBe null
+        }
+
+        test("alias to block: array and struct member access through it") {
+            val src="""
+main {
+    sub start() {
+        alias gfx = gfx_hires
+        gfx.arr[0] = 7
+        gfx.node.value = 9
+        cx16.r0 = gfx.arr[0]
+        cx16.r1 = gfx.node.value
+    }
+}
+gfx_hires {
+    ubyte[4] @shared arr
+    struct S {
+        ubyte value
+    }
+    ^^S @shared node
+}"""
+            compileText(C64Target(), false, src, outputDir, writeAssembly=false) shouldNotBe null
+            compileText(VMTarget(), false, src, outputDir, writeAssembly=false) shouldNotBe null
+        }
     }
 
     context("strings") {
