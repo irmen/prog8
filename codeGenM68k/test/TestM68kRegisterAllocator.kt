@@ -137,38 +137,6 @@ class TestM68kRegisterAllocator : FunSpec({
         alloc[VirtualRegister.int(1)] shouldNotBe alloc[VirtualRegister.int(2)]
     }
 
-    test("asmsub clobber of a pool register is recorded and avoided for live-across vregs") {
-        val options = CompilationOptions.builder(Qemu68kTarget())
-            .output(OutputType.RAW).zeropage(ZeropageType.FLOATSAFE)
-            .compilerVersion("test").memtopAddress(0xffffu).optimize(true).build()
-        val program = IRProgram("test", IRSymbolTable(), options, DummyStringEncoder)
-        val chunk = IRCodeChunk(null, null)
-        // r1 is live across the call; the asmsub destroys d2, so r1 must avoid it.
-        chunk.instructions.add(IRInstructions.binary(Opcode.MULR, IRDataType.WORD, 1, 2))
-        chunk.instructions.add(IRInstructions.load(IRDataType.WORD, 9, 5))
-        val callSite = CallSite(CallTarget.Direct(CodeReference.Label("test.clobberd2", 0)))
-        chunk.instructions.add(IRInstruction(Opcode.CALL, null, callSite = callSite))
-        chunk.instructions.add(IRInstructions.binary(Opcode.MULR, IRDataType.WORD, 3, 1))
-        val sub = IRSubroutine("test.start", emptyList(), emptyList(), Position.DUMMY)
-        sub.chunks.add(chunk)
-        val block = IRBlock("test", false, IRBlock.Options(), Position.DUMMY)
-        block.children.add(sub)
-        val asmChunk = IRInlineAsmChunk("test.clobberd2", "rts", false, null)
-        block.children.add(
-            IRAsmSubroutine(
-                "test.clobberd2", null, setOf(CpuRegister.D2), true,
-                emptyList(), emptyList(), asmChunk, Position.DUMMY, false
-            )
-        )
-        program.blocks.add(block)
-
-        val result = M68kRegisterAllocator(program).allocate()
-        val effects = result.callSiteEffects[sub]?.get(0)
-        effects!!.destroys shouldBe setOf("d2")
-        result.mapBySub[sub]!![VirtualRegister.int(1)] shouldNotBe "d2"
-        result.mapBySub[sub]!![VirtualRegister.int(1)] shouldNotBe null
-    }
-
     test("ordinary subroutine calls get no fixed-boundary metadata entry") {
         val options = CompilationOptions.builder(Qemu68kTarget())
             .output(OutputType.RAW).zeropage(ZeropageType.FLOATSAFE)
@@ -606,10 +574,9 @@ class TestM68kRegisterAllocator : FunSpec({
         listOf("d2", "d3", "d4", "d5", "d6").contains(alloc[VirtualRegister.int(7)]) shouldBe true
     }
 
-    test("asmsub with undeclared scratch spills values live across it") {
-        // The memclear class: stdlib hand-written bodies use pool registers
-        // without declaring them, so no declared set can be trusted. A value
-        // live across such a call cannot stay in any pool register.
+    test("asmsub that follows the register rule keeps pool values live across it") {
+        // An asmsub body saves every callee-saved register it writes, so a call only
+        // destroys the caller-saved set and live values can stay in the pool.
         val options = CompilationOptions.builder(Qemu68kTarget())
             .output(OutputType.RAW).zeropage(ZeropageType.FLOATSAFE)
             .compilerVersion("test").memtopAddress(0xffffu).optimize(true).build()
@@ -634,6 +601,31 @@ class TestM68kRegisterAllocator : FunSpec({
                 emptyList(), emptyList(), asmChunk, Position.DUMMY, false
             )
         )
+        program.blocks.add(block)
+
+        val alloc = M68kRegisterAllocator(program).allocate()
+        alloc.mapBySub[sub]?.get(VirtualRegister.int(1)) shouldNotBe null
+    }
+
+    test("call to an unresolved target spills values live across it") {
+        // An extsub is an absolute target with no body the compiler can check, so the whole pool is treated as destroyed.
+        val options = CompilationOptions.builder(Qemu68kTarget())
+            .output(OutputType.RAW).zeropage(ZeropageType.FLOATSAFE)
+            .compilerVersion("test").memtopAddress(0xffffu).optimize(true).build()
+        val program = IRProgram("test", IRSymbolTable(), options, DummyStringEncoder)
+        val head = IRCodeChunk(null, null)
+        head.instructions.add(IRInstructions.load(IRDataType.WORD, 1, 50))
+        val callChunk = IRCodeChunk("test.mid", null)
+        val site = CallSite(CallTarget.Direct(CodeReference.Absolute(MemoryAddress(0x4000u))))
+        callChunk.instructions.add(IRInstruction(Opcode.CALL, null, callSite = site))
+        val tail = IRCodeChunk("test.tail", null)
+        tail.instructions.add(IRInstructions.storeMemory(Opcode.STOREM, IRDataType.WORD, 1, IRMemory.direct("p8b_test.p8v_out")))
+        val sub = IRSubroutine("test.start", emptyList(), emptyList(), Position.DUMMY)
+        sub.chunks.add(head)
+        sub.chunks.add(callChunk)
+        sub.chunks.add(tail)
+        val block = IRBlock("test", false, IRBlock.Options(), Position.DUMMY)
+        block.children.add(sub)
         program.blocks.add(block)
 
         val alloc = M68kRegisterAllocator(program).allocate()

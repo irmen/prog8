@@ -171,6 +171,7 @@ math {
     sub rndw() -> uword {
         %option noframe
         %asm {{
+            move.l  d2,-(sp)
             addq.b  #1,math.x1
             move.b  math.x1,d0
             move.b  math.c1,d1
@@ -191,6 +192,7 @@ math {
             move.b  math.b1,d0
             lsl.w   #8,d0
             move.b  math.c1,d0
+            move.l  (sp)+,d2
             rts
         }}
     }
@@ -217,6 +219,7 @@ math {
     sub randrangew(uword n) -> uword {
         %option noframe
         %asm {{
+            move.l  d2,-(sp)
             addq.b  #1,math.x1
             move.b  math.x1,d0
             move.b  math.c1,d1
@@ -241,14 +244,16 @@ math {
             move.w  math.randrangew.n,d1
             mulu.w  d1,d0
             swap    d0
+            move.l  (sp)+,d2
             rts
         }}
     }
 
-    asmsub log2(ubyte value @D0) clobbers(D2) -> ubyte @D0 {
+    asmsub log2(ubyte value @D0) -> ubyte @D0 {
         ; returns the integer base-2 logarithm of the unsigned byte value (position of the highest set bit)
         ; returns 0 for value = 0
         %asm {{
+            move.l  d2,-(sp)
             move.b  d0,d1
             moveq   #7,d2
         .loop:
@@ -257,17 +262,20 @@ math {
             subq.b  #1,d2
             bcc     .loop
             moveq   #0,d0
+            move.l  (sp)+,d2
             rts
         .found:
             move.b  d2,d0
+            move.l  (sp)+,d2
             rts
         }}
     }
 
-    asmsub log2w(uword value @D0) clobbers(D2) -> ubyte @D0 {
+    asmsub log2w(uword value @D0) -> ubyte @D0 {
         ; returns the integer base-2 logarithm of the unsigned word value (position of the highest set bit)
         ; returns 0 for value = 0
         %asm {{
+            move.l  d2,-(sp)
             move.w  d0,d1
             moveq   #15,d2
         .loop:
@@ -276,17 +284,20 @@ math {
             subq.b  #1,d2
             bcc     .loop
             moveq   #0,d0
+            move.l  (sp)+,d2
             rts
         .found:
             move.b  d2,d0
+            move.l  (sp)+,d2
             rts
         }}
     }
 
-    asmsub log2l(long value @D0) clobbers(D2) -> ubyte @D0 {
+    asmsub log2l(long value @D0) -> ubyte @D0 {
         ; returns the integer base-2 logarithm of the signed long value (position of the highest set bit)
         ; returns 0 for value = 0
         %asm {{
+            move.l  d2,-(sp)
             move.l  d0,d1
             moveq   #31,d2
         .loop:
@@ -295,9 +306,11 @@ math {
             subq.b  #1,d2
             bcc     .loop
             moveq   #0,d0
+            move.l  (sp)+,d2
             rts
         .found:
             move.b  d2,d0
+            move.l  (sp)+,d2
             rts
         }}
     }
@@ -332,7 +345,7 @@ math {
         }}
     }
 
-    asmsub lerp(ubyte v0 @D0, ubyte v1 @D1, ubyte t @D2) clobbers(D3) -> ubyte @D0 {
+    asmsub lerp(ubyte v0 @D0, ubyte v1 @D1, ubyte t @D2) -> ubyte @D0 {
         ; Linear interpolation (LERP)
         ; returns an interpolation between two inputs (v0, v1) for a parameter t in the interval [0, 255]
         ; guarantees v = v1 when t = 255
@@ -342,6 +355,7 @@ math {
         ;   else
         ;       return v0 + msb(t as uword * (v1 - v0) + 255)
         %asm {{
+            move.l  d3,-(sp)
             move.b  d0,d3           ; save v0
             cmp.b   d1,d0
             bcc     .descending
@@ -354,6 +368,7 @@ math {
             add.w   #255,d0         ; round up
             lsr.w   #8,d0           ; d0 = upper byte
             add.b   d3,d0           ; result = v0 + upper
+            move.l  (sp)+,d3
             rts
         .descending:
             sub.b   d1,d0           ; d0 = delta = v0 - v1
@@ -365,11 +380,12 @@ math {
             lsr.w   #8,d1           ; d1 = upper byte
             move.b  d3,d0           ; d0 = v0
             sub.b   d1,d0           ; result = v0 - upper
+            move.l  (sp)+,d3
             rts
         }}
     }
 
-    asmsub lerpw(uword v0 @D0, uword v1 @D1, uword t @D2) clobbers(D3) -> uword @D0 {
+    asmsub lerpw(uword v0 @D0, uword v1 @D1, uword t @D2) -> uword @D0 {
         ; Linear interpolation (LERP) on word values
         ; returns an interpolation between two inputs (v0, v1) for a parameter t in the interval [0, 65535]
         ; guarantees v = v1 when t = 65535
@@ -393,6 +409,7 @@ math {
         ;       return v0 - upper
         ;   return v0 + upper
         %asm {{
+            move.l  d3,-(sp)
             move.w  d0,d3           ; save v0
             cmp.w   d1,d0
             bcc     .descending
@@ -408,6 +425,7 @@ math {
             addq.w  #1,d0           ; ceil(product / 65536)
         .done_asc:
             add.w   d3,d0           ; result = v0 + upper
+            move.l  (sp)+,d3
             rts
         .descending:
             sub.w   d1,d0           ; d0 = delta = v0 - v1
@@ -422,17 +440,19 @@ math {
         .done_desc:
             move.w  d3,d0           ; d0 = v0
             sub.w   d1,d0           ; result = v0 - upper
+            move.l  (sp)+,d3
             rts
         }}
     }
 
-    asmsub interpolate(ubyte v @D0, ubyte inputMin @D1, ubyte inputMax @D2, ubyte outputMin @D3, ubyte outputMax @D4) clobbers(D2,D3,D4) -> ubyte @D0 {
+    asmsub interpolate(ubyte v @D0, ubyte inputMin @D1, ubyte inputMax @D2, ubyte outputMin @D3, ubyte outputMax @D4) -> ubyte @D0 {
         ; Interpolate a value v in interval [inputMin, inputMax] to output interval [outputMin, outputMax]
         ; original Prog8 implementation:
         ;   uword tmp = ((v - inputMin) * 256 + inputMax) / (inputMax - inputMin)
         ;   tmp *= outputMax - outputMin
         ;   return msb(tmp) + outputMin
         %asm {{
+            movem.l d2/d4,-(sp)
             sub.b   d3,d4           ; d4 = delta_out = outputMax - outputMin (byte)
             sub.b   d1,d0           ; d0 = diff_in = v - inputMin
             and.w   #$ff,d0
@@ -446,29 +466,33 @@ math {
             mulu.w  d4,d0           ; d0 = tmp * delta_out (32-bit)
             lsr.l   #8,d0           ; d0 = high byte of product
             add.b   d3,d0           ; result = msb + outputMin
+            movem.l (sp)+,d2/d4
             rts
         }}
     }
 
-    asmsub interpolatew(uword v @D0, uword inputMin @D1, uword inputMax @D2, uword outputMin @D3, uword outputMax @D4) clobbers(D2,D3,D4) -> uword @D0 {
+    asmsub interpolatew(uword v @D0, uword inputMin @D1, uword inputMax @D2, uword outputMin @D3, uword outputMax @D4) -> uword @D0 {
         ; Interpolate a value v in interval [inputMin, inputMax] to output interval [outputMin, outputMax]
         ; Uses a 32-bit intermediate product, so it works best when v is within the input range.
         ; equivalent Prog8 implementation (there was no m68k Prog8 version; this is the shared math library one):
         ;   return outputMin + ((v - inputMin) as long * (outputMax - outputMin) as long / (inputMax - inputMin) as long) as uword
         %asm {{
+            movem.l d2/d4,-(sp)
             sub.w   d3,d4           ; d4 = delta_out = outputMax - outputMin
             sub.w   d1,d0           ; d0 = diff_in = v - inputMin
             mulu.w  d4,d0           ; d0 = diff_in * delta_out (32-bit)
             sub.w   d1,d2           ; d2 = denom = inputMax - inputMin
             divu.w  d2,d0           ; d0 = [remainder:quotient]
             add.w   d3,d0           ; result = outputMin + quotient
+            movem.l (sp)+,d2/d4
             rts
         }}
     }
 
-    asmsub gcd(uword a @D0, uword b @D1) clobbers(D2,D3) -> uword @D0 {
+    asmsub gcd(uword a @D0, uword b @D1) -> uword @D0 {
         ; Calculate the Greatest Common Divisor of two 16-bit unsigned integers using the Binary GCD algorithm (Stein's algorithm).
         %asm {{
+            movem.l d2-d3,-(sp)
             tst.w   d0
             beq     .done_b
             tst.w   d1
@@ -517,10 +541,12 @@ math {
 .finish
             lsl.w   d2,d0           ; a << shift
 .done_a
+            movem.l (sp)+,d2-d3
             rts
 
 .done_b
             move.w  d1,d0
+            movem.l (sp)+,d2-d3
             rts
         }}
     }

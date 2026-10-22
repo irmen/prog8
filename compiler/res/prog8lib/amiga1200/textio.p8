@@ -5,14 +5,16 @@
 
 txt {
     %option ignore_unused
-    asmsub chrout(ubyte char @D0) clobbers(D0,D1,D2,A0,A6) {
+    asmsub chrout(ubyte char @D0) {
         %asm {{
+            movem.l d2/d6,-(sp)
             move.l  sys.DOSBase,a6
             move.b  d0,-(sp)          ; push character, A7 now points to it
             move.l  sp,d1
             moveq   #1,d2
             jsr     -942(a6)          ; WriteChars
             addq.l  #2, sp
+            movem.l (sp)+,d2/d6
             rts
         }}
     }
@@ -31,21 +33,27 @@ txt {
 
     asmsub flush() {
         %asm {{
+            move.l  d6,-(sp)        ; OS calls do not preserve d6
             move.l  sys.DOSBase,a6
             jsr     -60(a6)           ; Output()
             move.l  d0,d1
-            jmp     -360(a6)          ; Flush
+            jsr     -360(a6)          ; Flush
+            move.l  (sp)+,d6
+            rts
         }}
     }
 
-    asmsub print(str text @A0) clobbers(D0,D1,A0,A6) {
+    asmsub print(str text @A0) {
         %asm {{
+            move.l  d6,-(sp)        ; OS calls do not preserve d6
             move.l  sys.DOSBase,a6
             move.l  a0,d1
             jsr     -948(a6)          ; PutStr()
             jsr     -60(a6)           ; Output()
             move.l  d0,d1
-            jmp     -360(a6)          ; Flush
+            jsr     -360(a6)          ; Flush
+            move.l  (sp)+,d6
+            rts
         }}
     }
 
@@ -54,14 +62,18 @@ txt {
 
     private asmsub vprintf(str format @D1, pointer argarray @D2) {
         %asm {{
+            move.l  d6,-(sp)        ; OS calls do not preserve d6
             move.l  4.w,a6
             cmp.w   #36,20(a6)      ; KS 2.0 = V36
             bcs.s   .no_ks20
             move.l  sys.DOSBase,a6
-            jmp  dos.VPrintf(a6)
+            jsr     dos.VPrintf(a6)
+            move.l  (sp)+,d6
+            rts
 
 .no_ks20:
-            jmp  p8b_txt.p8s_no_ks20_alert
+            move.l  (sp)+,d6
+            jmp     p8b_txt.p8s_no_ks20_alert
         }}
     }
 

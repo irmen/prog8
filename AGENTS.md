@@ -176,7 +176,7 @@ When the task involves writing or understanding `.p8` (Prog8 source) or `.p8ir` 
 
 ## Key Information
 - never read the files and directories that are ignored via the .aiignore and .gitignore files (EXCEPT when it is a folder for agent config such as .junie, .opencode, .qwen or .agent)
-- never perform any git source control write/update/add/commit/branch operations. Read and status operations are allowed.
+- never perform any git source control write/update/commit/branch operations. Read and status operations are allowed. Staging new files that need to be under source control (`git add` of new, untracked files) is allowed; committing and branching are not.
 - **git log/history queries can be useful** for understanding when/why a feature was added or tracking down when a bug was introduced, but for locating code use grep_search or glob instead.
 - Architecture decisions: separation of frontend/parser, IR intermediate representation, multiple backends
 

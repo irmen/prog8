@@ -810,7 +810,9 @@ private fun AsmGen.emitDivModOp(dstReg: Int, remainderReg: Int, type: IRDataType
                     emitLine("move.l  ${operand(remainderReg)}, $SCRATCH_D1", "divisor")
                 }
                 invalidateD0Cache()
+                emitLine("movem.l  d2-d7,-(sp)")
                 emitLine("bsr  $routine")
+                emitLine("movem.l  (sp)+,d2-d7")
                 emitStoreD0(dstReg, IRDataType.LONG)
                 invalidateD0CacheForSlot(remainderReg)
                 emitLine("move.l  $SCRATCH_D1, ${operand(remainderReg)}", "remainder")

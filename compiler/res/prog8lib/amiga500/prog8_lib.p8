@@ -39,6 +39,7 @@ p8_sys_startup {
             move.l  sp,a0
             add.l   #4*3,a0       ; take care of JSR to this routine, and the 2 saved longs
             move.l  a0,p8_sys_startup.orig_stackpointer
+            move.l  d6,-(sp)      ; OS library calls do not preserve d6
 
 proc_MsgPort = 92
 proc_CLI = 172
@@ -66,6 +67,7 @@ proc_CLI = 172
 2$:
 
             ; CLI launch: restore saved arguments (if any)
+            move.l  (sp)+,d6
             move.l  (sp)+,a0
             move.l  (sp)+,d0
             tst.l   p8_sys_startup.WBMsg
@@ -117,7 +119,7 @@ proc_CLI = 172
     sub cleanup_at_exit() {
         %option noframe
         %asm {{
-            movem.l d0,-(sp)       ; keep return code
+            movem.l d0/d6,-(sp)    ; keep return code, and save d6 across the OS call
 
             ; reply to Workbench message if it exists
     		move.l  4.w,a6
@@ -139,7 +141,7 @@ proc_CLI = 172
         if sys.DOSBase != 0 exec.CloseLibrary(sys.DOSBase)
 
         %asm {{
-            movem.l  (sp)+,d0       ; restore return code
+            movem.l  (sp)+,d0/d6    ; restore return code and d6
         }}
     }
 }

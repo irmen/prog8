@@ -10,9 +10,9 @@ floats {
     %option no_symbol_prefixing, ignore_unused
     %asminclude "library:shared_m68k_floats.asm"
 
-    asmsub print(float value @FP0) clobbers(D2,D3,D4,D5) {
+    asmsub print(float value @FP0) {
         %asm {{
-            move.l a2,-(sp)
+            movem.l d2-d3/d6/a2,-(sp)
             jsr floats._tostr
             move.l a0,a2
 .loop:
@@ -28,7 +28,7 @@ floats {
             addq.l #2,sp
             bra .loop
 .done:
-            move.l (sp)+,a2
+            movem.l (sp)+,d2-d3/d6/a2
             rts
         }}
     }

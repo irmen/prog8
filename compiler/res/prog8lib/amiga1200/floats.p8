@@ -10,12 +10,15 @@ floats {
     %option no_symbol_prefixing, ignore_unused
     %asminclude "library:shared_m68k_floats.asm"
 
-    asmsub print(float value @FP0) clobbers(D2,D3,D4,D5) {
+    asmsub print(float value @FP0) {
         %asm {{
-            jsr floats._tostr
-            move.l a0,d1
-            move.l sys.DOSBase,a6
-            jmp -948(a6)          ; PutStr()
+            move.l  d6,-(sp)        ; OS calls do not preserve d6
+            jsr     floats._tostr
+            move.l  a0,d1
+            move.l  sys.DOSBase,a6
+            jsr     -948(a6)          ; PutStr()
+            move.l  (sp)+,d6
+            rts
         }}
     }
 }

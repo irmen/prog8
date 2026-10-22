@@ -503,6 +503,45 @@ class TestM68kScratchRegisterUsage : FunSpec({
         (restore > bsr) shouldBe true
     }
 
+    test("long divmod helper saves allocated registers around the call") {
+        // The 68000 DIVMODR/SDIVMODR path bsrs to a helper that clobbers D2-D7, same as the multiply path.
+        val target = Amiga500Target()
+        val options = CompilationOptions.builder(target)
+            .output(OutputType.RAW)
+            .zeropage(ZeropageType.FLOATSAFE)
+            .floats(false)
+            .compilerVersion("test")
+            .memtopAddress(0xffffu)
+            .optimize(true)
+            .build()
+        val program = IRProgram("test", IRSymbolTable(), options, DummyStringEncoder)
+        program.options.outputDir = tempRoot.resolve("test-m68k-longdivmod-save")
+        val chunk = IRCodeChunk(null, null)
+        chunk.instructions.add(IRInstructions.divmodRegister(Opcode.SDIVMODR, IRDataType.LONG, 1, 2))
+        val sub = IRSubroutine("test.start", emptyList(), emptyList(), Position.DUMMY)
+        sub.chunks.add(chunk)
+        val block = IRBlock("test", false, IRBlock.Options(), Position.DUMMY)
+        block.children.add(sub)
+        program.blocks.add(block)
+
+        val output = program.options.outputDir.toFile()
+        output.deleteRecursively()
+        output.mkdirs()
+        val asmGen = AsmGen(program, target)
+        asmGen.regAllocation.putAll(mapOf(VirtualRegister.int(1) to "d2", VirtualRegister.int(2) to "d3"))
+        asmGen.generate()
+        val asmFile = program.options.outputDir.resolve("test.asm")
+        check(asmFile.exists()) { "Assembly file not written: $asmFile" }
+        val asmLines = asmFile.readText().lines().map { it.trim() }
+
+        val save = asmLines.indexOf("movem.l  d2-d7,-(sp)")
+        val bsr = asmLines.indexOfFirst { it == "bsr  p8_sdivmod32" }
+        val restore = asmLines.indexOf("movem.l  (sp)+,d2-d7")
+        (save >= 0) shouldBe true
+        (bsr > save) shouldBe true
+        (restore > bsr) shouldBe true
+    }
+
     test("spilled default return goes to memory") {
         // Step 7: a spilled destination resolves to its regfile slot, not a register.
         val site = CallSite(

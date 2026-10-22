@@ -12,14 +12,14 @@ copper {
 
     ; ========== List building routines (assembly) ==========
 
-    asmsub init(pointer list_ptr @A0) clobbers (A0) {
+    asmsub init(pointer list_ptr @A0) {
         %asm {{
             move.l  a0,copper._copper_pos
             rts
         }}
     }
 
-    asmsub move(uword reg_addr @D0, uword value @D1) clobbers (D0, D1, A0) {
+    asmsub move(uword reg_addr @D0, uword value @D1) {
         ; Add a MOVE instruction to the copper list.
         ; reg_addr is the custom register address offsetr (e.g., $0180 for COLOR00 / $dff180).
         ; The copper MOVE instruction encodes the register offset from $dff000.
@@ -33,7 +33,7 @@ copper {
         }}
     }
 
-    asmsub wait(ubyte vpos @D0, ubyte hpos @D1, uword compare_mask @D2) clobbers (D0, D1, D2, A0) {
+    asmsub wait(ubyte vpos @D0, ubyte hpos @D1, uword compare_mask @D2) {
         ; Add a WAIT instruction to the copper list.
         ; Word1 = (vpos<<8) | (hpos<<1) | 1   (bit 0 = 1 identifies WAIT/SKIP)
         ; Word2 = compare_mask with bit 0 = 0 (distinguishes WAIT from SKIP).
@@ -41,6 +41,7 @@ copper {
         ;   Word2 bits 14-8 = VE (vertical compare enable mask)
         ;   Word2 bits 7-1  = HE (horizontal compare enable mask)
         %asm {{
+            move.l  d2,-(sp)
             move.l  copper._copper_pos,a0
             and.w   #$ff,d0           ; zero-extend vpos to word
             lsl.w   #8,d0             ; vpos to high byte
@@ -52,15 +53,17 @@ copper {
             and.w   #$fffe,d2         ; clear bit 0 to indicate WAIT (not SKIP)
             move.w  d2,(a0)+          ; word 2
             move.l  a0,copper._copper_pos
+            move.l  (sp)+,d2
             rts
         }}
     }
 
-    asmsub skip(ubyte vpos @D0, ubyte hpos @D1, uword compare_mask @D2) clobbers (D0, D1, D2, A0) {
+    asmsub skip(ubyte vpos @D0, ubyte hpos @D1, uword compare_mask @D2) {
         ; Add a SKIP instruction to the copper list.
         ; Word1 = (vpos<<8) | (hpos<<1) | 1   (bit 0 = 1 identifies WAIT/SKIP)
         ; Word2 = compare_mask with bit 0 = 1 (distinguishes SKIP from WAIT).
         %asm {{
+            move.l  d2,-(sp)
             move.l  copper._copper_pos,a0
             and.w   #$ff,d0           ; zero-extend vpos to word
             lsl.w   #8,d0             ; vpos to high byte
@@ -72,11 +75,12 @@ copper {
             or.w    #1,d2             ; set bit 0 to indicate SKIP (not WAIT)
             move.w  d2,(a0)+          ; word 2
             move.l  a0,copper._copper_pos
+            move.l  (sp)+,d2
             rts
         }}
     }
 
-    asmsub end() clobbers (A0) {
+    asmsub end() {
         ; Terminate the copper list with the end marker ($FFFF, $FFFE).
         %asm {{
             move.l  copper._copper_pos,a0
@@ -98,7 +102,7 @@ copper {
 
     ; ========== Activation routines (assembly) ==========
 
-    asmsub start(pointer list_ptr @A0) clobbers (A0) {
+    asmsub start(pointer list_ptr @A0) {
         ; Activate a copper list by loading its address into COP1LC and enabling Copper DMA.
         ; The copper list must be in CHIP RAM.
         %asm {{

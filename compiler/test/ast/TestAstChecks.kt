@@ -9,6 +9,7 @@ import io.kotest.matchers.shouldNotBe
 import io.kotest.matchers.string.shouldContain
 import prog8.code.target.C64Target
 import prog8.code.target.Cx16Target
+import prog8.code.target.Qemu68kTarget
 import prog8.code.target.VMTarget
 import prog8tests.helpers.ErrorReporterForTests
 import prog8tests.helpers.compileText
@@ -1004,5 +1005,54 @@ main {
                 errors.errors.size shouldBe 0
             }
         }
+    }
+
+    test("m68k asmsub cannot declare clobbers") {
+        val text = """
+            main {
+                asmsub foo() clobbers(D2) {
+                    %asm {{ rts }}
+                }
+                sub start() {
+                    foo()
+                }
+            }
+            """
+        val errors = ErrorReporterForTests(keepMessagesAfterReporting = true)
+        compileText(Qemu68kTarget(), false, text, outputDir, errors = errors, writeAssembly = false) shouldBe null
+        errors.errors.size shouldBe 1
+        errors.errors[0] shouldContain "cannot declare clobbers"
+    }
+
+    test("m68k asmsub without clobbers is accepted") {
+        val text = """
+            main {
+                asmsub foo() {
+                    %asm {{ rts }}
+                }
+                sub start() {
+                    foo()
+                }
+            }
+            """
+        val errors = ErrorReporterForTests()
+        compileText(Qemu68kTarget(), false, text, outputDir, errors = errors, writeAssembly = false) shouldNotBe null
+        errors.errors.size shouldBe 0
+    }
+
+    test("6502 asmsub may still declare clobbers") {
+        val text = """
+            main {
+                asmsub foo() clobbers(A,X) {
+                    %asm {{ rts }}
+                }
+                sub start() {
+                    foo()
+                }
+            }
+            """
+        val errors = ErrorReporterForTests()
+        compileText(C64Target(), false, text, outputDir, errors = errors, writeAssembly = false) shouldNotBe null
+        errors.errors.size shouldBe 0
     }
 })

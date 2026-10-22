@@ -18,6 +18,15 @@ memory traffic; code size falls on every metric (ELF -4..-14%, code lines
 -5..+1% - see Validation). See "Implementation progress" below.
 **Gate to next stage:** green.
 
+**Policy update (supersedes the declared-clobber metadata for asmsubs described
+below):** an M68K `asmsub` must not declare `clobbers(...)`; its body preserves
+the callee-saved and reserved registers it uses, and a call to it destroys only
+the caller-saved set, as for an ordinary subroutine. Only extsubs forbid the whole
+allocatable pool for values live across the call. See
+`ideas/m68k-register-allocation.md` §2.6. Declared clobbers remain in use for
+`extsub` targets. Amiga library calls use a fixed destroy set in the allocator
+(A6 and D6).
+
 ## Implementation progress (as of Oct 2026)
 
 **Golden harness (prerequisite):** `compiler/test/codegeneration/TestM68kGoldenAsm.kt`

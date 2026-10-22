@@ -305,29 +305,35 @@ translator scratch (§2.3) and D7/A5/A6 are reserved (above).
 
 ### 2.6 asmsub/extsub clobber policy
 
-`CpuRegister` includes D0–D7/A0–A6/FP0–FP7, so a hand-written `asmsub` or
-`extsub` can declare (or worse, fail to declare) clobbering a callee-saved or
-reserved register. That would break the uniform CALL rule of §2.4.
+`CpuRegister` includes D0–D7/A0–A6/FP0–FP7, so a hand-written `asmsub` could
+declare (or fail to declare) clobbering a callee-saved or reserved register.
+That would break the uniform CALL rule of §2.4.
 
-Policy (decision taken; resolves m68k-reg-problems.md §2): **asmsub/extsub
-boundaries are not uniform CALLs - they carry per-call-site metadata.** The
-uniform CALL rule of §2.4 stays valid for ordinary Prog8 subroutines only. The
-metadata for each fixed-register call contains: the physical registers *read*
-as arguments, the physical registers *defined* as results, and the additional
-physical registers *destroyed* by the call; the allocator creates interference
-edges or preservation moves for those registers at that call site. This is
-required because the old "reject callee-saved clobbers" idea breaks existing
-code: standard-library asmsubs declare D2-D6/A2 in `clobbers`, Amiga library
-calls take arguments in D2-D7 and A2-A5, `Supervisor` and `Alert` use A5/D7 as
-argument slots, and multi-value returns use D0-D3 - all outside the
-caller-saved set, and external routines cannot be changed to preserve Prog8's
-internal convention.
+Policy (implemented; supersedes the earlier per-call-site clobber metadata for
+asmsubs): **an M68K `asmsub` must not declare `clobbers(...)` - the routine
+itself preserves every non-scratch register it uses.** D2–D6, A2–A4 and FP2–FP7
+are callee-saved and D7/A5 are reserved, so a body that touches them must save
+and restore them. D0/D1, A0/A1 and FP0/FP1 are translator scratch and may be
+clobbered. A6 is not allocatable, and the compiler reloads the required library
+base into it before every AmigaOS call, so an `asmsub` that uses A6 as a library
+base need not preserve it. `AstChecker` rejects an M68K `asmsub` that declares
+`clobbers(...)`.
 
-- For *new* asmsubs, restricting `clobbers(...)` to caller-saved registers
-  (D0, D1, A0, A1, FP0, FP1) is the recommended style; hand-written assembly
-  that needs D2–D6/A2–A4/FP2–FP7 should save and restore it itself. Declaring
-  more is not a compile error: the declared set simply becomes part of the
-  call-site metadata.
+Because the rule guarantees what an asmsub destroys, the allocator treats a call
+to an asmsub like a call to an ordinary Prog8 subroutine: only the caller-saved
+set is destroyed, plus the call's argument and result registers. Only unresolved
+targets (extsubs) forbid the whole allocatable pool for values live across the
+call. The compiler warns when an asmsub body changes a callee-saved or reserved
+register without saving it (user code only), and `TestM68kSaveRules` checks the
+m68k library sources the same way. Against the earlier flush policy, residency
+improved or held on almost every example, and spills fell on most of them.
+
+`extsub` targets are external routines that cannot be changed to follow this
+convention, so they keep their optional `clobbers(...)` declaration and the
+metadata derived from it.
+
+- For *new* asmsubs, save and restore the registers you use instead of
+  declaring them.
 - **Inline asmsubs** are pasted directly into the instruction stream, so the
   same rule applies to their bodies: no writes to callee-saved or reserved
   registers without restoring them.

@@ -144,11 +144,6 @@ class M68kRegisterAllocator(val program: IRProgram) {
         return words
     }
 
-    // Declared clobbers of an asmsub, as physical m68k register names. Non-m68k
-    // entries (A/X/Y from shared parsing) cannot occur on this backend and are dropped.
-    private fun declaredClobbers(asmSub: IRAsmSubroutine): Set<String> =
-        asmSub.clobbers.map { it.name.lowercase() }.filter { it in M68kRegisterConvention.ALL_HARDWARE_REGS }.toSet()
-
     // Per-call-site fixed-register boundary metadata, or null for ordinary Prog8
     // subroutine calls (uniform caller-saved kill set, no table entry needed).
     private fun fixedBoundaryEffects(cs: CallSite): CallSiteRegisterEffects? {
@@ -165,7 +160,6 @@ class M68kRegisterAllocator(val program: IRProgram) {
             .map { M68kRegisterConvention.fixedRegister(it) }
             .toSet()
         val destroys = buildSet {
-            if (asmSub != null) addAll(declaredClobbers(asmSub))
             // The AmigaOS library ABI preserves only d2-d5/a2-a5/a6: d6 is volatile, so it must not stay live.
             if (target is CallTarget.AmigaLibrary) {
                 add("a6")
@@ -447,14 +441,14 @@ class M68kRegisterAllocator(val program: IRProgram) {
                     val effects = fixedBoundaryEffects(cs)
                     if (effects != null) {
                         subCallEffects[callOrdinal[ins]!!] = effects
-                        // Unknown fixed boundaries may use any pool register as scratch; declared clobbers make it precise.
+                        // An asmsub body follows the m68k register rule (it saves every callee-saved register it writes),
+                        // so only unresolved targets such as extsubs may destroy any pool register.
                         val target = cs.target
                         val asmSub = (target as? CallTarget.Direct)?.reference?.let {
                             (it as? CodeReference.Label)?.name?.let { name -> asmSubByLabel[name] }
                         }
                         val knownOrdinary = ordinaryTarget != null
-                        val unknownCallee = (asmSub == null || !asmSub.clobbersDeclared) && !knownOrdinary &&
-                            target !is CallTarget.AmigaLibrary
+                        val unknownCallee = asmSub == null && !knownOrdinary && target !is CallTarget.AmigaLibrary
                         val clobberedPool = if (unknownCallee) allocatablePool
                             else (effects.reads + effects.defined + effects.destroys).intersect(allocatablePool)
                         if (clobberedPool.isNotEmpty()) {

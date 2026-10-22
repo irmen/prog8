@@ -1,22 +1,38 @@
-# M68k Assembly Peephole Opportunities
+# M68k Assembly Peepholes
 
-Plan for a set of assembly-level cleanups for the m68k backend, based on the
-generated output in `amiga-regalloc/` (23 programs, about 43,000 instructions,
-Oct 2026 snapshot). Related design: `m68k-register-allocation.md`. The register
-allocator is the owner of most of the waste found here, so this plan separates
-what a peephole pass should do from what belongs in codegen or the allocator.
+Plan for the window-based peepholes in `codeGenM68k/src/prog8/codegen/m68k/AsmOptimizer.kt`.
+Only rewrites that a peephole pass can do over one or a few generated instructions belong
+here. The allocator, `AsmGen` and backend-emitter items that were found in the compiler
+document are listed under "Moved items" below. Opportunities that need a change in the IR
+codegen or the AST are in `m68k-compiler-optimizations.md`.
 
-**Status:** Draft. Earlier-stage findings (IR and source traces) are recorded below.
-Several tier A and B items are better fixed earlier in the chain. Open questions need
-answers before implementation.
+Related design: `m68k-register-allocation.md`.
+
+**Status:** Draft, updated to the current compiler state (Oct 2026). Review is done;
+implementation has not started. Baseline measured on `amiga500` (section "Baseline").
+
+## Current state
+
+- The register allocator is the only m68k code path. Stage 3 (teardown) and Stage 4
+  (default allocator) are complete. There is no command-line switch, flag, or golden
+  harness for the old path.
+- `%option noframe` subroutines are never allocated and still use `p8_regfile` round
+  trips (for example the amiga startup `init_system`, about 5 bounce pairs per amiga
+  program, accepted in Stage 4). So `p8_regfile` still appears in the output, and the
+  peephole rules must still handle it where it is emitted.
+- `AsmOptimizer.kt` contains four passes. Stage 3 removed the regfile-specific
+  peepholes, so there are no pending deletions to coordinate with.
+- The earlier `amiga-regalloc/` snapshot that the first version of this plan was
+  based on is not in the repository. Its counts cannot be reproduced. The counts in
+  this document come from the current tree (see "Baseline").
 
 ## Background
 
 The existing `optimizeAssembly()` in
 `codeGenM68k/src/prog8/codegen/m68k/AsmOptimizer.kt` runs four passes:
 jump-to-next-label, tail call (`bsr` + `rts` to `bra`), redundant `tst` after a
-flag-setting move, and redundant `lea base,a0`. None of them looks at data
-flow between registers or frame slots.
+flag-setting move, and redundant `lea base,a0`. None of them looks at data flow
+between registers or frame slots.
 
 Reading the generated code shows the following patterns:
 
@@ -30,246 +46,262 @@ Reading the generated code shows the following patterns:
   register.
 - Self-moves and swap-back copies remain in the output.
 
+## Priorities and acceptance
+
+- **Fast code over small code.** When a rewrite trades size for speed, take the
+  speed. Each rewrite should be justified with a cycle estimate for the 68000
+  (`amiga500`), not only a byte count. For example, `moveq #N,Dn` is 4 cycles and
+  `move.w #N,Dn` is 8 cycles on the 68000.
+- **Acceptance:** all example programs run correctly, and the total output size is at
+  most 2% larger than the baseline. Tier A passes only remove or shorten instructions,
+  so the size limit is unlikely to bind for them. It matters for later codegen changes.
+
 ## Design rule
 
 `m68k-register-allocation.md` §0 says that improvements must come from the codegen
 structure. Peepholes are allowed for local rewrites that are cheap to verify. A
 peephole must not compensate for a missing allocator feature.
 
-Each item below is tagged with an owner:
+- **peephole**: local rewrite over one or two instructions, or a block-local liveness
+  check. Implemented in `AsmOptimizer.kt`. Every item in this document has this owner.
+- Anything that needs an AST or IR codegen change is listed in
+  `m68k-compiler-optimizations.md`. Allocator, AsmGen and backend-emitter items are
+  listed under "Moved items" below.
 
-- **peephole**: local rewrite over one or two instructions, or a block-local
-  liveness check. Implemented in `AsmOptimizer.kt`.
-- **codegen**: the rewrite should be done when the code is emitted (for example
-  duplicate zeroing in a prologue). Implemented in the translators or `AsmGen`.
-- **allocator**: caused by copies and round-trips the register allocator should
-  remove (coalescing, frame local promotion). Tracked in the register allocation
-  stages, not here.
+Peephole passes must not depend on `p8_regfile` layout for allocated code. The
+passes must still match the `p8_regfile` forms that `noframe` subroutines emit, or
+leave them alone.
 
-Peephole passes must not read or write `p8_regfile`. Stage 3 of the allocator
-deletes the regfile peepholes; the new passes must survive that deletion.
+## Baseline
+
+Measured on the current tree with `prog8c -target amiga500` over `examples/amiga/*.p8`.
+The compiler-side document refers to these numbers.
+
+- 20 programs compile. `ahimodes`, `ahiplay` and `stream-adpcm` are excluded: they
+  import an `ahi` module that is not in the library path.
+- Instructions: counted by mnemonic in the generated `.asm` files, so the count is
+  approximate. Size: the linked executable.
+- `qemu68k` is not measured yet.
+
+| Program | Instructions | Bytes |
+| --- | ---: | ---: |
+| 3d | 1796 | 10060 |
+| adpcmbench | 2142 | 16592 |
+| bdmusic | 1273 | 7028 |
+| blitcop | 1266 | 7944 |
+| circles | 1150 | 6656 |
+| fractal-tree | 1058 | 7016 |
+| gfxdemo | 1808 | 8704 |
+| hlaudio | 1284 | 12112 |
+| iff | 1158 | 6068 |
+| izx0reader | 885 | 4492 |
+| lowlevel-timer | 833 | 4680 |
+| modplay | 2321 | 13240 |
+| rasters | 708 | 3780 |
+| screen | 555 | 3404 |
+| stream-disk | 1670 | 8584 |
+| stream-file | 1380 | 7320 |
+| tictactoe | 1554 | 7768 |
+| wavc | 2089 | 16256 |
+| window3d | 1300 | 8104 |
+| window | 877 | 4932 |
+| **Total** | **27107** | **164740** |
+
+Raw data: `/tmp/opencode/baseline/summary.txt` (scratch, not in the repository).
 
 ## Inventory
 
-Counts are from text matching over the `amiga-regalloc/*.asm` snapshot. They are
-approximate and count matches, not sites that would change after rewriting.
+Counts are from the current tree unless marked "not re-measured". "Raw" counts are
+text matches before the rewrite's conditions are applied.
 
 ### Tier A - window-2 peepholes (no liveness needed)
 
-| ID | Pattern | Rewrite | Count | Owner |
-| --- | --- | --- | --- | --- |
-| A1 | `move.S dN,M` / `move.S M,dN` | drop the reload | 58 | peephole |
-| A2 | `move.S dN,M` / `move.S M,dK` (K != N) | keep the store, replace reload with `move.S dN,dK` | 75 | peephole |
-| A3 | `move.S dA,dB` / `move.S dB,dA` | drop the second move | 42 | peephole |
-| A4 | `move.S dN,dN` | drop the self-move (see safety) | 10 | peephole |
-| A5 | `move.w/l #N,dK`, N in -128..127 (or $FF80..$FFFF for .w) | `moveq #N,dK` | about 225 | peephole |
-| A6 | `move.b M,dN` / `and.l #$ff,dN` | `moveq #0,dN` / `move.b M,dN` | 9 | peephole |
-| A7 | `bCC L1` / `bra L2` / `L1:` | `bCC' L2` | 1 | peephole |
-| A8 | `bsr` to a label whose body is only `rts` | drop the call | 1 per program | peephole |
+| ID | Pattern | Rewrite | Count |
+| --- | --- | --- | --- |
+| A1 | `move.S dN,M` / `move.S M,dN` | drop the reload | not re-measured |
+| A2 | `move.S dN,M` / `move.S M,dK` (K != N) | keep the store, replace reload with `move.S dN,dK` | not re-measured |
+| A3 | `move.S dA,dB` / `move.S dB,dA` | drop the second move | not re-measured |
+| A4 | `move.S dN,dN` | drop the self-move (see safety) | 14 |
+| A5 | `move.w/l #N,dK`, N in -128..127 (or $FF80..$FFFF for .w) | `moveq #N,dK` | 644 raw `move.w`/`move.l #imm,dN`; in-range subset not re-counted |
+| A6 | `move.b M,dN` / `and.l #$ff,dN` | `moveq #0,dN` / `move.b M,dN` | 21 |
+| A7 | `bCC L1` / `bra L2` / `L1:` | `bCC' L2` | about 14 `bCC` then `bra` pairs (rough; exact shape not checked) |
+| A8 | moved to "Moved items" (M2, AsmGen) | - | - |
+| A9 | `bra L` where `L:` is `rts`, or `unlk a5` then `rts` | copy the return sequence in place of the `bra` | 35 |
+
+A6 has a better fix outside the peephole: an explicit zero-extension in the IR (see
+`m68k-compiler-optimizations.md`, F8). This peephole is the fallback for the cases that
+still reach the backend.
 
 Safety notes:
 
-- **A1, A2, A3**: `move.b` to a data register writes only the low byte, and a
-  byte store to memory writes only the low byte. The reload and the register
-  copy give the same value and the same N/Z flags. Keep labels on the removed
-  line (the existing `applyModifications` already does this).
-- **A4**: a move sets N and Z from the value. Removing it changes the flags, so
-  the rewrite is only safe if the next instruction does not read the flags
-  directly. Check the next instruction, which needs a window of 3.
-- **A5**: `moveq` sets all 32 bits. `move.w` and `move.b` already leave the upper
-  bits undefined, so no consumer may rely on them. Flags match: N and Z depend only
-  on the value, and both instructions clear V and C. Restrict to the range where
-  the sign-extended value equals the immediate.
-- **A6**: `and.l` and `moveq` both clear V and C and set N and Z from the 32-bit
-  result, which equals the byte result because the upper bits are zero.
-- **A7**: exact inversion table needed for each condition code. Only one occurrence,
-  so it may not be worth implementing.
+- **A1, A2, A3**: `move.b` to a data register writes only the low byte, and a byte
+  store to memory writes only the low byte. The reload and the register copy give
+  the same value and the same N/Z flags. Keep labels on the removed line (the existing
+  `applyModifications` already does this).
+- **Memory operand rule (A1, A2).** The existing `isSafeMemoryOperand()` rejects any
+  operand with parentheses, so it also rejects frame slots such as `-6(a5)`. A1 and A2
+  target exactly those slots, so they need their own predicate. Allow `N(a5)` frame
+  slots and named symbols. Reject `-(aN)`, `(aN)+`, indexed addressing, and absolute
+  hardware addresses (for example `$dff180`). Reading custom-chip or CIA registers can
+  have side effects.
+- **A3 (swap-back)** also needs the memory rule if one of the operands is memory. The
+  register-only form is always safe.
+- **A4**: a move sets N and Z from the value. Removing it changes the flags, so the
+  rewrite is only safe if the next instruction sets N and Z itself (`move`, `moveq`,
+  `tst`, `clr`) or does not read the flags. Check the next instruction, which needs a
+  window of 3.
+- **A5**: `moveq` sets all 32 bits. `move.w` and `move.b` leave the upper bits alone.
+  The upper bits are not verified to be unused by later reads. For the `.w` form, either
+  check that the next reads of the register are `.w` or `.b` operations, or leave the
+  `.w` form out. Flags match: N and Z depend only on the value, and both instructions
+  clear V and C. Restrict to the range where the sign-extended value equals the
+  immediate.
+- **A6**: `and.l` and `moveq` both clear V and C and set N and Z from the 32-bit result,
+  which equals the byte result because the upper bits are zero. The rewrite also needs
+  the check that `M` does not use `dN` (see B1). Clearing `dN` before loading `M` would
+  otherwise change the address when `M` is indexed by `dN`, for example `(a0,d1)`.
+- **A7**: exact inversion table needed for each condition code. Only one occurrence
+  was found earlier, so it may not be worth implementing.
+- **A9**: the copied return sequence must be only `unlk a5` and `rts` (or `movem.l
+  (sp)+,...` followed by `unlk a5` and `rts`). The label that the `bra` targets stays
+  in place for other branches. A copy does not change flags or registers.
 
 ### Tier B - block-local liveness needed
 
-| ID | Pattern | Rewrite | Count | Owner |
-| --- | --- | --- | --- | --- |
-| B1 | `move.b M,dA` / `moveq #0,dB` / `move.b dA,dB` | `moveq #0,dB` / `move.b M,dB` when dA is dead | about 230 | peephole |
-| B1b | `move.S M,dA` / `move.S dA,dB` | `move.S M,dB` when dA is dead | several hundred | allocator first |
-| B2 | `move.l #sym,dN` / `movea.l dN,aM` | `movea.l #sym,aM` when dN is dead | 269 | peephole |
-| B2b | `move.l M,dN` / `movea.l dN,aM` | `movea.l M,aM` when dN is dead | 126 | peephole |
-| B3 | `lea X,aN` / `movea.l aN,aM` | `lea X,aM` when aN is dead | 11 | peephole |
-
-Liveness definition for this plan: a register is dead after an instruction if the
-next access in the same basic block is a full write. Labels, branches, calls and
-`rts` end the block, and a register is treated as live at those points. This is
-conservative and needs no whole-program analysis.
-
-B2 changes the flags: the original `move.l` sets N and Z on the address value,
-while `movea` does not. Confirm that no following branch depends on those flags.
-
-B1b is mostly argument setup in the allocator output (for example `move.w d2,d0`
-followed by `move.w d3,d1`). Coalescing in the allocator should remove it. The
-peephole version is only a fallback if the allocator does not get there.
-
-### Tier C - codegen or allocator (not peephole)
-
-| ID | Observation | Owner | Notes |
+| ID | Pattern | Rewrite | Count |
 | --- | --- | --- | --- |
-| C1 | Prologues clear bytes already zeroed by an earlier `clr.l`/`clr.w` in the same frame (about 42) | codegen | Dedupe in the locals zeroing logic. The `clr.b` pairs in `circles` `drawDisc` are an example. |
-| C2 | Frame locals are stored and reloaded across calls and other code (not adjacent) | allocator | Needs local promotion into registers. Not a peephole. |
-| C3 | `move.l sys.IntuitionBase,a6` (about 331 loads) before each library call | codegen | Absolute load of 20 cycles on the 68000. Caching it needs the library ABI to preserve A6. Verify in the NDK docs before any change. |
-| C4 | Constant shift count via register (`move.w #15,d1` then `asr.l d1,d2`) | codegen | Shift immediates only go to 8. A `moveq` (A5) covers the load; hoisting it is a codegen matter. |
+| B1 | `move.b M,dA` / `moveq #0,dB` / `move.b dA,dB` | `moveq #0,dB` / `move.b M,dB` when dA is dead and `M` does not use `dB` | not re-measured |
+| B2 | `move.l #sym,dN` / `movea.l dN,aM` | `movea.l #sym,aM` when dN is dead | not re-measured |
+| B2b | `move.l M,dN` / `movea.l dN,aM` | `movea.l M,aM` when dN is dead | not re-measured |
+| B3 | `lea X,aN` / `movea.l aN,aM` | `lea X,aM` when aN is dead | not re-measured |
 
-### Not yet analysed
+B1b (`move.S M,dA` / `move.S dA,dB`) is not a peephole. It is argument setup that the
+allocator should remove, and it is listed as M5 under "Moved items".
 
-- `divs.l #256,dN` and `divs.w #2,dN` for signed power-of-two division. `asr`
-  rounds differently for negative values, so a naive rewrite is wrong.
-- Epilogue tail duplication (`movem.l (sp)+`, `unlk a5`, `rts` shared by several
-  branches).
-- Frame size and `link` for argument-only subroutines (110 `link a5,#0`). These
-  need `a5` for arguments, so no rewrite is possible.
+B1 is the rewrite that the IR load/extend fusion makes much larger (compiler document,
+F3). On its own it only removes one copy per site.
 
-## Earlier-stage findings
+**Liveness definition.** A register is dead after an instruction if the next access
+in the same basic block is a full write. Only these write the whole register:
 
-Tracing the patterns back through the IR and the source shows that several of the
-items above start earlier in the compilation chain. Fixing them there is cheaper
-than a peephole at the end, and removes more than one asm pattern at a time.
+- Data registers: `move.l`, `moveq`, `clr.l`, `and`/`or`/`eor` on `.l`, and `add.l`
+  and similar `.l` operations that read the register first.
+- Address registers: `movea.l`, `lea`, `move.l` and `add`/`sub` on `.l` after a read.
 
-Pipeline for m68k: AST (`compiler/src/prog8/compiler/astprocessing`) -> `IRCodeGen`
-with `IRPeepholeOptimizer` -> `M68kCodeGenerator`: `StackFrameLayout`, then
-`M68kRegisterAllocator`, then `AsmGen`, then `AsmOptimizer`. The `.p8ir` snapshots
-are written after `StackFrameLayout` and before allocation, so they show frame
-locals and the zeroing prologue as the allocator sees them.
+`move.b`, `move.w`, `clr.b`, `clr.w`, and `addq`/`subq` on `.b` or `.w` only write the
+low bits, so they do not kill liveness. Labels, branches, calls and `rts` end the
+block, and a register is treated as live at those points. This is conservative and
+needs no whole-program analysis.
 
-### Traces
+**B1 safety.** The rewrite clears `dB` before `M` is loaded. If `M` uses `dB` as an
+address or index register, the result is wrong. Reject the rewrite in that case. The
+same check applies to A6.
 
-| Asm (`circles`, `blitcop`, `wavc`) | IR (`.p8ir`) | Source | Origin |
-| --- | --- | --- | --- |
-| `clr.l -6(a5)`, then `clr.b -6`, `clr.b -4/-5/-3` (`circles.asm:3702-3718`) | `storezm.l [-6]` then `storezm.b` on bytes already zeroed (`circles.p8ir:2991-3001`) | `ubyte yy = 0`, `ubyte pendingRadius` (`circles.p8:75-79`) | `StatementReorderer.kt:43-66` adds `x = 0` to every local. `StackFrameLayout.kt:634-664` zeroes the same bytes in the prologue. |
-| `moveq #0,d5` / `move.b d4,d5` after `move.b 10(a5),d4` (`circles.asm:3734-3738`) | `loadm.b` then `ext.b` (`circles.p8ir:2995-2996`) | `(1 as word)-radius` (`circles.p8:76`) | Implicit widening. The `loadm`/`ext` pair is not fused. |
-| `and.l #$ff,d2` before `divu.w` (`circles.asm:3626-3628`) | `loadm.b`, `mod.b` (`circles.p8ir:2935-2936`) | `index % 10` (`circles.p8:68`) | The zero-extension is emitted inside the backend (`InstrArithmetic.kt:245-380`), so IR cannot see it. |
-| `move.w d2,d2` / `move.w d3,d3` before `bsr blitter.line_draw` (`blitcop.asm:1879-1880`) | call argument `r296@s12`, loaded from `[frame:-26]` (`blitcop.p8ir:1590`) | `blitter.line_draw(..., x2 as uword, ...)` (`blitcop.p8:58`) | The allocator does not bind the vreg to the argument register. |
-| `bhi L36` / `bra L35` / `L36:` (`wavc.asm:2524-2527`) | `bgtr.w`, `jump`, label (`wavc.p8ir:2476-2481`) | loop in `wavc.p8` | `removeWeirdBranches` does not invert a conditional that jumps over a single `jump` chunk. |
-| `addq.b #1,-5(a5)` / `move.b -5(a5),d2` / `cmpi.b #21` (`circles.asm:3680-3685`) | `incm`, `loadm`, `cmpi` on `[frame:-5]` (`circles.p8ir:2956-2958`) | `for index in 0 to 20` | Loop variable kept in frame memory. |
+B2 changes the flags: the original `move.l` sets N and Z on the address value, while
+`movea` does not. Confirm that no following branch depends on those flags.
 
-The zeroing duplication reproduces with a small program: the prologue zeroes three
-bytes, then each declaration zeroes them again.
+## Moved items (allocator, AsmGen and backend owners)
 
-### Ranked earlier-stage opportunities
+These are not peepholes. Their fix belongs to the register allocator, `AsmGen` or the
+backend emitters, not to AST processing or IR codegen. A peephole can only mask part of
+each one, so the owner should make the change. Counts are from the baseline scan
+(approximate). M9 (local promotion) is an IR change, but it only pays off with the
+register allocator, so it is listed here too.
 
-Counts are from the 23 `amiga-regalloc/*.p8ir` snapshots and are approximate.
-
-1. **Promote non-escaping scalar locals and parameters to vregs** (IR, before
-   `StackFrameLayout`). Largest opportunity. The snapshots contain 1,843 loads from
-   frame locals and parameters (1,111 locals, 732 parameters), 193 loads from locals
-   of static subroutines, and 334 frame reloads of a value stored earlier in the same
-   chunk. Eligibility can reuse the existing `StackFrameLayout` checks: not
-   address-taken, no asm reference, not static-initialised, not explicitly aligned.
-   The design docs do not cover this. `IRPeepholeOptimizer.kt:8-16` disabled
-   `foldStoremLoadmToLoadr` because regfile spills cost more; promotion avoids that
-   problem because vregs get allocator treatment. Start with m68k only, since a vreg
-   is not obviously cheaper than a static cell on the 6502.
-   Removes: A1, A2, C2, and most of the reload and copy chains.
-2. **Remove provably redundant zero stores** after `StackFrameLayout`. About 20
-   matches, counted conservatively within a single chunk. A forward "known zero" scan
-   over the first chunk is safe for framed and static subroutines alike. Do not remove
-   the `StatementReorderer` zero assignment: static subroutines need it on every call.
-   Removes: C1.
-3. **Fuse `loadm.b`/`loadm.w` with a following `ext`** into a zero- or
-   sign-extending load. 240 adjacent pairs. Saves one register copy per instance.
-   Either a new load form or a fold in `collapseConversions`.
-   Removes: B1, and the copy part of B1b.
-4. **Make byte div/mod zero-extension explicit in IR.** Currently the backend emits
-   `and.l #$ff` itself. An explicit `ext.b` feeding a word operation would let items
-   1 and 3 see it. Medium confidence: this also changes the 6502 IR, so it needs a
-   check there.
-   Removes: A6.
-5. **Invert a conditional branch over a single `jump` chunk.** One asm case (`wavc`).
-   Cheap, low payoff.
-   Removes: A7.
-6. **Argument register hints in the allocator.** Call setup copies and self-moves
-   come from the allocator not binding call arguments to their argument registers.
-   Removes: A3, A4, B1b. This belongs to the allocator stages, not to IR or the peephole
-   pass.
-
-Not earlier than the backend:
-
-- Small constants as `moveq` (A5, about 225 instances). The choice belongs in the
-  `LOAD` emitter (`InstrLoadStore.kt`), which knows the value and the size. Not an
-  `AsmOptimizer` pass.
-- Shift counts above 8 (C4). The backend loads the count into a register.
-- Library base reloads before each `jsr` (C3). Removing them needs proof that the
-  library base globals are not written after startup.
-- Signed division by a power of two (`divs.l #256`). `asr` rounds differently, so
-  this needs a fix-up sequence in the backend.
-
-Effect on the tiers:
-
-| Item | Moves to |
-| --- | --- |
-| A1, A2, C2 | 1 (promotion) |
-| C1 | 2 (known-zero pass) |
-| B1 | 3 (load/ext fusion) |
-| A6 | 4 (explicit zero-extension) |
-| A7 | 5 (branch inversion) |
-| A3, A4, B1b | 6 (allocator hints) |
-| A5, C4 | backend emitter |
-| B2, B2b, B3, C3 | remain backend or codegen |
-| A8 | remains a peephole (one per program, low value) |
-
-### Correctness issue found on the way
-
-`circles.p8:68`, `uword x = 80 + (index % 10) * 159 / 2`, computes the product in
-`ubyte`. Prog8 does not widen expression results, so the product truncates. Test
-program (`@shared ubyte index = 9`): the intermediate `ubyte` gives **155**, while
-`((index as uword) % 10) * 159` gives **795**. `-warnimplicitcasts` reports nothing.
-This may be intended, but it is a silent trap. An AST check could warn when an
-expression of byte type is implicitly widened on assignment and contains an operation
-that can overflow the byte range.
+- **M1 - argument register hints (allocator).** Pointer through a data register:
+  `move.l #sym,dN` / `movea.l dN,aM` (180 matches) and `move.l M,dN` / `movea.l dN,aM`
+  (296 matches). The most common pattern in the scan. Example
+  `adpcmbench.asm:1359-1364`, from `txt.print("...")` (`adpcmbench.p8:28`). IR:
+  `load.p r222.p,#prog8_interned_strings.string_1`, then
+  `call p8b_txt.p8s_print(r222.p@s18)`. A pointer vreg used only as an `a0` argument
+  should be allocated to `a0`. Peepholes B2 and B2b are partial fixes. The same hints
+  remove the call-setup copies and self-moves (A3, A4, B1b). Example: `move.w d2,d2` /
+  `move.w d3,d3` before `bsr blitter.line_draw` in `circles`.
+- **M2 - empty `run_global_inits` (AsmGen).** `bsr run_global_inits` in the program entry
+  point, and a `run_global_inits:` body that is only `rts`. Occurs in 15 programs (the
+  old peephole item A8). `AsmGen.kt:1007-1009` always emits the label and the `rts`, and
+  `AsmGen.kt:1058-1059` always emits the call for `p8b_main.p8s_start`. Fix: skip both
+  when `program.globalInits` is empty. This changes the output for 15 programs, so it
+  needs a decision (open question 2).
+- **M3 - zero-extended copy coalescing (allocator).** The allocator part of F3:
+  `moveq #0,dB` / `move.b dA,dB` (404 matches). The allocator should place the result of
+  `loadm.b` in the register that the following `ext.b` writes. The IR fusion
+  (compiler document, item 2) removes most of these. Peephole B1 is the fallback.
+- **M4 - sign-extension copy coalescing (allocator).** The allocator part of F5:
+  `move.b d2,d3` / `ext.w d3` (32 matches, `window3d.asm:3863-3865`). The IR fusion is
+  in the compiler document (F5).
+- **M5 - argument setup copies (allocator).** `move.S M,dA` / `move.S dA,dB` (was B1b).
+  Coalescing in the allocator should remove it. Re-measure against the current output
+  before adding a peephole fallback.
+- **M6 - constant shift count via register (backend emitter).** `move.w #15,d1` then
+  `asr.l d1,d2`. Shift immediates only go to 8. Hoisting the count load is a codegen
+  matter. The `moveq` form of small constant loads is peephole A5.
+- **M7 - library base reload (AsmGen or backend emitter).** `move.l sys.IntuitionBase,a6`
+  before each library call. An absolute load of 20 cycles on the 68000. Caching it needs
+  the library ABI to preserve A6, and proof that the library base globals are not written
+  after startup. Verify in the NDK docs before any change.
+- **M8 - epilogue tail duplication (owner not yet determined).** `movem.l (sp)+`,
+  `unlk a5`, `rts` shared by several branches. Not yet analysed. The plain `bra` to a
+  return block is peephole A9.
+- **M9 - local promotion to vregs (IR, allocator-dependent).** Promote non-escaping
+  scalar locals and parameters to vregs before `StackFrameLayout`. This is the largest
+  opportunity on the register-allocation branch. Earlier snapshots had 1,843 loads from
+  frame locals and parameters, 193 loads from locals of static subroutines, and 334
+  frame reloads of a value stored earlier in the same chunk. Eligibility can reuse the
+  `StackFrameLayout` checks: not address-taken, no asm reference, not static-initialised,
+  not explicitly aligned. The loop counter case in F1 (`addq.b #1,-5(a5)`) is the same
+  family. On `master`, vregs get frame slots (`frameVregSlots` in `AsmGen.kt`), so
+  promotion alone only moves a local from one frame slot to another. It needs the
+  allocator to pay off. Removes: A1, A2 (peephole), C2 and most of the reload and copy
+  chains. The 6502 effect is unknown, since vregs are not obviously cheaper than static
+  cells there.
 
 ## Work
 
-1. **Answer the open questions** (below). Settles the scope of tier B and C.
-2. **Baseline.** Build with the current tree and record instruction counts and
-   hunk sizes over the m68k example set for `amiga500` and `qemu68k`. Store the
-   numbers in this document so later changes can be compared.
-3. **Tier A passes.** Add one pass per item to `AsmOptimizer.kt`, each as a
-   window-2 (or window-3 for A4) function registered in `optimizeAssembly()`.
-   Add unit tests next to the existing peephole tests in
-   `codeGenM68k/test/TestInstructionSelectionOptimizations.kt`, covering: a
-   matching case, a label on the second line, a flag-reading next instruction
-   (A4), and a non-matching register or size.
-4. **Liveness helper.** Add a block-local liveness function over the
-   `TrimmedLine` window, then the tier B passes on top of it. Keep the helper
-   separate so it can be reused for allocator checks.
-5. **Hand-off of tier C.** Record each tier C item as a task in the register
-   allocation stage documents or in `docs/source/todo.rst`. Do not implement them
-   as peepholes.
-6. **Verification.** After each pass:
+1. **Open questions.** See below. The answered ones are kept for reference.
+2. **Baseline.** Done for `amiga500` (20 programs, see "Baseline"). `qemu68k` not yet
+   measured. Re-run the same measurement after each pass.
+3. **Tier A passes.** Add one pass per item to `AsmOptimizer.kt`, each as a window-2
+   (or window-3 for A4) function registered in `optimizeAssembly()`. Add unit tests
+   next to the existing peephole tests in
+   `codeGenM68k/test/TestInstructionSelectionOptimizations.kt`, covering: a matching
+   case, a label on the second line, a flag-reading next instruction (A4), a memory
+   operand that uses the destination register (A6, B1), and a non-matching register or
+   size.
+4. **Liveness helper.** Add a block-local liveness function over the `TrimmedLine`
+   window, using the full-write definition above, then the tier B passes on top of it.
+   Keep the helper separate so it can be reused for allocator checks.
+5. **Verification.** After each pass:
    - `gradle :codeGenM68k:test --console=plain` for the pass tests.
-   - `gradle installdist installshadowdist --console=plain` to install the
-     compiler.
-   - Recompile the example set, check that the output size dropped, and run the
-     programs on `amiga500` (`-emu2`, Vamos) and `qemu68k`.
+   - `gradle installdist installshadowdist --console=plain` to install the compiler.
+   - Recompile the example set, compare instruction counts and sizes with the baseline,
+     and check the 2% acceptance limit.
+   - Run the programs on `amiga500`. Vamos (`-emu2`) is not installed on the current
+     machine. FS-UAE needs a Kickstart 2.0 or later ROM, because some examples use
+     tag-list functions that Kickstart 1.3 does not have.
+   - `qemu68k` cannot run the Amiga examples, because they call AmigaOS libraries. Use
+     separate non-Amiga test programs for that target.
    - Full `gradle build` before the final verification.
 
 ## Open questions
 
-1. **Is the amiga-regalloc snapshot built with `-m68kregalloc`, or with the
-   default allocator?** Stage 4 makes the allocator the default. If the snapshot
-   predates that, the counts above must be re-measured.
-2. **Scope of tier B.** Implement the liveness-based rewrites in the peephole
-   pass now, or wait for the allocator to remove the copies they target?
-3. **Target priority.** The 68000 (`amiga500`) and the 68020 (`qemu68k`) differ
-   in cycle costs. Should the peepholes be optimized for the 68000 timing, or for
-   size only?
-4. **Acceptance criteria.** Is a minimum size reduction required on the example
-   set (for example at least 1%), or is correctness on the example set enough?
-5. **Overlap with Stage 3.** Stage 3 deletes peepholes that the allocator
-   subsumes. Should tier A passes be checked against Stage 3 deletions to avoid
-   reimplementing something that is removed later?
-6. **Promotion scope.** Should local promotion (ranked item 1) be limited to m68k
-   for now? The 6502 effect is unknown, and vregs are not obviously cheaper than
-   static cells there.
-7. **Byte-truncation check.** Should the `circles.p8:68` pattern be a compiler
-   warning, an error, or left alone as documented behaviour? The check would go in
-   the AST checker.
-8. **Which earlier-stage items go into this plan?** The ranked items above could stay
-   here, or each could get its own plan document in `ideas/`. Item 1 is large enough
-   to need its own document.
+Answered:
+
+- **Snapshot and allocator.** The allocator is the default and the only path. Stage 3 is
+  complete, so there are no pending regfile peephole deletions.
+- **Tier B scope.** The allocator exists, so tier B is re-measured against current
+  output. It is not blocked on the allocator.
+- **Target priority.** Fast code over small code.
+- **Acceptance.** Correct output and at most 2% larger than the baseline.
+
+Still open:
+
+1. **A5 `.w` form.** Include the `.w` form of `moveq` (A5) with a check on later reads,
+   or only the `.l` form? The `.w` form saves more cycles, but it needs the read check
+   described in the safety notes.
+2. **Skip the empty `run_global_inits` (M2).** Skip the call and the body when there are
+   no global initialisers? This is a small AsmGen change, and it changes the output for
+   15 programs.
+3. **Local promotion scope (M9).** Should promotion be limited to m68k for now? The 6502
+   effect is unknown, and vregs are not obviously cheaper than static cells there. Should
+   promotion also get its own plan document in `ideas/`? It is large enough to need one.

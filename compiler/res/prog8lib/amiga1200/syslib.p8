@@ -58,8 +58,11 @@ sys {
     asmsub wait(long ticks @D1) {
         ; --- wait approximately the given number of ticks (1/50th seconds, i.e. 20ms each)
         %asm {{
+            move.l  d6,-(sp)        ; OS calls do not preserve d6
             move.l  sys.DOSBase,a6
-            jmp     -198(a6)        ; Delay
+            jsr     -198(a6)        ; Delay
+            move.l  (sp)+,d6
+            rts
         }}
     }
 
@@ -68,8 +71,10 @@ sys {
         ;     This routine requires the OS to be functioning.
         ;     If you have disabled the OS/interrupts and are banging the hardware directly, use custom.waitvsync() instead.
         %asm {{
+            move.l  d6,-(sp)        ; OS libraries do not preserve d6, and inline code shares the caller's registers
             move.l  sys.GfxBase,a6
             jsr     -270(a6)        ; WaitTOF
+            move.l  (sp)+,d6
         }}
     }
 
@@ -103,8 +108,10 @@ sys {
 
     inline asmsub memcopy(long source @A0, long tgt @A1, long count @D0) {
         %asm {{
+            move.l  d6,-(sp)        ; OS libraries do not preserve d6, and inline code shares the caller's registers
             move.l  4.w,a6
             jsr  exec.CopyMem(a6)
+            move.l  (sp)+,d6
         }}
     }
 
@@ -143,7 +150,7 @@ sys {
         }}
     }
 
-    asmsub cpuAtLeast68020() clobbers (A6, D0) -> bool @Pz {
+    asmsub cpuAtLeast68020() -> bool @Pz {
         %asm {{
             move.l  4.w,a6
             move.w  296(a6),d0

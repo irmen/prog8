@@ -58,6 +58,8 @@ Optimizations
 - Port more benchmarks from https://thred.github.io/c-bench-64/  to prog8 and see how it stacks up. (see benchmark-c/ directory)
 - Compilation speed: try to join multiple modifications in 1 result in the AST processors instead of returning it straight away every time
 - various optimizers skip stuff if compTarget.name==VMTarget.NAME.  Once new 6502 codegen is done from IR code, those 6502 only optimizations should probably be removed
+- m68k assembly peepholes (``AsmOptimizer.kt`` rewrites, with the amiga500 baseline measurements): see ``ideas/m68k-asm-peepholes.md``.
+- m68k optimizations outside the peephole pass (IR codegen, register allocator, AsmGen, backend emitters, AST processing), from the amiga500 baseline re-scan: see ``ideas/m68k-compiler-optimizations.md``. Includes the disabled store/load fold (``foldStoremLoadmToLoadr``), signed division by a power of two, and the empty ``run_global_inits`` call.
 
 
 Dead Code Elimination bug in 64tass, for nested subroutines
