@@ -10,13 +10,14 @@ Related design: `m68k-register-allocation.md`.
 
 **Status:** Draft, updated to the current compiler state (Oct 2026). Findings are
 recorded. F2 (signed division by a power of two), F3+F5 (load/extend fusion), C1
-(known-zero zero-store removal), A5 (small constants as `moveq`), and the worthwhile M6
-`moveq` count-load improvement are implemented. F1 and F8 were measured and are not
-implemented; remaining items are unimplemented.
+(known-zero zero-store removal), A5 (small constants as `moveq`), A7 (conditional branch
+inversion), and the worthwhile M6 `moveq` count-load improvement are implemented. F1 and
+F8 were measured and are not implemented; remaining items are unimplemented.
 
 ## Recently implemented
 
 - [x] **A5** - use `moveq` for representable constants loaded into D0-D7.
+- [x] **A7** - invert a conditional branch over an unconditional jump.
 - [x] **M6** - use `moveq` for representable constant shift/loop counts loaded into D1/D7.
 
 ## Not-yet-implemented register-allocation candidates
@@ -243,7 +244,7 @@ random placement change. Line numbers may have moved.
 | `clr.l -6(a5)`, then `clr.b -6`, `clr.b -4/-5/-3` | `storezm.l [-6]` then `storezm.b` on bytes already zeroed | `ubyte yy = 0`, `ubyte pendingRadius` | `StatementReorderer.kt:43-66` adds `x = 0` to every local. `StackFrameLayout.kt:634-664` zeroes the same bytes in the prologue. |
 | `moveq #0,d5` / `move.b d4,d5` after `move.b 10(a5),d4` | `loadm.b` then `ext.b` | `(1 as word)-radius` | Implicit widening. The `loadm`/`ext` pair is not fused. |
 | `and.l #$ff,d2` before `divu.w` | `loadm.b`, `mod.b` | `index % 10` | The zero-extension is emitted inside the backend (`InstrArithmetic.kt:245-380`), so IR cannot see it. |
-| `bhi L36` / `bra L35` / `L36:` | `bgtr.w`, `jump`, label | loop in `wavc.p8` | `removeWeirdBranches` does not invert a conditional that jumps over a single `jump` chunk. |
+| `bhi L36` / `bra L35` / `L36:` | `bgtr.w`, `jump`, label | loop in `wavc.p8` | A7 now inverts the conditional and removes the single `jump`. |
 | `addq.b #1,-5(a5)` / `move.b -5(a5),d2` / `cmpi.b #21` | `incm`, `loadm`, `cmpi` on `[frame:-5]` | `for index in 0 to 20` | Loop variable kept in frame memory. |
 
 The zeroing duplication reproduces with a small program: the prologue zeroes three
@@ -274,7 +275,10 @@ item IDs in the last column refer to `m68k-asm-peepholes.md`.
    there.
    Removes: peephole A6 (fallback only).
 4. **Invert a conditional branch over a single `jump` chunk.** One asm case (`wavc`).
-   Cheap, low payoff.
+   Cheap, low payoff. **Implemented:** `AsmOptimizer` now inverts the condition and removes
+   the unconditional jump for direct local-label patterns; a regression test covers the rewrite.
+   Measured across 23 amiga1200 examples: `wavc` reduced by 25 `.asm` bytes and 0 binary
+   bytes (padding absorbs the difference); all other examples were unchanged.
    Removes: peephole A7.
 
 Local promotion of scalar locals to vregs (formerly item 1 here) is M9 in the peephole

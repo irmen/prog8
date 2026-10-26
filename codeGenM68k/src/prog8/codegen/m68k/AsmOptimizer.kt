@@ -43,6 +43,9 @@ internal fun optimizeAssembly(lines: MutableList<String>) {
         by2 = runPass(optimizeRedundantTst(by2), 2, by2)
         by2 = runPass(optimizeMsigbSpill(by2, pretrimmed), 2, by2)  // REGFILE-DEPENDENT
 
+        var by3 = getLinesBy(pretrimmed, lines, 3)
+        by3 = runPass(optimizeConditionalOverJump(by3), 3, by3)
+
         // DBRA peephole for repeat loops is now obsolete: counted loops are emitted as IRLoopChunk and directly translated to dbra.
         // The old REGFILE-DEPENDENT pattern (move #N,p8_regfile+slot / label: body / subq #1,slot / bne label) no longer occurs.
 
@@ -341,6 +344,58 @@ private fun optimizeJmpToNextLabel(linesBy: Sequence<List<TrimmedLine>>): List<M
                 }
             }
         }
+    }
+    return mods
+}
+
+private fun optimizeConditionalOverJump(linesBy: Sequence<List<TrimmedLine>>): List<Modification> {
+    //  bCOND  THEN
+    //  bra    JOIN
+    // THEN:
+    //      ...                 ->  bINVERTED_COND  JOIN
+    //  JOIN:                       THEN:
+    //                              ...
+    //
+    // The conditional branch and unconditional jump are adjacent, so inverting the condition
+    // makes the old fallthrough target the taken path and removes the unconditional jump.
+    val inverse = mapOf(
+        "bcc" to "bcs", "bcs" to "bcc",
+        "beq" to "bne", "bne" to "beq",
+        "bmi" to "bpl", "bpl" to "bmi",
+        "bvc" to "bvs", "bvs" to "bvc",
+        "bhi" to "bls", "bls" to "bhi",
+        "bhs" to "blo", "blo" to "bhs",
+        "bgt" to "ble", "ble" to "bgt",
+        "bge" to "blt", "blt" to "bge"
+    )
+    val mods = mutableListOf<Modification>()
+    for (window in linesBy) {
+        val first = window[0]
+        val second = window[1]
+        val third = window[2]
+        if (hasLabel(second.trimmed) || !hasLabel(third.trimmed))
+            continue
+
+        val firstParts = first.instruction.substringBefore(';').trim().split(Regex("\\s+"), limit = 2)
+        val secondParts = second.instruction.substringBefore(';').trim().split(Regex("\\s+"), limit = 2)
+        if (firstParts.size != 2 || secondParts.size != 2)
+            continue
+        val inverted = inverse[firstParts[0]] ?: continue
+        if (secondParts[0] !in setOf("bra", "jmp"))
+            continue
+        if (secondParts[1].startsWith("(") || firstParts[1].startsWith("("))
+            continue
+
+        val conditionalTarget = firstParts[1].trim()
+        val targetLabel = keepLabel(third.trimmed).removeSuffix(":")
+        if (conditionalTarget != targetLabel)
+            continue
+
+        val indent = first.value.takeWhile { it.isWhitespace() }
+        val label = keepLabel(first.trimmed)
+        val replacement = "$indent$label$inverted  ${secondParts[1]}"
+        mods += Modification(first.index, false, replacement)
+        mods += Modification(second.index, true, null)
     }
     return mods
 }

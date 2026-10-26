@@ -968,6 +968,22 @@ class TestInstructionSelectionOptimizations : FunSpec({
         lines.any { it.contains("dbra") } shouldBe false
     }
 
+    test("inverts a conditional branch over an unconditional jump") {
+        val lines = mutableListOf(
+            "    bhi  then_branch",
+            "    bra  join",
+            "then_branch:",
+            "    moveq  #1,d0",
+            "join:"
+        )
+
+        optimizeAssembly(lines)
+
+        lines.any { it.trim() == "bls  join" } shouldBe true
+        lines.any { it.trim() == "then_branch:" } shouldBe true
+        lines.none { it.trim() == "bra  join" } shouldBe true
+    }
+
     test("dbra via IRLoopChunk preserves label on init line") {
         val body = IRCodeChunk(null, null).also { it += IRInstructions.memoryOp(Opcode.INCM, IRDataType.WORD, IRMemory.direct("p8b_main.p8v_sum")) }
         val outerChunk = IRCodeChunk("outer", null)
