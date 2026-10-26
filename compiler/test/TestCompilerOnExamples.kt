@@ -145,7 +145,7 @@ class TestCompilerOnExamplesC64: FunSpec({
 
     val onlyC64 = cartesianProduct(
         listOf(
-            ExampleSizes("balloonflight", c64SizeOptimized=1674, c64SizeUnoptimized=3481),
+            ExampleSizes("balloonflight", c64SizeOptimized=1738, c64SizeUnoptimized=3606),
             ExampleSizes("banking", c64SizeOptimized=680, c64SizeUnoptimized=1356),
             ExampleSizes("bdmusic-irq", c64SizeOptimized=1001, c64SizeUnoptimized=1019),
             ExampleSizes("bdmusic", c64SizeOptimized=938, c64SizeUnoptimized=1011),
@@ -157,8 +157,8 @@ class TestCompilerOnExamplesC64: FunSpec({
             ExampleSizes("petswirl", c64SizeOptimized=1121, c64SizeUnoptimized=2435),
             ExampleSizes("plasma", c64SizeOptimized=1532, c64SizeUnoptimized=3085),
             ExampleSizes("rasterbars", c64SizeOptimized=776, c64SizeUnoptimized=2319),
-            ExampleSizes("simplemultiplexer", c64SizeOptimized=843, c64SizeUnoptimized=900),
-            ExampleSizes("sprites", c64SizeOptimized=915, c64SizeUnoptimized=2772),
+            ExampleSizes("simplemultiplexer", c64SizeOptimized=924, c64SizeUnoptimized=986),
+            ExampleSizes("sprites", c64SizeOptimized=959, c64SizeUnoptimized=2826),
             ExampleSizes("starfield", c64SizeOptimized=737, c64SizeUnoptimized=758),
             ExampleSizes("turtle-gfx", c64SizeOptimized=2701, c64SizeUnoptimized=2812),
             ExampleSizes("wizzine", c64SizeOptimized=1063, c64SizeUnoptimized=2653),

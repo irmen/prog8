@@ -11,8 +11,10 @@ main {
 
     sub start() {
         uword moon_x = 310
-        c64.set_sprite_ptr(0, &spritedata.balloonsprite)       ; alternatively, set directly:  c64.SPRPTR[0] = $0f00 / 64
-        c64.set_sprite_ptr(1, &spritedata.moonsprite)          ; alternatively, set directly:  c64.SPRPTR[0] = $0f00 / 64
+        sys.memcopy(&spritedata.balloonsprite, $2000, 64)     ; copy the sprites to 64-byte aligned addresses outside the VIC character ROM window ($1000-$1fff)
+        sys.memcopy(&spritedata.moonsprite, $2040, 64)
+        c64.set_sprite_ptr(0, $2000)       ; alternatively, set directly:  c64.SPRPTR[0] = $0f00 / 64
+        c64.set_sprite_ptr(1, $2040)          ; alternatively, set directly:  c64.SPRPTR[0] = $0f00 / 64
         c64.SPENA = %00000011
         c64.SP0COL = 14
         c64.SP1COL = 7
@@ -157,8 +159,10 @@ irq {
 
 
 spritedata {
-    ; this block contains the sprite data. Sprites must start on an address aligned to 64 bytes.
-    ubyte[] @align64 balloonsprite = [
+    ; this block contains the sprite data.
+    ; Sprites must start on an address aligned to 64 bytes;
+    ; main program copies it to a memory location visible to the VIC-II
+    ubyte[] balloonsprite = [
         %00000000,%01111111,%00000000,
         %00000001,%11111111,%11000000,
         %00000011,%11111111,%11100000,

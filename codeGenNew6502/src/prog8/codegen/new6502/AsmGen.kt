@@ -835,26 +835,22 @@ internal class AsmGen(val program: IRProgram, private val target: ICompilationTa
         emitLine("ldy  #$tripVal")
         emitLabel(label)
         loopNestingDepth++
+        // Save/restore Y once around the whole body: a conditional branch between body chunks
+        // would otherwise skip a per-chunk restore and leave the loop counter and stack corrupted.
+        emitLine("tya", "save loop counter Y")
+        emitLine("pha")
         for(chunk in loop.body) {
             when(chunk) {
                 is IRCodeChunk -> {
                     val cl = chunk.label
                     if(cl!=null && cl!=label) emitLabel(cl)
-                    emitLine("tya", "save loop counter Y")
-                    emitLine("pha")
                     translateChunk(chunk)
-                    emitLine("pla")
-                    emitLine("tay", "restore loop counter Y")
                 }
                 is IRLoopChunk -> translateLoopChunk(chunk)
                 is IRInlineAsmChunk -> {
                     val cl = chunk.label
                     if(cl!=null) emitLabel(cl)
-                    emitLine("tya", "save loop counter Y")
-                    emitLine("pha")
                     emitRaw(chunk.assembly)
-                    emitLine("pla")
-                    emitLine("tay", "restore loop counter Y")
                 }
                 is IRInlineBinaryChunk -> {
                     val cl = chunk.label
@@ -863,6 +859,8 @@ internal class AsmGen(val program: IRProgram, private val target: ICompilationTa
                 }
             }
         }
+        emitLine("pla")
+        emitLine("tay", "restore loop counter Y")
         loopNestingDepth--
         emitLine("dey")
         emitLine("bne  $label")
