@@ -9,9 +9,9 @@ rewrites are in that document too, and it holds the baseline measurements used h
 Related design: `m68k-register-allocation.md`.
 
 **Status:** Draft, updated to the current compiler state (Oct 2026). Findings are
-recorded. Two items are implemented as uncommitted working-tree changes: F2 (signed
-division by a power of two) and the F3+F5 load/extend fusion. All other items are
-unimplemented.
+recorded. F2 (signed division by a power of two), F3+F5 (load/extend fusion), and C1
+(known-zero zero-store removal) are implemented. F1 and F8 were measured and are not
+implemented; remaining items are unimplemented.
 
 ## Pipeline and owners
 
@@ -58,7 +58,7 @@ opportunities: nearly all of them skip the body of an `if` that ends the subrout
 
 ## Findings by family
 
-### F1 - store then reload (IR codegen)
+### F1 - store then reload (IR codegen) - NET LOSS WHEN NO REGISTER ALLOCATOR IS PRESENT; MAY BE BENEFICIAL WITH REGISTER ALLOCATOR
 
 - Asm: `move.l d2,-8(a5)` then `move.l -8(a5),d2` (`tictactoe.asm:3637-3640`);
   `move.l d4,dos.read_file.lock` then `move.l dos.read_file.lock,d2`
@@ -79,6 +79,13 @@ opportunities: nearly all of them skip the body of an `if` that ends the subrout
   promotion, which is M9 in the peephole document.
 - Owner: IR codegen. The AST is correct here, and it has no register concept.
 - AST processing: no change needed.
+- **Measured (Oct 2026):** re-enabling `foldStoremLoadmToLoadr` (copy case) regresses every
+  amiga1200 example on `master` (no register allocator): +1,565 bytes `.asm` and +1,260 bytes
+  binary in total across 23 examples (per-program binary growth up to +120 bytes), because the
+  regfile is memory and the fold forces an extra spill. The same-register (drop) sub-case never
+  triggers in practice. Conclusion: NET LOSS when no register allocator is present; may be
+  beneficial with a register allocator, where the store's source stays in a real CPU register.
+  Revisit on the register-allocation branch with a cost model.
 
 ### F2 - signed division by a power of two (IR codegen) - implemented
 
@@ -168,19 +175,24 @@ opportunities: nearly all of them skip the body of an `if` that ends the subrout
 - **Implemented** together with F3: this is the `loadi`/`loadiz`/`loadis` half, and the
   four `window3d` sites in `update_geometry` are fused in the generated `.p8ir`.
 
-### F8 - byte zero-extension before divu.w (IR)
+### F8 - byte zero-extension before divu.w (IR) - NOT WORTH IT
 
 - Asm: `and.l #$ff,d2` before `divu.w`. 21 matches. On `master` the backend emits the
   same `and.l #$ff, d0` (`InstrArithmetic.kt:230`, `310-330`).
 - IR: `loadm.b` followed by `mod.b` (`circles.p8ir:2935-2936`).
 - Owner: the backend (`InstrArithmetic.kt:245-380`) inserts the extension itself. The
   IR cannot see it. The fix is to make the extension explicit in IR (ranked item 3).
+- **Measured (Oct 2026):** NOT WORTH IT. Across all virtual-compilable examples there are
+  only 2-3 `mod.b` sites each and zero `loadm.b -> mod.b` adjacent pairs, so the F3 fusion
+  precondition never holds. The 21 backend `and.l #$ff` sites come from computed values, not
+  fresh loads. Explicit extension would add `EXT`/`EXTL` instructions with no compensating
+  fusion, plus shared-IR risk on 6502. Do not implement.
 
 ## Tier C - IR codegen
 
 | ID | Observation | Owner | Notes |
 | --- | --- | --- | --- |
-| C1 | Prologues clear bytes already zeroed by an earlier `clr.l`/`clr.w` in the same frame | IR codegen (`StackFrameLayout`) | Dedupe in the locals zeroing logic. The `clr.b` pairs in `circles` `drawDisc` are an example (see the traces below). Not re-measured in the re-scan. |
+| C1 | Prologues clear bytes already zeroed by an earlier `clr.l`/`clr.w` in the same frame | IR codegen (`StackFrameLayout`) | Dedupe in the locals zeroing logic. The `clr.b` pairs in `circles` `drawDisc` are an example (see the traces below). **Measured (Oct 2026):** simple overlap-merge in `emitZeroRegions` had zero effect (USELESS). Real fix (known-zero forward pass, Ranked #1) implemented: -125 asm / -60 bin across 23 examples. |
 
 C2 (frame locals stored and reloaded across calls) is part of promotion, so it is M9 in
 the peephole document. C3, C4 and B1b are backend, AsmGen or allocator items, so they are
@@ -214,10 +226,13 @@ Counts from the earlier snapshots are approximate and not re-measured. The peeph
 item IDs in the last column refer to `m68k-asm-peepholes.md`.
 
 1. **Remove provably redundant zero stores** after `StackFrameLayout`. A forward
-   "known zero" scan over the first chunk is safe for framed and static subroutines
-   alike. Do not remove the `StatementReorderer` zero assignment: static subroutines
-   need it on every call.
+   "known zero" scan over the first chunk is safe for framed subroutines. Do not remove
+   the `StatementReorderer` zero assignment: static subroutines need it on every call.
    Removes: C1.
+   **Implemented and measured (Oct 2026):** known-zero pass in `StackFrameLayout` (first
+   chunk, tracking frame-slot byte offsets; removes `STOREZM`/zero `STOREIM` already
+   covered). Result across 23 amiga1200 examples: -125 bytes `.asm`, -60 bytes binary,
+   no regressions. Tests pass.
 2. **Fuse `loadm.b`/`loadm.w` and `loadi.b` with a following `ext`** into a zero- or
    sign-extending load. 240 adjacent `loadm` pairs in the earlier snapshots, plus the
    indexed `loadi.b` + `exts.b` form (F5). Saves one register copy per instance. Either a
@@ -308,6 +323,6 @@ Still open:
 1. **Byte-truncation check.** Should an expression that computes a byte product and
    assigns it to a wider type be a compiler warning, an error, or left as documented
    behaviour? The check would go in the AST checker.
-2. **Re-enable the store/load fold (F1).** Is `foldStoremLoadmToLoadr` still a loss on
-   `master`, where the regfile path is the default? Measure with and without the fold on
-   the baseline before deciding.
+2. **Re-enable the store/load fold (F1).** RESOLVED: measured, net loss on `master` (no
+   register allocator): +1,260 bytes binary across 23 amiga1200 examples. May be beneficial
+   with a register allocator; revisit on that branch with a cost model.
