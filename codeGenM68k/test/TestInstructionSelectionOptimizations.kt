@@ -932,7 +932,7 @@ class TestInstructionSelectionOptimizations : FunSpec({
         val body = IRCodeChunk(null, null).also { it += IRInstructions.memoryOp(Opcode.INCM, IRDataType.WORD, IRMemory.direct("p8b_main.p8v_sum")) }
         val loop = IRLoopChunk("p8_label_gen_1", 100, mutableListOf(body))
         val lines = generateAsmChunks(tempRoot, listOf(loop))
-        lines.any { it.contains("move.w  #99,d7") } shouldBe true
+        lines.any { it.contains("moveq  #99,d7") } shouldBe true
         lines.any { it.contains("dbra  d7,p8_label_gen_1") } shouldBe true
     }
 
@@ -975,7 +975,7 @@ class TestInstructionSelectionOptimizations : FunSpec({
         val lines = generateAsmChunks(tempRoot, listOf(outerChunk, loop))
         lines.any { it.contains("outer:") } shouldBe true
         lines.any { it.contains("dbra  d7,p8_label_gen_2") } shouldBe true
-        lines.any { it.contains("move.w  #99,d7") } shouldBe true
+        lines.any { it.contains("moveq  #99,d7") } shouldBe true
     }
 
     test("dbra via IRLoopChunk preserves label on loop") {
@@ -1427,5 +1427,16 @@ class TestInstructionSelectionOptimizations : FunSpec({
         lines.count { it.startsWith("lsr.w  p8b_test.p8v_other") } shouldBe 1
         lines.count { it == "asr.w  #1,d0" } shouldBe 0
         lines.count { it == "lsr.w  #1,d0" } shouldBe 0
+    }
+
+    test("large constant shifts use moveq when the count fits") {
+        val lines = generateAsm(
+            tempRoot.resolve("test-m68k-large-shift-moveq"),
+            listOf(IRInstructions.binaryImmediate(Opcode.LSLI, IRDataType.LONG, 1, 12))
+        )
+
+        lines.count { it == "moveq  #12,d1" } shouldBe 1
+        lines.count { it == "move.w  #12,d1" } shouldBe 0
+        lines.count { it == "lsl.l  d1,d0" } shouldBe 1
     }
 })

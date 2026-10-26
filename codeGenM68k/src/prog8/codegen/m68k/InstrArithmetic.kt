@@ -3,6 +3,13 @@ package prog8.codegen.m68k
 import prog8.code.core.CpuType
 import prog8.intermediate.*
 
+private fun AsmGen.emitImmediateToDataRegister(value: Int, register: String, comment: String = "") {
+    if (value in -128..127)
+        emitLine("moveq  #$value, $register", comment)
+    else
+        emitLine("move.l  #$value, $register", comment)
+}
+
 internal fun AsmGen.translateArithmetic(insn: IRInstruction) {
     val type = insn.type ?: IRDataType.BYTE
 
@@ -281,7 +288,7 @@ private fun AsmGen.emitLongMathCall(dstReg: Int, srcReg: Int?, imm: Int?, target
         }
         imm != null -> {
             emitLoadD0(dstReg, IRDataType.LONG)
-            emitLine("move.l  #$imm, d1")
+            emitImmediateToDataRegister(imm, "d1")
         }
         target != null -> {
             emitLoadD0FromAddress(target, IRDataType.LONG)
@@ -594,7 +601,7 @@ private fun AsmGen.emitModOp(dstReg: Int, srcReg: Int?, type: IRDataType, unsign
                     }
                     imm != null -> {
                         emitLoadD0(dstReg, IRDataType.LONG)
-                        emitLine("move.l  #${imm}, d2", "divisor")
+                        emitImmediateToDataRegister(imm, "d2", "divisor")
                         emitLine("$opLong  d2, d1:d0")
                         invalidateD0Cache()
                         invalidateD0CacheForSlot(dstReg)
@@ -618,7 +625,7 @@ private fun AsmGen.emitDivModOp(dstReg: Int, remainderReg: Int, type: IRDataType
             invalidateD0Cache()
             if(imm!=null) {
                 if (unsigned)
-                    emitLine("move.l  #${imm.and(0xff)}, d1")
+                    emitImmediateToDataRegister(imm.and(0xff), "d1")
                 else
                     emitLine("moveq  #${imm.and(0xff)}, d1")
                 if (!unsigned) emitSignExtendByteToLong("d1")
@@ -663,7 +670,7 @@ private fun AsmGen.emitDivModOp(dstReg: Int, remainderReg: Int, type: IRDataType
                 val routine = if (unsigned) "p8_udivmod32" else "p8_sdivmod32"
                 emitLoadD0(dstReg, IRDataType.LONG)
                 if(imm!=null) {
-                    emitLine("move.l  #${imm}, d1", "divisor")
+                    emitImmediateToDataRegister(imm, "d1", "divisor")
                 } else {
                     emitLine("move.l  ${regAddr(remainderReg)}, d1", "divisor")
                 }
@@ -675,7 +682,7 @@ private fun AsmGen.emitDivModOp(dstReg: Int, remainderReg: Int, type: IRDataType
             } else {
                 emitLoadD0(dstReg, IRDataType.LONG)
                 if(imm!=null) {
-                    emitLine("move.l  #${imm}, d1", "divisor")
+                    emitImmediateToDataRegister(imm, "d1", "divisor")
                 } else {
                     emitLine("move.l  ${regAddr(remainderReg)}, d1", "divisor")
                 }

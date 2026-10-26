@@ -9,9 +9,38 @@ rewrites are in that document too, and it holds the baseline measurements used h
 Related design: `m68k-register-allocation.md`.
 
 **Status:** Draft, updated to the current compiler state (Oct 2026). Findings are
-recorded. F2 (signed division by a power of two), F3+F5 (load/extend fusion), and C1
-(known-zero zero-store removal) are implemented. F1 and F8 were measured and are not
+recorded. F2 (signed division by a power of two), F3+F5 (load/extend fusion), C1
+(known-zero zero-store removal), A5 (small constants as `moveq`), and the worthwhile M6
+`moveq` count-load improvement are implemented. F1 and F8 were measured and are not
 implemented; remaining items are unimplemented.
+
+## Recently implemented
+
+- [x] **A5** - use `moveq` for representable constants loaded into D0-D7.
+- [x] **M6** - use `moveq` for representable constant shift/loop counts loaded into D1/D7.
+
+## Not-yet-implemented register-allocation candidates
+
+These items may only be beneficial on the register-allocation branch:
+
+- **F1** - store-then-reload folding.
+- **F4 / M1** - avoid routing pointers through data registers.
+- **M3** - allocator-side coalescing for F3 zero-extending loads.
+- **M4** - allocator-side coalescing for F5 sign-extending loads.
+- **M9** - promote scalar frame locals to virtual registers.
+
+## Closed as not worth implementing
+
+- **M7** - avoid redundant Amiga library-base reloads. Each opportunity saves only a
+  single `move.l` instruction, so the complexity and safety checks are not justified.
+- **F6 / M2** - remove an empty `run_global_inits` call. It saves only a single `jsr`,
+  which does not justify the added special-case complexity.
+- **F7 / A9** - remove unconditional branches to shared return blocks. A local rewrite
+  duplicates the `unlk`/`rts` epilogue or breaks other incoming paths; a worthwhile fix
+  would require CFG block reordering, which is not justified for this small opportunity.
+- **M6 remaining large-shift rewrites** - width-saturation and special-case shift
+  sequences beyond the `moveq` count-load improvement are not worth the added
+  target-specific complexity.
 
 ## Pipeline and owners
 
@@ -251,8 +280,11 @@ item IDs in the last column refer to `m68k-asm-peepholes.md`.
 Local promotion of scalar locals to vregs (formerly item 1 here) is M9 in the peephole
 document, because it only pays off with the register allocator.
 
-The backend-level items (small constants as `moveq`, shift counts above 8, library base
-reloads) are also in the peephole document, as A5, M6 and M7.
+The backend-level items (small constants as `moveq` and shift counts above 8) are also in
+the peephole document, as A5 and M6. A5 and M6's worthwhile `moveq` improvements are
+implemented; remaining large-shift rewrites are not worth it. M7 library-base reloads and
+F6/M2 empty `run_global_inits` calls and F7/A9 shared-return branches are closed as not
+worth it.
 
 Effect on the tiers, as the peephole IDs that each item would remove:
 

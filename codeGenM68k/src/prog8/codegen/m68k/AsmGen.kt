@@ -894,7 +894,10 @@ internal class AsmGen(val program: IRProgram, internal val target: ICompilationT
         val tripMinusOne = if(loop.trip==65536) 65535 else loop.trip-1
         val needsSave = loopNestingDepth > 0
         if(needsSave) emitLine("move.w  d7,-(sp)", "save outer loop counter")
-        emitLine("move.w  #$tripMinusOne,d7")
+        if (tripMinusOne in 0..127)
+            emitLine("moveq  #$tripMinusOne,d7")
+        else
+            emitLine("move.w  #$tripMinusOne,d7")
         emitLabel(label)
         loopNestingDepth++
         for(chunk in loop.body) {
