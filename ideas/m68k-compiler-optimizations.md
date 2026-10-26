@@ -313,12 +313,13 @@ byte truncations, and are not changed yet.
 
 ### AST processing: what it can and cannot change
 
-None of the families above is fixed by the AST. The AST keeps the source semantics,
-and the asm patterns come from the IR, the allocator, the backend and AsmGen. The one
-AST-related item is the byte-truncation check (open question 1), which is about
-correctness. Zero-initialising locals in `StatementReorderer` is also AST-level, but it
-is needed for static subroutines, so the duplicate zeroing (C1) is fixed in IR codegen
-(`StackFrameLayout`), not in the AST.
+None of the optimization families above is fixed by the AST. The AST keeps the source
+semantics, and the asm patterns come from the IR, the allocator, the backend and AsmGen.
+The byte-truncation check is an AST-level correctness warning: it reports multiplication
+that is evaluated at byte/word width before an implicit widening conversion when the
+product may exceed the narrow result type. Zero-initialising locals in `StatementReorderer`
+is also AST-level, but it is needed for static subroutines, so the duplicate zeroing (C1)
+is fixed in IR codegen (`StackFrameLayout`), not in the AST.
 
 ## Work
 
@@ -353,12 +354,11 @@ Answered:
   (window3d +2.81% binary, above the 2% limit), because the regfile path turns the
   shift sequence into many regfile moves. Whether the change stays on `master` or is
   gated on the register allocation branch is not decided yet.
+- **Byte-truncation check.** Implemented as a warning for potentially overflowing narrow
+  multiplication before an implicit widening conversion. Explicitly widening an operand
+  before multiplication suppresses the warning.
 
 Still open:
 
-1. **Byte-truncation check.** Should an expression that computes a byte product and
-   assigns it to a wider type be a compiler warning, an error, or left as documented
-   behaviour? The check would go in the AST checker.
-2. **Re-enable the store/load fold (F1).** RESOLVED: measured, net loss on `master` (no
-   register allocator): +1,260 bytes binary across 23 amiga1200 examples. May be beneficial
-   with a register allocator; revisit on that branch with a cost model.
+1. **F2 policy.** Whether the signed power-of-two division rewrite should remain on
+   `master` or be gated to the register-allocation branch remains undecided.

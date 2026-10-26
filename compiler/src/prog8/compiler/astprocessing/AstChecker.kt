@@ -1834,6 +1834,9 @@ internal class AstChecker(private val program: Program,
         val leftDt = leftIDt.getOrUndef()
         val rightDt = rightIDt.getOrUndef()
 
+        if (expr.operator == "*")
+            warnAboutNarrowMultiplication(expr)
+
         // gate off nonsensical pointer arithmetic
         if (expr.operator !in arrayOf("+", "-") + ComparisonOperators) {
             if (leftDt.isPointer || leftDt.isPointerArray || rightDt.isPointer || rightDt.isPointerArray) {
@@ -2011,6 +2014,69 @@ internal class AstChecker(private val program: Program,
             errors.err("explicit typecast is needed to convert a non-long value to a pointer", typecast.position)
 
         super.visit(typecast)
+    }
+
+    private data class IntegerRange(val min: Long, val max: Long)
+
+    private fun warnAboutNarrowMultiplication(expr: BinaryExpression) {
+        val resultDt = expr.inferType(program).getOrUndef()
+        val resultWidth = integerWidth(resultDt) ?: return
+
+        var current: Node = expr.parent
+        while (current is BinaryExpression || current is PrefixExpression)
+            current = current.parent
+        val widening = current as? TypecastExpression ?: return
+        if (!widening.implicit)
+            return
+        val targetDt = widening.type
+        val targetWidth = integerWidth(targetDt) ?: return
+        if (targetWidth <= resultWidth)
+            return
+
+        val resultRange = integerRange(resultDt) ?: return
+        val leftRange = expressionRange(expr.left) ?: return
+        val rightRange = expressionRange(expr.right) ?: return
+        val products = longArrayOf(
+            leftRange.min * rightRange.min,
+            leftRange.min * rightRange.max,
+            leftRange.max * rightRange.min,
+            leftRange.max * rightRange.max
+        )
+        val minProduct = products.minOrNull() ?: return
+        val maxProduct = products.maxOrNull() ?: return
+        if (minProduct >= resultRange.min && maxProduct <= resultRange.max)
+            return
+
+        errors.info(
+            "multiplication is evaluated as $resultDt before widening to $targetDt; the intermediate result may overflow (cast an operand to $targetDt before multiplying to avoid this)",
+            expr.position
+        )
+    }
+
+    private fun expressionRange(expression: Expression): IntegerRange? {
+        val dt = expression.inferType(program).getOrUndef()
+        val constant = expression.constValue(program)?.number
+        if (constant != null && constant.isFinite() && constant == constant.toLong().toDouble()) {
+            val value = constant.toLong()
+            return IntegerRange(value, value)
+        }
+        return integerRange(dt)
+    }
+
+    private fun integerWidth(dt: DataType): Int? = when {
+        dt.isByte -> 1
+        dt.isWord -> 2
+        dt.isLong -> 4
+        else -> null
+    }
+
+    private fun integerRange(dt: DataType): IntegerRange? = when {
+        dt.isUnsignedByte -> IntegerRange(0, 255)
+        dt.isSignedByte -> IntegerRange(-128, 127)
+        dt.isUnsignedWord -> IntegerRange(0, 65535)
+        dt.isSignedWord -> IntegerRange(-32768, 32767)
+        dt.isLong -> IntegerRange(Int.MIN_VALUE.toLong(), Int.MAX_VALUE.toLong())
+        else -> null
     }
 
     override fun visit(range: RangeExpression) {
