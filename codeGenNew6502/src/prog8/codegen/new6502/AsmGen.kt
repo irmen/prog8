@@ -892,6 +892,8 @@ internal class AsmGen(val program: IRProgram, private val target: ICompilationTa
             Opcode.BREAKPOINT -> emitLine("brk")
 
             Opcode.LOAD, Opcode.LOADM, Opcode.LOADR, Opcode.LOADX, Opcode.LOADHR, Opcode.LOADI,
+            Opcode.LOADMZ, Opcode.LOADMS, Opcode.LOADMZL, Opcode.LOADMSL,
+            Opcode.LOADIZ, Opcode.LOADIS, Opcode.LOADIZL, Opcode.LOADISL,
             Opcode.STOREM, Opcode.STOREX, Opcode.STOREZM, Opcode.STOREZI, Opcode.STOREIM, Opcode.STOREZX, Opcode.STOREHR, Opcode.STOREI,
             Opcode.LOADP_INC, Opcode.STOREP_INC,
             Opcode.LOADHFACZERO, Opcode.LOADHFACONE,

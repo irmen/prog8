@@ -70,6 +70,78 @@ internal fun AsmGen.translateLoadStore(insn: IRInstruction, suppressRegfileStore
             emitStoreD0(dst, type)
         }
 
+        Opcode.LOADMZ -> {
+            val dst = insn.requireIntDest().intNumber
+            val target = resolveMemory(insn.requireMemory())
+            when (type) {
+                IRDataType.BYTE -> {
+                    emitLoadD0FromAddress(target, IRDataType.BYTE)
+                    emitLine("and.w   #\$ff, d0")
+                    emitStoreD0(dst, IRDataType.WORD)
+                }
+                IRDataType.WORD -> {
+                    emitLoadD0FromAddress(target, IRDataType.WORD)
+                    emitLine("and.l   #\$ffff, d0")
+                    emitStoreD0(dst, IRDataType.LONG)
+                }
+                else -> error("LOADMZ of unsupported type $type")
+            }
+        }
+
+        Opcode.LOADMS -> {
+            val dst = insn.requireIntDest().intNumber
+            val target = resolveMemory(insn.requireMemory())
+            when (type) {
+                IRDataType.BYTE -> {
+                    emitLoadD0FromAddress(target, IRDataType.BYTE)
+                    emitLine("ext.w   d0")
+                    emitStoreD0(dst, IRDataType.WORD)
+                }
+                IRDataType.WORD -> {
+                    emitLoadD0FromAddress(target, IRDataType.WORD)
+                    emitLine("ext.l   d0")
+                    emitStoreD0(dst, IRDataType.LONG)
+                }
+                else -> error("LOADMS of unsupported type $type")
+            }
+        }
+
+        Opcode.LOADMZL -> {
+            val dst = insn.requireIntDest().intNumber
+            val target = resolveMemory(insn.requireMemory())
+            emitLoadD0FromAddress(target, IRDataType.BYTE)
+            emitLine("and.l   #\$ff, d0")
+            emitStoreD0(dst, IRDataType.LONG)
+        }
+
+        Opcode.LOADMSL -> {
+            val dst = insn.requireIntDest().intNumber
+            val target = resolveMemory(insn.requireMemory())
+            emitLoadD0FromAddress(target, IRDataType.BYTE)
+            emitLine("ext.w   d0")
+            emitLine("ext.l   d0")
+            emitStoreD0(dst, IRDataType.LONG)
+        }
+
+        Opcode.LOADIZ, Opcode.LOADIS, Opcode.LOADIZL, Opcode.LOADISL -> {
+            val dst = insn.requireIntDest().intNumber
+            val source = resolveMemory(insn.requireMemory())
+            val isSign = insn.opcode in setOf(Opcode.LOADIS, Opcode.LOADISL)
+            val isLong = insn.opcode in setOf(Opcode.LOADIZL, Opcode.LOADISL)
+            val srcType = if (isLong) IRDataType.BYTE else type
+            val destType = if (isLong) IRDataType.LONG else if (srcType == IRDataType.BYTE) IRDataType.WORD else IRDataType.LONG
+            emitLoadD0FromAddress(source, srcType)
+            if (isSign) {
+                if (srcType == IRDataType.BYTE) emitLine("ext.w   d0")
+                if (destType == IRDataType.LONG) emitLine("ext.l   d0")
+            } else {
+                val mask = if (srcType == IRDataType.BYTE) "#\$ff" else "#\$ffff"
+                if (destType == IRDataType.WORD) emitLine("and.w   $mask, d0")
+                else emitLine("and.l   $mask, d0")
+            }
+            emitStoreD0(dst, destType)
+        }
+
         Opcode.LOADHR -> {
             val dst = insn.requireIntDest().intNumber
             val hwReg = m68kSlotRegister(insn.requireHardwareSlot().slot)

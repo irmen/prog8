@@ -9,8 +9,9 @@ rewrites are in that document too, and it holds the baseline measurements used h
 Related design: `m68k-register-allocation.md`.
 
 **Status:** Draft, updated to the current compiler state (Oct 2026). Findings are
-recorded. One item (F2, signed division by a power of two) is implemented as an
-uncommitted working-tree change; all other items are unimplemented.
+recorded. Two items are implemented as uncommitted working-tree changes: F2 (signed
+division by a power of two) and the F3+F5 load/extend fusion. All other items are
+unimplemented.
 
 ## Pipeline and owners
 
@@ -43,8 +44,8 @@ and any store to memory.
 | --- | --- | ---: | --- |
 | F1 | store then reload of the same variable (redundant loads) | 150 drop, 165 copy (all distances); 172 IR-adjacent `storem`/`loadm` pairs | IR codegen (`foldStoremLoadmToLoadr`) |
 | F2 | `ext.l` + `divs.w #2,dN` (signed division by a power of two) | 8 | IR codegen (`divideByConst`) - implemented, see its section |
-| F3 | `moveq #0,dB` + `move.b dA,dB` (zero-extended register copy) | 404 | IR codegen (load/ext fusion) |
-| F5 | `move.b dA,dB` + `ext.w dB` (sign-extension after a byte copy) | 32 | IR codegen (fuse with the byte load) |
+| F3 | `moveq #0,dB` + `move.b dA,dB` (zero-extended register copy) | 404 | IR codegen (load/ext fusion) - implemented, see its section |
+| F5 | `move.b dA,dB` + `ext.w dB` (sign-extension after a byte copy) | 32 | IR codegen (fuse with the byte load) - implemented, see its section |
 | F8 | `and.l #$ff,dN` before `divu.w` | 21 | IR (explicit extension, ranked item 3) |
 
 F4 (pointer through a data register, allocator), F6 (empty `run_global_inits`, AsmGen),
@@ -130,6 +131,28 @@ opportunities: nearly all of them skip the body of an `if` that ends the subrout
   part (placing the load result in the register that `ext.b` writes) is M3 in the
   peephole document.
 - AST processing: the implicit widening is required. No change.
+- **Implemented** (uncommitted working-tree change): eight extending-load opcodes
+  (`loadmz`/`loadms`/`loadmzl`/`loadmsl` for direct memory, `loadiz`/`loadis`/`loadizl`/
+  `loadisl` for indirect) in `intermediate`, with handlers in `codeGenM68k`,
+  `codeGenNew6502` and `virtualmachine`. `IRPeepholeOptimizer.fuseLoadExtend` rewrites
+  `loadm`/`loadi` directly followed by `ext`/`exts`/`extl`/`extls` when the intermediate
+  register has exactly one reader. The source type letter stays the source width
+  (one widening step, like `ext`), which is why the byte-to-long case needs its own
+  `...l` opcode instead of a type suffix on `loadmz`.
+- m68k handler notes: the 68000 is big-endian, so `move.b mem, slot` writes the high
+  byte of a word slot and a following `and.w` keeps zero. Both directions therefore
+  stage through `d0` (where `move.b` hits the low byte) via
+  `emitLoadD0FromAddress`/`emitStoreD0`. Those helpers also keep the `d0` cache
+  consistent: a direct `d0` write leaves a stale cache entry, and the next
+  `emitLoadD0` then skips its load. That was a real miscompile in window3d.
+- Measured: window3d `.asm` 224540 -> 222220 bytes, 35 fused instructions in its
+  `.p8ir`. The new6502 backend has its own handlers for the new opcodes, which emit
+  a load followed by an in-place extension of the high bytes instead of the separate
+  extend step. The VM implements the opcodes. The IR-level win (fewer instructions and
+  registers) applies to every backend.
+  `TestCompilerOnExamplesVirtual` expectations are updated for the IR counts it changed
+  (bouncegfx 219 -> 197 instructions and 90 -> 69 registers, fountain 198 -> 187,
+  sincos 326 -> 300 and 141 -> 115, pointers/hashtable 677 -> 665 and 290 -> 279).
 
 ### F5 - sign-extension after a byte copy (IR codegen)
 
@@ -142,6 +165,8 @@ opportunities: nearly all of them skip the body of an `if` that ends the subrout
 - Owner: IR codegen. The same fusion as F3 (ranked item 2), extended to the indexed
   `loadi.b` form. The allocator coalescing part is M4 in the peephole document.
 - AST processing: the implicit conversion is correct. No change.
+- **Implemented** together with F3: this is the `loadi`/`loadiz`/`loadis` half, and the
+  four `window3d` sites in `update_geometry` are fused in the generated `.p8ir`.
 
 ### F8 - byte zero-extension before divu.w (IR)
 
@@ -259,7 +284,10 @@ is needed for static subroutines, so the duplicate zeroing (C1) is fixed in IR c
    install, and runs on `amiga500` (see the peephole document for the emulator notes).
    Because items 1-4 and F1/F2 change shared IR, also compile a 6502 or other non-m68k
    target before and after. Use `-compareir` to check that only the intended changes
-   appear, and that no other output changes.
+   appear, and that no other output changes. For F3+F5 the opcodes were checked against
+   the VM (the `virtual` target takes the fusion but not the F2 path) and run on
+   `qemu68k`: byte/word/long, signed and unsigned, in variables and arrays, and
+   window3d's `sin8_fixed`, all match.
 
 ## Open questions
 
