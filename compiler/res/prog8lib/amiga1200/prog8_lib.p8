@@ -45,7 +45,7 @@ proc_MsgPort = 92
 proc_CLI = 172
 
             move.l  4.w,a6
-            move.l  #-1,d0
+            moveq  #-1,d0
             move.l  d0,d1
             jsr     -648(a6)        ; CacheControl(): turn on all cpu caches
 

@@ -1403,4 +1403,182 @@ class TestInstructionSelectionOptimizations : FunSpec({
         lines.count { it == "move.w  #12,d1" } shouldBe 0
         lines.count { it == "lsl.l  d1,d0" } shouldBe 1
     }
+
+    // === A3 swap-back peephole ===
+
+    test("A3 drops a swap-back move pair") {
+        val lines = mutableListOf(
+            "    move.l  d0,d1",
+            "    move.l  d1,d0",
+            "    rts"
+        )
+        optimizeAssembly(lines)
+        lines.count { it.contains("move.l") } shouldBe 1
+        lines.count { it.startsWith("    move.l  d0,d1") } shouldBe 1
+    }
+
+    test("A3 keeps moves when sizes differ") {
+        val lines = mutableListOf(
+            "    move.l  d0,d1",
+            "    move.b  d1,d0",
+            "    rts"
+        )
+        optimizeAssembly(lines)
+        lines.count { it.startsWith("    move") } shouldBe 2
+    }
+
+    test("A3 keeps a move pair when a label sits on the second move") {
+        val lines = mutableListOf(
+            "    move.w  d0,d1",
+            "somewhere:",
+            "    move.w  d1,d0",
+            "    rts"
+        )
+        optimizeAssembly(lines)
+        lines.count { it.startsWith("    move.w") } shouldBe 2
+    }
+
+    test("A3 does not treat symbols starting with d as data registers") {
+        val lines = mutableListOf(
+            "    move.w  d0,dmask",
+            "    move.w  dmask,d0",
+            "    rts"
+        )
+        optimizeAssembly(lines)
+        lines.count { it.startsWith("    move.w") } shouldBe 2
+    }
+
+    // === A2 store-reload peephole ===
+
+    test("A2 replaces a store-reload pair with a register copy") {
+        val lines = mutableListOf(
+            "    move.l  d0,p8b_test.p8v_x",
+            "    move.l  p8b_test.p8v_x,d1",
+            "    rts"
+        )
+        optimizeAssembly(lines)
+        lines.count { it == "    move.l  d0,p8b_test.p8v_x" } shouldBe 1
+        lines.count { it == "    move.l  d0,d1" } shouldBe 1
+        lines.count { it.contains("p8b_test.p8v_x,d1") } shouldBe 0
+    }
+
+    test("A2 keeps frame-slot reloads untouched") {
+        val lines = mutableListOf(
+            "    move.l  d0,8(a5)",
+            "    move.l  8(a5),d1",
+            "    rts"
+        )
+        optimizeAssembly(lines)
+        lines.count { it == "    move.l  8(a5),d1" } shouldBe 1
+    }
+
+    test("A2 leaves a store-reload-into-source pair alone") {
+        val lines = mutableListOf(
+            "    move.l  d0,p8b_test.p8v_x",
+            "    move.l  p8b_test.p8v_x,d0",
+            "    rts"
+        )
+        optimizeAssembly(lines)
+        lines.count { it == "    move.l  p8b_test.p8v_x,d0" } shouldBe 1
+    }
+
+    test("A2 does not treat symbols starting with d as data registers") {
+        val lines = mutableListOf(
+            "    move.b  d0,data",
+            "    move.b  data,dtmp",
+            "    rts"
+        )
+        optimizeAssembly(lines)
+        lines.count { it == "    move.b  data,dtmp" } shouldBe 1
+    }
+
+    // === A6 zero-extend peephole ===
+
+    test("A6 rewrites move.b+and.l zero-extension to moveq+move.b") {
+        val lines = mutableListOf(
+            "    move.b  (a5),d0",
+            "    and.l   #\$ff,d0",
+            "    move.l  d0,d2",
+            "    rts"
+        )
+        optimizeAssembly(lines)
+        lines.count { it.trimStart() == "moveq  #0,d0" } shouldBe 1
+        lines.count { it.trimStart() == "move.b  (a5),d0" } shouldBe 1
+        lines.count { it.contains("and.l") } shouldBe 0
+    }
+
+    test("A6 does not rewrite when an N-sensitive branch follows") {
+        val lines = mutableListOf(
+            "    move.b  (a5),d0",
+            "    and.l   #\$ff,d0",
+            "    bmi     somewhere",
+            "    rts"
+        )
+        optimizeAssembly(lines)
+        lines.count { it.contains("and.l") } shouldBe 1
+        lines.count { it.contains("moveq") } shouldBe 0
+    }
+
+    test("A6 does not rewrite when flags survive across a label to a branch") {
+        val lines = mutableListOf(
+            "    move.b  (a5),d0",
+            "    and.l   #\$ff,d0",
+            ".somewhere:",
+            "    bmi     done",
+            "    rts"
+        )
+        optimizeAssembly(lines)
+        lines.count { it.contains("and.l") } shouldBe 1
+        lines.count { it.contains("moveq") } shouldBe 0
+    }
+
+    test("A6 does not rewrite when flags survive a non-flag instruction") {
+        val lines = mutableListOf(
+            "    move.b  (a5),d0",
+            "    and.l   #\$ff,d0",
+            "    movea.l #$1234,a0",
+            "    bmi     somewhere",
+            "    rts"
+        )
+        optimizeAssembly(lines)
+        lines.count { it.contains("and.l") } shouldBe 1
+        lines.count { it.contains("moveq") } shouldBe 0
+    }
+
+    test("A6 rewrites when a flag setter follows the zero-extension") {
+        val lines = mutableListOf(
+            "    move.b  (a5),d0",
+            "    and.l   #\$ff,d0",
+            "    movea.l #$1234,a0",
+            "    move.l  d0,d3",
+            "    bmi     somewhere",
+            "    rts"
+        )
+        optimizeAssembly(lines)
+        lines.count { it.trimStart() == "moveq  #0,d0" } shouldBe 1
+        lines.count { it.contains("and.l") } shouldBe 0
+    }
+
+    test("A6 handles tab-separated asm operands") {
+        val lines = mutableListOf(
+            "\tmove.b\t(a5),d0",
+            "\tand.l\t#\$ff,d0",
+            "\tmove.l\td0,d2"
+        )
+        optimizeAssembly(lines)
+        lines.count { it.trim() == "moveq  #0,d0" } shouldBe 1
+        lines.count { it.trim() == "move.b  (a5),d0" } shouldBe 1
+        lines.count { it.contains("and.l") } shouldBe 0
+    }
+
+    test("A6 does not treat symbols starting with d as data registers") {
+        val lines = mutableListOf(
+            "    move.b  (a0),data",
+            "    and.l   #\$ff,data",
+            "    rts"
+        )
+        optimizeAssembly(lines)
+        lines.count { it.contains("and.l") } shouldBe 1
+        lines.count { it.contains("moveq") } shouldBe 0
+    }
 })

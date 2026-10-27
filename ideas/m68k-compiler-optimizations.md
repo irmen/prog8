@@ -9,10 +9,11 @@ rewrites are in that document too, and it holds the baseline measurements used h
 Related design: `m68k-register-allocation.md`.
 
 **Status:** Draft, updated to the current compiler state (Oct 2026). Findings are
-recorded. F2 (signed division by a power of two), F3+F5 (load/extend fusion), C1
-(known-zero zero-store removal), A5 (small constants as `moveq`), A7 (conditional branch
-inversion), and the worthwhile M6 `moveq` count-load improvement are implemented. F1 and
-F4/M1 are implemented on the register-allocation branch; F8 was measured and is not implemented.
+recorded. F1 (store/load fold), F2 (signed division by a power of two), F3+F5
+(load/extend fusion), C1 (known-zero zero-store removal), A5 (small constants as
+`moveq`), A7 (conditional branch inversion), and the worthwhile M6 `moveq`
+count-load improvement are implemented. F4/M1 is implemented on the
+register-allocation branch; F8 was measured and is not implemented.
 Remaining items are unimplemented.
 
 ## Recently implemented
@@ -100,7 +101,7 @@ opportunities: nearly all of them skip the body of an `if` that ends the subrout
 
 ## Findings by family
 
-### F1 - store then reload (IR codegen) - IMPLEMENTED FOR THE REGISTER-ALLOCATION BRANCH
+### F1 - store then reload (IR codegen) - IMPLEMENTED
 
 - Asm: `move.l d2,-8(a5)` then `move.l -8(a5),d2` (`tictactoe.asm:3637-3640`);
   `move.l d4,dos.read_file.lock` then `move.l dos.read_file.lock,d2`
@@ -172,7 +173,9 @@ opportunities: nearly all of them skip the body of an `if` that ends the subrout
   `circles.p8ir:2995-2996`.
 - Source: `(1 as word)-radius` (`circles.p8:76` in the earlier version).
 - Owner: IR codegen fuses `loadm.b` with the following `ext.b` into one zero-extending
-  load (ranked item 2). This is what makes peephole item B1 worthwhile. The allocator
+  load (ranked item 2). This is what makes peephole item B1 worthwhile - except that tier B
+  (B1, B2b, B3) was implemented and reverted as not worth it (see `m68k-asm-peepholes.md`),
+  so the IR fusion remains the real fix. The allocator
   part (placing the load result in the register that `ext.b` writes) is M3 in the
   peephole document.
 - AST processing: the implicit widening is required. No change.
@@ -303,7 +306,7 @@ Effect on the tiers, as the peephole IDs that each item would remove:
 | Item | Removes |
 | --- | --- |
 | 1 (known-zero pass) | C1 |
-| 2 (load/ext fusion) | B1 |
+| 2 (load/ext fusion) | B1 (tier B reverted; fusion is the real fix) |
 | 3 (explicit zero-extension) | A6 (fallback) |
 | 4 (branch inversion) | A7 |
 

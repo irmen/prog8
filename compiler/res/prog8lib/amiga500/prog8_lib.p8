@@ -48,7 +48,7 @@ proc_CLI = 172
             cmp.w   #36,20(a6)      ; KS 2.0 = V36
             blo.s   1$
 
-            move.l  #-1,d0
+            moveq  #-1,d0
             move.l  d0,d1
             jsr     -648(a6)        ; CacheControl(): turn on all cpu caches
 1$:

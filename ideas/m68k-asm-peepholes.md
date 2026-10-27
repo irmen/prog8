@@ -119,11 +119,11 @@ text matches before the rewrite's conditions are applied.
 | ID | Pattern | Rewrite | Count | Status |
 | --- | --- | --- | --- | --- |
 | A1 | `move.S dN,M` / `move.S M,dN` | drop the reload | 0 (eliminated by F1+allocator) | NOT WORTH IT (trivially 0) |
-| A2 | `move.S dN,M` / `move.S M,dK` (K != N) | keep the store, replace reload with `move.S dN,dK` | 35 (23 programs) | open |
-| A3 | `move.S dA,dB` / `move.S dB,dA` | drop the second move | 46 (23 programs) | open |
+| A2 | `move.S dN,M` / `move.S M,dK` (K != N) | keep the store, replace reload with `move.S dN,dK` | 35 (23 programs) | IMPLEMENTED |
+| A3 | `move.S dA,dB` / `move.S dB,dA` | drop the second move | 46 (23 programs) | IMPLEMENTED |
 | A4 | `move.S dN,dN` | drop the self-move (see safety) | 14 | DO NOT IMPLEMENT |
 | A5 | `move.w/l #N,dK`, N in -128..127 (or $FF80..$FFFF for .w) | `moveq #N,dK` | 644 raw `move.w`/`move.l #imm,dN`; in-range subset not re-counted | IMPLEMENTED (.l at emitter, .w via peephole) |
-| A6 | `move.b M,dN` / `and.l #$ff,dN` | `moveq #0,dN` / `move.b M,dN` | 17 (10 programs) | open |
+| A6 | `move.b M,dN` / `and.l #$ff,dN` | `moveq #0,dN` / `move.b M,dN` | 17 (10 programs) | IMPLEMENTED |
 | A7 | `bCC L1` / `bra L2` / `L1:` | `bCC' L2` | about 14 `bCC` then `bra` pairs (rough; exact shape not checked) | IMPLEMENTED |
 | A8 | moved to "Moved items" (M2, AsmGen) | - | - | moved |
 | A9 | `bra L` where `L:` is `rts`, or `unlk a5` then `rts` | copy the return sequence in place of the `bra` | 35 | NOT WORTH IT |
@@ -170,16 +170,22 @@ Safety notes:
 
 | ID | Pattern | Rewrite | Count | Status |
 | --- | --- | --- | --- | --- |
-| B1 | `move.b M,dA` / `moveq #0,dB` / `move.b dA,dB` | `moveq #0,dB` / `move.b M,dB` when dA is dead and `M` does not use `dB` | 21 (14 programs) | open |
+| B1 | `move.b M,dA` / `moveq #0,dB` / `move.b dA,dB` | `moveq #0,dB` / `move.b M,dB` when dA is dead and `M` does not use `dB` | 21 (14 programs) | NOT WORTH IT |
 | B2 | `move.l #sym,dN` / `movea.l dN,aM` | `movea.l #sym,aM` when dN is dead | 0 (eliminated by M1) | NOT WORTH IT (trivially 0) |
-| B2b | `move.l M,dN` / `movea.l dN,aM` | `movea.l M,aM` when dN is dead | 11 (4 programs) | open |
-| B3 | `lea X,aN` / `movea.l aN,aM` | `lea X,aM` when aN is dead | 11 (6 programs) | open |
+| B2b | `move.l M,dN` / `movea.l dN,aM` | `movea.l M,aM` when dN is dead | 11 (4 programs) | NOT WORTH IT |
+| B3 | `lea X,aN` / `movea.l aN,aM` | `lea X,aM` when aN is dead | 11 (6 programs) | NOT WORTH IT |
 
 B1b (`move.S M,dA` / `move.S dA,dB`) is not a peephole. It is argument setup that the
 allocator should remove, and it is listed as M5 under "Moved items".
 
 B1 is the rewrite that the IR load/extend fusion makes much larger (compiler document,
 F3). On its own it only removes one copy per site.
+
+**Tier B (B1, B2b, B3) - NOT WORTH IT.** Implemented as an experiment and reverted:
+the conservative block-local liveness requirement (register treated as live at any
+label/branch/call/rts) rejected almost every candidate, and the two B3 sites that did
+fire in the example set saved only 16 bytes each (-32 bytes total across 20 programs).
+The complexity and safety checks are not justified for that gain.
 
 **Liveness definition.** A register is dead after an instruction if the next access
 in the same basic block is a full write. Only these write the whole register:
@@ -230,16 +236,22 @@ register allocator, so it is listed here too.
 - **M4 - sign-extension copy coalescing (allocator) - NOT WORTH IT.** The allocator part of F5:
   `move.b d2,d3` / `ext.w d3` (32 matches, `window3d.asm:3863-3865`). The IR fusion is
   in the compiler document (F5).
-- **M5 - argument setup copies (allocator).** `move.S M,dA` / `move.S dA,dB` (was B1b).
-  Coalescing in the allocator should remove it. Re-measure against the current output
-  before adding a peephole fallback.
+- **M5 - argument setup copies (allocator) - NOT WORTH IT.** `move.S M,dA` / `move.S dA,dB`
+  (was B1b). Coalescing in the allocator should remove it. Measured (Oct 2026): 40 sites,
+  exactly 2 per program, ~8-12 bytes/program. The two shapes are compiler/runtime
+  boilerplate (OS call argument marshalling such as `CacheControl(-1)`, and memfill
+  block/tail splitting), not user code. A peephole would need the same conservative
+  block-local liveness that made tier B ineffective, and the gain is below the 2%
+  acceptance limit. The allocator is the intended owner, but a dedicated pass is not
+  justified; leave to the existing coloring.
 - **M6 - constant shift count via register (backend emitter).** `move.w #15,d1` then
   `asr.l d1,d2`. Shift immediates only go to 8. Hoisting the count load is a codegen
   matter. The `moveq` form of small constant loads is peephole A5.
-- **M7 - library base reload (AsmGen or backend emitter).** `move.l sys.IntuitionBase,a6`
+- **M7 - library base reload (AsmGen or backend emitter) - NOT WORTH IT.** `move.l sys.IntuitionBase,a6`
   before each library call. An absolute load of 20 cycles on the 68000. Caching it needs
   the library ABI to preserve A6, and proof that the library base globals are not written
-  after startup. Verify in the NDK docs before any change.
+  after startup. Verified (Oct 2026): the gain is a single `move.l` per call site, the
+  ABI/preservation proof is non-trivial, and the complexity is not justified. Not implemented.
 - **M8 - epilogue tail duplication - NOT WORTH IT.** `movem.l (sp)+`,
   `unlk a5`, `rts` shared by several branches. Requires CFG block reordering to share
   the full epilogue across paths with identical stack/register-save state; the simpler
@@ -271,9 +283,10 @@ register allocator, so it is listed here too.
    case, a label on the second line, a flag-reading next instruction (A4), a memory
    operand that uses the destination register (A6, B1), and a non-matching register or
    size.
-4. **Liveness helper.** Add a block-local liveness function over the `TrimmedLine`
-   window, using the full-write definition above, then the tier B passes on top of it.
-   Keep the helper separate so it can be reused for allocator checks.
+4. **Liveness helper.** NOT PURSUED. The block-local liveness helper was prototyped for
+   the tier B passes (B1, B2b, B3), which were implemented and then reverted as not
+   worth it (see the note above). No helper remains in the code. Keep this in mind if a
+   future optimization needs block-local liveness; do not add it speculatively.
 5. **Verification.** After each pass:
    - `gradle :codeGenM68k:test --console=plain` for the pass tests.
    - `gradle installdist installshadowdist --console=plain` to install the compiler.

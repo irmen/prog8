@@ -28,6 +28,13 @@ internal fun optimizeAssembly(lines: MutableList<String>) {
         by2 = runPass(optimizeJmpToNextLabel(by2), 2, by2)
         by2 = runPass(optimizeTailCall(by2), 2, by2)
         by2 = runPass(optimizeRedundantTst(by2), 2, by2)
+        by2 = runPass(optimizeSwapBack(by2), 2, by2)
+        by2 = runPass(optimizeStoreReloadToRegCopy(by2), 2, by2)
+        val a6Mods = optimizeByteZeroExtendSafe(lines, pretrimmed)
+        if (a6Mods.isNotEmpty()) {
+            applyModifications(a6Mods, lines, pretrimmed)
+            modified = true
+        }
         var by3 = getLinesBy(pretrimmed, lines, 3)
         by3 = runPass(optimizeConditionalOverJump(by3), 3, by3)
 
@@ -205,6 +212,180 @@ private fun optimizeMoveqWordForm(lines: MutableList<String>, allPretrimmed: Lis
     return mods
 }
 
+private fun optimizeSwapBack(linesBy: Sequence<List<TrimmedLine>>): List<Modification> {
+    //  move.S  dA,dB  /  move.S  dB,dA  ->  drop the second move (swap-back, register-only, always safe;
+    //  both moves set identical flags since they move the same value at the same size)
+    val mods = mutableListOf<Modification>()
+    for (lines in linesBy) {
+        val first = lines[0].instruction
+        val second = lines[1].instruction
+        if (hasLabel(lines[1].trimmed)) continue
+        if (!first.isMove() || !second.isMove()) continue
+        val m1 = first.moveOperands() ?: continue
+        val m2 = second.moveOperands() ?: continue
+        val (src1, dst1) = m1
+        val (src2, dst2) = m2
+        if (!src1.lowercase().matches(dataRegisterPattern) || !dst1.lowercase().matches(dataRegisterPattern)) continue
+        if (src1.lowercase() == dst1.lowercase()) continue
+        if (src2.lowercase() == dst1.lowercase() && dst2.lowercase() == src1.lowercase() && first.moveSize() == second.moveSize())
+            mods.add(Modification(lines[1].index, true, null))
+    }
+    return mods
+}
+
+private fun optimizeStoreReloadToRegCopy(linesBy: Sequence<List<TrimmedLine>>): List<Modification> {
+    //  move.S  dN,M  /  move.S  M,dK  (K != N, same mem)  ->  keep store, replace reload with move.S dN,dK
+    val mods = mutableListOf<Modification>()
+    for (lines in linesBy) {
+        val first = lines[0].instruction
+        val second = lines[1].instruction
+        if (hasLabel(lines[1].trimmed)) continue
+        if (!first.isMove() || !second.isMove()) continue
+        val m1 = first.moveOperands() ?: continue
+        val m2 = second.moveOperands() ?: continue
+        val (src1, dst1) = m1
+        val (src2, dst2) = m2
+        if (!src1.lowercase().matches(dataRegisterPattern)) continue
+        if (dst1.lowercase().matches(dataRegisterPattern)) continue
+        if (!dst2.lowercase().matches(dataRegisterPattern)) continue
+        if (src2.lowercase() != dst1.lowercase()) continue
+        if (dst2.lowercase() == src1.lowercase()) continue
+        if (first.moveSize() != second.moveSize()) continue
+        // memory safety: only plain memory operands, no indirect/indexing whose address or
+        // side effects (e.g. an (aX)+ increment) would differ between read and no-read
+        if (!dst1.isSafeMemoryOperand()) continue
+        val sz = first.moveSize()
+        val indent = lines[1].value.takeWhile { it.isWhitespace() }
+        val label = keepLabel(lines[1].trimmed)
+        val labelPrefix = if (label.isNotEmpty()) "$label  " else ""
+        mods.add(Modification(lines[1].index, false, "$indent$labelPrefix" + "move.$sz  ${src1},${dst2}"))
+    }
+    return mods
+}
+
+private enum class FlagDecision { Overwritten, Continue, Unsafe }
+
+/** Instruction mnemonics that unconditionally write the N flag (and Z/C), so the earlier state is gone. */
+private val nFlagOverwriters = setOf(
+    "moveq", "clr", "tst", "cmp", "cmpa", "cmpi", "cmpm",
+    "add", "sub", "addi", "subi", "addq", "subq", "addx", "subx",
+    "and", "andi", "or", "ori", "eor", "eori",
+    "asl", "asr", "lsl", "lsr", "rol", "ror", "roxl", "roxr",
+    "neg", "negx", "not", "ext", "swap", "tas",
+    "mulu", "muls", "mulsl", "divu", "divs", "divsl", "chk"
+)
+
+/** Instruction mnemonics that leave the N flag untouched and do not read it: the fall-through
+ *  path still sees the rewritten flags (which for Z/C are identical to before, and FPU ops only
+ *  touch FPSR), so scanning may continue past them. */
+private val nFlagOpaque = setOf(
+    "lea", "movea", "adda", "suba", "exg", "link", "unlk", "nop", "movem",
+    "btst", "bset", "bclr", "bchg", "st", "sf",
+    "scc", "scs", "seq", "sne", "svc", "svs", "shi", "sls", "shs", "slo",
+    "fmove", "fadd", "fsub", "fmul", "fdiv", "ftst", "fcmp",
+    "fsqrt", "fabs", "fneg", "fintrz", "fgetexp", "fgetman",
+    "dc", "ds", "dcb", "even", "cnop", "align", "org", "section", "xdef", "xref", "public", "global", "offset"
+)
+
+/**
+ * How the A6 rewrite interacts with one instruction on the fall-through path: Continue keeps
+ * scanning, Overwritten means N has been replaced so the rewrite becomes safe, Unsafe makes the
+ * rewrite unsafe (an N-sensitive reader, or any control transfer whose taken path may still
+ * observe our flags, or any unclassified instruction).
+ */
+private fun String.zeroExtendFlagDecision(): FlagDecision {
+    val instr = substringBefore(';').trim().instructionPart().trim()
+    if (instr.isEmpty()) return FlagDecision.Continue
+    val tokens = instr.split(Regex("\\s+"), limit = 2)
+    val base = tokens[0].substringBefore('.').lowercase()
+    val operands = if (tokens.size > 1) tokens[1] else ""
+
+    return when {
+        base == "move" -> {
+            val pair = operands.split(',', limit = 2)
+            if (pair.size != 2) return FlagDecision.Unsafe
+            val src = pair[0].trim().lowercase()
+            val dst = pair[1].trim().lowercase()
+            when {
+                dst == "sr" || dst == "ccr" -> FlagDecision.Overwritten
+                src == "sr" -> FlagDecision.Unsafe
+                dst.matches(Regex("a[0-7]")) -> FlagDecision.Continue
+                else -> FlagDecision.Overwritten
+            }
+        }
+        base in nFlagOverwriters -> FlagDecision.Overwritten
+        base in nFlagOpaque -> FlagDecision.Continue
+        else -> FlagDecision.Unsafe
+    }
+}
+
+private fun optimizeByteZeroExtendSafe(lines: List<String>, allPretrimmed: List<String>): List<Modification> {
+    //  move.b  M,dN  /  and.l  #$ff,dN  ->  moveq  #0,dN  /  move.b  M,dN
+    //  Safety: M must not use dN as an address/index register, and must be a plain operand token.
+    //  Flag safety: the rewrite changes the N flag for byte values >= 128 (move.b reflects the
+    //  byte's sign bit, and.l #$ff always leaves N=0). Scan forward along the fall-through path:
+    //  only rewrite when a flag setter replaces N before an N-sensitive reader can see it.
+    val filtered = allPretrimmed.withIndex()
+        .filter { it.value.isNotBlank() && !it.value.trimStart().startsWith(';') }
+        .map { IndexedValue(it.index, it.value.trimStart()) }
+        .toList()
+
+    val mods = mutableListOf<Modification>()
+
+    for (i in filtered.indices) {
+        val line = filtered[i].value
+        val lower = line.lowercase()
+        if (!lower.startsWith("move.b")) continue
+        val operands = line.instructionOperands() ?: continue
+        val parts = operands.split(',', limit = 2)
+        if (parts.size != 2) continue
+        val src1 = parts[0].trim()
+        val dst1 = parts[1].trim()
+        if (!dst1.lowercase().matches(dataRegisterPattern)) continue
+        val reg = dst1.lowercase()
+
+        // Next line must be the masking and.l/andi.l
+        if (i + 1 >= filtered.size) continue
+        val nextLine = filtered[i + 1].value
+        val nextLower = nextLine.lowercase()
+        if (!nextLower.startsWith("and.l") && !nextLower.startsWith("andi.l")) continue
+        val andOps = nextLine.instructionOperands() ?: continue
+        val andParts = andOps.split(',', limit = 2)
+        if (andParts.size != 2) continue
+        if (andParts[1].trim().lowercase() != reg) continue
+        val imm = andParts[0].trim().lowercase()
+        if (imm !in setOf("#\$ff", "#\$00ff", "#\$000000ff", "#0xff", "#0x00ff", "#0x000000ff")) continue
+
+        // M must be a clean operand token that does not reference dN
+        if (src1.any { it.isWhitespace() }) continue
+        if (src1.contains(reg, ignoreCase = true)) continue
+
+        // Flag safety: scan the fall-through path after the rewritten pair.
+        var flagSafe = true
+        scan@ for (j in i + 2 until filtered.size) {
+            when (filtered[j].value.zeroExtendFlagDecision()) {
+                FlagDecision.Overwritten -> break@scan
+                FlagDecision.Unsafe -> {
+                    flagSafe = false
+                    break@scan
+                }
+                FlagDecision.Continue -> {}
+            }
+        }
+        if (!flagSafe) continue
+
+        val originalLine0 = lines.getOrNull(filtered[i].index) ?: allPretrimmed[filtered[i].index]
+        val originalIndent0 = originalLine0.takeWhile { it.isWhitespace() }
+        val originalLine1 = lines.getOrNull(filtered[i + 1].index) ?: allPretrimmed[filtered[i + 1].index]
+        val originalIndent1 = originalLine1.takeWhile { it.isWhitespace() }
+
+        mods.add(Modification(filtered[i].index, false, "$originalIndent0" + "moveq  #0,$reg"))
+        mods.add(Modification(filtered[i + 1].index, false, "$originalIndent1" + "move.b  $src1,$reg"))
+    }
+
+    return mods
+}
+
 /** Matches a parenthesised group, for stripping addressing modes. */
 private val parenthesised = Regex("""\([^)]*\)""")
 
@@ -250,19 +431,28 @@ private fun applyModifications(modifications: List<Modification>, lines: Mutable
 
 // === helpers ===
 
-/** Strips a leading label (e.g. "mylabel:  move.l ..." -> "move.l ..."). */
+/** Strips a leading label (e.g. "mylabel:  move.l ..." -> "move.l ..."); inline comments never participate. */
 private fun String.instructionPart(): String {
-    val idx = indexOf(':')
+    val idx = substringBefore(';').indexOf(':')
     return if (idx >= 0) substring(idx + 1).trimStart() else this
 }
 
 private fun hasLabel(line: String): Boolean =
-    line.length > 1 && !line.startsWith(';') && ':' in line
+    line.substringBefore(';').trimStart().let { it.length > 1 && ':' in it }
 
 /** Returns just the "label:" part of a line, or "" if there is no label. */
 private fun keepLabel(line: String): String {
-    val idx = line.indexOf(':')
+    val idx = line.substringBefore(';').indexOf(':')
     return if (idx >= 0) line.substring(0, idx + 1) else ""
+}
+
+/** Operand part of an instruction line (separated by spaces or tabs, comments stripped), or null. */
+private fun String.instructionOperands(): String? {
+    val trimmed = this.trimStart()
+    val cut = trimmed.indexOfFirst { it.isWhitespace() }
+    if (cut < 0) return null
+    val ops = trimmed.substring(cut + 1).trim().substringBefore(';').trim()
+    return ops.ifEmpty { null }
 }
 
 // Deliberately only recognizes move.b/w/l, not movea or movem: movea always writes to an address
@@ -274,15 +464,15 @@ private fun String.isMove(): Boolean =
 /** Size suffix of a move instruction: 'b', 'w' or 'l'. */
 private fun String.moveSize(): Char = substringAfter('.').firstOrNull() ?: ' '
 
+/** Matches exactly a data register d0-d7, in either case. */
+private val dataRegisterPattern = Regex("^d[0-7]$")
+
 /** Splits a move instruction "move.S  src, dst" into (src, dst), or null if it isn't a move. */
 private fun String.moveOperands(): Pair<String, String>? {
-    val sp = indexOf(' ')
-    if (sp < 0) return null
-    val rest = substring(sp + 1)
-    val commentIdx = rest.indexOf(';')
-    val ops = (if (commentIdx >= 0) rest.substring(0, commentIdx) else rest).split(',', limit = 2)
-    if (ops.size != 2) return null
-    return ops[0].trim() to ops[1].trim()
+    val ops = instructionOperands() ?: return null
+    val parts = ops.split(',', limit = 2)
+    if (parts.size != 2) return null
+    return parts[0].trim() to parts[1].trim()
 }
 
 private fun String.isRegister(): Boolean =
