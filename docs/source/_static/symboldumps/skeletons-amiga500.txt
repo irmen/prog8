@@ -1,6 +1,6 @@
 
-Prog8 compiler v14.0-BETA2 by Irmen de Jong (irmen@razorvine.net)
-Prerelease version from git commit 1da37e41 in branch master
+Prog8 compiler v14.0-BETA3 by Irmen de Jong (irmen@razorvine.net)
+Prerelease version from git commit e98adeaf in branch master
 This software is licensed under the GNU GPL 3.0, see https://www.gnu.org/licenses/gpl.html
 
 Compiling program import-all-amiga500.p8
@@ -321,7 +321,7 @@ audio  {
     ^^audio.IOAudio  StreamIO1
     ^^audio.IOAudio  StreamIO2
     ^^audio.IOAudio  StreamIO3
-    clock  () clobbers (A6) -> long @D0
+    clock  () -> long @D0
     closedevice  ()
     closedown  ()
     get_io  (ubyte channel) -> ^^audio.IOAudio
@@ -351,14 +351,14 @@ blitter  {
     const uword  MINTERM_A_XOR_C
     const uword  MINTERM_B_ONLY
     const uword  MINTERM_MASKED
-    clear_plane  (long dst @A0, uword width_words @D0, uword height @D1) clobbers (D0,D1,A0)
-    copy_rect  (long src @A0, long dst @A1, uword width_words @D0, uword height @D1, uword src_mod @D2, uword dst_mod @D3, uword minterm @D4, ubyte descending @D5) clobbers (D0,D1,D2,D3,D4,D5,A0,A1)
-    fill_plane  (long dst @A0, uword width_words @D0, uword height @D1, uword pattern @D2) clobbers (D0,D1,D2,A0)
-    fill_rect  (long dst @A0, uword width_words @D0, uword height @D1, uword pattern @D2, uword modulo @D3) clobbers (D0,D1,D2,D3,A0)
-    line_draw  (uword x1 @D0, uword y1 @D1, uword x2 @D2, uword y2 @D3, uword screen_mod @D4, long screen_ptr @A1) clobbers (D0,D1,D2,D3,D5,D6,A0,A1)
-    line_init  (uword mask @D0, uword pixel @D1, uword pattern @D2, uword screen_mod @D4) clobbers (D0,D1,D2,D4,A0,A1)
-    masked_blit  (long src @A0, long mask @A1, long dst @A2, uword width_words @D0, uword height @D1, uword src_mod @D2, uword mask_mod @D3, uword dst_mod @D4) clobbers (D0,D1,D2,D3,D4,A0,A1,A2)
-    set_blitpri  (bool hasprio @D0) clobbers (D0)
+    clear_plane  (long dst @A0, uword width_words @D0, uword height @D1)
+    copy_rect  (long src @A0, long dst @A1, uword width_words @D0, uword height @D1, uword src_mod @D2, uword dst_mod @D3, uword minterm @D4, ubyte descending @D5)
+    fill_plane  (long dst @A0, uword width_words @D0, uword height @D1, uword pattern @D2)
+    fill_rect  (long dst @A0, uword width_words @D0, uword height @D1, uword pattern @D2, uword modulo @D3)
+    line_draw  (uword x1 @D0, uword y1 @D1, uword x2 @D2, uword y2 @D3, uword screen_mod @D4, long screen_ptr @A1)
+    line_init  (uword mask @D0, uword pixel @D1, uword pattern @D2, uword screen_mod @D4)
+    masked_blit  (long src @A0, long mask @A1, long dst @A2, uword width_words @D0, uword height @D1, uword src_mod @D2, uword mask_mod @D3, uword dst_mod @D4)
+    set_blitpri  (bool hasprio @D0)
     wait  ()
 }
 
@@ -433,7 +433,7 @@ LIBRARY MODULE NAME: compression
 --------------------------------
 
 compression  {
-    decode_rle  (^^ubyte compressed @A0, ^^ubyte target @A1, uword maxsize @D0) clobbers (D0,D1,D2,A1) -> ^^ubyte @A0
+    decode_rle  (^^ubyte compressed @A0, ^^ubyte target @A1, uword maxsize @D0) -> ^^ubyte @A0
     unZX0  (long compressed @A0, long output @A1)
 }
 
@@ -473,13 +473,13 @@ LIBRARY MODULE NAME: copper
 copper  {
     long @shared  _copper_pos
     append_raster_colors  (ubyte vpos_start, ^^uword colors, ubyte num_lines)
-    end  () clobbers (A0)
+    end  ()
     get_pos  () -> long @A0
-    init  (long list_ptr @A0) clobbers (A0)
-    move  (uword reg_addr @D0, uword value @D1) clobbers (D0,D1,A0)
-    skip  (ubyte vpos @D0, ubyte hpos @D1, uword compare_mask @D2) clobbers (D0,D1,D2,A0)
-    start  (long list_ptr @A0) clobbers (A0)
-    wait  (ubyte vpos @D0, ubyte hpos @D1, uword compare_mask @D2) clobbers (D0,D1,D2,A0)
+    init  (long list_ptr @A0)
+    move  (uword reg_addr @D0, uword value @D1)
+    skip  (ubyte vpos @D0, ubyte hpos @D1, uword compare_mask @D2)
+    start  (long list_ptr @A0)
+    wait  (ubyte vpos @D0, ubyte hpos @D1, uword compare_mask @D2)
 }
 
 
@@ -888,8 +888,8 @@ custom  {
     middle_button  () -> bool
     restore_system  ()
     right_button  () -> bool
-    set_aga_color  (ubyte color_index @D0, long rgb24 @D1) clobbers (D0,D1,D2,D3,D4,A0)
-    set_aga_color_nibbles  (ubyte color_index @D0, uword rgb_high_nibbles @D1, uword rgb_low_nibbles @D2) clobbers (D0,D1,D2,D3,A0)
+    set_aga_color  (ubyte color_index @D0, long rgb24 @D1)
+    set_aga_color_nibbles  (ubyte color_index @D0, uword rgb_high_nibbles @D1, uword rgb_low_nibbles @D2)
     waitvsync  ()
 }
 
@@ -1588,7 +1588,7 @@ emudbg  {
     debug_arg_str  (str text)
     debug_printf  (str format)
     exitemu  ()
-    is_emulator  () clobbers (D1) -> bool @D0
+    is_emulator  () -> bool @D0
 }
 
 
@@ -4755,7 +4755,7 @@ ptplayer  {
     end  ()
     init  (long moduledata @A0)
     install  () -> bool @D0
-    notestrike  () clobbers (D4) -> bool @D0, bool @D1, bool @D2, bool @D3
+    notestrike  () -> bool @D0, bool @D1, bool @D2, bool @D3
     numpatterns  () -> ubyte @D0
     remove  ()
     songname  () -> long @A0
@@ -4817,7 +4817,7 @@ sys  {
     ^^ubyte @shared  arguments
     const ubyte  target
     clear_carry  ()
-    cpuAtLeast68020  () clobbers (D0,A6) -> bool @Pz
+    cpuAtLeast68020  () -> bool @Pz
     die  (uword code, str message)
     exec_version  () -> uword @D0
     exit  (word returnvalue @D0)
@@ -4842,7 +4842,7 @@ LIBRARY MODULE NAME: textio
 txt  {
     bell  ()
     bold  ()
-    chrout  (ubyte char @D0) clobbers (D0,D1,D2,D3,A0,A6)
+    chrout  (ubyte char @D0)
     clear_screen  ()
     cls  ()
     color  (ubyte txtcol)
@@ -4859,7 +4859,7 @@ txt  {
     nl  ()
     normal  ()
     plot  (ubyte col, ubyte row)
-    print  (str text @A0) clobbers (D0,D1,D2,D3,A0,A6)
+    print  (str text @A0)
     print_b  (byte value)
     print_bool  (bool value)
     print_f   alias for: floats.print
@@ -5076,4 +5076,3 @@ wavfile  {
 }
 
 
-No output produced.

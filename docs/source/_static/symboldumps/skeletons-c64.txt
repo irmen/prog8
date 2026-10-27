@@ -1,6 +1,6 @@
 
-Prog8 compiler v14.0-SNAPSHOT by Irmen de Jong (irmen@razorvine.net)
-Prerelease version from git commit b1642f4f in branch master
+Prog8 compiler v14.0-BETA3 by Irmen de Jong (irmen@razorvine.net)
+Prerelease version from git commit e98adeaf in branch master
 This software is licensed under the GNU GPL 3.0, see https://www.gnu.org/licenses/gpl.html
 
 Compiling program import-all-c64.p8
@@ -435,10 +435,10 @@ LIBRARY MODULE NAME: math
 
 math  {
     atan2  (ubyte x1 @R0, ubyte y1 @R1, ubyte x2 @R2, ubyte y2 @R3) -> ubyte @A
-    cos8  (ubyte angle @A) clobbers (Y) -> byte @A
-    cos8u  (ubyte angle @A) clobbers (Y) -> ubyte @A
-    cosr8  (ubyte radians @A) clobbers (Y) -> byte @A
-    cosr8u  (ubyte radians @A) clobbers (Y) -> ubyte @A
+    cos8  (ubyte angle) -> byte
+    cos8u  (ubyte angle) -> ubyte
+    cosr8  (ubyte radians) -> byte
+    cosr8u  (ubyte radians) -> ubyte
     crc16  (^^ubyte data, uword length, uword initvalue, uword xorout) -> uword
     crc16_end  (uword xorout) -> uword
     crc16_start  (uword initvalue)
@@ -448,18 +448,21 @@ math  {
     crc32_start  ()
     crc32_update  (ubyte value)
     diff  (ubyte v1 @A, ubyte v2 @Y) -> ubyte @A
+    diffl  (long v1, long v2) -> long
     diffw  (uword w1 @R0, uword w2 @AY) -> uword @AY
     direction  (ubyte x1, ubyte y1, ubyte x2, ubyte y2) -> ubyte
     direction_qd  (ubyte quadrant @A, ubyte xdelta @X, ubyte ydelta @Y) -> ubyte @A
     direction_sc  (byte x1, byte y1, byte x2, byte y2) -> ubyte
     gcd  (uword a, uword b) -> uword
-    interpolate  (ubyte v, ubyte inputMin, ubyte inputMax, ubyte outputMin, ubyte outputMax) -> ubyte
+    interpolate  (ubyte v @R0, ubyte inputMin @R1, ubyte inputMax @R2, ubyte outputMin @R3, ubyte outputMax @R4) clobbers (X,Y) -> ubyte @A
     interpolatef   alias for: floats.interpolate
-    lerp  (ubyte v0, ubyte v1, ubyte t) -> ubyte
+    interpolatew  (uword v @R0, uword inputMin @R1, uword inputMax @R2, uword outputMin @R3, uword outputMax @R4) clobbers (A,X,Y) -> uword @R0
+    lerp  (ubyte v0 @A, ubyte v1 @X, ubyte t @Y) clobbers (X,Y) -> ubyte @A
     lerpf   alias for: floats.lerp
     lerpf_fast   alias for: floats.lerp_fast
-    lerpw  (uword v0, uword v1, uword t) -> uword
+    lerpw  (uword v0 @R0, uword v1 @R1, uword t @R2) clobbers (A,X,Y) -> uword @R0
     log2  (ubyte value @A) -> ubyte @Y
+    log2l  (long value) -> ubyte
     log2w  (uword value @AY) -> ubyte @Y
     mul16_last_upper  () -> uword @AY
     mul32  (uword a, uword b) -> long
@@ -473,10 +476,10 @@ math  {
     rndseed_rom  (uword seed1 @AY, uword seed2 @R0) clobbers (A,Y)
     rndw  () -> uword @AY
     rndw_rom  () -> uword @AY
-    sin8  (ubyte angle @A) clobbers (Y) -> byte @A
-    sin8u  (ubyte angle @A) clobbers (Y) -> ubyte @A
-    sinr8  (ubyte radians @A) clobbers (Y) -> byte @A
-    sinr8u  (ubyte radians @A) clobbers (Y) -> ubyte @A
+    sin8  (ubyte angle) -> byte
+    sin8u  (ubyte angle) -> ubyte
+    sinr8  (ubyte radians) -> byte
+    sinr8u  (ubyte radians) -> ubyte
 }
 
 
