@@ -188,6 +188,80 @@ main {
         leafCode.lines().count { it.trim().startsWith("loadm.b r") && it.trim().endsWith(".b,[frame:-1]") } shouldBe 1
     }
 
+    test("M9 promotes a hot scalar local to a virtual register") {
+        val src = """
+main {
+    ubyte @shared result
+    sub leaf() {
+        ubyte value
+        value = 1
+        value = value + 1
+        value = value - 1
+        value = value + 2
+        value = value - 2
+        value = value + 3
+        value = value - 3
+        result = value
+    }
+    sub start() {
+        leaf()
+    }
+}
+"""
+        val (lines, ir) = compile(src)
+        val leafIr = subIr(ir, "p8b_main.p8s_leaf")
+        leafIr shouldContain "loadr."
+        leafIr.contains("[p8b_main.p8s_leaf.p8v_value]") shouldBe false
+        lines.any { "p8b_main.p8s_leaf.p8v_value:" in it } shouldBe false
+    }
+
+    test("M9 leaves a scalar parameter in its frame when its indexed use is unsupported") {
+        val src = """
+main {
+    sub indexed(ubyte index) {
+        ubyte[2] values
+        values[index] = 1
+    }
+    sub start() {
+        indexed(0)
+    }
+}
+"""
+        val (lines, ir) = compile(src)
+        val indexedIr = subIr(ir, "p8b_main.p8s_indexed")
+        indexedIr.contains("[p8b_main.p8s_indexed.p8v_index]") shouldBe false
+        lines.any { it.contains("8(a5)") } shouldBe true
+    }
+
+    test("M9 leaves a hot local in its frame when it is live across a call") {
+        val src = """
+main {
+    ubyte @shared result
+    sub helper() {
+    }
+    sub caller() {
+        ubyte value
+        value = 1
+        value = value + 1
+        value = value + 2
+        helper()
+        value = value + 3
+        value = value + 4
+        value = value + 5
+        result = value
+    }
+    sub start() {
+        caller()
+    }
+}
+"""
+        val (lines, ir) = compile(src)
+        val callerIr = subIr(ir, "p8b_main.p8s_caller")
+        callerIr.contains("[frame:-1]") shouldBe true
+        callerIr.contains("loadr.") shouldBe false
+        lines.any { "p8b_main.p8s_caller.p8v_value:" in it } shouldBe false
+    }
+
     test("recursive subroutine gets a frame with per-activation virtual registers") {
         // slice 3: a subroutine on a call-graph cycle moves its virtual registers into the frame,
         // so two live activations no longer share the flat program-static regfile

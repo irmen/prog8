@@ -32,8 +32,16 @@ class M68kCodeGenerator(val retainSSA: Boolean): ICodeGeneratorBackend {
             virtualRegisterTypes = it
         }
 
-        if (options.compTarget.supportsStackFrames)
-            StackFrameLayout(irProgram, errors).apply()
+        if (options.compTarget.supportsStackFrames) {
+            // Use the pre-promotion allocation as a pressure baseline. M9 may add several
+            // long-lived vregs to a subroutine; candidates that cross calls are only admitted
+            // when their register class still has room in this baseline allocation.
+            val baseline = M68kRegisterAllocator(irProgram).allocate()
+            val pressure = baseline.statsBySub.mapValues { (_, stats) ->
+                StackFrameLayout.PromotionPressure(stats.maxLiveData, stats.maxLiveAddress, stats.maxLiveFloat)
+            }.mapKeys { (sub, _) -> sub.label }
+            StackFrameLayout(irProgram, errors, pressure).apply()
+        }
 
         if (options.dumpVariables)
             dumpVariables(irProgram)

@@ -6,9 +6,9 @@ Promote non-escaping scalar locals and parameters to virtual registers before
 `StackFrameLayout`. This is the largest remaining optimization opportunity on
 the m68k branch.
 
-**Status:** Not implemented. The prerequisites (register allocator as the default
-code path) are now in place (Stage 4 of the register-allocation effort is
-complete), so M9 is unblocked.
+**Status:** Implemented. Promotion runs in `StackFrameLayout` before the
+symbol-to-frame-slot rewrite; eligible scalar locals/params become vregs and
+are initialized in the prologue.
 
 Related documents (historical; the first two were removed after their items landed):
 - `m68k-compiler-optimizations.md` (removed) tracked F1, F4/M1 and other IR/AST items
@@ -62,29 +62,41 @@ Additionally:
 - Must be in a framed subroutine (frameable)
 - Static subroutines: their locals cannot be promoted (re-entrancy)
 
-## Implementation plan
+## Implementation
 
-### Phase 1: IR-level promotion (m68k only initially)
+### IR-level promotion (m68k)
 
-1. **Identify eligible locals** in `StackFrameLayout` or a new pre-pass.
-   For each framed subroutine, find scalar locals/params that meet eligibility.
+`StackFrameLayout` performs promotion after determining the frame layout and
+before rewriting the remaining symbols to frame slots. It uses the existing
+frameability checks, and only promotes non-reentrant subroutines.
 
-2. **Replace frame-slot references with vregs.** Instead of rewriting the local
-   to `AddressBase.FrameSlot`, allocate a new vreg number and replace all
-   `STOREM`/`LOADM`/`STOREIM`/etc. referencing that local's frame slot with
-   vreg operations (`STORE`/`LOAD`/`MOVE`).
+Promotion is deliberately conservative. A candidate must have at least
+`StackFrameLayout.M9_PROMOTION_MIN_REFS` references (currently 6), and every
+reference must be a direct, zero-displacement scalar access using a supported
+memory opcode. Indexed accesses, sign/zero-extending loads, address uses, and
+mixed-width accesses remain frame-based. This prevents a partially rewritten
+symbol from becoming an undefined assembler reference.
 
-3. **Handle initialization.** The local's zero-initialization (from
-   `StatementReorderer` and `StackFrameLayout` prologue) becomes a `LOAD #0`
-   into the vreg, or is handled by the allocator's spill initialization.
+Candidates that are live across a call are admitted only when the baseline m68k
+allocation has headroom in the candidate's register class. A promoted value
+live across a call occupies a callee-saved register for the whole call; in
+high-pressure loops this can cause more temporary spills than the removed
+frame accesses save. The baseline pressure comes from an allocator pass before
+M9 promotion, so the decision is allocator-aware rather than based only on a
+fixed call heuristic.
 
-4. **Handle parameters.** Incoming parameters are in the caller-pushed area.
-   Promote to vreg with an initial `LOADM` from the incoming slot (copy-in).
+Supported accesses are converted to register operations such as `LOADR`,
+`LOAD`, `INC`, `DEC`, `ADDR`, `SUBR`, and their corresponding arithmetic and
+logical operations. Numeric and zero initialization becomes a vreg load.
 
-5. **Handle escapes.** If a local is promoted but later needs its address
-   (e.g., passed to an asmsub), fall back to frame slot for that local.
+Parameters are copied into the vreg from their incoming frame argument. Call
+sites still marshal arguments through the normal parameter-memory convention.
 
-### Phase 2: Allocator integration
+If any reference cannot be converted, the candidate is not promoted. The
+original symbol remains frame-based, so unsupported cases do not affect code
+generation or assembly symbol resolution.
+
+### Allocator integration
 
 The allocator already handles vregs. Promoted locals become additional vregs
 in the subroutine's liveness analysis. The allocator assigns them to physical
@@ -93,7 +105,7 @@ registers or spills them to frame slots.
 Spill slots for promoted locals need to be allocated in the frame. The existing
 `allocateVregSlots` in `StackFrameLayout` can be reused.
 
-### Phase 3: 6502 vs m68k decision
+### 6502 vs m68k
 
 **Key question:** Should promotion be enabled for 6502 targets too?
 
@@ -115,7 +127,7 @@ Arguments for both:
 If 6502 shows no benefit (or regression), gate promotion to m68k only via
 `options.compTarget.cpu.is68k`.
 
-### Phase 4: Testing
+### Testing
 
 - Unit tests in `TestM68kRegisterAllocator.kt` and `TestStackFrameEmission.kt`
 - Full example compilation and size measurement
@@ -144,9 +156,11 @@ round-trips.
 Expected: significant reduction in both `.asm` size and binary size, plus
 speed improvement from register-resident locals.
 
-## Open questions
+## Resolved questions
 
-1. Should promotion be limited to m68k initially? (Recommendation: yes)
-2. Should promotion get its own detailed implementation plan? (Recommendation: yes, this document)
-3. How to handle locals that are promoted but later need their address?
-4. Interaction with `@shared` and static subroutines?
+1. Promotion is m68k-only because it depends on the m68k allocator and its
+   callee-saved register pools.
+2. Address-taking, inline assembly, `@shared`, zeropage wishes, and re-entrant
+   subroutines keep the variable out of promotion.
+3. Unsupported or mixed-width references keep the entire variable frame-based;
+   promotion is all-or-nothing per variable.

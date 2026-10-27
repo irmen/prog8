@@ -570,9 +570,9 @@ some_label:
     }
 
     sub start() {
-        ubyte localvar
+        ubyte[1] localvar
         preserveframepointer()
-        localvar = 1
+        localvar[0] = 1
     }
 }
 """
