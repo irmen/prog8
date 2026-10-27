@@ -58,7 +58,7 @@ Optimizations
 - Port more benchmarks from https://thred.github.io/c-bench-64/  to prog8 and see how it stacks up. (see benchmark-c/ directory)
 - Compilation speed: try to join multiple modifications in 1 result in the AST processors instead of returning it straight away every time
 - various optimizers skip stuff if compTarget.name==VMTarget.NAME.  Once new 6502 codegen is done from IR code, those 6502 only optimizations should probably be removed
-- m68k local promotion to virtual registers (the remaining open optimization): see ``ideas/m68k-m9-local-promotion.md``.
+- m68k/Amiga dead-code elimination: vasm does not strip unreachable routines from the final HUNK output, and ``IRUnusedCodeRemover`` currently keeps assembly subroutines from library modules conservatively (see its TODO). Improve IR reachability analysis so imported library routines are retained only when reachable from program entry points, inline assembly references, address-taken symbols, or other live routines. Keep the existing conservative fallback for opaque assembly references, and add size-regression tests for examples such as ``lowlevel-timer``.
 
 
 Dead Code Elimination bug in 64tass, for nested subroutines

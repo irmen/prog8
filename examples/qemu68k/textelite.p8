@@ -39,8 +39,8 @@ main {
         ship.init()
         planet.display(false, 0)
 
+        str @shared input = "????????"
         repeat {
-            str input = "????????"
             txt.print("\nCash: ")
             util.print_10s(ship.cash)
             txt.print("\nCommand (?=help): ")
@@ -78,18 +78,8 @@ main {
 }
 
 trader {
-    str Savegame = "!commander.save"
     str input = "??????????"
     ubyte num_chars
-
-    ubyte[23]  savedata
-    ; format:
-    ;  0 ubyte galaxy
-    ;  1 ubyte planet
-    ;  2-18  ubyte cargo0..cargo16
-    ; 19 uword cash
-    ; 21 ubyte max_cargo
-    ; 22 ubyte fuel
 
     sub do_jump() {
         txt.print("\nJump to what system? ")
@@ -125,9 +115,10 @@ trader {
         galaxy.travel_to(galaxy.number, current_planet)
     }
 
+    str commodity = "???????????????"
+
     sub do_buy() {
         txt.print("\nBuy what commodity? ")
-        str commodity = "???????????????"
         void txt.input_chars(commodity)
         ubyte ci = market.match(commodity)
         if ci & 128 !=0 {
@@ -155,7 +146,6 @@ trader {
 
     sub do_sell() {
         txt.print("\nSell what commodity? ")
-        str commodity = "???????????????"
         void txt.input_chars(commodity)
         ubyte ci = market.match(commodity)
         if ci & 128 !=0 {
@@ -459,7 +449,7 @@ galaxy {
         ubyte current_planet = planet.number
         ubyte px = planet.x
         ubyte py = planet.y
-        str current_name = "        "       ; 8 max
+        str @shared current_name = "        "       ; 8 max
         ubyte pn = 0
 
         void strings.copy(planet.name, current_name)
@@ -958,15 +948,10 @@ planet {
     }
 
     sub getword(ubyte listnum, ubyte wordidx) -> pointer {
-        if sys.SIZEOF_POINTER==4 {
-            ; on 32-bit targets, the array stores flat 4-byte pointers
-            pointer wordlist_base = &wordlists
-            pointer addr = peekp(wordlist_base + (listnum-$81) * 4)
-            return peekp(addr + wordidx*4)
-        } else {
-            pointer list = wordlists[listnum-$81]
-            return peekp(list + wordidx*2)     ; this depends on the word list itself to be !
-        }
+        ; on 32-bit targets, the array stores flat 4-byte pointers
+        pointer wordlist_base = &wordlists
+        pointer addr = peekp(wordlist_base + (listnum-$81) * 4)
+        return peekp(addr + wordidx*4)
     }
 }
 
