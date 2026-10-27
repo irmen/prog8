@@ -335,6 +335,28 @@ class M68kRegisterAllocator(val program: IRProgram) {
             }
         }
 
+        // M1: pointer vregs used only as a-register call arguments get PREFER_ADDRESS hint,
+        // so they are allocated to an address register instead of a data register.
+        val accessCounts = mutableMapOf<VirtualRegister, Int>()
+        for (chunk in chunks)
+            for (ins in chunk.instructions)
+                for (ra in ins.registerAccesses)
+                    accessCounts.merge(ra.register, 1, Int::plus)
+        for (chunk in chunks) {
+            for (ins in chunk.instructions) {
+                val cs = ins.callSite ?: continue
+                if (ins.opcode != Opcode.CALL) continue
+                for (arg in cs.arguments) {
+                    val slot = (arg.location as? CallLocation.HardwareRegister)?.slot ?: continue
+                    if (slot.value !in 18..24) continue
+                    if (arg.source.type != IRDataType.POINTER) continue
+                    val reg = arg.source.register
+                    if (accessCounts[reg] != 2) continue
+                    hints[reg] = AllocationHint.PREFER_ADDRESS
+                }
+            }
+        }
+
         // ---- CALL clobbering + return-value pinning: the pool is callee-saved, so only results need pinning ----
         val callerSavedKillSet = M68kRegisterConvention.CALLER_SAVED
         val returnPin = mutableMapOf<VirtualRegister, String>()

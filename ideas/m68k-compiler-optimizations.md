@@ -11,8 +11,8 @@ Related design: `m68k-register-allocation.md`.
 **Status:** Draft, updated to the current compiler state (Oct 2026). Findings are
 recorded. F2 (signed division by a power of two), F3+F5 (load/extend fusion), C1
 (known-zero zero-store removal), A5 (small constants as `moveq`), A7 (conditional branch
-inversion), and the worthwhile M6 `moveq` count-load improvement are implemented. F1 is
-implemented on the register-allocation branch; F8 was measured and is not implemented.
+inversion), and the worthwhile M6 `moveq` count-load improvement are implemented. F1 and
+F4/M1 are implemented on the register-allocation branch; F8 was measured and is not implemented.
 Remaining items are unimplemented.
 
 ## Recently implemented
@@ -20,20 +20,27 @@ Remaining items are unimplemented.
 - [x] **A5** - use `moveq` for representable constants loaded into D0-D7.
 - [x] **A7** - invert a conditional branch over an unconditional jump.
 - [x] **M6** - use `moveq` for representable constant shift/loop counts loaded into D1/D7.
+- [x] **F4 / M1** - avoid routing pointers through data registers. Pointer vregs used only as `a`-register call arguments get a `PREFER_ADDRESS` hint so they are allocated to an address register instead of a data register. Measured (Oct 2026): -1,044 binary bytes across 12 of 23 Amiga examples, zero binary regressions.
 
 ## Not-yet-implemented register-allocation candidates
 
 These items may only be beneficial on the register-allocation branch:
 
-- **F4 / M1** - avoid routing pointers through data registers.
-- **M3** - allocator-side coalescing for F3 zero-extending loads.
-- **M4** - allocator-side coalescing for F5 sign-extending loads.
 - **M9** - promote scalar frame locals to virtual registers.
 
 ## Closed as not worth implementing
 
 - **M7** - avoid redundant Amiga library-base reloads. Each opportunity saves only a
   single `move.l` instruction, so the complexity and safety checks are not justified.
+- **M8** - epilogue tail duplication (`movem.l (sp)+`, `unlk a5`, `rts` shared
+  across branches). Requires CFG block reordering; the simpler precursor (A9) was
+  already closed as not worth it. Not analysed further.
+- **M3** - allocator-side coalescing for F3 zero-extending loads. The 69 remaining
+  patterns after IR fusion are cases where the load vreg has multiple readers, so
+  the load and extend vregs interfere and cannot be coalesced. Biased coloring had
+  no effect. Not implementable as an allocator optimization.
+- **M4** - allocator-side coalescing for F5 sign-extending loads. Only 4 remaining
+  patterns after IR fusion. Same interference issue as M3. Not worth implementing.
 - **F6 / M2** - remove an empty `run_global_inits` call. It saves only a single `jsr`,
   which does not justify the added special-case complexity.
 - **F7 / A9** - remove unconditional branches to shared return blocks. A local rewrite

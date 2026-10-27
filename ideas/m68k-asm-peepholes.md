@@ -208,7 +208,7 @@ each one, so the owner should make the change. Counts are from the baseline scan
 (approximate). M9 (local promotion) is an IR change, but it only pays off with the
 register allocator, so it is listed here too.
 
-- **M1 - argument register hints (allocator).** Pointer through a data register:
+- **M1 - argument register hints (allocator) - IMPLEMENTED.** Pointer through a data register:
   `move.l #sym,dN` / `movea.l dN,aM` (180 matches) and `move.l M,dN` / `movea.l dN,aM`
   (296 matches). The most common pattern in the scan. Example
   `adpcmbench.asm:1359-1364`, from `txt.print("...")` (`adpcmbench.p8:28`). IR:
@@ -223,11 +223,11 @@ register allocator, so it is listed here too.
   `AsmGen.kt:1058-1059` always emits the call for `p8b_main.p8s_start`. Fix: skip both
   when `program.globalInits` is empty. This changes the output for 15 programs, so it
   needs a decision (open question 2).
-- **M3 - zero-extended copy coalescing (allocator).** The allocator part of F3:
+- **M3 - zero-extended copy coalescing (allocator) - NOT WORTH IT.** The allocator part of F3:
   `moveq #0,dB` / `move.b dA,dB` (404 matches). The allocator should place the result of
   `loadm.b` in the register that the following `ext.b` writes. The IR fusion
   (compiler document, item 2) removes most of these. Peephole B1 is the fallback.
-- **M4 - sign-extension copy coalescing (allocator).** The allocator part of F5:
+- **M4 - sign-extension copy coalescing (allocator) - NOT WORTH IT.** The allocator part of F5:
   `move.b d2,d3` / `ext.w d3` (32 matches, `window3d.asm:3863-3865`). The IR fusion is
   in the compiler document (F5).
 - **M5 - argument setup copies (allocator).** `move.S M,dA` / `move.S dA,dB` (was B1b).
@@ -240,9 +240,11 @@ register allocator, so it is listed here too.
   before each library call. An absolute load of 20 cycles on the 68000. Caching it needs
   the library ABI to preserve A6, and proof that the library base globals are not written
   after startup. Verify in the NDK docs before any change.
-- **M8 - epilogue tail duplication (owner not yet determined).** `movem.l (sp)+`,
-  `unlk a5`, `rts` shared by several branches. Not yet analysed. The plain `bra` to a
-  return block is peephole A9.
+- **M8 - epilogue tail duplication - NOT WORTH IT.** `movem.l (sp)+`,
+  `unlk a5`, `rts` shared by several branches. Requires CFG block reordering to share
+  the full epilogue across paths with identical stack/register-save state; the simpler
+  precursor (A9, single `bra` to a return block) was already closed as not worth the
+  complexity. Not analysed further.
 - **M9 - local promotion to vregs (IR, allocator-dependent).** Promote non-escaping
   scalar locals and parameters to vregs before `StackFrameLayout`. This is the largest
   opportunity on the register-allocation branch. Earlier snapshots had 1,843 loads from
