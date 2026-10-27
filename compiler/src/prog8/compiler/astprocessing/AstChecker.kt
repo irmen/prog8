@@ -1834,8 +1834,8 @@ internal class AstChecker(private val program: Program,
         val leftDt = leftIDt.getOrUndef()
         val rightDt = rightIDt.getOrUndef()
 
-        if (expr.operator == "*")
-            warnAboutNarrowMultiplication(expr)
+//        if (expr.operator == "*")
+//            warnAboutNarrowMultiplication(expr)
 
         // gate off nonsensical pointer arithmetic
         if (expr.operator !in arrayOf("+", "-") + ComparisonOperators) {
@@ -2018,6 +2018,7 @@ internal class AstChecker(private val program: Program,
 
     private data class IntegerRange(val min: Long, val max: Long)
 
+/*
     private fun warnAboutNarrowMultiplication(expr: BinaryExpression) {
         val resultDt = expr.inferType(program).getOrUndef()
         val resultWidth = integerWidth(resultDt) ?: return
@@ -2052,6 +2053,7 @@ internal class AstChecker(private val program: Program,
             expr.position
         )
     }
+*/
 
     private fun expressionRange(expression: Expression): IntegerRange? {
         val dt = expression.inferType(program).getOrUndef()
