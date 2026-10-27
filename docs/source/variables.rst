@@ -306,7 +306,7 @@ type identifier     type                     storage size            example var
 ``float[]``         floating-point array     depends on value        ``float[] myvar = [1.1, 2.2, 3.3, 4.4]``
 ``bool[]``          boolean array            depends on value        ``bool[] myvar = [true, false, true]``  note: consider using bit flags in a byte or word instead to save space
 ``str[]``           array with string ptrs   2*x bytes + strs        ``str[] names = ["ally", "pete"]``  note: equivalent to a uword array.
-``str``             string (PETSCII)         varies                  ``str myvar = "hello."``
+``str``             string                   varies                  ``str myvar = "hello."``
                                                                       implicitly terminated by a 0-byte
 ``StructType[x]``   array of struct inst.    x * sizeof(struct)      ``Enemy[10] enemies``  see :ref:`structarrays`
 ``^^type``          typed pointer            2 or 4 bytes            pointer types are explained in their own chapter :ref:`pointers`
@@ -612,10 +612,8 @@ Strings are a sequence of characters enclosed in double quotes. The length of a 
 They're stored and treated much the same as a byte array,
 but they have some special properties because they are considered to be *text*.
 Strings (without encoding prefix) will be encoded (translated from ASCII/UTF-8) into bytes via the
-*default encoding* for the target platform. On the CBM machines, this is CBM PETSCII.
-
-Strings without an encoding prefix are stored in the machine's default character encoding (which is PETSCII on the CBM machines,
-but can be something else on other targets).
+*default encoding* for the target platform. This is CBM PETSCII on the CBM machines (c64, c128, cx16, pet32),
+ISO-8859-15 on the m68k targets (amiga500, amiga1200, qemu68k) and the virtual target.
 There are ways to change the encoding: prefix the string with an encoding name, or use the ``%encoding`` directive to
 change it for the whole file at once. Here are examples of the possible encodings:
 
