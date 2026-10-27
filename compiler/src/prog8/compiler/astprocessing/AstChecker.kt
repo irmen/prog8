@@ -626,6 +626,17 @@ internal class AstChecker(private val program: Program,
         if(subroutine.parent !is Block && subroutine.parent !is Subroutine)
             err("subroutines can only be defined in the scope of a block or within another subroutine")
 
+        val asmBody = subroutine.statements.filter { it !is Directive }
+        if(options.compTarget.cpu.is68k && !subroutine.definingBlock.isInLibrary && asmBody.isNotEmpty() && asmBody.all { it is InlineAssembly }) {
+            val body = asmBody.joinToString("\n") { (it as InlineAssembly).assembly }
+            val returns = subroutine.asmReturnvaluesRegisters.mapNotNull { it.registerOrPair?.name?.lowercase() }.toSet()
+            val unsaved = M68kSaveRules.unsavedWrites(body, returns)
+            if(unsaved.isNotEmpty())
+                errors.warn("'${subroutine.name}' changes ${unsaved.map { it.uppercase() }.sorted().joinToString(", ")} without saving it: " +
+                    "m68k subroutines must save and restore every D2-D7, A2-A5 and FP2-FP7 register they change (an OS call through A6 also changes D6)",
+                    subroutine.position)
+        }
+
         if(subroutine.isAsmSubroutine) {
             if(subroutine.asmParameterRegisters.size != subroutine.parameters.size)
                 err("number of asm parameter registers is not the isSameAs as number of parameters")
@@ -703,6 +714,11 @@ internal class AstChecker(private val program: Program,
             for(reg in subroutine.asmClobbers) {
                 if(regsUsed.contains(RegisterOrPair.fromCpuRegister(reg)))
                     err("a return register is also in the clobber list")
+            }
+
+            if(options.compTarget.cpu.is68k && subroutine.asmAddress == null && subroutine.asmClobbers.isNotEmpty()) {
+                err("an asmsub on m68k cannot declare clobbers(...): the subroutine itself must save/restore the " +
+                    "registers it uses (D2-D6/A2-A4/FP2-FP7) and must not destroy D7 or A5")
             }
 
             if(subroutine.statements.any{it !is InlineAssembly})
@@ -2052,9 +2068,7 @@ internal class AstChecker(private val program: Program,
             "multiplication is evaluated as $resultDt before widening to $targetDt; the intermediate result may overflow (cast an operand to $targetDt before multiplying to avoid this)",
             expr.position
         )
-    }
-*/
-
+    }*/
     private fun expressionRange(expression: Expression): IntegerRange? {
         val dt = expression.inferType(program).getOrUndef()
         val constant = expression.constValue(program)?.number

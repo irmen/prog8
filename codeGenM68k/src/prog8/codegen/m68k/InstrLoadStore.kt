@@ -1,20 +1,6 @@
 package prog8.codegen.m68k
 
-import prog8.intermediate.IRDataType
-import prog8.intermediate.IRInstruction
-import prog8.intermediate.ImmediateOperand
-import prog8.intermediate.Opcode
-import prog8.intermediate.floatNumber
-import prog8.intermediate.intNumber
-import prog8.intermediate.requireFloatDest
-import prog8.intermediate.requireFloatSourceA
-import prog8.intermediate.requireHardwareSlot
-import prog8.intermediate.requireImmediate
-import prog8.intermediate.requireImmediateFloat
-import prog8.intermediate.requireImmediateInt
-import prog8.intermediate.requireIntDest
-import prog8.intermediate.requireIntSourceA
-import prog8.intermediate.requireMemory
+import prog8.intermediate.*
 
 internal fun AsmGen.translateLoadStore(insn: IRInstruction, suppressRegfileStore: Boolean = false) {
     val type = insn.type ?: IRDataType.BYTE
@@ -34,15 +20,18 @@ internal fun AsmGen.translateLoadStore(insn: IRInstruction, suppressRegfileStore
                     if (suppressRegfileStore)
                         return
                     if(value.value == 0)
-                        emitLine("clr$s  ${regAddr(dst)}")
+                        if (regAllocation[VirtualRegister.int(dst)]?.startsWith("a") == true)
+                            emitLine("suba.l  ${operand(dst)}, ${operand(dst)}")
+                        else
+                            emitLine("clr$s  ${operand(dst)}")
                     else
-                        emitLine("move$s  #${value.value}, ${regAddr(dst)}")
+                        emitMoveToIntRegister("#${value.value}", dst, type)
                     invalidateD0CacheForSlot(dst)
                 }
                 is ImmediateOperand.SymbolAddress -> {
                     val resolved = resolveSymbolRef(value.symbol)
                     val symOff = if (value.offset != 0) "$resolved+${value.offset}" else resolved
-                    emitLine("move.l  #$symOff, ${regAddr(dst)}")
+                    emitMoveToIntRegister("#$symOff", dst, type)
                     invalidateD0CacheForSlot(dst)
                 }
                 is ImmediateOperand.FloatValue -> error("LOAD: float immediate for an integer register")
@@ -52,22 +41,22 @@ internal fun AsmGen.translateLoadStore(insn: IRInstruction, suppressRegfileStore
         Opcode.LOADM -> {
             val dst = insn.requireIntDest().intNumber
             val target = resolveMemory(insn.requireMemory())
-            emitLine("move$s  $target, ${regAddr(dst)}")
+            emitLine("move$s  $target, ${operand(dst)}")
             invalidateD0CacheForSlot(dst)
         }
 
         Opcode.LOADR -> {
             val dst = insn.requireIntDest().intNumber
             val src = insn.requireIntSourceA().intNumber
-            emitLine("move$s  ${regAddr(src)}, ${regAddr(dst)}")
+            emitMoveToIntRegister(operand(src), dst, type)
             invalidateD0CacheForSlot(dst)
         }
 
         Opcode.LOADX, Opcode.LOADI -> {
             val dst = insn.requireIntDest().intNumber
             val source = resolveMemory(insn.requireMemory())
-            emitLoadD0FromAddress(source, type)
-            emitStoreD0(dst, type)
+            emitMoveToIntRegister(source, dst, type)
+            invalidateD0CacheForSlot(dst)
         }
 
         Opcode.LOADMZ -> {
@@ -145,14 +134,16 @@ internal fun AsmGen.translateLoadStore(insn: IRInstruction, suppressRegfileStore
         Opcode.LOADHR -> {
             val dst = insn.requireIntDest().intNumber
             val hwReg = m68kSlotRegister(insn.requireHardwareSlot().slot)
-            emitLine("move$s  $hwReg, ${regAddr(dst)}")
+            // the vreg already lives in its slot register: no move needed.
+            if (operand(dst) != hwReg)
+                emitMoveToIntRegister(hwReg, dst, type)
             invalidateD0CacheForSlot(dst)
         }
 
         Opcode.STOREM -> {
             val src = insn.requireIntSourceA().intNumber
             val target = resolveMemory(insn.requireMemory())
-            emitLine("move$s  ${regAddr(src)}, $target")
+            emitLine("move$s  ${operand(src)}, $target")
             invalidateD0CacheForAddress(target)
         }
 
@@ -170,8 +161,8 @@ internal fun AsmGen.translateLoadStore(insn: IRInstruction, suppressRegfileStore
             val value = insn.requireIntSourceA().intNumber
             val target = resolveMemory(insn.requireMemory())
             // the indexed effective address uses a0/d0 as scratch, so stage the value in d1
-            emitLine("move$s  ${regAddr(value)}, d1")
-            emitLine("move$s  d1, $target")
+            emitLine("move$s  ${operand(value)}, $SCRATCH_D1")
+            emitLine("move$s  $SCRATCH_D1, $target")
         }
 
         Opcode.STOREZM, Opcode.STOREZI, Opcode.STOREZX -> {
@@ -183,33 +174,35 @@ internal fun AsmGen.translateLoadStore(insn: IRInstruction, suppressRegfileStore
         Opcode.STOREHR -> {
             val src = insn.requireIntSourceA().intNumber
             val hwReg = m68kSlotRegister(insn.requireHardwareSlot().slot)
-            emitLine("move$s  ${regAddr(src)}, $hwReg")
+            // the vreg already lives in its slot register: no move needed.
+            if (operand(src) != hwReg)
+                emitLine("move$s  ${operand(src)}, $hwReg")
         }
 
         Opcode.STOREI -> {
             val value = insn.requireIntSourceA().intNumber
             val target = resolveMemory(insn.requireMemory())
-            emitLine("move$s  ${regAddr(value)}, $target")
+            emitLine("move$s  ${operand(value)}, $target")
         }
 
         Opcode.LOADP_INC -> {
             val dst = insn.requireIntDest().intNumber
             // r1 = *a; a += sizeof(type)   where a is a pointer variable (LONG) in memory
             val target = resolveMemory(insn.requireMemory())
-            emitLine("move.l  $target, a0")
-            emitLoadD0FromAddress("(a0)+", type)
-            emitLine("move.l  a0, $target")
+            emitLine("move.l  $target, $SCRATCH_A0")
+            emitMoveToIntRegister("($SCRATCH_A0)+", dst, type)
+            emitLine("move.l  $SCRATCH_A0, $target")
+            invalidateD0CacheForSlot(dst)
             invalidateD0CacheForAddress(target)
-            emitStoreD0(dst, type)
         }
 
         Opcode.STOREP_INC -> {
             val value = insn.requireIntSourceA().intNumber
             // *a = r1; a += sizeof(type)
             val target = resolveMemory(insn.requireMemory())
-            emitLine("move.l  $target, a0")
-            emitLine("move$s  ${regAddr(value)}, (a0)+")
-            emitLine("move.l  a0, $target")
+            emitLine("move.l  $target, $SCRATCH_A0")
+            emitLine("move$s  ${operand(value)}, ($SCRATCH_A0)+")
+            emitLine("move.l  $SCRATCH_A0, $target")
             invalidateD0CacheForAddress(target)
         }
 
@@ -223,15 +216,15 @@ private fun AsmGen.translateFloatLoadStore(insn: IRInstruction, suppressRegfileS
     when (insn.opcode) {
         Opcode.STOREZM, Opcode.STOREZI, Opcode.STOREZX -> {
             val target = resolveMemory(insn.requireMemory(), forFloat = true)
-            emitLine($$"fmovecr  #$0f, fp0")
-            emitLine("fmove.s  fp0, $target")
+            emitLine("fmovecr  #\$0f, $SCRATCH_FP0")
+            emitLine("fmove.s  $SCRATCH_FP0, $target")
             invalidateD0CacheForAddress(target)
         }
 
         Opcode.STOREIM -> {
             val target = resolveMemory(insn.requireMemory(), forFloat = true)
-            emitFloadConstantTo("fp0", insn.requireImmediateFloat())
-            emitLine("fmove.s  fp0, $target")
+            emitFloadConstantTo(SCRATCH_FP0, insn.requireImmediateFloat())
+            emitLine("fmove.s  $SCRATCH_FP0, $target")
             invalidateD0CacheForAddress(target)
         }
 
@@ -242,14 +235,14 @@ private fun AsmGen.translateFloatLoadStore(insn: IRInstruction, suppressRegfileS
                     if (suppressRegfileStore)
                         return
                     emitFloadConstantToAcc(value.value)
-                    emitLine("fmove.s  $FP_ACC, ${floatRegFileAddr(dst)}")
+                    emitFmoveFloat(FP_ACC, floatOperand(dst))
                 }
                 is ImmediateOperand.SymbolAddress -> {
                     val resolved = resolveSymbolRef(value.symbol)
                     val symOff = if (value.offset != 0) "$resolved+${value.offset}" else resolved
-                    emitLine("lea  $symOff, a0")
-                    emitLine("fmove.s  (a0), $FP_ACC")
-                    emitLine("fmove.s  $FP_ACC, ${floatRegFileAddr(dst)}")
+                    emitLine("lea  $symOff, $SCRATCH_A0")
+                    emitFmoveFloat("($SCRATCH_A0)", FP_ACC)
+                    emitFmoveFloat(FP_ACC, floatOperand(dst))
                 }
                 is ImmediateOperand.Integer -> error("LOAD.f: integer immediate for a float register")
             }
@@ -258,28 +251,49 @@ private fun AsmGen.translateFloatLoadStore(insn: IRInstruction, suppressRegfileS
         Opcode.LOADM, Opcode.LOADX, Opcode.LOADI -> {
             val dst = insn.requireFloatDest().floatNumber
             val source = resolveMemory(insn.requireMemory(), forFloat = true)
+            directFloatReg(dst)?.let { d ->
+                emitLine("fmove.s  $source, $d")
+                return
+            }
             emitLine("fmove.s  $source, $FP_ACC")
-            emitLine("fmove.s  $FP_ACC, ${floatRegFileAddr(dst)}")
+            emitLine("fmove.s  $FP_ACC, ${floatOperand(dst)}")
         }
 
         Opcode.LOADR -> {
             val dst = insn.requireFloatDest().floatNumber
             val src = insn.requireFloatSourceA().floatNumber
-            emitLine("fmove.s  ${floatRegFileAddr(src)}, $FP_ACC")
-            emitLine("fmove.s  $FP_ACC, ${floatRegFileAddr(dst)}")
+            directFloatReg(dst)?.let { d ->
+                emitFmoveFloat(floatOperand(src), d)
+                return
+            }
+            emitFmoveFloat(floatOperand(src), FP_ACC)
+            emitLine("fmove.s  $FP_ACC, ${floatOperand(dst)}")
         }
 
         Opcode.LOADHR -> {
             val dst = insn.requireFloatDest().floatNumber
             val hwReg = m68kSlotRegister(insn.requireHardwareSlot().slot)
+            // the vreg already lives in its slot register: no move needed.
+            if (floatOperand(dst) == hwReg)
+                return
+            directFloatReg(dst)?.let { d ->
+                emitLine("fmove  $hwReg, $d")
+                return
+            }
             emitLine("fmove  $hwReg, $FP_ACC")
-            emitLine("fmove.s  $FP_ACC, ${floatRegFileAddr(dst)}")
+            emitLine("fmove.s  $FP_ACC, ${floatOperand(dst)}")
         }
 
         Opcode.STOREM, Opcode.STOREX, Opcode.STOREI -> {
             val src = insn.requireFloatSourceA().floatNumber
             val target = resolveMemory(insn.requireMemory(), forFloat = true)
-            emitLine("fmove.s  ${floatRegFileAddr(src)}, $FP_ACC")
+            directFloatReg(src)?.let { s ->
+                // Source resident: fmove.s FPn,<ea> is legal, so no accumulator is needed.
+                emitLine("fmove.s  $s, $target")
+                invalidateD0CacheForAddress(target)
+                return
+            }
+            emitLine("fmove.s  ${floatOperand(src)}, $FP_ACC")
             emitLine("fmove.s  $FP_ACC, $target")
             invalidateD0CacheForAddress(target)
         }
@@ -287,30 +301,31 @@ private fun AsmGen.translateFloatLoadStore(insn: IRInstruction, suppressRegfileS
         Opcode.STOREHR -> {
             val src = insn.requireFloatSourceA().floatNumber
             val hwReg = m68kSlotRegister(insn.requireHardwareSlot().slot)
-            emitLine("fmove.s  ${floatRegFileAddr(src)}, $FP_ACC")
+            // the vreg already lives in its slot register: no move needed.
+            if (floatOperand(src) == hwReg)
+                return
+            emitLine("fmove.s  ${floatOperand(src)}, $FP_ACC")
             emitLine("fmove  $FP_ACC, $hwReg")
         }
 
-        // The 'FAC' hardware float registers only exist on the 6502 targets. On m68k they are
-        // modelled with the two FPU scratch registers; loading them yields the 0.0 / 1.0 constants
-        // that the 6502 targets keep in FAC1 / FAC2.
+        // 'FAC' registers only exist on the 6502 targets; here they are the 0.0 / 1.0 FPU constants.
         Opcode.LOADHFACZERO -> {
             val dst = insn.requireFloatDest().floatNumber
             emitLine($$"fmovecr  #$0f, $$FP_ACC")
-            emitLine("fmove.s  $FP_ACC, ${floatRegFileAddr(dst)}")
+            emitFmoveFloat(FP_ACC, floatOperand(dst))
         }
         Opcode.LOADHFACONE -> {
             val dst = insn.requireFloatDest().floatNumber
             emitLine("fmovecr  #$32, $FP_ACC")
-            emitLine("fmove.s  $FP_ACC, ${floatRegFileAddr(dst)}")
+            emitFmoveFloat(FP_ACC, floatOperand(dst))
         }
         Opcode.STOREHFACZERO -> {
             val src = insn.requireFloatSourceA().floatNumber
-            emitLine("fmove.s  ${floatRegFileAddr(src)}, $FP_ACC")
+            emitFmoveFloat(floatOperand(src), FP_ACC)
         }
         Opcode.STOREHFACONE -> {
             val src = insn.requireFloatSourceA().floatNumber
-            emitLine("fmove.s  ${floatRegFileAddr(src)}, $FP_SRC")
+            emitFmoveFloat(floatOperand(src), FP_SRC)
         }
 
         else -> error("Unknown float load/store opcode: ${insn.opcode}")

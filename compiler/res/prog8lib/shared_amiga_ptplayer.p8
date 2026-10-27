@@ -139,10 +139,11 @@ ptplayer {
         }}
     }
 
-    asmsub notestrike() clobbers (D4) -> bool @D0, bool @D1, bool @D2, bool @D3 {
+    asmsub notestrike() -> bool @D0, bool @D1, bool @D2, bool @D3 {
         ; -- returns true for each channel on which a new instrument was triggered
         ; -- since the previous call of this routine (poll at least once per row, ~50 Hz)
         %asm {{
+            move.l  d4,-(sp)
             lea     mt_data(pc),a1
             lea     vu_prevstarts(pc),a0
             moveq   #0,d0
@@ -179,6 +180,7 @@ ptplayer {
             beq     .done
             moveq   #1,d3
         .done:
+            move.l  (sp)+,d4
             rts
         }}
     }

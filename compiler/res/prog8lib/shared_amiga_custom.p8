@@ -24,6 +24,7 @@ IRQ5 = $74
 IRQ6 = $78
 IRQ7 = $7C
 
+            move.l  d6,-(sp)        ; OS calls do not preserve d6
             move.l  a5,-(sp)        ; a5 is the frame pointer register, but it is needed below for Supervisor()
             move.l  4.w,a6
             jsr     exec.Forbid(a6)        ; Do not run other tasks
@@ -67,6 +68,7 @@ IRQ7 = $7C
             rte
 
 .skip:      move.l  (sp)+,a5        ; restore the caller's frame pointer
+            move.l  (sp)+,d6
             rts
 
         }}
@@ -75,6 +77,7 @@ IRQ7 = $7C
     asmsub restore_system() {
         ; restore the original OS and multitasking operation when the game/demo exits.
         %asm {{
+            move.l  d6,-(sp)        ; OS calls do not preserve d6
             btst.b  #14-8,custom.DMACONR    ; Dummy read
 1$          btst.b  #14-8,custom.DMACONR   ; Blitter still busy?
             bne.s   1$                      ; If yes, wait a bit
@@ -105,6 +108,7 @@ IRQ7 = $7C
 
             move.l  4.w,a6
             jsr     exec.Permit(a6)        ; Re-enable multitasking
+            move.l  (sp)+,d6
             rts
         }}
     }
@@ -147,13 +151,14 @@ IRQ7 = $7C
 
     ; ========== AGA palette utilities ==========
 
-    asmsub set_aga_color(ubyte color_index @D0, long rgb24 @D1) clobbers (D0,D1,D2,D3,D4,A0) {
+    asmsub set_aga_color(ubyte color_index @D0, long rgb24 @D1) {
         ; Write a 24-bit RGB color ($00RRGGBB) to an AGA palette entry.
         ; AGA uses eight banks of 32 COLOR registers and two writes per color:
         ; first the upper nibble of each channel, then the lower nibble.
         ; Keep this routine 68000-compatible: the amiga500 target is assembled as
         ; 68000 by default, even though AGA hardware is normally paired with a 68020.
         %asm {{
+            movem.l d2-d4,-(sp)
             and.l   #$ff,d0
             move.l  d0,d4
             lsr.w   #5,d4
@@ -196,15 +201,17 @@ IRQ7 = $7C
             move.w  d3,(a0)
             andi.w  #$fdff,d4
             move.w  d4,custom.BPLCON3
+            movem.l (sp)+,d2-d4
             rts
         }}
     }
 
-    asmsub set_aga_color_nibbles(ubyte color_index @D0, uword rgb_high_nibbles @D1, uword rgb_low_nibbles @D2) clobbers (D0,D1,D2,D3,A0) {
+    asmsub set_aga_color_nibbles(ubyte color_index @D0, uword rgb_high_nibbles @D1, uword rgb_low_nibbles @D2) {
         ; Write preformatted AGA palette nibbles. Each value is $0RGB. Result will still be 24 bit RRGGBB AGA color.
         ; Keep this routine 68000-compatible: the amiga500 target is assembled as
         ; 68000 by default, even though AGA hardware is normally paired with a 68020.
         %asm {{
+            move.l  d3,-(sp)
             and.l   #$ff,d0
             move.l  d0,d3
             lsr.w   #5,d3
@@ -223,6 +230,7 @@ IRQ7 = $7C
             move.w  d2,(a0)
             andi.w  #$fdff,d3
             move.w  d3,custom.BPLCON3
+            move.l  (sp)+,d3
             rts
         }}
     }

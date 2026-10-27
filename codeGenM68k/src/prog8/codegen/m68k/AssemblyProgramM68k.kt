@@ -20,10 +20,9 @@ class AssemblyProgramM68k(override val name: String) : IAssemblyProgram {
     private fun elfFile(outs: OutputFiles): Path = outs.programFile
 
     /**
-     * A target supplies its own memory layout as a "link.ld" file.  A target defined by a
-     * config file (i.e. living outside of the compiler) keeps it in its library directory, so
-     * that is looked at first.  Targets built into the compiler are looked up as a
-     * /prog8lib/<targetname>/link.ld resource.  Anything else falls back to the qemu68k layout.
+     * A target supplies its own memory layout as a "link.ld" file: a config-file target keeps it in
+     * its library directory (looked at first), a built-in one as a /prog8lib/<targetname>/link.ld
+     * resource; anything else falls back to the qemu68k layout.
      */
     private fun resolveLinkerScript(target: ICompilationTarget): String {
         target.libraryPath?.resolve("link.ld")?.takeIf { it.exists() }?.let { return it.readText() }
@@ -121,7 +120,6 @@ class AssemblyProgramM68k(override val name: String) : IAssemblyProgram {
                 val listfile = outs.list()
                 val assembleCmd = when(options.compTarget) {
                     is Amiga500Target -> {
-                        // amiga 500 with kickstart 1.3
                         mutableListOf(
                             "vasmm68k_mot",
                             "-m$assemblerCpu",
@@ -146,7 +144,6 @@ class AssemblyProgramM68k(override val name: String) : IAssemblyProgram {
                         }
                     }
                     is Amiga1200Target -> {
-                        // amiga 1200 with 68020 and optional FPU
                         mutableListOf(
                             "vasmm68k_mot",
                             "-m$assemblerCpu",

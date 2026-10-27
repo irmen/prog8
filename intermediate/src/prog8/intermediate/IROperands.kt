@@ -55,6 +55,13 @@ enum class OperandRole {
 /** hint for machine register allocators (data register vs address register on m68k, for instance) */
 enum class AllocationHint { NONE, PREFER_DATA, PREFER_ADDRESS }
 
+/** Returns the role-based default allocation hint. */
+fun defaultAllocationHint(role: OperandRole): AllocationHint = when (role) {
+    OperandRole.INDEX -> AllocationHint.PREFER_DATA
+    OperandRole.POINTER_BASE, OperandRole.INDIRECT_TARGET -> AllocationHint.PREFER_ADDRESS
+    else -> AllocationHint.NONE
+}
+
 
 /** access to a virtual register, with its data type, role and direction */
 data class RegisterOperand(
@@ -73,6 +80,12 @@ data class RegisterOperand(
     val number: RegisterNum get() = register.number
     val registerNumber: Int get() = register.number.value
     val isFloat: Boolean get() = register is VirtualRegister.FloatReg
+
+    /** Allocation hint resolved from the explicit annotation, falling back to the
+     *  role-based default so index/pointer/indirect-target operands always carry
+     *  a class constraint even when the hint was not explicitly set. */
+    val resolvedAllocationHint: AllocationHint
+        get() = if (allocationHint != AllocationHint.NONE) allocationHint else defaultAllocationHint(role)
 
     fun withRegister(newRegister: VirtualRegister): RegisterOperand =
         if (newRegister == register) this else copy(register = newRegister)

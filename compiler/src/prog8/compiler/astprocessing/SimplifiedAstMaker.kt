@@ -725,6 +725,7 @@ class SimplifiedAstMaker(private val program: Program, private val errors: IErro
         val sub = PtAsmSub(srcSub.name,
             asmAddr,
             srcSub.asmClobbers,
+            srcSub.asmClobbersDeclared,
             params,
             srcSub.asmReturnvaluesRegisters.zip(srcSub.returntypes),
             srcSub.inline,

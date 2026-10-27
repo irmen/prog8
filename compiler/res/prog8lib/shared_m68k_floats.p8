@@ -188,6 +188,9 @@ floats {
 
     asmsub parse(str value @A0) -> float @FP0 {
         %asm {{
+            movem.l d2-d5,-(sp)
+            fmove.x fp2,-(sp)
+            fmove.x fp3,-(sp)
             move.l a0,a1
             fmove.s floats._fzero,fp0
             fmove.s floats._fone,fp1
@@ -299,6 +302,9 @@ floats {
 .parse_exp_done:
 .parse_done:
             fmul.x fp1,fp0
+            fmove.x (sp)+,fp3
+            fmove.x (sp)+,fp2
+            movem.l (sp)+,d2-d5
             rts
         }}
     }

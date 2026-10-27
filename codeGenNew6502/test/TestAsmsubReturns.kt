@@ -66,6 +66,7 @@ class TestAsmsubReturns : FunSpec({
             label = "main.testsub",
             address = null,
             clobbers = emptySet(),
+            clobbersDeclared = true,
             parameters = emptyList(),
             returns = asmParams,
             asmChunk = asmChunk,

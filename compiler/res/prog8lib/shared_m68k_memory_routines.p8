@@ -7,11 +7,12 @@ sys {
 
     asmsub memset(long mem @D0, uword numbytes @D1, ubyte value @D2) {
         %asm {{
+            move.l   d3,-(sp)
             movea.l  d0,a0
             tst.w    d1
             beq      .done
             tst.b    d2
-            beq      sys.memclear       ; tail-call: value==0
+            beq      .do_clear       ; value==0: delegate to sys.memclear
 
             ; save fill byte zero-extended
             moveq    #0,d3
@@ -52,7 +53,11 @@ sys {
 .loop_b:
             move.b   d3,(a0)+
             dbra     d1,.loop_b
+            bra      .done
+.do_clear:
+            jsr      sys.memclear
 .done:
+            move.l   (sp)+,d3
             rts
         }}
     }
@@ -63,6 +68,7 @@ sys {
         ; the end address).  Handles misaligned start and remaining bytes.
         ; All instructions are plain 68000-compatible.
         %asm {{
+            movem.l  d2-d7/a2-a4,-(sp)
             movea.l  d0,a0
             moveq    #0,d0
             move.w   d1,d0           ; d0 = numbytes (zero-extended)
@@ -132,6 +138,7 @@ sys {
             beq      .done
             clr.b    (a0)+
 .done:
+            movem.l  (sp)+,d2-d7/a2-a4
             rts
         }}
     }
@@ -141,6 +148,7 @@ sys {
         ; Requires word-aligned start address. Uses longword stores (2 words at a time)
         ; for the bulk fill, with a possible trailing single word.
         %asm {{
+            movem.l  d2-d3,-(sp)
             movea.l  d0,a0
             moveq    #0,d0
             move.w   d1,d0           ; d0 = numwords (zero-extended)
@@ -167,6 +175,7 @@ sys {
             move.w   d1,(a0)+
 
 .done:
+            movem.l  (sp)+,d2-d3
             rts
         }}
     }

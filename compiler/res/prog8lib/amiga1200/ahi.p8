@@ -365,12 +365,14 @@ ahi {
         return num_bytes
     }
 
-    private asmsub BeginIO(^^AHIRequest io @A1) clobbers (D0, D1, A0, A1, A6) {
+    private asmsub BeginIO(^^AHIRequest io @A1) {
         ; Calls the device's BeginIO vector directly, instead of exec DoIO/SendIO,
         ; because those clear io_Flags.
         %asm {{
+            move.l  d6,-(sp)            ; OS calls do not preserve d6
             move.l  20(a1), a6          ; a6 = io_Device (offset 20 in IORequest)
             jsr     -30(a6)             ; device BeginIO vector
+            move.l  (sp)+,d6
             rts
         }}
     }

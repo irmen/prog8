@@ -39,6 +39,7 @@ class TestInlineAsmSub : FunSpec({
             label = "main.test",
             address = null,
             clobbers = emptySet(),
+            clobbersDeclared = true,
             parameters = emptyList(),
             returns = emptyList(),
             asmChunk = asmChunk,

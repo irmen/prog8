@@ -36,7 +36,17 @@ import prog8.intermediate.*
  * static variable is a compile error, since two activations would share that storage.
  * Such a subroutine with nothing left to share is fine on the static path.
  */
-class StackFrameLayout(private val program: IRProgram, private val errors: IErrorReporter) {
+class StackFrameLayout(
+    private val program: IRProgram,
+    private val errors: IErrorReporter,
+    private val baselinePressureBySub: Map<String, PromotionPressure> = emptyMap()
+) {
+
+    data class PromotionPressure(
+        val maxLiveData: Int,
+        val maxLiveAddress: Int,
+        val maxLiveFloat: Int
+    )
 
     companion object {
         const val MAX_FRAME_SIZE = 16384      // §3: per-frame limit, far below the 16-bit displacement range
@@ -46,15 +56,29 @@ class StackFrameLayout(private val program: IRProgram, private val errors: IErro
 
         /** frame-pointer offset of the last-pushed (rightmost) argument slot: above saved a5 + return address */
         const val INCOMING_BASE = 8
+
+        /** M9: minimum number of references a local/param must have to be promoted to a vreg.
+         *  Higher = less promotion, smaller code (fewer callee-saved register saves). */
+        const val M9_PROMOTION_MIN_REFS = 6
+
+        private const val M9_DATA_REGISTER_CAPACITY = 5
+        private const val M9_ADDRESS_REGISTER_CAPACITY = 3
+        private const val M9_FLOAT_REGISTER_CAPACITY = 6
     }
 
     private val target = program.options.compTarget
+
+    /** next virtual-register number to assign to a promoted local (M9) */
+    private var nextPromotedVreg: Int = 1
 
     private class FrameVar(val name: String, val slot: Int, val elemDt: DataType, val count: Int, val dirty: Boolean)
 
     fun apply() {
         val allSubs = program.allSubs().toList()
         val subLabels = allSubs.map { it.label }.toSet()
+
+        val usedRegs = program.registersUsed()
+        nextPromotedVreg = (usedRegs.regsTypes.keys.maxOfOrNull { it.number.value } ?: 0) + 1
 
         val referencedIn = mutableMapOf<String, MutableSet<String>>()
         val addressTaken = mutableSetOf<String>()
@@ -481,8 +505,57 @@ class StackFrameLayout(private val program: IRProgram, private val errors: IErro
         val candidates = referencedIn.keys.filter { name ->
             name.startsWith(prefix) && referencedIn.getValue(name) == setOf(sub.label) && name !in paramSlots
         }.sorted()
+        val memoryReferences = mutableMapOf<String, MutableList<IRInstruction>>()
+        sub.forEachChunk { chunk ->
+            chunk.instructions.forEach { instr ->
+                instr.memory?.symbolName?.let { memoryReferences.getOrPut(it) { mutableListOf() } += instr }
+            }
+        }
+
+        // M9: promote eligible scalar locals/params to vregs (non-re-entrant framed subs only).
+        val promoted = mutableMapOf<String, Int>()
+        val promotedType = mutableMapOf<String, IRDataType>()
+        val promotedPointer = mutableMapOf<String, Boolean>()
+        if (sub.label !in reentrant && sub.chunks.firstOrNull() is IRCodeChunk) {
+            val promotableLocals = candidates.filter { name ->
+                val v = program.st.lookup(name) as? IRStStaticVariable ?: return@filter false
+                if (v.length != null) return@filter false
+                isFrameableVariable(v, name, addressTaken, asmTexts) ?: return@filter false
+                val irType = if (v.dt.isPointer) IRDataType.POINTER else irTypeFor(v.dt) ?: return@filter false
+                val refs = memoryReferences[name] ?: return@filter false
+                if (!supportedPromotion(refs, name, irType)) return@filter false
+                if (crossesCallBoundary(sub, name) && !hasPromotionHeadroom(sub, irType)) return@filter false
+                // M9 tweak: only promote locals that are referenced enough times to
+                // amortise the callee-saved register save/restore overhead.
+                refs.size >= M9_PROMOTION_MIN_REFS
+            }
+            val promotableParams = paramSlots.keys.filter { name ->
+                if (name in copyInParams) return@filter false
+                val v = program.st.lookup(name) as? IRStStaticVariable ?: return@filter false
+                if (v.length != null) return@filter false
+                isFrameableParameter(v, name, addressTaken, asmTexts) ?: return@filter false
+                val irType = if (v.dt.isPointer) IRDataType.POINTER else irTypeFor(v.dt) ?: return@filter false
+                val refs = memoryReferences[name] ?: return@filter false
+                if (!supportedPromotion(refs, name, irType)) return@filter false
+                if (crossesCallBoundary(sub, name) && !hasPromotionHeadroom(sub, irType)) return@filter false
+                refs.size >= M9_PROMOTION_MIN_REFS
+            }
+            for (name in (promotableLocals + promotableParams)) {
+                val v = program.st.lookup(name) as IRStStaticVariable
+                val isParam = name in paramSlots
+                val elemDt = if (isParam) isFrameableParameter(v, name, addressTaken, asmTexts)!! else isFrameableVariable(v, name, addressTaken, asmTexts)!!
+                val isPtr = elemDt.isPointer
+                val irType = if (isPtr) IRDataType.POINTER else (irTypeFor(elemDt) ?: continue)
+                if (nextPromotedVreg >= RESERVED_VREG_RANGE_START) continue
+                val vr = nextPromotedVreg++
+                promoted[name] = vr
+                promotedType[name] = irType
+                promotedPointer[name] = isPtr
+            }
+        }
+
         // a re-entrant subroutine can still qualify with nothing but its virtual registers
-        if (candidates.isEmpty() && paramSlots.isEmpty() && sub.label !in reentrant)
+        if (candidates.filter { it !in promoted }.isEmpty() && paramSlots.isEmpty() && promoted.isEmpty() && sub.label !in reentrant)
             return static()
 
         // Collect layout info first, then place clean (zero-clear) locals together so they
@@ -500,7 +573,7 @@ class StackFrameLayout(private val program: IRProgram, private val errors: IErro
         )
 
         val locals = mutableListOf<LocalLayout>()
-        for (name in candidates) {
+        for (name in candidates.filter { it !in promoted }) {
             val v = program.st.lookup(name) as? IRStStaticVariable ?: continue
             val elemDt = isFrameableVariable(v, name, addressTaken, asmTexts) ?: continue
             val count = v.length?.toInt() ?: 1
@@ -549,7 +622,7 @@ class StackFrameLayout(private val program: IRProgram, private val errors: IErro
             cursor = newCursor
             vregSlots.putAll(slots)
         }
-        if (frameVars.isEmpty() && paramSlots.isEmpty() && vregSlots.isEmpty())
+        if (frameVars.isEmpty() && paramSlots.isEmpty() && vregSlots.isEmpty() && promoted.isEmpty())
             return static()
 
         val frameSize = (-cursor + 1) / 2 * 2
@@ -597,6 +670,14 @@ class StackFrameLayout(private val program: IRProgram, private val errors: IErro
                 val instr = instrs[i]
                 val mem = instr.memory ?: continue
                 val sym = mem.symbolName ?: continue
+                if (sym in promoted) {
+                    val vr = promoted.getValue(sym)
+                    val type = promotedType.getValue(sym)
+                    val isPtr = promotedPointer.getValue(sym)
+                    val newInstr = promoteInstruction(instr, sym, vr, type, isPtr)
+                    if (newInstr != null) instrs[i] = newInstr
+                    continue
+                }
                 if (sym in copyInParams) continue
                 val slot = slotOf(sym, slotBySymbol, paramSlots) ?: continue
                 val newMem = when (mem) {
@@ -663,15 +744,34 @@ class StackFrameLayout(private val program: IRProgram, private val errors: IErro
         }
         emitZeroRegions(prologueInstrs, zeroRegions)
 
+        // M9: parameters need a copy-in because their incoming slot is outside the vreg.
+        // Local initialization stores already occur in the body and are rewritten above;
+        // emitting another prologue initialization would duplicate them.
+        for ((name, vr) in promoted) {
+            val type = promotedType.getValue(name)
+            if (name !in paramSlots) continue
+            val offset = paramSlots.getValue(name)
+            prologueInstrs += IRInstructions.loadMemory(Opcode.LOADM, type, vr, IRMemory.frameDirect(offset, 0))
+        }
+
         // the moved variables now live per-activation; remove them from the static (BSS) symbol table.
         // copy-in parameters keep their static cell for the external reference (§6.1)
         (slotBySymbol.keys + paramSlots.keys.filter { it !in copyInParams }).forEach { program.st.removeIfExists(it) }
+        // Promoted variables have no remaining symbol references: supportedPromotion() was
+        // checked before rewriting, and every direct reference was converted above.
+        promoted.keys.forEach { program.st.removeIfExists(it) }
 
         if (prologueInstrs.isNotEmpty()) {
             // prepend into the existing first chunk (it carries the sub label; the chunk list
             // structure and its label invariant must not change)
-            val firstChunk = sub.chunks.first() as IRCodeChunk
-            firstChunk.instructions.addAll(0, prologueInstrs)
+            val firstChunk = sub.chunks.firstOrNull() as? IRCodeChunk
+            if (firstChunk != null) {
+                firstChunk.instructions.addAll(0, prologueInstrs)
+            } else {
+                val newChunk = IRCodeChunk(sub.label, null)
+                newChunk.instructions.addAll(prologueInstrs)
+                sub.chunks.add(0, newChunk)
+            }
         }
 
         // Known-zero pass (Ranked #1): remove provably redundant zero stores in the first chunk.
@@ -1218,5 +1318,160 @@ class StackFrameLayout(private val program: IRProgram, private val errors: IErro
         dt.isLong || dt.isPointer -> IRDataType.LONG
         dt.isFloat -> IRDataType.FLOAT
         else -> null
+    }
+
+    private val supportedPromotionOpcodes = setOf(
+        Opcode.LOADM,
+        Opcode.STOREM, Opcode.STOREIM, Opcode.STOREZM,
+        Opcode.INCM, Opcode.DECM, Opcode.NEGM,
+        Opcode.ADDM, Opcode.SUBM, Opcode.MULM, Opcode.MULSM, Opcode.DIVM, Opcode.DIVSM,
+        Opcode.ANDM, Opcode.ORM, Opcode.XORM,
+        Opcode.ADDIM, Opcode.SUBIM
+    )
+
+    private val supportedPromotionBinaryOpcodes = setOf(
+        Opcode.ADDM, Opcode.SUBM, Opcode.MULM, Opcode.MULSM, Opcode.DIVM, Opcode.DIVSM,
+        Opcode.ANDM, Opcode.ORM, Opcode.XORM
+    )
+
+    private fun hasPromotionHeadroom(sub: IRSubroutine, type: IRDataType): Boolean {
+        val pressure = baselinePressureBySub[sub.label] ?: return false
+        return when {
+            type == IRDataType.FLOAT -> pressure.maxLiveFloat < M9_FLOAT_REGISTER_CAPACITY
+            type == IRDataType.POINTER -> pressure.maxLiveAddress < M9_ADDRESS_REGISTER_CAPACITY
+            else -> pressure.maxLiveData < M9_DATA_REGISTER_CAPACITY
+        }
+    }
+
+    /** A value is live across a call when it is referenced on both sides of that call. */
+    private fun crossesCallBoundary(sub: IRSubroutine, sym: String): Boolean {
+        var referenced = false
+        var callAfterReference = false
+        var referenceAfterCall = false
+        sub.forEachChunk { chunk ->
+            chunk.instructions.forEach { instr ->
+                if (instr.memory?.symbolName == sym) {
+                    if (callAfterReference) referenceAfterCall = true
+                    referenced = true
+                }
+                if (instr.callSite != null && referenced)
+                    callAfterReference = true
+            }
+        }
+        return referenceAfterCall
+    }
+
+    private fun supportedPromotion(refs: List<IRInstruction>, sym: String, type: IRDataType): Boolean {
+        return refs.all { instr ->
+            val mem = instr.memory
+            if (mem !is MemoryReference.Direct || mem.base !is AddressBase.Symbol || mem.displacement != 0)
+                return@all false
+            if (instr.opcode !in supportedPromotionOpcodes || instr.type != type)
+                return@all false
+            if (instr.opcode == Opcode.LOADM && instr.dest?.type != type)
+                return@all false
+            if (instr.opcode == Opcode.STOREM && instr.srcA?.type != type)
+                return@all false
+            if (instr.opcode in supportedPromotionBinaryOpcodes && instr.srcA?.type != type)
+                return@all false
+            // Float STOREIM uses a different immediate representation and is not promoted.
+            if (instr.opcode == Opcode.STOREIM && (program.st.lookup(sym) as? IRStStaticVariable)?.dt?.isFloat == true)
+                return@all false
+            if (instr.opcode == Opcode.STOREIM && instr.immediate?.type != type)
+                return@all false
+            true
+        }
+    }
+
+    private fun promoteInstruction(instr: IRInstruction, sym: String, vr: Int, type: IRDataType, isPointer: Boolean): IRInstruction? {
+        val mem = instr.memory ?: return null
+        if (mem.symbolName != sym) return instr
+        if (mem !is MemoryReference.Direct) return null
+        if (mem.base !is AddressBase.Symbol) return null
+        if (mem.displacement != 0) return null
+        if (instr.opcode !in supportedPromotionOpcodes) return null
+        val hint = if (isPointer) AllocationHint.PREFER_ADDRESS else AllocationHint.NONE
+        val vrReg = if (type == IRDataType.FLOAT) VirtualRegister.float(vr) else VirtualRegister.int(vr)
+        fun vrOperand(role: OperandRole, dir: OperandDirection): RegisterOperand =
+            RegisterOperand(vrReg, type, role, dir, hint)
+        return when (instr.opcode) {
+            Opcode.LOADM -> {
+                val dest = instr.dest ?: return null
+                val destOp = RegisterOperand(dest.register, type, OperandRole.RESULT, OperandDirection.DEF, dest.allocationHint)
+                IRInstruction(Opcode.LOADR, type, dest = destOp, srcA = vrOperand(OperandRole.VALUE, OperandDirection.USE))
+            }
+            Opcode.STOREM -> {
+                val src = instr.srcA ?: return null
+                val srcOp = RegisterOperand(src.register, type, OperandRole.VALUE, OperandDirection.USE, src.allocationHint)
+                IRInstruction(Opcode.LOADR, type, dest = vrOperand(OperandRole.RESULT, OperandDirection.DEF), srcA = srcOp)
+            }
+            Opcode.STOREIM -> {
+                val imm = instr.immediate ?: return null
+                IRInstruction(Opcode.LOAD, type, dest = vrOperand(OperandRole.RESULT, OperandDirection.DEF), immediate = imm)
+            }
+            Opcode.STOREZM -> {
+                if (type == IRDataType.FLOAT)
+                    IRInstructions.loadFloat(vr, 0.0)
+                else
+                    IRInstruction(Opcode.LOAD, type, dest = vrOperand(OperandRole.RESULT, OperandDirection.DEF), immediate = ImmediateOperand.Integer(0, type))
+            }
+            Opcode.INCM -> IRInstruction(Opcode.INC, type, dest = vrOperand(OperandRole.RESULT, OperandDirection.USE_DEF))
+            Opcode.DECM -> IRInstruction(Opcode.DEC, type, dest = vrOperand(OperandRole.RESULT, OperandDirection.USE_DEF))
+            Opcode.NEGM -> IRInstruction(Opcode.NEG, type, dest = vrOperand(OperandRole.RESULT, OperandDirection.USE_DEF))
+            Opcode.ADDM -> {
+                val reg = instr.srcA ?: return null
+                val dest = RegisterOperand(reg.register, type, OperandRole.RESULT, OperandDirection.USE_DEF, reg.allocationHint)
+                IRInstruction(Opcode.ADDR, type, dest = dest, srcA = vrOperand(OperandRole.RIGHT, OperandDirection.USE))
+            }
+            Opcode.SUBM -> {
+                val reg = instr.srcA ?: return null
+                val dest = RegisterOperand(reg.register, type, OperandRole.RESULT, OperandDirection.USE_DEF, reg.allocationHint)
+                IRInstruction(Opcode.SUBR, type, dest = dest, srcA = vrOperand(OperandRole.RIGHT, OperandDirection.USE))
+            }
+            Opcode.MULM -> {
+                val reg = instr.srcA ?: return null
+                val dest = RegisterOperand(reg.register, type, OperandRole.RESULT, OperandDirection.USE_DEF, reg.allocationHint)
+                IRInstruction(Opcode.MULR, type, dest = dest, srcA = vrOperand(OperandRole.RIGHT, OperandDirection.USE))
+            }
+            Opcode.MULSM -> {
+                val reg = instr.srcA ?: return null
+                val dest = RegisterOperand(reg.register, type, OperandRole.RESULT, OperandDirection.USE_DEF, reg.allocationHint)
+                IRInstruction(Opcode.MULSR, type, dest = dest, srcA = vrOperand(OperandRole.RIGHT, OperandDirection.USE))
+            }
+            Opcode.DIVM -> {
+                val reg = instr.srcA ?: return null
+                val dest = RegisterOperand(reg.register, type, OperandRole.RESULT, OperandDirection.USE_DEF, reg.allocationHint)
+                IRInstruction(Opcode.DIVR, type, dest = dest, srcA = vrOperand(OperandRole.RIGHT, OperandDirection.USE))
+            }
+            Opcode.DIVSM -> {
+                val reg = instr.srcA ?: return null
+                val dest = RegisterOperand(reg.register, type, OperandRole.RESULT, OperandDirection.USE_DEF, reg.allocationHint)
+                IRInstruction(Opcode.DIVSR, type, dest = dest, srcA = vrOperand(OperandRole.RIGHT, OperandDirection.USE))
+            }
+            Opcode.ANDM -> {
+                val reg = instr.srcA ?: return null
+                val dest = RegisterOperand(reg.register, type, OperandRole.RESULT, OperandDirection.USE_DEF, reg.allocationHint)
+                IRInstruction(Opcode.ANDR, type, dest = dest, srcA = vrOperand(OperandRole.RIGHT, OperandDirection.USE))
+            }
+            Opcode.ORM -> {
+                val reg = instr.srcA ?: return null
+                val dest = RegisterOperand(reg.register, type, OperandRole.RESULT, OperandDirection.USE_DEF, reg.allocationHint)
+                IRInstruction(Opcode.ORR, type, dest = dest, srcA = vrOperand(OperandRole.RIGHT, OperandDirection.USE))
+            }
+            Opcode.XORM -> {
+                val reg = instr.srcA ?: return null
+                val dest = RegisterOperand(reg.register, type, OperandRole.RESULT, OperandDirection.USE_DEF, reg.allocationHint)
+                IRInstruction(Opcode.XORR, type, dest = dest, srcA = vrOperand(OperandRole.RIGHT, OperandDirection.USE))
+            }
+            Opcode.ADDIM -> {
+                val imm = instr.immediate ?: return null
+                IRInstruction(Opcode.ADD, type, dest = vrOperand(OperandRole.RESULT, OperandDirection.USE_DEF), immediate = imm)
+            }
+            Opcode.SUBIM -> {
+                val imm = instr.immediate ?: return null
+                IRInstruction(Opcode.SUB, type, dest = vrOperand(OperandRole.RESULT, OperandDirection.USE_DEF), immediate = imm)
+            }
+            else -> null
+        }
     }
 }

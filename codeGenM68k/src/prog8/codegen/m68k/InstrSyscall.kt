@@ -7,12 +7,7 @@
 
 package prog8.codegen.m68k
 
-import prog8.intermediate.CallSite
-import prog8.intermediate.IMSyscall
-import prog8.intermediate.IRDataType
-import prog8.intermediate.RegisterOperand
-import prog8.intermediate.floatNumber
-import prog8.intermediate.intNumber
+import prog8.intermediate.*
 
 
 // === SYSCALL dispatch ===
@@ -49,7 +44,7 @@ private fun AsmGen.translateSyscallStringCompare(site: CallSite) {
     val arg2 = site.argument(1)
     val resultReg = site.resultRegister(0).intNumber
     emitLoadD0(arg1.intNumber, arg1.type)
-    loadStringArg(arg2.intNumber, arg2.type, "d1")
+    loadStringArg(arg2.intNumber, arg2.type, SCRATCH_D1)
     invalidateD0Cache()         // d0 is caller-saved across the subroutine call
     emitLine("bsr  prog8_lib.strcmp")
     emitStoreD0(resultReg, IRDataType.BYTE)
@@ -59,9 +54,9 @@ private fun AsmGen.translateSyscallStringCompare(site: CallSite) {
 // matching the calling convention of strings.compare (full 32 bits address).
 private fun AsmGen.loadStringArg(reg: Int, dt: IRDataType, dreg: String) {
     if (dt == IRDataType.LONG) {
-        emitLine("move.l  ${regAddr(reg)}, $dreg")
+        emitLine("move.l  ${operand(reg)}, $dreg")
     } else {
-        emitLine("move.w  ${regAddr(reg)}, $dreg")
+        emitLine("move.w  ${operand(reg)}, $dreg")
     }
 }
 
@@ -79,9 +74,9 @@ private fun AsmGen.translateSyscallArrayContains(site: CallSite, dt: IRDataType)
     val labelDone = makeLabel(".ac_done")
 
     emitLoadD0(regElem, dt)
-    emitLine("move.l  ${regAddr(regArr)}, a0")
-    emitLine("move.w  ${regAddr(regLen)}, d1")
-    emitLine("subq.w  #1, d1")
+    emitLine("move.l  ${operand(regArr)}, $SCRATCH_A0")
+    emitLine("move.w  ${operand(regLen)}, $SCRATCH_D1")
+    emitLine("subq.w  #1, $SCRATCH_D1")
     emitLine("bmi  $labelDone       ; length was 0 -> not found")
     emitRaw("$labelLoop:")
     val cmpInstr = when (dt) {
@@ -90,13 +85,13 @@ private fun AsmGen.translateSyscallArrayContains(site: CallSite, dt: IRDataType)
         IRDataType.LONG -> "cmp.l"
         else -> error("array contains: unsupported element type $dt")
     }
-    emitLine("$cmpInstr  (a0)+, d0")
+    emitLine("$cmpInstr  ($SCRATCH_A0)+, $SCRATCH_D0")
     emitLine("beq  $labelFound")
-    emitLine("dbra  d1, $labelLoop")
-    emitLine("move.b  #0, ${regAddrByte(resultReg, 0)}")
+    emitLine("dbra  $SCRATCH_D1, $labelLoop")
+    emitByteConstantToRegister(0, resultReg)
     emitLine("bra  $labelDone")
     emitRaw("$labelFound:")
-    emitLine("move.b  #1, ${regAddrByte(resultReg, 0)}")
+    emitByteConstantToRegister(1, resultReg)
     emitRaw("$labelDone:")
 }
 
@@ -123,25 +118,27 @@ private fun AsmGen.translateSyscallSplitWordarrayContains(site: CallSite) {
     val labelDone = makeLabel(".swc_done")
 
     emitLoadD0(regElem, IRDataType.WORD)
-    emitLine("move.l  ${regAddr(regArr)}, a0")     // a0 = lsb array start
-    emitLine("move.w  ${regAddr(regLen)}, d1")     // d1 = element count
-    emitLine("move.w  d1, d2")
-    emitLine("add.l  a0, d2")                      // d2 = msb array start (lsb + length)
-    emitLine("subq.w  #1, d1")
+    emitLine("movem.l  d2-d4,-(sp)")
+    emitLine("move.l  ${operand(regArr)}, $SCRATCH_A0")     // a0 = lsb array start
+    emitLine("move.w  ${operand(regLen)}, $SCRATCH_D1")     // d1 = element count
+    emitLine("move.w  $SCRATCH_D1, d2")
+    emitLine("add.l  $SCRATCH_A0, d2")                      // d2 = msb array start (lsb + length)
+    emitLine("subq.w  #1, $SCRATCH_D1")
     emitLine("bmi  $labelDone       ; length was 0 -> not found")
     emitRaw("$labelLoop:")
-    emitLine("move.b  (a0,d1.w), d3")              // d3 = lsb of element at index d1
-    emitLine("move.b  (d2,d1.w), d4")              // d4 = msb of element at index d1
+    emitLine("move.b  ($SCRATCH_A0,$SCRATCH_D1.w), d3")              // d3 = lsb of element at index d1
+    emitLine("move.b  (d2,$SCRATCH_D1.w), d4")              // d4 = msb of element at index d1
     emitLine("lsl.w  #8, d4")
     emitLine("or.w  d3, d4")                       // d4 = reconstructed word
-    emitLine("cmp.w  d0, d4")
+    emitLine("cmp.w  $SCRATCH_D0, d4")
     emitLine("beq  $labelFound")
-    emitLine("dbra  d1, $labelLoop")
-    emitLine("move.b  #0, ${regAddrByte(resultReg, 0)}")
+    emitLine("dbra  $SCRATCH_D1, $labelLoop")
+    emitByteConstantToRegister(0, resultReg)
     emitLine("bra  $labelDone")
     emitRaw("$labelFound:")
-    emitLine("move.b  #1, ${regAddrByte(resultReg, 0)}")
+    emitByteConstantToRegister(1, resultReg)
     emitRaw("$labelDone:")
+    emitLine("movem.l  (sp)+,d2-d4")
 }
 
 private fun AsmGen.translateSyscallFloatarrayContains(site: CallSite) {
@@ -154,19 +151,19 @@ private fun AsmGen.translateSyscallFloatarrayContains(site: CallSite) {
     val labelFound = makeLabel(".fac_found")
     val labelDone = makeLabel(".fac_done")
 
-    emitLine("fmove.s  ${floatRegFileAddr(regNeedle)}, fp0")
-    emitLine("move.l  ${regAddr(regArr)}, a0")
-    emitLine("move.w  ${regAddr(regLen)}, d1")
-    emitLine("subq.w  #1, d1")
+    emitLine("fmove.s  ${floatOperand(regNeedle)}, $SCRATCH_FP0")
+    emitLine("move.l  ${operand(regArr)}, $SCRATCH_A0")
+    emitLine("move.w  ${operand(regLen)}, $SCRATCH_D1")
+    emitLine("subq.w  #1, $SCRATCH_D1")
     emitLine("bmi  $labelDone       ; length was 0 -> not found")
     emitRaw("$labelLoop:")
-    emitLine("fcmp.s  (a0)+, fp0")
+    emitLine("fcmp.s  ($SCRATCH_A0)+, $SCRATCH_FP0")
     emitLine("fbeq  $labelFound")
-    emitLine("dbra  d1, $labelLoop")
-    emitLine("move.b  #0, ${regAddrByte(resultReg, 0)}")
+    emitLine("dbra  $SCRATCH_D1, $labelLoop")
+    emitByteConstantToRegister(0, resultReg)
     emitLine("bra  $labelDone")
     emitRaw("$labelFound:")
-    emitLine("move.b  #1, ${regAddrByte(resultReg, 0)}")
+    emitByteConstantToRegister(1, resultReg)
     emitRaw("$labelDone:")
 }
 
@@ -179,19 +176,19 @@ private fun AsmGen.translateSyscallStringContains(site: CallSite) {
     val labelFound = makeLabel(".sc_found")
     val labelDone = makeLabel(".sc_done")
 
-    emitLine("move.b  ${regAddrByte(regChar, 0)}, d0")
-    emitLine("move.l  ${regAddr(regStr)}, a0")
+    emitLoadD0(regChar, IRDataType.BYTE)
+    emitLine("move.l  ${operand(regStr)}, $SCRATCH_A0")
     emitRaw("$labelLoop:")
-    emitLine("move.b  (a0)+, d1")
+    emitLine("move.b  ($SCRATCH_A0)+, $SCRATCH_D1")
     emitLine("beq  $labelDone       ; reached null terminator -> not found")
-    emitLine("cmp.b  d0, d1")
+    emitLine("cmp.b  $SCRATCH_D0, $SCRATCH_D1")
     emitLine("beq  $labelFound")
     emitLine("bra  $labelLoop")
     emitRaw("$labelFound:")
-    emitLine("move.b  #1, ${regAddrByte(resultReg, 0)}")
+    emitByteConstantToRegister(1, resultReg)
     emitLine("bra  $labelDone")
     emitRaw("$labelDone:")
-    emitLine("move.b  #0, ${regAddrByte(resultReg, 0)}")
+    emitByteConstantToRegister(0, resultReg)
 }
 
 private fun AsmGen.translateSyscallClamp(site: CallSite, dt: IRDataType, signed: Boolean) {
@@ -208,13 +205,13 @@ private fun AsmGen.translateSyscallClamp(site: CallSite, dt: IRDataType, signed:
     when (dt) {
         IRDataType.BYTE -> {
             emitLoadD0(valueReg, IRDataType.BYTE)
-            emitLine("cmp.b  ${regAddr(minReg)}, d0")
+            emitLine("cmp.b  ${operand(minReg)}, $SCRATCH_D0")
             emitLine("$bge  $labelCheckMax")
             emitLoadD0(minReg, IRDataType.BYTE)
             emitLine("bra  $labelDone")
             emitRaw("$labelCheckMax:")
             invalidateD0Cache()             // branch target: d0 still holds valueReg, not minReg
-            emitLine("cmp.b  ${regAddr(maxReg)}, d0")
+            emitLine("cmp.b  ${operand(maxReg)}, $SCRATCH_D0")
             emitLine("$ble  $labelDone")
             emitLoadD0(maxReg, IRDataType.BYTE)
             emitRaw("$labelDone:")
@@ -223,13 +220,13 @@ private fun AsmGen.translateSyscallClamp(site: CallSite, dt: IRDataType, signed:
         }
         IRDataType.WORD -> {
             emitLoadD0(valueReg, IRDataType.WORD)
-            emitLine("cmp.w  ${regAddr(minReg)}, d0")
+            emitLine("cmp.w  ${operand(minReg)}, $SCRATCH_D0")
             emitLine("$bge  $labelCheckMax")
             emitLoadD0(minReg, IRDataType.WORD)
             emitLine("bra  $labelDone")
             emitRaw("$labelCheckMax:")
             invalidateD0Cache()             // branch target: d0 still holds valueReg, not minReg
-            emitLine("cmp.w  ${regAddr(maxReg)}, d0")
+            emitLine("cmp.w  ${operand(maxReg)}, $SCRATCH_D0")
             emitLine("$ble  $labelDone")
             emitLoadD0(maxReg, IRDataType.WORD)
             emitRaw("$labelDone:")
@@ -238,13 +235,13 @@ private fun AsmGen.translateSyscallClamp(site: CallSite, dt: IRDataType, signed:
         }
         IRDataType.LONG -> {
             emitLoadD0(valueReg, IRDataType.LONG)
-            emitLine("cmp.l  ${regAddr(minReg)}, d0")
+            emitLine("cmp.l  ${operand(minReg)}, $SCRATCH_D0")
             emitLine("$bge  $labelCheckMax")
             emitLoadD0(minReg, IRDataType.LONG)
             emitLine("bra  $labelDone")
             emitRaw("$labelCheckMax:")
             invalidateD0Cache()             // branch target: d0 still holds valueReg, not minReg
-            emitLine("cmp.l  ${regAddr(maxReg)}, d0")
+            emitLine("cmp.l  ${operand(maxReg)}, $SCRATCH_D0")
             emitLine("$ble  $labelDone")
             emitLoadD0(maxReg, IRDataType.LONG)
             emitRaw("$labelDone:")

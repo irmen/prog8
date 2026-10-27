@@ -17,15 +17,7 @@
 
 package prog8.codegen.m68k
 
-import prog8.intermediate.CodeReference
-import prog8.intermediate.IRDataType
-import prog8.intermediate.IRInstruction
-import prog8.intermediate.Opcode
-import prog8.intermediate.intNumber
-import prog8.intermediate.requireImmediateInt
-import prog8.intermediate.requireSrcA
-import prog8.intermediate.requireSrcB
-import prog8.intermediate.requireTarget
+import prog8.intermediate.*
 
 internal fun AsmGen.translateBranch(insn: IRInstruction) {
     val target = insn.requireTarget()
@@ -84,9 +76,9 @@ private fun AsmGen.cmpBranchUnsignedImm(insn: IRInstruction, label: String, bran
     // cmpi.x #imm, <ea> and tst.x <ea> accept memory operands, so the
     // register-file load into d0 is redundant
     if(imm==0)
-        emitLine("tst$s  ${regAddr(reg)}")
+        emitLine("tst$s  ${operand(reg)}")
     else
-        emitLine("cmpi$s  #$imm, ${regAddr(reg)}")
+        emitLine("cmpi$s  #$imm, ${operand(reg)}")
     emitBranch(branchOp, label, leavesSubroutine)
 }
 
@@ -97,8 +89,13 @@ private fun AsmGen.cmpBranchUnsignedReg(insn: IRInstruction, label: String, bran
     val left = insn.requireSrcA().intNumber
     val right = insn.requireSrcB().intNumber
     val s = dtSuffix(type)
+    directDataDst(left, type)?.let { d ->
+        emitLine("cmp$s  ${operand(right)}, $d")
+        emitBranch(branchOp, label, leavesSubroutine)
+        return
+    }
     emitLoadD0(left, type)
-    emitLine("cmp$s  ${regAddr(right)}, d0")
+    emitLine("cmp$s  ${operand(right)}, $SCRATCH_D0")
     emitBranch(branchOp, label, leavesSubroutine)
 }
 
@@ -112,9 +109,9 @@ private fun AsmGen.cmpBranchSignedImm(insn: IRInstruction, label: String, branch
     // cmpi.x #imm, <ea> and tst.x <ea> accept memory operands, so the
     // register-file load into d0 is redundant
     if(imm==0)
-        emitLine("tst$s  ${regAddr(reg)}")
+        emitLine("tst$s  ${operand(reg)}")
     else
-        emitLine("cmpi$s  #$imm, ${regAddr(reg)}")
+        emitLine("cmpi$s  #$imm, ${operand(reg)}")
     emitBranch(branchOp, label, leavesSubroutine)
 }
 
@@ -125,8 +122,13 @@ private fun AsmGen.cmpBranchSignedReg(insn: IRInstruction, label: String, branch
     val left = insn.requireSrcA().intNumber
     val right = insn.requireSrcB().intNumber
     val s = dtSuffix(type)
+    directDataDst(left, type)?.let { d ->
+        emitLine("cmp$s  ${operand(right)}, $d")
+        emitBranch(branchOp, label, leavesSubroutine)
+        return
+    }
     emitLoadD0(left, type)
-    emitLine("cmp$s  ${regAddr(right)}, d0")
+    emitLine("cmp$s  ${operand(right)}, $SCRATCH_D0")
     emitBranch(branchOp, label, leavesSubroutine)
 }
 
@@ -142,7 +144,7 @@ private val inverseBranchOps = mapOf(
 
 private fun AsmGen.emitBranch(branchOp: String, label: String, leavesSubroutine: Boolean) {
     invalidateD0Cache()
-    if (!leavesSubroutine || !frameActive) {
+    if (!leavesSubroutine) {
         emitLine("$branchOp  $label")
         return
     }

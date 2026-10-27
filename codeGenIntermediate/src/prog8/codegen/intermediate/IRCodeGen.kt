@@ -1963,6 +1963,7 @@ class IRCodeGen(
                             child.name,
                             null,
                             child.clobbers,
+                            child.clobbersDeclared,
                             child.parameters.map { IRAsmSubroutine.IRAsmParam(it.first, it.second.type) },
                             child.returns.map { IRAsmSubroutine.IRAsmParam(it.first, it.second)},
                             asmChunk,

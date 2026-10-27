@@ -189,6 +189,7 @@ qemu {
     ; Dump all bootinfo records to the TTY in hex.
     asmsub bootinfo_dump() {
         %asm {{
+            movem.l d3-d7/a2-a3,-(sp)
             bsr     qemu.bootinfo_ptr
             movea.l d0,a2           ; a2 = first record
 1$:         clr.l   d0
@@ -268,7 +269,9 @@ qemu {
             bra     1$
 
 9$:         lea     .str_end,a0
-            bra     qemu.puts
+            jsr     qemu.puts
+            movem.l (sp)+,d3-d7/a2-a3
+            rts
 
             ALIGN 2
 .str_rec:   dc.b "REC ",0
@@ -412,6 +415,7 @@ sys {
         ; Bulk of the work uses long-aligned longword copies;
         ; pre-alignment and remainder bytes use individual byte copies.
         %asm {{
+            movem.l  d2-d3,-(sp)
             move.l   d0,d2
             beq      .done
 
@@ -451,6 +455,7 @@ sys {
             subq.l   #1,d2
             bne      .loop_rem
 .done:
+            movem.l  (sp)+,d2-d3
             rts
 
 .bytes:
@@ -459,6 +464,7 @@ sys {
             move.b   (a0)+,(a1)+
             subq.l   #1,d2
             bne      .loop_b
+            movem.l  (sp)+,d2-d3
             rts
         }}
     }

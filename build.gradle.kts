@@ -52,8 +52,7 @@ subprojects {
     // Common test dependencies via Kotest BOM (Bill of Materials)
     // This manages all Kotest module versions centrally
     dependencies {
-        testImplementation(platform("io.kotest:kotest-bom:6.2.4"))
-        // implementation("org.codeberg.irmen:ksim65:v2.2")
+        testImplementation(platform("io.kotest:kotest-bom:6.2.6"))
     }
 
     // Common sourceSets configuration

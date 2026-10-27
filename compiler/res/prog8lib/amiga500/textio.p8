@@ -5,8 +5,9 @@
 
 txt {
     %option ignore_unused
-    asmsub chrout(ubyte char @D0) clobbers(D0,D1,D2,D3,A0,A6) {
+    asmsub chrout(ubyte char @D0) {
         %asm {{
+            movem.l d2-d3/d6,-(sp)
             move.l  sys.DOSBase,a6
             move.b  d0,-(sp)          ; 1. Push character onto the stack. A7 now points to it!
             move.l  4.w,a0
@@ -19,6 +20,7 @@ txt {
             moveq   #1, d3             ; D3 = We only want to write exactly 1 byte
             jsr     -48(a6)           ; Write()
             addq.l  #2, sp
+            movem.l (sp)+,d2-d3/d6
             rts
 
 .use_writechars:
@@ -26,6 +28,7 @@ txt {
             moveq   #1, d2
             jsr     -942(a6)        ; WriteChars (ks 2.0+)
             addq.l  #2, sp
+            movem.l (sp)+,d2-d3/d6
             rts
         }}
     }
@@ -49,15 +52,19 @@ txt {
             bcc.s   .do_flush
             rts
 .do_flush:
+            move.l  d6,-(sp)        ; OS calls do not preserve d6
             move.l  sys.DOSBase,a6
             jsr     -60(a6)
             move.l  d0,d1
-            jmp     -360(a6)       ; Flush (ks 2.0+)
+            jsr     -360(a6)       ; Flush (ks 2.0+)
+            move.l  (sp)+,d6
+            rts
         }}
     }
 
-    asmsub print(str text @A0) clobbers(D0,D1,D2,D3,A0,A6) {
+    asmsub print(str text @A0) {
         %asm {{
+            movem.l d2-d3/d6,-(sp)
             move.l  4.w,a6
             cmp.w   #36,20(a6)      ; KS 2.0 = V36
             bcc.s   .use_putstr
@@ -67,14 +74,18 @@ txt {
             move.l  sys.DOSBase,a6
             jsr     -60(a6)           ; Output()
             move.l  d0,d1
-            jmp     -48(a6)           ; Write()
+            jsr     -48(a6)           ; Write()
+            movem.l (sp)+,d2-d3/d6
+            rts
 .use_putstr:
             move.l  sys.DOSBase,a6
             move.l  a0,d1
             jsr     -948(a6)          ; PutStr()  (KS 2.0+)
             jsr     -60(a6)         ; Output()
             move.l  d0,d1
-            jmp     -360(a6)       ; Flush (ks 2.0+)
+            jsr     -360(a6)       ; Flush (ks 2.0+)
+            movem.l (sp)+,d2-d3/d6
+            rts
         }}
     }
 
@@ -83,14 +94,18 @@ txt {
 
     private asmsub vprintf(str format @D1, pointer argarray @D2) {
         %asm {{
+            move.l  d6,-(sp)        ; OS calls do not preserve d6
             move.l  4.w,a6
             cmp.w   #36,20(a6)      ; KS 2.0 = V36
             bcs.s   .no_ks20
             move.l  sys.DOSBase,a6
-            jmp  dos.VPrintf(a6)
+            jsr     dos.VPrintf(a6)
+            move.l  (sp)+,d6
+            rts
 
 .no_ks20:
-            jmp  p8b_txt.p8s_no_ks20_alert
+            move.l  (sp)+,d6
+            jmp     p8b_txt.p8s_no_ks20_alert
         }}
     }
 

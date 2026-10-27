@@ -33,7 +33,7 @@ blitter {
         }}
     }
 
-    asmsub set_blitpri(bool hasprio @D0) clobbers (D0) {
+    asmsub set_blitpri(bool hasprio @D0) {
         ; Set or clear blitter priority over the CPU.
         ; When enabled, the blitter gets bus priority and completes faster,
         ; but the CPU runs slower during the blit.
@@ -51,7 +51,7 @@ blitter {
 
     ; Copy a rectangular block from src to dst.
     ; Waits for blitter idle at start, returns immediately after triggering the blit.
-    asmsub copy_rect(pointer src @A0, pointer dst @A1, uword width_words @D0, uword height @D1, uword src_mod @D2, uword dst_mod @D3, uword minterm @D4, ubyte descending @D5) clobbers (D0,D1,D2,D3,D4,D5,A0,A1) {
+    asmsub copy_rect(pointer src @A0, pointer dst @A1, uword width_words @D0, uword height @D1, uword src_mod @D2, uword dst_mod @D3, uword minterm @D4, ubyte descending @D5) {
         %asm {{
         movem.l d2-d7/a2-a6,-(sp)
         move.w  d0,d6           ; d6 = width
@@ -117,7 +117,7 @@ blitter {
 
     ; Fill a rectangular block with a pattern.
     ; Waits for blitter idle at start, returns immediately after triggering the blit.
-    asmsub fill_rect(pointer dst @A0, uword width_words @D0, uword height @D1, uword pattern @D2, uword modulo @D3) clobbers (D0,D1,D2,D3,A0) {
+    asmsub fill_rect(pointer dst @A0, uword width_words @D0, uword height @D1, uword pattern @D2, uword modulo @D3) {
         %asm {{
         movem.l d2-d7/a2-a6,-(sp)
         bsr     .wait_blt
@@ -148,7 +148,7 @@ blitter {
     ; pattern: line fill pattern in BLTBDAT (usually $ffff for solid lines)
     ; screen_mod: bytes per row of the destination bitplane (pitch)
     ; Waits for blitter idle at start, returns immediately after setup.
-    asmsub line_init(uword mask @D0, uword pixel @D1, uword pattern @D2, uword screen_mod @D4) clobbers (D0,D1,D2,D4,A0,A1) {
+    asmsub line_init(uword mask @D0, uword pixel @D1, uword pattern @D2, uword screen_mod @D4) {
         %asm {{
         movem.l d2-d7/a2-a6,-(sp)
         bsr     .wait_blt
@@ -175,7 +175,7 @@ blitter {
     ; screen_mod: bytes per row of the destination bitplane (pitch)
     ; screen_ptr: pointer to bitplane memory (CHIP RAM)
     ; Waits for blitter idle at start, returns immediately after triggering the blit.
-    asmsub line_draw(uword x1 @D0, uword y1 @D1, uword x2 @D2, uword y2 @D3, uword screen_mod @D4, pointer screen_ptr @A1) clobbers (D0,D1,D2,D3,D5,D6,A0,A1) {
+    asmsub line_draw(uword x1 @D0, uword y1 @D1, uword x2 @D2, uword y2 @D3, uword screen_mod @D4, pointer screen_ptr @A1) {
         %asm {{
         movem.l d2-d7/a2-a6,-(sp)
 
@@ -260,7 +260,7 @@ OctTbl:
 
     ; Masked blit: copy src to dst using a mask channel.
     ; Waits for blitter idle at start, returns immediately after triggering the blit.
-    asmsub masked_blit(pointer src @A0, pointer mask @A1, pointer dst @A2, uword width_words @D0, uword height @D1, uword src_mod @D2, uword mask_mod @D3, uword dst_mod @D4) clobbers (D0,D1,D2,D3,D4,A0,A1,A2) {
+    asmsub masked_blit(pointer src @A0, pointer mask @A1, pointer dst @A2, uword width_words @D0, uword height @D1, uword src_mod @D2, uword mask_mod @D3, uword dst_mod @D4) {
         %asm {{
         movem.l d2-d7/a2-a6,-(sp)
         bsr     .wait_blt
@@ -291,7 +291,7 @@ OctTbl:
 
     ; Clear a rectangular region of a bitplane to zero.
     ; Waits for blitter idle at start, returns immediately after triggering the blit.
-    asmsub clear_plane(pointer dst @A0, uword width_words @D0, uword height @D1) clobbers (D0,D1,A0) {
+    asmsub clear_plane(pointer dst @A0, uword width_words @D0, uword height @D1) {
         %asm {{
         movem.l d2-d7/a2-a6,-(sp)
         bsr     .wait_blt
@@ -319,7 +319,7 @@ OctTbl:
     ; pattern: the value written to every word of the destination (e.g. $0000 clears,
     ;          $ffff fills solid, $aaaa produces a vertical stripe pattern).
     ; Waits for blitter idle at start, returns immediately after triggering the blit.
-    asmsub fill_plane(pointer dst @A0, uword width_words @D0, uword height @D1, uword pattern @D2) clobbers (D0,D1,D2,A0) {
+    asmsub fill_plane(pointer dst @A0, uword width_words @D0, uword height @D1, uword pattern @D2) {
         %asm {{
         movem.l d2-d7/a2-a6,-(sp)
         bsr     .wait_blt

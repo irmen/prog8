@@ -6,6 +6,7 @@ import io.kotest.matchers.shouldBe
 import prog8.code.core.*
 import prog8.code.target.Qemu68kTarget
 import prog8.codegen.m68k.AsmGen
+import prog8.codegen.m68k.appendSpillSlotsToFrame
 import prog8.intermediate.*
 import prog8tests.helpers.DummyStringEncoder
 import prog8tests.helpers.ErrorReporterForTests
@@ -25,12 +26,14 @@ class TestStackFrameEmission : FunSpec({
         subLabel: String = "test.start",
         frameVregSlots: Map<Int, Int> = emptyMap(),
         errors: ErrorReporterForTests? = null,
-        params: List<IRSubroutine.IRParam>? = null
+        params: List<IRSubroutine.IRParam>? = null,
+        regAllocation: Map<VirtualRegister, String> = emptyMap(),
+        floats: Boolean = false
     ): List<String> {
         val options = CompilationOptions.builder(Qemu68kTarget())
             .output(OutputType.RAW)
             .zeropage(ZeropageType.DONTUSE)
-            .floats(false)
+            .floats(floats)
             .compilerVersion("test")
             .memtopAddress(0xffffu)
             .optimize(true)
@@ -53,7 +56,9 @@ class TestStackFrameEmission : FunSpec({
 
         tempRoot.toFile().deleteRecursively()
         tempRoot.toFile().mkdirs()
-        AsmGen(program, Qemu68kTarget(), errors).generate()
+        val asmGen = AsmGen(program, Qemu68kTarget(), errors)
+        asmGen.regAllocation.putAll(regAllocation)
+        asmGen.generate()
         val asmFile = tempRoot.resolve("test.asm")
         check(asmFile.exists()) { "Assembly file not written: $asmFile" }
         return asmFile.readText().lines().map { it.trim() }
@@ -468,6 +473,82 @@ class TestStackFrameEmission : FunSpec({
             ), extraChunks = listOf(IRLoopChunk("test.start.loop", 3, mutableListOf(loopBodyChunk))))
         )
         lines.count { it == "unlk  a5" } shouldBe 1     // the jump to the loop body label must not tear the frame down
+    }
+
+
+    test("appendSpillSlotsToFrame extends a framed subroutine below its locals") {
+        val sub = IRSubroutine("test.start", emptyList(), emptyList(), Position.DUMMY, 4, 0, mapOf(7 to -2))
+        appendSpillSlotsToFrame(
+            sub,
+            listOf(VirtualRegister.int(9)),
+            mapOf(VirtualRegister.int(9) to IRDataType.WORD),
+            Qemu68kTarget(),
+            ErrorReporterForTests()
+        )
+        // existing slot kept, spill slot appended below the locals, size stays even
+        sub.frameVregSlots[7] shouldBe -2
+        sub.frameVregSlots[9] shouldBe -6
+        sub.frameSize shouldBe 6
+    }
+
+    test("appendSpillSlotsToFrame gives a frameless subroutine a spill-only frame") {
+        val sub = IRSubroutine("test.start", emptyList(), emptyList(), Position.DUMMY)
+        appendSpillSlotsToFrame(
+            sub,
+            listOf(VirtualRegister.float(3)),
+            mapOf(VirtualRegister.float(3) to IRDataType.FLOAT),
+            Qemu68kTarget(),
+            ErrorReporterForTests()
+        )
+        sub.hasFrame shouldBe true
+        sub.frameVregSlots[3] shouldBe -4
+        sub.frameSize shouldBe 4
+    }
+
+    test("appendSpillSlotsToFrame rejects a noframe subroutine instead of framing it") {
+        val sub = IRSubroutine("test.start", emptyList(), emptyList(), Position.DUMMY, 0, 0, emptyMap(), true)
+        val errors = ErrorReporterForTests()
+        appendSpillSlotsToFrame(
+            sub,
+            listOf(VirtualRegister.int(9)),
+            mapOf(VirtualRegister.int(9) to IRDataType.WORD),
+            Qemu68kTarget(),
+            errors
+        )
+        // no link/unlk frame may be created: the sub manages the stack itself
+        sub.hasFrame shouldBe false
+        sub.frameVregSlots.isEmpty() shouldBe true
+        errors.errors.size shouldBe 1
+    }
+
+    test("spilled integer vreg in a framed subroutine resolves to its frame slot") {
+        // r9 is spilled (absent from the allocation map); r1 is allocated to d2.
+        val lines = generateAsmWithIncoming(
+            frameSize = 6,
+            instructions = listOf(
+                IRInstructions.binary(Opcode.ADDR, IRDataType.WORD, 1, 9),
+                IRInstructions.simple(Opcode.RETURN)
+            ),
+            frameVregSlots = mapOf(9 to -6),
+            regAllocation = mapOf(VirtualRegister.int(1) to "d2"),
+        )
+        lines.any { it == "link  a5,#-6" } shouldBe true
+        lines.any { it == "move.w  -6(a5),d0" } shouldBe true
+        lines.any { it == "add.w  d0,d2" } shouldBe true
+        lines.any { it == "unlk  a5" } shouldBe true
+    }
+
+    test("spilled float vreg in a framed subroutine resolves to its frame slot") {
+        // fr1 is spilled (absent from the allocation map) with a frame slot.
+        val lines = generateAsmWithIncoming(
+            frameSize = 4,
+            instructions = listOf(
+                IRInstructions.storeMemory(Opcode.STOREM, IRDataType.FLOAT, 1, IRMemory.direct("p8b_test.p8v_out"))
+            ),
+            frameVregSlots = mapOf(1 to -4),
+            floats = true
+        )
+        lines.any { it == "fmove.s  -4(a5),fp0" } shouldBe true
     }
 
 })

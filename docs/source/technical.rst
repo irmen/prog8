@@ -246,6 +246,13 @@ Locals are addressed at negative offsets from ``A5``. Parameters are in the inco
 area at positive offsets. The compiler establishes and removes a frame with ``link a5,#-N``
 and ``unlk a5``.
 
+Virtual registers are kept in hardware registers (``D2-D6``, ``A2-A4``, ``FP2-FP7``) by an
+intraprocedural register allocator, with values that live across calls placed in the
+callee-saved registers and saved/restored by the subroutine's ``movem`` prologue and
+epilogue. Values that cannot stay in a register spill to slots appended to the ``A5``
+frame. ``D7``, ``A5`` and ``A6`` are reserved. Ordinary subroutine locals may therefore
+never be accessed directly from assembly; go through the frame instead.
+
 Clean (non-``@dirty``) locals are zero-initialized on every call with a ``clr`` prologue, one
 store per element. This includes arrays, which on other targets are only cleared once at startup.
 A large clean local array is therefore costly; the compiler warns about framed arrays larger
@@ -276,7 +283,31 @@ lands on an even address, which is fine on the 68000 as a byte access.
 ``asmsub`` and ``extsub`` keep their explicit register-based, annotation-driven convention.
 AmigaOS library calls continue to use ``A6`` for the selected library base. Hand-written M68K
 assembly that calls a normal Prog8 subroutine must follow the stack convention and preserve
-``A5``. For example, calling ``sub add2(ubyte a, uword b) -> uword``::
+``A5``.
+
+On M68K targets, the compiler rejects a ``clobbers(...)`` list on an ``asmsub``. Instead, the
+routine itself must preserve the registers the register allocator relies on:
+
+- ``D2-D6``, ``A2-A4`` and ``FP2-FP7`` are callee-saved: save and restore any of them the routine uses.
+- ``D7`` and ``A5`` are reserved: the routine may use them, but must save and restore them around the change.
+- ``D0-D1``, ``A0-A1`` and ``FP0-FP1`` are scratch registers and may be changed freely.
+- ``A6`` is outside the allocator's pool. The compiler reloads the library base into it before every
+  AmigaOS call, so an ``asmsub`` need not preserve it.
+
+AmigaOS library calls preserve only ``D2-D5``, ``A2-A5`` and ``A6``, so ``D6`` is volatile across
+them. An ``inline asmsub`` runs in its caller's register context, so it must save and restore ``D6``
+itself around any library call.
+
+The compiler relies on this rule when it allocates registers around a call to an ``asmsub``, so a
+call destroys only the caller-saved registers. When an ``asmsub`` body changes a callee-saved or
+reserved register without saving it, the compiler reports a warning. The warning counts an assembly
+level call through ``A6`` (``jsr``/``jmp`` with an ``(a6)`` operand) as a ``D6`` change as well, so
+a routine that calls the OS through such a vector must save and restore ``D6`` itself.
+
+An ``extsub`` may still have an optional ``clobbers(...)`` list; external routines are outside
+the compiler's control, so calls to them assume that every register may be changed.
+
+For example, calling ``sub add2(ubyte a, uword b) -> uword``::
 
     ; call add2($12, $3456); word-packed slots
     move.b  #$12,-(sp)      ; byte: A7 steps by 2, so this reserves the 2-byte slot

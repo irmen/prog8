@@ -282,7 +282,7 @@ private fun compileMain(args: Array<String>): Boolean {
                     outputFile = outputFile?.let { pathFrom(it) },
                     errors = ErrorReporter(txtcolors),
                     assemble = true,
-                    generateDocumentation = generateDocumentation
+                    generateDocumentation = generateDocumentation,
                 )
                 val compilationResult = compileProgram(compilerArgs)
 
@@ -372,7 +372,7 @@ private fun compileMain(args: Array<String>): Boolean {
                 cwd = Path.of(System.getProperty("user.dir")),
                 errors = ErrorReporter(txtcolors),
                 assemble = true,
-                generateDocumentation = generateDocumentation
+                generateDocumentation = generateDocumentation,
             )
             val response = compileViaDaemon(compilerArgs, plainText)
             if (response == null || !response.ok)
@@ -440,7 +440,7 @@ private fun compileMain(args: Array<String>): Boolean {
                     outputFile = outputFile?.let { pathFrom(it) },
                     errors = ErrorReporter(txtcolors),
                     assemble = true,
-                    generateDocumentation = generateDocumentation
+                    generateDocumentation = generateDocumentation,
                 )
                 val result = compileProgram(compilerArgs)
 

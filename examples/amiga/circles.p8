@@ -2,6 +2,7 @@
 
 %import graphics
 %import intuition
+%import math
 %import textio
 %import utility
 
@@ -11,6 +12,8 @@ main {
     const ubyte SCREEN_DEPTH = 5
     const ubyte DISC_RADIUS = 80
     const uword BYTES_PER_ROW = (SCREEN_WIDTH + 15) / 16 * 2
+    const uword CENTER_RANGE_X = SCREEN_WIDTH - 2*DISC_RADIUS
+    const uword CENTER_RANGE_Y = SCREEN_HEIGHT - 2*DISC_RADIUS
 
     uword[32] palette = [
         $000, $f00, $0f0, $00f, $ff0, $f0f, $0ff, $fff,
@@ -65,8 +68,8 @@ main {
 
     sub drawDiscs(^^graphics.BitMap bitmap) {
         for index in 0 to 20 {
-            uword x = 80 + (index % 10) * 159 / 2
-            uword y = 80 + (index / 10) * 95 / 2
+            uword x = DISC_RADIUS + math.rndw() % CENTER_RANGE_X
+            uword y = DISC_RADIUS + math.rndw() % CENTER_RANGE_Y
             drawDisc(bitmap, x, y, DISC_RADIUS, (index & 31) as ubyte)
         }
     }

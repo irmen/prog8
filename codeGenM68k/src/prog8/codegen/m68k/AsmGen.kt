@@ -7,6 +7,52 @@ import kotlin.math.max
 internal const val FP_ACC = "fp0"   // primary FPU scratch / accumulator
 internal const val FP_SRC = "fp1"   // secondary FPU scratch / source operand
 
+// Scratch registers: permanently reserved translator scratch. These never hold an
+// allocated vreg; route all references through these constants so the scratch
+// set is explicit and auditable.
+internal const val SCRATCH_D0 = "d0"
+internal const val SCRATCH_D1 = "d1"
+internal const val SCRATCH_A0 = "a0"
+internal const val SCRATCH_A1 = "a1"
+internal const val SCRATCH_FP0 = "fp0"
+internal const val SCRATCH_FP1 = "fp1"
+
+// Allocatable (callee-saved) register pools, shared by allocator and codegen.
+internal val ALLOCATABLE_DATA_REGS = listOf("d2", "d3", "d4", "d5", "d6")
+internal val ALLOCATABLE_ADDR_REGS = listOf("a2", "a3", "a4")
+internal val ALLOCATABLE_FP_REGS = listOf("fp2", "fp3", "fp4", "fp5", "fp6", "fp7")
+
+// Single source of truth for the m68k register convention, shared by allocator and codegen.
+object M68kRegisterConvention {
+    val CALLER_SAVED = setOf(SCRATCH_D0, SCRATCH_D1, SCRATCH_A0, SCRATCH_A1, SCRATCH_FP0, SCRATCH_FP1)
+    val RESERVED = CALLER_SAVED + setOf("d7", "a5", "a6", "a7")
+    const val RETURN_INT = "d0"
+    const val RETURN_FLOAT = "fp0"
+    // The assembler-visible symbol for an IR label.
+    fun asmSymbolName(name: String): String {
+        var n = name.replace("::", "_")
+        // Vasm reads a trailing ".b"/".w" etc as a size extension, so mangle a last dot that introduces one.
+        val lastDot = n.lastIndexOf('.')
+        if (lastDot != -1 && lastDot < n.length - 1) {
+            val suffix = n.substring(lastDot + 1)
+            if (suffix.length == 1 && suffix.lowercase() in setOf("b", "w", "l", "s", "q", "d", "x", "p")) {
+                n = n.substring(0, lastDot) + "_" + suffix
+            }
+        }
+        return n
+    }
+    // Every physical m68k register name, used to interpret asmsub clobber declarations.
+    val ALL_HARDWARE_REGS = (0..7).map { "d$it" }.toSet() + (0..6).map { "a$it" }.toSet() + (0..7).map { "fp$it" }.toSet()
+    // Canonical name of a fixed calling-convention slot (asmsub/extsub arg and result slots).
+    fun fixedRegister(slot: CallingConventionSlot): String = when (slot.value) {
+        in 0..7 -> error("slots 0-7 should never be used on the M68K they are 6502 cpu registers")
+        in 10..17 -> "d${slot.value - 10}"
+        in 18..24 -> "a${slot.value - 18}"
+        in 25..32 -> "fp${slot.value - 25}"
+        else -> error("unknown calling convention slot: $slot")
+    }
+}
+
 /**
  * The virtual register that an instruction writes into its primary destination slot,
  * but only when that slot is a pure definition (not a read-modify-write). This is the
@@ -106,6 +152,34 @@ internal fun nativeFloatConst(value: Double): String? = when (value) {
 internal class AsmGen(val program: IRProgram, internal val target: ICompilationTarget, internal val errors: IErrorReporter? = null) {
     private val output = StringBuilder()
     private val regsUsed by lazy { program.registersUsed() }
+    // Current subroutine's vreg -> physical-register mapping. Vreg numbers are
+    // reused across subroutines, so emitSubroutine swaps in that sub's map from
+    // regAllocationBySub on entry and clears it on exit.
+    internal val regAllocation: MutableMap<VirtualRegister, String> = mutableMapOf()
+    // Authoritative per-subroutine allocation maps from the allocator.
+    internal var regAllocationBySub: Map<IRSubroutine, Map<VirtualRegister, String>> = emptyMap()
+    // Widths of the current subroutine's vregs: numbers may be reused with
+    // different types across subroutines, so the program-wide intRegTypes map
+    // cannot answer this. Empty outside subroutines.
+    private var currentSubRegTypes: Map<RegisterNum, IRDataType> = emptyMap()
+
+    internal var calleeSavedBySub: Map<IRSubroutine, Set<String>> = emptyMap()
+    // Per-call-site fixed-register boundary metadata, keyed by subroutine and
+    // call ordinal. Consumed by call-boundary handling (reserved-slot wrappers);
+    // the allocator already enforces it during coloring.
+    internal var callSiteEffects: Map<IRSubroutine, Map<Int, M68kRegisterAllocator.CallSiteRegisterEffects>> = emptyMap()
+    // callee-saved registers used by the subroutine currently being emitted (for its epilogue)
+    internal var currentSubCalleeSaved: Set<String> = emptySet()
+
+    // Scratch and reserved registers must never hold an allocated vreg: SCRATCH_* are permanent
+    // translator scratch, d7 is the repeat-loop counter, a5 the frame pointer, a6 the AmigaOS
+    // library base, a7 the hardware stack pointer.
+    private val nonAllocatableRegs = M68kRegisterConvention.RESERVED
+
+    private fun assertAllocatable(phys: String?) {
+        if (phys != null && phys.lowercase() in nonAllocatableRegs)
+            error("allocator assigned a vreg to non-allocatable register $phys")
+    }
     internal val cpu get() = target.cpu
 
     companion object {
@@ -127,57 +201,10 @@ internal class AsmGen(val program: IRProgram, internal val target: ICompilationT
     val dataFloatConstants = mutableListOf<Pair<String, Double>>()
 
     // -------------------------------------------------------------------------
-    // D0 peephole cache (transitional optimization)
-    //
-    // A cheap local optimization that avoids redundant `move mem,d0` reloads.
-    // It is NOT a register allocator. When a real allocator is added it will
-    // keep values in D0-D7/A0-Ax itself, making this cache obsolete.
-    //
-    // WHY IT EXISTS / WHAT IT ACTUALLY WINS
-    //   The codegen funnels every virtual-register operand through d0
-    //   (`move p8_regfile+N,d0` ... op ... `move d0,p8_regfile+M`). The cache
-    //   remembers "d0 currently holds virtual register rX of type T" and skips
-    //   a reload when the very same value is read again with no d0-clobbering
-    //   instruction in between.
-    //
-    //   Measured effect (vs the pre-cache commit 687d86d36), same .p8ir input:
-    //     - DEFAULT (optimized) builds: about 0.2-1.2% smaller .text on the
-    //       amiga examples (3d -96 B, textelite -56 B, window3d -120 B);
-    //       fibonacci/primes/numbergame are byte-identical.
-    //     - `-noopt` builds: about 2.0-2.5% smaller .text.
-    //   The default-build win is small on purpose: the post-pass
-    //   AsmOptimizer.optimizeRedundantReload already deletes the *adjacent*
-    //   `move d0,MEM`/`move MEM,d0` pair (the dominant case), so this cache
-    //   only adds the *non-adjacent* reloads that a 2-line peephole cannot see
-    //   (e.g. one value stored to d0 then re-read several times across a run of
-    //   intervening ALU ops). If a program shows no delta, that is why.
-    //
-    // CORRECTNESS INVARIANT (read carefully, the obvious one is wrong)
-    //   It is tempting to say "the cache is safe because move.x mem,d0 does not
-    //   set CCR". That is FALSE on m68k: move.x to a data register DOES set N/Z
-    //   (only movea leaves CCR alone). The cache is safe for a subtler reason:
-    //   no emitted sequence ever consumes the N/Z flags left by a `move ...,d0`.
-    //   Every flag-dependent decision (branches, scc) is preceded by an explicit
-    //   `tst`/`cmp` that re-establishes CCR. So skipping the load is fine, and
-    //   we must never reorder anything around it. Keep it that way: if a future
-    //   change makes codegen rely on the flags of a d0 load, this cache breaks.
-    //
-    // MAINTENANCE COST / HOW TO KEEP IT SOUND
-    //   The cache is only as correct as its invalidation. The rule: ANY emitted
-    //   instruction that (a) writes d0, or (b) writes the cached register's
-    //   regfile slot, or (c) is a branch target / control-flow boundary, MUST
-    //   invalidate (invalidateD0Cache / invalidateD0CacheForSlot /
-    //   invalidateD0CacheForAddress). When in doubt, invalidate. Two latent bugs
-    //   found after the initial commit illustrate the failure modes, both in
-    //   multi-path sequences with internal labels:
-    //     - translateSyscallClamp: internal `labelCheckMax:`/`labelDone:` are
-    //       branch targets where d0 differs per incoming path; they now
-    //       invalidate so a load after the label is never wrongly skipped.
-    //     - SGN: a raw `move.b d1, regAddr(dst)` bypassed emitStoreD0, leaving a
-    //       stale cache entry if dst==src; it now calls invalidateD0CacheForSlot.
-    //   Both were unreachable only because the register packer is disabled
-    //   (prototype) and clamp's three args are simultaneously live; do not rely
-    //   on that. Treat every internal label as a cache barrier.
+    // D0 reload cache: skips a `move mem,d0` reload when d0 already holds the same vreg and type; only
+    // unallocated (spilled/regfile) operands benefit. CCR invariant: `move.x mem,d0` DOES set N/Z (only
+    // movea leaves CCR alone), so this is sound only while no emitted sequence consumes those flags -
+    // any write to d0 or the cached slot, and every branch target, MUST invalidate.
     // -------------------------------------------------------------------------
     private var d0CacheReg: Int = -1          // -1 means empty
     private var d0CacheType: IRDataType? = null
@@ -214,7 +241,8 @@ internal class AsmGen(val program: IRProgram, internal val target: ICompilationT
     fun emitLoadD0(reg: Int, type: IRDataType) {
         if (d0CacheReg == reg && d0CacheType == type)
             return
-        emitLine("move${dtSuffix(type)}  ${regAddr(reg)}, d0")
+        val source = if (VirtualRegister.int(reg) in regAllocation) operand(reg) else regAddr(reg)
+        emitLine("move${dtSuffix(type)}  $source, $SCRATCH_D0")
         d0CacheReg = reg
         d0CacheType = type
     }
@@ -222,7 +250,16 @@ internal class AsmGen(val program: IRProgram, internal val target: ICompilationT
     // Store d0 to a virtual register and update the cache to reflect that d0
     // still holds that value.
     fun emitStoreD0(reg: Int, type: IRDataType) {
-        emitLine("move${dtSuffix(type)}  d0, ${regAddr(reg)}")
+        val physical = regAllocation[VirtualRegister.int(reg)]
+        if (physical != null) {
+            val destination = operand(reg)
+            if (physical.startsWith("a"))
+                emitLine("movea.l  $SCRATCH_D0, $destination")
+            else
+                emitLine("move${dtSuffix(type)}  $SCRATCH_D0, $destination")
+        } else {
+            emitLine("move${dtSuffix(type)}  $SCRATCH_D0, ${regAddr(reg)}")
+        }
         d0CacheReg = reg
         d0CacheType = type
     }
@@ -235,7 +272,7 @@ internal class AsmGen(val program: IRProgram, internal val target: ICompilationT
             emitLoadD0(reg, type)
         } else {
             invalidateD0Cache()
-            emitLine("move${dtSuffix(type)}  $address, d0")
+            emitLine("move${dtSuffix(type)}  $address, $SCRATCH_D0")
         }
     }
 
@@ -247,7 +284,7 @@ internal class AsmGen(val program: IRProgram, internal val target: ICompilationT
             emitStoreD0(reg, type)
         } else {
             invalidateD0Cache()
-            emitLine("move${dtSuffix(type)}  d0, $address")
+            emitLine("move${dtSuffix(type)}  $SCRATCH_D0, $address")
         }
     }
 
@@ -302,10 +339,56 @@ internal class AsmGen(val program: IRProgram, internal val target: ICompilationT
 
     private fun frameVregAddr(reg: Int): String? = frameVregSlots[reg]?.let { "$it(a5)" }
 
-    /** emits the frame teardown for the subroutine currently being translated, if it has a frame */
+    /** emits the frame teardown for the subroutine currently being translated, if it has a frame.
+     *  Any callee-saved registers saved in the prologue are restored first. This is called on
+     *  every genuine exit from the subroutine (returns and tail-jumps), so it is the single
+     *  place that pairs the prologue's movem save and link a5. */
     internal fun emitFrameUnlk() {
+        emitCalleeRestore()
         if (frameActive)
             emitLine("unlk  a5")
+    }
+
+    /** formats a set of data or address registers as a movem register list. */
+    private fun movemRegList(regs: Set<String>): String {
+        val d = regs.filter { it.startsWith("d") }.map { it.drop(1).toInt() }.sorted()
+        val a = regs.filter { it.startsWith("a") }.map { it.drop(1).toInt() }.sorted()
+        fun range(nums: List<Int>, prefix: String): String? = when {
+            nums.isEmpty() -> null
+            nums.size == 1 -> "$prefix${nums[0]}"
+            else -> "$prefix${nums.first()}-$prefix${nums.last()}"
+        }
+        val parts = listOfNotNull(range(d, "d"), range(a, "a"))
+        return parts.joinToString("/")
+    }
+
+    /** formats a set of floating-point registers as an fmovem register list. */
+    private fun fmovemRegList(regs: Set<String>): String {
+        val fp = regs.filter { it.startsWith("fp") }.map { it.drop(2).toInt() }.sorted()
+        return if (fp.size == 1) "fp${fp[0]}" else "fp${fp.first()}-fp${fp.last()}"
+    }
+
+    /** emits the callee-saved register save (movem into the stack) for the current subroutine. */
+    internal fun emitCalleeSave() {
+        if (currentSubCalleeSaved.isEmpty()) return
+        val cpuRegs = currentSubCalleeSaved.filterNot { it.startsWith("fp") }.toSet()
+        val fpRegs = currentSubCalleeSaved.filter { it.startsWith("fp") }.toSet()
+        if (cpuRegs.isNotEmpty())
+            emitLine("movem.l  ${movemRegList(cpuRegs)}, -(sp)")
+        if (fpRegs.isNotEmpty())
+            emitLine("fmovem.x  ${fmovemRegList(fpRegs)}, -(sp)")
+    }
+
+    /** emits the callee-saved register restore (movem out of the stack) for the current subroutine.
+     *  Called just before frame teardown / rts at every exit point. */
+    internal fun emitCalleeRestore() {
+        if (currentSubCalleeSaved.isEmpty()) return
+        val cpuRegs = currentSubCalleeSaved.filterNot { it.startsWith("fp") }.toSet()
+        val fpRegs = currentSubCalleeSaved.filter { it.startsWith("fp") }.toSet()
+        if (fpRegs.isNotEmpty())
+            emitLine("fmovem.x  (sp)+, ${fmovemRegList(fpRegs)}")
+        if (cpuRegs.isNotEmpty())
+            emitLine("movem.l  (sp)+, ${movemRegList(cpuRegs)}")
     }
 
     /**
@@ -385,6 +468,50 @@ internal class AsmGen(val program: IRProgram, internal val target: ICompilationT
         return "$REGFILE_LABEL+$offset"
     }
 
+    // Location-agnostic indirection: an unallocated vreg falls back to its
+    // regfile/frame address.
+    fun operand(reg: Int): String {
+        // int vreg; consult map (keyed by IntReg). Empty map -> regfile address.
+        val vreg = VirtualRegister.IntReg(RegisterNum(reg))
+        val phys = regAllocation[vreg]
+        assertAllocatable(phys)
+        if (phys != null) return phys
+        return regAddr(reg)
+    }
+
+    fun operand(op: RegisterOperand): String {
+        val vreg = op.register
+        val phys = regAllocation[vreg]
+        assertAllocatable(phys)
+        if (phys != null) return phys
+        // Under allocation, a spilled float vreg lives in its A5 frame slot, not the static float regfile.
+        if (op.isFloat)
+            frameVregAddr(op.registerNumber)?.let { return it }
+        return if (op.isFloat) floatRegFileAddr(op.number) else regAddr(op.registerNumber)
+    }
+
+    fun floatOperand(reg: RegisterNum): String {
+        val vreg = VirtualRegister.FloatReg(reg)
+        val phys = regAllocation[vreg]
+        assertAllocatable(phys)
+        if (phys != null) return phys
+        // Under allocation, a spilled float vreg lives in its A5 frame slot (see operand()).
+        frameVregAddr(reg.value)?.let { return it }
+        return floatRegFileAddr(reg)
+    }
+
+    // Return the physical register name only if the operand is allocated to a
+    // register of the required class; null => fall back to scratch.
+    fun operandAsDataReg(op: RegisterOperand): String? {
+        val phys = regAllocation[op.register] ?: return null
+        return if (phys.lowercase() in ALLOCATABLE_DATA_REGS.map { it.lowercase() }.toSet()) phys else null
+    }
+
+    fun operandAsAddressReg(op: RegisterOperand): String? {
+        val phys = regAllocation[op.register] ?: return null
+        return if (phys.lowercase() in ALLOCATABLE_ADDR_REGS.map { it.lowercase() }.toSet()) phys else null
+    }
+
     private fun regNumForOffset(offset: Int): Int? =
         regFileLayout.offsets.entries.find { it.value == offset }?.key
 
@@ -411,7 +538,8 @@ internal class AsmGen(val program: IRProgram, internal val target: ICompilationT
     }
 
     /** Returns the IR data type of the given integer virtual register. */
-    fun regType(reg: Int): IRDataType = intRegTypes[RegisterNum(reg)] ?: IRDataType.BYTE
+    fun regType(reg: Int): IRDataType =
+        currentSubRegTypes[RegisterNum(reg)] ?: intRegTypes[RegisterNum(reg)] ?: IRDataType.BYTE
 
     /** Load a virtual register into d0, zero-extending if its natural width is smaller than [requiredType]. */
     fun loadRegOrZeroExtendToD0(reg: Int, requiredType: IRDataType) {
@@ -424,7 +552,7 @@ internal class AsmGen(val program: IRProgram, internal val target: ICompilationT
         }
         if (sizeOf(regType) < sizeOf(requiredType)) {
             // Zero-extend: clear d0 (clobbers any cached value) and load the narrow part.
-            emitLine("moveq  #0, d0")
+            emitLine("moveq  #0, $SCRATCH_D0")
             invalidateD0Cache()
             emitLoadD0(reg, regType)
             // d0 now holds the zero-extended wider value.
@@ -435,36 +563,129 @@ internal class AsmGen(val program: IRProgram, internal val target: ICompilationT
     }
 
     fun loadPointerToA0(reg: Int) {
-        // load a 32-bit pointer from the register file into a0
-        frameVregAddr(reg)?.let {
-            emitLine("movea.l  $it, a0")
-            return
+        val vreg = VirtualRegister.int(reg)
+        if (vreg in regAllocation) {
+            emitLine("movea.l  ${operand(reg)}, $SCRATCH_A0")
+        } else {
+            frameVregAddr(reg)?.let {
+                emitLine("movea.l  $it, $SCRATCH_A0")
+                return
+            }
+            val offset = regFileLayout.offsets[reg] ?: error("register r$reg has no layout info")
+            val addr = if (offset == 0) REGFILE_LABEL else "$REGFILE_LABEL+$offset"
+            emitLine("movea.l  $addr, $SCRATCH_A0")
         }
-        val offset = regFileLayout.offsets[reg] ?: error("register r$reg has no layout info")
-        val addr = if (offset == 0) REGFILE_LABEL else "$REGFILE_LABEL+$offset"
-        emitLine("movea.l  $addr, a0")
+    }
+
+    /** Move an integer value into a virtual register, preserving address-register allocation. */
+    fun emitMoveToIntRegister(source: String, reg: Int, type: IRDataType) {
+        val destination = operand(reg)
+        val physical = regAllocation[VirtualRegister.int(reg)]
+        if (physical?.startsWith("a") == true)
+            emitLine("movea.l  $source, $destination")
+        else
+            emitLine("move${dtSuffix(type)}  $source, $destination")
+    }
+
+    // Direct emission: operate on resident registers instead of bouncing through d0. Null whenever
+    // the d0 path is needed (spilled or address operand, width mismatch needing the extending path).
+    // Pair form: both sides resident, widths matching.
+    internal fun directDataPair(dstReg: Int, srcReg: Int, type: IRDataType): Pair<String, String>? {
+        val d = regAllocation[VirtualRegister.int(dstReg)] ?: return null
+        val s = regAllocation[VirtualRegister.int(srcReg)] ?: return null
+        if (!d.startsWith("d") || !s.startsWith("d")) return null
+        if (regType(srcReg) != type || regType(dstReg) != type) return null
+        return operand(dstReg) to operand(srcReg)
+    }
+
+    // Destination form: compute in place (mulu.w d3,d4), matching the
+    // load-op-store semantics for a DEF destination.
+    internal fun directDataDst(dstReg: Int, type: IRDataType): String? {
+        val d = regAllocation[VirtualRegister.int(dstReg)] ?: return null
+        if (!d.startsWith("d")) return null
+        if (regType(dstReg) != type) return null
+        return operand(dstReg)
+    }
+
+    // Move form: plain copy between resident data registers. No width check:
+    // a same-or-narrower move suffix only reads bits the source holds.
+    internal fun directDataMove(dstReg: Int, srcReg: Int): Pair<String, String>? {
+        val d = regAllocation[VirtualRegister.int(dstReg)] ?: return null
+        val s = regAllocation[VirtualRegister.int(srcReg)] ?: return null
+        if (!d.startsWith("d") || !s.startsWith("d")) return null
+        return operand(dstReg) to operand(srcReg)
+    }
+
+    // Extension form (moveq #0,d; move.b s,d). Source read happens after the
+    // destination write, so they must differ; the allocator guarantees it, so
+    // a violation fails loudly instead of emitting a clobbered move.
+    internal fun directExtend(dstReg: Int, srcReg: Int, dstType: IRDataType): String? {
+        val d = regAllocation[VirtualRegister.int(dstReg)] ?: return null
+        if (!d.startsWith("d")) return null
+        if (regType(dstReg) != dstType) return null
+        val s = regAllocation[VirtualRegister.int(srcReg)]
+        if (s != null && !s.startsWith("d")) return null
+        check(operand(srcReg) != d) { "extension source and destination share $d" }
+        return operand(dstReg)
+    }
+
+    // Move-source form: data register or memory (move.b/move.w An,Dn is
+    // illegal, so address registers take the d0 path).
+    internal fun directMoveSrc(reg: Int): String? {
+        val p = regAllocation[VirtualRegister.int(reg)]
+        if (p != null && !p.startsWith("d")) return null
+        return operand(reg)
+    }
+
+    // Float form: compute into a resident FP register. The source may be any
+    // float operand; size suffixes are chosen per source by emitFmoveFloat.
+    internal fun directFloatReg(dstReg: RegisterNum): String? {
+        val d = floatOperand(dstReg)
+        if (!d.startsWith("fp")) return null
+        return d
+    }
+
+    // FPU move with a source-correct size: FP-to-FP uses the bare form (.s is
+    // rejected); memory sources use .s for single-precision conversion.
+    internal fun emitFmoveFloat(source: String, dest: String) {
+        if (source.startsWith("fp") && dest.startsWith("fp"))
+            emitLine("fmove  $source, $dest")
+        else
+            emitLine("fmove.s  $source, $dest")
+    }
+
+    // FPU arithmetic with a source-correct size: bare for FP sources, .s for
+    // memory sources.
+    internal fun emitFloatOpSrc(op: String, source: String, dest: String) {
+        if (source.startsWith("fp"))
+            emitLine("$op  $source, $dest")
+        else
+            emitLine("$op.s  $source, $dest")
+    }
+
+    // Source form: only the source must be resident, for reg->mem ops
+    // (add.w d3,(a0)) and d0-free moves. Same fallback rule as the pair form.
+    internal fun directDataSrc(srcReg: Int, type: IRDataType): String? {
+        val s = regAllocation[VirtualRegister.int(srcReg)] ?: return null
+        if (!s.startsWith("d")) return null
+        if (regType(srcReg) != type) return null
+        return operand(srcReg)
+    }
+
+    /** Store a byte constant into an integer virtual register. */
+    fun emitByteConstantToRegister(value: Int, reg: Int) {
+        val physical = regAllocation[VirtualRegister.int(reg)]
+        if (physical != null)
+            emitLine("move.b  #$value, ${operand(reg)}")
+        else
+            emitLine("move.b  #$value, ${regAddrByte(reg, 0)}")
+        invalidateD0CacheForSlot(reg)
     }
 
 
     // === label/symbol helpers ===
 
-    internal fun fixNameSymbols(name: String): String {
-        var n = name.replace("::", "_")
-        // Vasm treats a trailing ".b" / ".w" / ".l" etc as a size extension, not part of the symbol.
-        // A prog8 symbol such as "bugrepro.env_samples.b" (sub env_samples containing local var b)
-        // would therefore be mis-parsed as "bugrepro.env_samples" with size ".b", causing
-        // "bad size extension", "label redefined" and "unknown mnemonic <.b:>" errors.
-        // Mangle the last dot when it introduces a known M68k size suffix so the symbol
-        // remains unique but no longer looks like a size extension.
-        val lastDot = n.lastIndexOf('.')
-        if (lastDot != -1 && lastDot < n.length - 1) {
-            val suffix = n.substring(lastDot + 1)
-            if (suffix.length == 1 && suffix.lowercase() in setOf("b", "w", "l", "s", "q", "d", "x", "p")) {
-                n = n.substring(0, lastDot) + "_" + suffix
-            }
-        }
-        return n
-    }
+    internal fun fixNameSymbols(name: String): String = M68kRegisterConvention.asmSymbolName(name)
 
     
     fun resolveSymbolRef(name: String): String {
@@ -496,7 +717,7 @@ internal class AsmGen(val program: IRProgram, internal val target: ICompilationT
     private fun loadIndexToD0(idx: Int) {
         if (regType(idx) == IRDataType.BYTE) {
             invalidateD0Cache()                 // moveq clobbers d0
-            emitLine("moveq  #0, d0")
+            emitLine("moveq  #0, $SCRATCH_D0")
             emitLoadD0(idx, IRDataType.BYTE)    // cache as byte; consumer widens
         } else {
             emitLoadD0(idx, IRDataType.WORD)    // cache as word; consumer widens
@@ -505,9 +726,9 @@ internal class AsmGen(val program: IRProgram, internal val target: ICompilationT
 
     private fun addIndirectOffset(offset: Int) {
         when (offset) {
-            in 1..8 -> emitLine("addq.l  #$offset, a0")
-            in -8..-1 -> emitLine("subq.l  #${-offset}, a0")
-            else -> emitLine("adda.l  #$offset, a0")
+            in 1..8 -> emitLine("addq.l  #$offset, $SCRATCH_A0")
+            in -8..-1 -> emitLine("subq.l  #${-offset}, $SCRATCH_A0")
+            else -> emitLine("adda.l  #$offset, $SCRATCH_A0")
         }
     }
 
@@ -531,8 +752,10 @@ internal class AsmGen(val program: IRProgram, internal val target: ICompilationT
      * (lea for a symbol/index base, index register loading/scaling, or a pointer load into a0).
      * This replaces the old ad-hoc decoding of address/labelSymbol/symbolOffset/reg2/scale fields
      * that used to be duplicated across every load/store opcode and the memory-operand arithmetic ops.
-     * [forFloat] selects the FPU indexed/indirect addressing conventions (32-bit d0.l index,
-     * unconditional addIndirectOffset) used by the float load/store opcodes.
+     * [forFloat] selects the FPU indexed/indirect addressing conventions: a 32-bit index
+     * (d0.l, or the allocated data register .l) with manual scaling when not allocated, and
+     * address-register indirect addressing for pointers (falling back to a0 when not allocated
+     * to an address register).
      */
     fun resolveMemory(memory: MemoryReference, forFloat: Boolean = false): String {
         return when (memory) {
@@ -541,56 +764,92 @@ internal class AsmGen(val program: IRProgram, internal val target: ICompilationT
                 val idx = memory.index.intNumber
                 val scale = memory.scale
                 val baseAddr = resolveMemoryBase(memory.base, memory.displacement)
+                val idxPhys = operandAsDataReg(memory.index)
+                // Allocated path: use the index register directly when no manual staging/scaling is required.
+                val useAllocated = idxPhys != null && (scale == 1 ||
+                    (program.options.compTarget.cpu >= CpuType.M68020 && scale in setOf(2, 4, 8)))
                 if (forFloat) {
-                    // full-width d0.l indexing requires zero-extending the word index to 32 bits
-                    invalidateD0Cache()                 // moveq clobbers d0
-                    emitLine("moveq  #0, d0")
-                    emitLoadD0(idx, IRDataType.WORD)    // cache as word; d0.l widens it
-                    if (scale != 1) {
-                        invalidateD0Cache()             // scaling transforms d0
-                        when (scale) {
-                            2 -> emitLine("add.l  d0,d0")
-                            4 -> emitLine("lsl.l  #2, d0")
-                            8 -> emitLine("lsl.l  #3, d0")
-                            else -> emitLine("muls.w  #$scale, d0")
-                        }
-                    }
-                    emitLine("lea  $baseAddr, a0")
-                    "(0, a0, d0.l)"
-                } else {
-                    loadIndexToD0(idx)
-                    if (scale != 1) {
-                        invalidateD0Cache()             // scaling transforms d0
-                        if (program.options.compTarget.cpu >= CpuType.M68020) {
-                            if (scale != 2 && scale != 4 && scale != 8) emitLine("muls.w  #$scale, d0")
-                        } else {
+                    if (!useAllocated) {
+                        invalidateD0Cache()
+                        emitLine("moveq  #0, $SCRATCH_D0")
+                        emitLoadD0(idx, IRDataType.WORD)
+                        if (scale != 1) {
+                            invalidateD0Cache()
                             when (scale) {
-                                2 -> emitLine("add.w  d0,d0")
-                                4 -> emitLine("lsl.w  #2, d0")
-                                else -> emitLine("muls.w  #$scale, d0")
+                                2 -> emitLine("add.l  $SCRATCH_D0,$SCRATCH_D0")
+                                4 -> emitLine("lsl.l  #2, $SCRATCH_D0")
+                                8 -> emitLine("lsl.l  #3, $SCRATCH_D0")
+                                else -> emitLine("muls.w  #$scale, $SCRATCH_D0")
                             }
                         }
+                        emitLine("lea  $baseAddr, $SCRATCH_A0")
+                        "(0, $SCRATCH_A0, $SCRATCH_D0.l)"
+                    } else {
+                        emitLine("lea  $baseAddr, $SCRATCH_A0")
+                        when {
+                            scale == 2 -> "(0, $SCRATCH_A0, $idxPhys.l*2)"
+                            scale == 4 -> "(0, $SCRATCH_A0, $idxPhys.l*4)"
+                            scale == 8 -> "(0, $SCRATCH_A0, $idxPhys.l*8)"
+                            else -> "(0, $SCRATCH_A0, $idxPhys.l)"
+                        }
                     }
-                    emitLine("lea  $baseAddr, a0")
-                    when {
-                        program.options.compTarget.cpu >= CpuType.M68020 && scale == 2 -> "(a0,d0.w*2)"
-                        program.options.compTarget.cpu >= CpuType.M68020 && scale == 4 -> "(a0,d0.w*4)"
-                        program.options.compTarget.cpu >= CpuType.M68020 && scale == 8 -> "(a0,d0.w*8)"
-                        else -> "(a0,d0.w)"
+                } else {
+                    if (!useAllocated) {
+                        loadIndexToD0(idx)
+                        if (scale != 1) {
+                            invalidateD0Cache()
+                            if (program.options.compTarget.cpu >= CpuType.M68020) {
+                                if (scale != 2 && scale != 4 && scale != 8) emitLine("muls.w  #$scale, $SCRATCH_D0")
+                            } else {
+                                when (scale) {
+                                    2 -> emitLine("add.w  $SCRATCH_D0,$SCRATCH_D0")
+                                    4 -> emitLine("lsl.w  #2, $SCRATCH_D0")
+                                    else -> emitLine("muls.w  #$scale, $SCRATCH_D0")
+                                }
+                            }
+                        }
+                        emitLine("lea  $baseAddr, $SCRATCH_A0")
+                        when {
+                            program.options.compTarget.cpu >= CpuType.M68020 && scale == 2 -> "($SCRATCH_A0,$SCRATCH_D0.w*2)"
+                            program.options.compTarget.cpu >= CpuType.M68020 && scale == 4 -> "($SCRATCH_A0,$SCRATCH_D0.w*4)"
+                            program.options.compTarget.cpu >= CpuType.M68020 && scale == 8 -> "($SCRATCH_A0,$SCRATCH_D0.w*8)"
+                            else -> "($SCRATCH_A0,$SCRATCH_D0.w)"
+                        }
+                    } else {
+                        emitLine("lea  $baseAddr, $SCRATCH_A0")
+                        when {
+                            scale == 2 -> "($SCRATCH_A0,$idxPhys.w*2)"
+                            scale == 4 -> "($SCRATCH_A0,$idxPhys.w*4)"
+                            scale == 8 -> "($SCRATCH_A0,$idxPhys.w*8)"
+                            else -> "($SCRATCH_A0,$idxPhys.w)"
+                        }
                     }
                 }
             }
             is MemoryReference.Indirect -> {
-                loadPointerToA0(memory.pointer.intNumber)
+                val ptrPhys = operandAsAddressReg(memory.pointer)
                 val off = memory.displacement
+                val useAllocated = ptrPhys != null && off in -32768..32767
+                if (!useAllocated) {
+                    loadPointerToA0(memory.pointer.intNumber)
+                }
+                val baseReg = if (useAllocated) ptrPhys else SCRATCH_A0
                 if (forFloat) {
-                    if (off != 0) addIndirectOffset(off)
-                    "(a0)"
+                    if (!useAllocated && off != 0) addIndirectOffset(off)
+                    if (useAllocated) {
+                        if (off == 0) "($baseReg)" else "($off,$baseReg)"
+                    } else {
+                        "($baseReg)"
+                    }
                 } else {
-                    when {
-                        off < -32768 || off > 32767 -> { addIndirectOffset(off); "(a0)" }
-                        off == 0 -> "(a0)"
-                        else -> "($off,a0)"
+                    if (!useAllocated) {
+                        when {
+                            off < -32768 || off > 32767 -> { addIndirectOffset(off); "($baseReg)" }
+                            off == 0 -> "($baseReg)"
+                            else -> "($off,$baseReg)"
+                        }
+                    } else {
+                        if (off == 0) "($baseReg)" else "($off,$baseReg)"
                     }
                 }
             }
@@ -611,8 +870,8 @@ internal class AsmGen(val program: IRProgram, internal val target: ICompilationT
             emitLine("fmovecr  #$native, $dstReg")
         } else {
             val label = makeFloatConstLabel(value)
-            emitLine("lea  $label, a0")
-            emitLine("fmove.s  (a0), $dstReg")
+            emitLine("lea  $label, $SCRATCH_A0")
+            emitLine("fmove.s  ($SCRATCH_A0), $dstReg")
         }
     }
 
@@ -716,11 +975,12 @@ internal class AsmGen(val program: IRProgram, internal val target: ICompilationT
         
         // NOTE: the executable loader already zero-fills the BSS section (LoadSeg on Amiga HUNK, ELF loader on qemu68k); manual clear_bss_section call not needed here.
         
+        // Startup calls are invisible to the register allocator, which relies on startup keeping no register values live across them.
         if (!options.noSysInit)
             emitLine("bsr  ${fixNameSymbols("p8_sys_startup.init_system")}")
         emitLine("bsr  ${fixNameSymbols("p8_sys_startup.init_system_phase2")}")
         emitLine("bsr  ${fixNameSymbols("p8b_main.p8s_start")}")
-        emitLine("moveq  #0, d0", "normal return status 0")
+        emitLine("moveq  #0, $SCRATCH_D0", "normal return status 0")
         emitLine("bra  ${fixNameSymbols("p8_sys_startup.cleanup_at_exit")}")
     }
 
@@ -782,9 +1042,7 @@ internal class AsmGen(val program: IRProgram, internal val target: ICompilationT
     private fun emitSubroutine(sub: IRSubroutine) {
         val subLabel = fixNameSymbols(sub.label)
         val subUnscoped = unscopedName(sub.label)
-        // asm-peephole boundary marker — the '; Subroutine:' and '; End of subroutine:'
-        // lines emitted here are parsed by the asm peephole optimizer to delimit code
-        // units (e.g. for dead register-slot detection). Do not alter/rename/remove them.
+        // asm-peephole boundary marker: the '; Subroutine:' lines delimit code units; do not alter or remove.
         emitRaw("; ---- Subroutine: $subLabel ----")
         val firstChunk = sub.chunks.filterIsInstance<IRCodeChunk>().firstOrNull()
         if (firstChunk != null)
@@ -797,12 +1055,27 @@ internal class AsmGen(val program: IRProgram, internal val target: ICompilationT
             emitLine("bsr  run_global_inits")
         frameActive = sub.hasFrame
         frameVregSlots = sub.frameVregSlots
+        currentSubCalleeSaved = calleeSavedBySub[sub] ?: emptySet()
+        // Swap in this sub's allocation and type maps: vreg numbers (and the d0 cache) may be reused across subs.
+        if (regAllocationBySub.isNotEmpty()) {
+            regAllocation.clear()
+            regAllocationBySub[sub]?.let { regAllocation.putAll(it) }
+        }
+        currentSubRegTypes = buildMap {
+            sub.forEachInstruction { ins ->
+                for (ra in ins.registerAccesses)
+                    if (ra.register is VirtualRegister.IntReg)
+                        putIfAbsent(ra.register.number, ra.type)
+            }
+        }
+        invalidateD0Cache()
         currentSubChunks = mutableSetOf<IRCodeChunkBase>().also { set -> sub.forEachChunk { set.add(it) } }
         if (sub.hasFrame) {
             emitRaw("; stack frame: ${sub.frameSize} bytes of locals, ${sub.incomingSize} bytes of arguments")
             emitLine(if (sub.frameSize > 0) "link  a5,#-${sub.frameSize}" else "link  a5,#0")
             reportFrameSize(sub)
         }
+        emitCalleeSave()
         val livenessInstructions = sub.chunks.filterIsInstance<IRCodeChunk>().flatMap { it.instructions }
         val deadStoreSuppressionAllowed = canSuppressDeadStores(sub)
         var instructionOffset = 0
@@ -837,13 +1110,15 @@ internal class AsmGen(val program: IRProgram, internal val target: ICompilationT
         frameActive = false
         frameVregSlots = emptyMap()
         currentSubChunks = emptySet()
+        currentSubCalleeSaved = emptySet()
+        if (regAllocationBySub.isNotEmpty()) regAllocation.clear()
+        currentSubRegTypes = emptyMap()
+        invalidateD0Cache()
     }
 
     private fun emitAsmSubroutine(sub: IRAsmSubroutine) {
         val asmLabel = fixNameSymbols(sub.label)
-        // asm-peephole boundary marker — the '; Subroutine:' and '; End of subroutine:'
-        // lines emitted here are parsed by the asm peephole optimizer to delimit code
-        // units (e.g. for dead register-slot detection). Do not alter/rename/remove them.
+        // asm-peephole boundary marker: the '; Subroutine:' lines delimit code units; do not alter or remove.
         emitRaw("")
         emitRaw("; ---- Subroutine: $asmLabel ----")
         emitLine("ALIGN 2")
@@ -866,12 +1141,9 @@ internal class AsmGen(val program: IRProgram, internal val target: ICompilationT
     private fun userFacingName(scopedName: String): String =
         scopedName.split('.').joinToString(".") { it.removePrefix("p8b_").removePrefix("p8s_") }
 
-    // Dead-store suppression checks whether a register is read anywhere else in the
-    // subroutine (see isRegisterReadElsewhere), which is independent of control
-    // flow and therefore sound regardless of branch topology (loops, indirect
-    // jumps). Inline assembly chunks need special care because their contents are
-    // invisible to the analysis; they are only assumed to read virtual registers
-    // when they actually can (see inlineAsmMayReadRegisters).
+    // Dead-store suppression checks whether a register is read anywhere else in the subroutine,
+    // which is independent of control flow and therefore sound regardless of branch topology.
+    // Inline asm contents are invisible to the analysis (see inlineAsmMayReadRegisters).
     private fun canSuppressDeadStores(sub: IRSubroutine): Boolean =
         sub.chunks.none { it is IRInlineAsmChunk && inlineAsmMayReadRegisters(it) }
 
@@ -887,8 +1159,7 @@ internal class AsmGen(val program: IRProgram, internal val target: ICompilationT
     }
 
     private fun translateLoopChunk(loop: IRLoopChunk) {
-        // Preserve counted loop as efficient m68k dbra.
-        // Use d7 as loop register; handle nesting via stack save/restore.
+        // Preserve counted loop as efficient m68k dbra; d7 is the loop register, nesting saved on the stack.
         invalidateD0Cache()                 // loop entry is a control-flow target
         val label = fixNameSymbols(loop.label!!)
         val tripMinusOne = if(loop.trip==65536) 65535 else loop.trip-1
@@ -950,8 +1221,7 @@ internal class AsmGen(val program: IRProgram, internal val target: ICompilationT
                 if (deadStoreSuppressionAllowed) optimization
                 else optimization.copy(deadRegisters = emptySet())
             callOptimizations[index] = effectiveOptimization
-            // Mark the defining LOAD immediates for dead registers as dead (to suppress their regfile store).
-            // These may be non-contiguous with the CALL, so search for each dead reg's defining LOAD.
+            // Mark the defining LOAD immediates for dead registers as dead; they may be non-contiguous with the CALL.
             for (register in effectiveOptimization.deadRegisters) {
                 val forwardedLoad = effectiveOptimization.loads[register] ?: continue
                 // Find the chunk-local index of this exact LOAD instruction
@@ -1032,17 +1302,17 @@ internal class AsmGen(val program: IRProgram, internal val target: ICompilationT
      */
     private fun emitFrameZeroLoop(startDisp: Int, longwords: Int) {
         invalidateD0Cache()     // moveq clobbers d0
-        emitLine("moveq  #0, d0")
-        emitLine("lea  $startDisp(a5), a0")
+        emitLine("moveq  #0, $SCRATCH_D0")
+        emitLine("lea  $startDisp(a5), $SCRATCH_A0")
         val iterations = longwords - 1
         if (iterations in 0..127)
-            emitLine("moveq  #$iterations, d1")
+            emitLine("moveq  #$iterations, $SCRATCH_D1")
         else
-            emitLine("move.w  #$iterations, d1")
+            emitLine("move.w  #$iterations, $SCRATCH_D1")
         val loopLabel = makeLabel("zeroloop")
         emitLabel(loopLabel)
-        emitLine("move.l  d0,(a0)+")
-        emitLine("dbra  d1,$loopLabel")
+        emitLine("move.l  $SCRATCH_D0,($SCRATCH_A0)+")
+        emitLine("dbra  $SCRATCH_D1,$loopLabel")
         invalidateD0Cache()
     }
 
@@ -1085,11 +1355,11 @@ internal class AsmGen(val program: IRProgram, internal val target: ICompilationT
             return null
 
         val loads = mutableMapOf<VirtualRegister, IRInstruction>()
-        // For each call argument, find the most recent LOAD immediate that defines it,
-        // allowing gaps and non-LOAD instructions between the LOAD and the CALL,
-        // as long as there's no intervening write to that register.
+        // Find the most recent LOAD immediate defining each call argument, allowing gaps but no intervening write.
         for (arg in callSite.arguments) {
             val register = arg.source.register
+            // Immediate forwarding applies to spilled operands only; register-resident args go through call marshalling.
+            if (register in regAllocation) continue
             // search backwards for the defining LOAD immediate
             for (idx in callIndex - 1 downTo chunkStartIndex) {
                 val insn = instructions[idx]
@@ -1117,8 +1387,7 @@ internal class AsmGen(val program: IRProgram, internal val target: ICompilationT
         forwardedImmediateCall: ImmediateCallOptimization? = null,
         suppressRegfileStore: Boolean = false
     ) {
-        // No IR echo for zero-clear stores: prologue clear runs would drown in
-        // "; storezm" noise while the lowered clr lines are self-explanatory.
+        // No IR echo for zero-clear stores: prologue clear runs would drown in "; storezm" noise.
         if (insn.opcode != Opcode.STOREZM)
             emitRaw("        ; $insn")
         when (insn.opcode) {
@@ -1495,10 +1764,9 @@ internal class AsmGen(val program: IRProgram, internal val target: ICompilationT
             emitRaw("")
     }
 
-    // Emit the size and member offsets of all struct/union types as vasm 'equ' symbols,
-    // so inline asm can reference them by name (parity with the 64tass-based backends).
-    // Offsets use the same packed layout (no alignment padding) that the compiler's own
-    // member-access codegen uses: a plain fold over the target's memory sizes.
+    // Emit the size and member offsets of all struct/union types as vasm 'equ' symbols, so inline
+    // asm can reference them by name. Offsets use the same packed layout (no alignment padding)
+    // that the compiler's own member-access codegen uses.
     private fun emitStructDefs() {
         val structs = program.st.allStructDefs().toList()
         if (structs.isEmpty()) return
@@ -1549,10 +1817,7 @@ internal class AsmGen(val program: IRProgram, internal val target: ICompilationT
 
         fun layout(v: IRStStaticVariable): Triple<IRStStaticVariable, Int, Int> {
             val size = target.memorySize(v.dt, v.length?.toInt())
-            // M68K alignment rules:
-            // - Objects containing 32-bit types need 4-byte alignment
-            // - Objects containing 16-bit types need 2-byte alignment
-            // - Pure byte arrays/scalars only need 1-byte alignment
+            // M68K alignment: 4 bytes for 32-bit types, 2 for 16-bit types, 1 for pure byte arrays/scalars.
             val alignment = when {
                 v.dt.isPointer || v.dt.isLong || v.dt.isFloat -> 4
                 v.dt.isWord -> 2
@@ -1632,8 +1897,7 @@ internal class AsmGen(val program: IRProgram, internal val target: ICompilationT
             emitLine("ds.b  ${floatRegFileLayout.totalSize}")
         }
 
-        // define the end of the program (used by startup code for BSS clearing)
-        // only needed for RAW (no linker script); ELF uses the linker file instead
+        // define the end of the program (used by startup code for BSS clearing); ELF uses the linker file
         if(program.options.output == OutputType.RAW)
             emitLabel("prog8_program_end")
 

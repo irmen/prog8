@@ -32,12 +32,14 @@ class TestPtBuilders : FunSpec({
         val pos = Position.DUMMY
         val sub = PtAsmSub.builder("my_asm_sub", pos)
             .clobbers(setOf(CpuRegister.A, CpuRegister.X))
+            .clobbersDeclared(true)
             .inline(true)
             .addReturn(RegisterOrStatusflag(RegisterOrPair.A, null), DataType.UBYTE)
             .build()
 
         sub.name shouldBe "my_asm_sub"
         sub.clobbers shouldBe setOf(CpuRegister.A, CpuRegister.X)
+        sub.clobbersDeclared shouldBe true
         sub.inline shouldBe true
         sub.returns shouldHaveSize 1
         sub.returns[0].first.registerOrPair shouldBe RegisterOrPair.A

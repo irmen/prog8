@@ -71,6 +71,7 @@ strings {
         ; Copy a string to another, overwriting that one.
         ; Returns the length of the string that was copied.
         %asm {{
+            move.l   d2,-(sp)
             movea.l  d0,a0
             movea.l  d1,a1
             moveq    #0,d0
@@ -81,6 +82,7 @@ strings {
             addq.l   #1,d0
             bra.s    .loop
 .done:
+            move.l   (sp)+,d2
             rts
         }}
     }
@@ -90,6 +92,7 @@ strings {
         ; Always null-terminates the result.
         ; Returns the length of the string that was copied.
         %asm {{
+            move.l   d2,-(sp)
             movea.l  d0,a0
             movea.l  d1,a1
             moveq    #0,d0
@@ -104,10 +107,12 @@ strings {
             bne      .loop
             ; maxlength bytes reached - null-terminate
             clr.b    (a1)
+            move.l   (sp)+,d2
             rts
 .zero:
             clr.b    (a1)
 .done:
+            move.l   (sp)+,d2
             rts
         }}
     }

@@ -98,11 +98,12 @@ adpcm {
         decode_block_mono_loop(nibblesptr, outptr)
     }
 
-    private asmsub decode_block_mono_loop(pointer nibblesptr @A0, pointer outptr @A1) clobbers (D0, D1, D2, D3, D4, D6, D7, A0, A1, A2, A3) {
+    private asmsub decode_block_mono_loop(pointer nibblesptr @A0, pointer outptr @A1) {
         ; Decode 252 nibbles (63 longwords) using four-byte input unrolling.
         ; D7 = predict, D6 = (rowindex+1)*32, D4 = loaded longword, D3 = temp word.
         ; One table offset serves both the delta lookup and the pre-scaled next-state lookup.
         %asm {{
+        movem.l d2-d7/a2-a4,-(sp)
         lea     p8b_adpcm.p8v_deltas_table-32,a2
         lea     p8b_adpcm.p8v_next_state_table,a3
         moveq   #0,d6
@@ -263,6 +264,7 @@ adpcm {
         lsr.w   #5,d1
         subq.w  #1,d1
         move.b  d1,p8b_adpcm.p8v_rowindex
+        movem.l (sp)+,d2-d7/a2-a4
         rts
         }}
     }
@@ -284,7 +286,7 @@ adpcm {
         decode_block_stereo_loop(nibblesptr, outptr)
     }
 
-    private asmsub decode_block_stereo_loop(pointer nibblesptr @A0, pointer outptr @A1) clobbers (D0, D1, D2, D3, D4, D5, D6, D7, A0, A1, A2, A3, A4) {
+    private asmsub decode_block_stereo_loop(pointer nibblesptr @A0, pointer outptr @A1) {
         ; Decode 248 nibbles in 31 outer iterations, each processing 4 left bytes
         ; then 4 right bytes.  D7/D6 = left predict/(rowindex+1)*32, D5/D3 = right,
         ; D4 = loaded longword, D2 = temp word, A5 = outer loop counter.
@@ -293,6 +295,7 @@ adpcm {
         ; A5 is used as scratch here, but it is the caller's frame pointer register, so it is
         ; saved and restored around the loop.
         %asm {{
+        movem.l d2-d7/a2-a4,-(sp)
         lea     p8b_adpcm.p8v_deltas_table-32,a2
         lea     p8b_adpcm.p8v_next_state_table,a3
         moveq   #0,d3
@@ -512,6 +515,7 @@ adpcm {
         subq.w  #1,d1
         move.b  d1,p8b_adpcm.p8v_rowindex_2
         move.l  (sp)+,a5        ; restore the caller's frame pointer register
+        movem.l (sp)+,d2-d7/a2-a4
         rts
         }}
     }

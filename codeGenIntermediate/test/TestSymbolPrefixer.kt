@@ -176,7 +176,7 @@ class TestSymbolPrefixer : FunSpec({
     test("prefixSymbols handles asmsub") {
         val program = PtProgram("test", VMTarget())
         val block = PtBlock("main", false, SourceCode.Generated("test"), PtBlock.Options(), Position.DUMMY)
-        val asmsub = PtAsmSub("routine", PtAsmSub.Address(null, null, 0x5000u), setOf(CpuRegister.Y), emptyList(), emptyList(), false, Position.DUMMY)
+        val asmsub = PtAsmSub("routine", PtAsmSub.Address(null, null, 0x5000u), setOf(CpuRegister.Y), true, emptyList(), emptyList(), false, Position.DUMMY)
         block.add(asmsub)
         program.add(block)
 

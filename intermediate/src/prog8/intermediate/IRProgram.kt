@@ -662,6 +662,7 @@ class IRAsmSubroutine(
     override val label: String,
     val address: UInt?,
     val clobbers: Set<CpuRegister>,
+    val clobbersDeclared: Boolean,
     val parameters: List<IRAsmParam>,
     val returns: List<IRAsmParam>,
     val asmChunk: IRInlineAsmChunk,

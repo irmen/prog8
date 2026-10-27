@@ -3,11 +3,12 @@ compression {
     %option ignore_unused, merge
 
 
-    asmsub decode_rle(^^ubyte compressed @A0, ^^ubyte target @A1, uword maxsize @D0) clobbers (A1, D0, D1, D2) -> ^^ubyte @A0 {
+    asmsub decode_rle(^^ubyte compressed @A0, ^^ubyte target @A1, uword maxsize @D0) -> ^^ubyte @A0 {
         ; -- Decodes "ByteRun1" (aka PackBits) RLE compressed data. Control byte value 128 ends the decoding.
         ;    Also stops decompressing if the maxsize has been reached.
         ;    Returns the size of the decompressed data.
         %asm {{
+                    move.l  d2,-(sp)
 .next_packet:
                     tst.w   d0
                     ble.s   .done
@@ -37,6 +38,7 @@ compression {
                     bra.s   .next_packet
 
 .done:
+                    move.l  (sp)+,d2
                     rts
         }}
     }

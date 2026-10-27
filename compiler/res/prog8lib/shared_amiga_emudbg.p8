@@ -14,7 +14,7 @@
 emudbg {
     %option merge, ignore_unused
 
-    asmsub is_emulator() clobbers (D1) -> bool @D0 {
+    asmsub is_emulator() -> bool @D0 {
         ; the uaelib trap stub at $F0FF60 starts with a JSR instruction ($4EB9);
         ; WinUAE's alternative A-line form starts with $A00E
         %asm {{
@@ -134,7 +134,7 @@ emudbg {
         }}
     }
 
-    private asmsub write_trap_console(str text @D0) clobbers (D0) {
+    private asmsub write_trap_console(str text @D0) {
         ; WinUAE-compatible debug output via the uaelib trap (function 86).
         ; Prints "DBG: %s\n" to the host console. Works on both WinUAE and Copperline.
         %asm {{
@@ -146,7 +146,7 @@ emudbg {
         }}
     }
 
-    private asmsub call_trap(long functionNumber @D0) clobbers (D0) {
+    private asmsub call_trap(long functionNumber @D0) {
         ; call the uaelib trap like a C function: the function number is the first stack argument
         %asm {{
             move.l  d0,-(sp)

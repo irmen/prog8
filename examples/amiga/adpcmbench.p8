@@ -21,6 +21,7 @@ main {
 
     ; Size of the decoded PCM output, computed during decoding.
     long decoded_pcm_size
+    long adpcm_blocks
 
     sub start() {
         if not timer.opendevice() {
@@ -57,9 +58,13 @@ main {
         }
         defer exec.FreeMem(wav_buffer, file_size)
 
-        long decode_s, decode_us = timer.getsystime()
         bool decode_ok = benchmark(file_size)
+        long decode_s, decode_us = timer.getsystime()
+        if decode_ok
+            decode_adpcm()
         long decode_end_s, decode_end_us = timer.getsystime()
+        if decode_ok
+            txt.print("done\n")
 
         long load_duration = duration_us(load_s, load_us, load_end_s, load_end_us)
         long decode_duration = duration_us(decode_s, decode_us, decode_end_s, decode_end_us)
@@ -94,12 +99,12 @@ main {
         print_header_info()
 
         if wavfile.wavefmt==wavfile.Format::DVI_ADPCM
-            return decode_adpcm(file_size)
+            return prepare_adpcm(file_size)
         txt.print("unsupported audio format for conversion\n")
         return false
     }
 
-    sub decode_adpcm(long file_size) -> bool {
+    sub prepare_adpcm(long file_size) -> bool {
         decoded_pcm_size = 0
         ; This decoder only supports the 256-byte block size used by standard
         ; ffmpeg/sox-generated IMA-ADPCM files.
@@ -135,21 +140,24 @@ main {
         txt.print_l(decoded_pcm_size)
         txt.print(" bytes of PCM output)...\n")
 
+        adpcm_blocks = blocks
+        return true
+    }
+
+    sub decode_adpcm() {
         pointer inputptr = wav_buffer + wavfile.data_offset
         pointer outputptr = &decoded_block
         if wavfile.nchannels == 1 {
-            repeat blocks {
+            repeat adpcm_blocks {
                 adpcm.decode_block_mono(inputptr, outputptr)
                 inputptr += ADPCM_BLOCK_SIZE
             }
         } else {
-            repeat blocks {
+            repeat adpcm_blocks {
                 adpcm.decode_block_stereo(inputptr, outputptr)
                 inputptr += ADPCM_BLOCK_SIZE
             }
         }
-        txt.print("done\n")
-        return true
     }
 
     sub duration_us(long start_s, long start_us, long end_s, long end_us) -> long {

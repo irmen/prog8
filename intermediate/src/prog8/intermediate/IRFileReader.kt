@@ -652,6 +652,9 @@ class IRFileReader {
 
         val clobbers = attrs.getValue("CLOBBERS")
         val clobberRegs = if(clobbers.isBlank()) emptyList() else clobbers.split(',').map { CpuRegister.valueOf(it) }
+        // absent marker (files written before it existed) means "not declared", which callers
+        // must treat as unknown clobbers rather than as an empty set
+        val clobbersDeclared = attrs["CLOBBERSDECLARED"]?.toBoolean() ?: false
         val returnsSpec = attrs.getValue("RETURNS")
         val returns = if(returnsSpec.isNullOrBlank()) emptyList() else returnsSpec.split(',').map { rs ->
             val (regstr, dtstr) = rs.split(':')
@@ -663,6 +666,7 @@ class IRFileReader {
             attrs.getValue("NAME"),
             if(attrs.getValue("ADDRESS")=="") null else parseIRValue(attrs.getValue("ADDRESS")).toUInt(),
             clobberRegs.toSet(),
+            clobbersDeclared,
             params,
             returns,
             assembly,
