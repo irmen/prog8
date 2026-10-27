@@ -11,8 +11,9 @@ Related design: `m68k-register-allocation.md`.
 **Status:** Draft, updated to the current compiler state (Oct 2026). Findings are
 recorded. F2 (signed division by a power of two), F3+F5 (load/extend fusion), C1
 (known-zero zero-store removal), A5 (small constants as `moveq`), A7 (conditional branch
-inversion), and the worthwhile M6 `moveq` count-load improvement are implemented. F1 and
-F8 were measured and are not implemented; remaining items are unimplemented.
+inversion), and the worthwhile M6 `moveq` count-load improvement are implemented. F1 is
+implemented on the register-allocation branch; F8 was measured and is not implemented.
+Remaining items are unimplemented.
 
 ## Recently implemented
 
@@ -24,7 +25,6 @@ F8 were measured and are not implemented; remaining items are unimplemented.
 
 These items may only be beneficial on the register-allocation branch:
 
-- **F1** - store-then-reload folding.
 - **F4 / M1** - avoid routing pointers through data registers.
 - **M3** - allocator-side coalescing for F3 zero-extending loads.
 - **M4** - allocator-side coalescing for F5 sign-extending loads.
@@ -88,7 +88,7 @@ opportunities: nearly all of them skip the body of an `if` that ends the subrout
 
 ## Findings by family
 
-### F1 - store then reload (IR codegen) - NET LOSS WHEN NO REGISTER ALLOCATOR IS PRESENT; MAY BE BENEFICIAL WITH REGISTER ALLOCATOR
+### F1 - store then reload (IR codegen) - IMPLEMENTED FOR THE REGISTER-ALLOCATION BRANCH
 
 - Asm: `move.l d2,-8(a5)` then `move.l -8(a5),d2` (`tictactoe.asm:3637-3640`);
   `move.l d4,dos.read_file.lock` then `move.l dos.read_file.lock,d2`
@@ -98,24 +98,20 @@ opportunities: nearly all of them skip the body of an `if` that ends the subrout
 - Source: `^^graphics.RastPort rp = easygfx.rastport` followed by
   `void graphics.SetFont(rp, font)` (`tictactoe.p8:43-44`). The local is written to its
   frame slot and read back in the next statement.
-- Why it stays: `IRPeepholeOptimizer.kt:955-967` only removes a `loadm` followed by a
-  `storem` of the same memory. The reverse order (store, then load) is handled only by
-  `foldStoremLoadmToLoadr`, which is disabled (`IRPeepholeOptimizer.kt:8-15`). Its
-  reason was the cost of regfile spills. On `master` the `p8_regfile` path is the
-  default, so that cost argument applies directly. On the register-allocation branch the
-  fold would need re-measuring on the allocator path.
+- The implemented fold replaces an adjacent `storem`/`loadm` pair with a `loadr` when the
+  type and direct memory location match. Indirect and indexed references, and known I/O
+  addresses, are left unchanged.
 - Same family: the `for index in 0 to 20` loop counter in frame memory
   (`addq.b #1,-5(a5)` then `move.b -5(a5),d2`, `window3d` and `circles`). Its fix is
   promotion, which is M9 in the peephole document.
 - Owner: IR codegen. The AST is correct here, and it has no register concept.
 - AST processing: no change needed.
-- **Measured (Oct 2026):** re-enabling `foldStoremLoadmToLoadr` (copy case) regresses every
-  amiga1200 example on `master` (no register allocator): +1,565 bytes `.asm` and +1,260 bytes
-  binary in total across 23 examples (per-program binary growth up to +120 bytes), because the
-  regfile is memory and the fold forces an extra spill. The same-register (drop) sub-case never
-  triggers in practice. Conclusion: NET LOSS when no register allocator is present; may be
-  beneficial with a register allocator, where the store's source stays in a real CPU register.
-  Revisit on the register-allocation branch with a cost model.
+- **Measured (Oct 2026):** enabling the fold on the register-allocation branch reduced the
+  23-example amiga1200 corpus by 2,529 `.asm` bytes and 500 binary bytes in total. All 23
+  assembly outputs shrank; 22 binaries shrank and one was unchanged. The corresponding
+  baseline totals were 3,851,161 `.asm` bytes and 172,348 binary bytes, so the reductions
+  were 0.066% and 0.290%. The no-allocator `master` measurement remains a net loss and is
+  not a target for this implementation.
 
 ### F2 - signed division by a power of two (IR codegen) - implemented
 
@@ -328,10 +324,9 @@ is fixed in IR codegen (`StackFrameLayout`), not in the AST.
    Allocator, AsmGen, backend and promotion items are in `m68k-asm-peepholes.md` under
    "Moved items", with the owner named there. Do not implement any of these as
    peepholes.
-2. **Measure before changing.** For F1 (the store/load fold), measure the baseline with
-   and without the change on `master`, and check the 2% size limit. Done for F2: the
-   uncommitted change was measured against a `HEAD` baseline; window3d exceeds the 2%
-   binary limit and the rest is below it (numbers in the F2 section).
+2. **Measure before changing.** F1 was measured on the register-allocation branch and
+   F2 was measured against a `HEAD` baseline; window3d exceeds the 2% binary limit and
+   the rest is below it (numbers in the F1 and F2 sections).
 3. **Verification.** Same as the peephole document: the `codeGenM68k` tests, a compiler
    install, and runs on `amiga500` (see the peephole document for the emulator notes).
    Because items 1-4 and F1/F2 change shared IR, also compile a 6502 or other non-m68k

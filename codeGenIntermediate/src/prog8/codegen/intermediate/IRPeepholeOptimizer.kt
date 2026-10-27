@@ -6,13 +6,6 @@ import prog8.intermediate.*
 
 class IRPeepholeOptimizer(private val irprog: IRProgram, private val retainSSA: Boolean) {
     // NOTE: Several peephole ideas have been deliberately NOT enabled or were reverted:
-    // - foldStoremLoadmToLoadr: goal was to avoid redundant memory traffic for `storem rX,addr ; loadm rY,addr`
-    //   by replacing the load with `loadr rY,rX` (keep value in register). Removed because on m68k/amiga
-    //   the regfile is memory, so keeping the store's source register live for the loadr forces an extra
-    //   spill (move.b d0,regfile ; move.b regfile,mem ; move.b regfile,regfile2) vs the original 2 moves
-    //   via memory (move.b d0,mem ; move.b mem,regfile). This increased textelite by ~344 bytes and other
-    //   amiga examples by 20-230 bytes. Re-enable only with a cost model that proves it shrinks the m68k
-    //   output (e.g. when source is already in regfile and not a call result in d0).
     // - removeLoadrForwarding (goal: coalesce `load r1,#imm ; loadr r2,r1` chains and forward constants) was
     //   previously disabled (half-assed) because it ignored cross-chunk liveness, call side-effects, and
     //   indexRegType for LOADX/STOREX. It is now enabled with a conservative single-chunk
@@ -64,7 +57,7 @@ class IRPeepholeOptimizer(private val irprog: IRProgram, private val retainSSA: 
                                 || removeDoubleLoadsAndStores(chunk1, indexedInstructions)
                                 || removeDoubleLoadsAndStoresIndexed(chunk1, indexedInstructions)
                                 || foldLoadStoremToStoreim(chunk1, indexedInstructions)
-                                // foldStoremLoadmToLoadr (storem+loadm -> loadr) intentionally not called: see class comment
+                                || foldStoremLoadmToLoadr(chunk1, indexedInstructions)
                                 || collapseConversions(chunk1, indexedInstructions)
                                 // dedup matches the loadm+ext pairs that fuseLoadExtend removes, so it must run first
                                 || deduplicateAddressComputations(chunk1)
@@ -950,6 +943,30 @@ jump p8_label_gen_2
                     }
                 }
             }
+        }
+        return changed
+    }
+
+    private fun foldStoremLoadmToLoadr(chunk: IRCodeChunk, indexedInstructions: List<IndexedValue<IRInstruction>>): Boolean {
+        if(!irprog.options.compTarget.cpu.is68k)
+            return false
+        var changed = false
+        indexedInstructions.forEach { (idx, ins) ->
+            if (ins.opcode != Opcode.LOADM || idx == 0)
+                return@forEach
+            val prev = indexedInstructions[idx - 1].value
+            if (prev.opcode != Opcode.STOREM || prev.type != ins.type || prev.memory != ins.memory)
+                return@forEach
+            val memory = ins.memory
+            if (memory !is MemoryReference.Direct)
+                return@forEach
+            val absoluteAddress = memory.absoluteAddress
+            if (absoluteAddress != null && irprog.options.compTarget.isIOAddress(absoluteAddress.value + memory.displacement.toUInt()))
+                return@forEach
+            val source = prev.srcA ?: return@forEach
+            val destination = ins.dest ?: return@forEach
+            chunk.instructions[idx] = IRInstructions.move(destination, source)
+            changed = true
         }
         return changed
     }

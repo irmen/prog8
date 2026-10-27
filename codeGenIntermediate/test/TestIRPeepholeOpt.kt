@@ -5,6 +5,8 @@ import prog8.code.core.OutputType
 import prog8.code.core.Position
 import prog8.code.core.ZeropageType
 import prog8.code.target.VMTarget
+import prog8.code.target.Qemu68kTarget
+import prog8.code.core.ICompilationTarget
 import prog8.codegen.intermediate.IRPeepholeOptimizer
 import prog8.intermediate.*
 import prog8tests.helpers.ErrorReporterForTests
@@ -12,13 +14,12 @@ import prog8tests.helpers.ErrorReporterForTests
 class TestIRPeepholeOpt: FunSpec({
     val indexRegType = VMTarget().indexRegType
 
-    fun makeIRProgram(chunks: List<IRCodeChunkBase>): IRProgram {
+    fun makeIRProgram(chunks: List<IRCodeChunkBase>, target: ICompilationTarget = VMTarget()): IRProgram {
         require(chunks.first().label=="p8b_main.p8s_start")
         val block = IRBlock("p8b_main", false, IRBlock.Options(), Position.DUMMY)
         val sub = IRSubroutine("p8b_main.p8s_start", emptyList(), emptyList(), Position.DUMMY)
         chunks.forEach { sub += it }
         block += sub
-        val target = VMTarget()
         val options = CompilationOptions.builder(target)
             .output(OutputType.RAW)
             .zeropage(ZeropageType.DONTUSE)
@@ -627,6 +628,23 @@ class TestIRPeepholeOpt: FunSpec({
         instr.count { it.opcode==Opcode.STOREM } shouldBe 1
         instr.count { it.opcode==Opcode.LOADM } shouldBe 1
         instr.count { it.opcode==Opcode.LOADR } shouldBe 0
+    }
+
+    test("fold storem+loadm to loadr") {
+        val c = IRCodeChunk("p8b_main.p8s_start", null)
+        c += IRInstructions.storeMemory(Opcode.STOREM, IRDataType.BYTE, 5, IRMemory.direct("myVar"))
+        c += IRInstructions.loadMemory(Opcode.LOADM, IRDataType.BYTE, 6, IRMemory.direct("myVar"))
+        c += IRInstructions.returnVoid()
+        val irProg = makeIRProgram(listOf(c), Qemu68kTarget())
+        val opt = IRPeepholeOptimizer(irProg, false)
+        opt.optimize(true, ErrorReporterForTests())
+        val instr = irProg.chunks().single().instructions
+        instr.count { it.opcode==Opcode.STOREM } shouldBe 1
+        instr.count { it.opcode==Opcode.LOADM } shouldBe 0
+        instr.count { it.opcode==Opcode.LOADR } shouldBe 1
+        val move = instr.single { it.opcode == Opcode.LOADR }
+        move.requireDest().register shouldBe VirtualRegister.int(6)
+        move.requireSrcA().register shouldBe VirtualRegister.int(5)
     }
 
     test("do not fold storem+loadm across chunks single-chunk") {
