@@ -267,6 +267,7 @@ Major breaking changes that require code modifications when upgrading:
 **v14.0** — upcoming
     - **32-bit Motorola 68000/68020 (m68k) support** — a brand new, IR-based code generator targeting the 68000 CPU family. This brings 32-bit compilation targets to Prog8 for the first time.
     - **New compilation targets** — ``amiga500`` (68000), ``amiga1200`` (68020 with optional FPU), and ``qemu68k`` (Qemu m68k simulator). These targets are experimental and still under active development.
+    - **M68K stack frames and register allocation** — ordinary subroutine locals and parameters now live in activation records on the CPU stack (A5 frame pointer), making subroutines recursive and re-entrant. An intraprocedural register allocator keeps hot values in hardware registers. ``asmsub`` routines must preserve ``D2-D6``/``A2-A4``/``FP2-FP7`` (no ``clobbers()`` list); use ``%option noframe`` for subroutines that manipulate the stack themselves. Clean locals are zero-initialized on every call.
     - **32-bit virtual machine** — the ``virtual`` target's VM has been upgraded from its 8-bit origins to use 32-bit registers (m68k style), aligning it with the new m68k targets and making it a suitable execution platform for testing 32-bit code.
     - **``pointer`` type alias** — a plain untyped address type that is 2 bytes (a ``uword``) on the 8-bit targets and 4 bytes (a ``long``) on the 32-bit m68k and virtual targets. See :ref:`pointers`.
     - **``%assert`` directive** — compile-time assertions for constant expressions.
