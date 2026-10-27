@@ -673,6 +673,71 @@ class StackFrameLayout(private val program: IRProgram, private val errors: IErro
             val firstChunk = sub.chunks.first() as IRCodeChunk
             firstChunk.instructions.addAll(0, prologueInstrs)
         }
+
+        // Known-zero pass (Ranked #1): remove provably redundant zero stores in the first chunk.
+        // Bytes cleared by the prologue (or by an earlier zero store) are tracked; a later
+        // store of zero to an already-zero frame slot is removed. This applies only to framed
+        // subroutines; static subroutines still need their StatementReorderer zero stores on
+        // every call. The StatementReorderer assignment itself is not touched in the AST.
+        val firstChunk2 = sub.chunks.firstOrNull() as? IRCodeChunk
+        if (firstChunk2 != null) {
+            val zeroed = mutableSetOf<Int>()
+            val toNop = mutableListOf<Int>()
+            for (i in firstChunk2.instructions.indices) {
+                val ins = firstChunk2.instructions[i]
+                if (ins.controlFlow != ControlFlowEffect.FALLTHROUGH) {
+                    zeroed.clear()
+                    continue
+                }
+                val mem = ins.memory
+                val frameOffset = if (mem is MemoryReference.Direct && mem.base is AddressBase.FrameSlot)
+                    (mem.base as AddressBase.FrameSlot).offset + mem.displacement else null
+                if (frameOffset == null) {
+                    if (ins.memoryEffect != MemoryEffect.NONE && ins.memoryEffect != MemoryEffect.READ)
+                        zeroed.clear()
+                    continue
+                }
+                val size = when (ins.type) {
+                    IRDataType.BYTE -> 1
+                    IRDataType.WORD -> 2
+                    IRDataType.LONG, IRDataType.FLOAT, IRDataType.POINTER -> 4
+                    else -> 0
+                }
+                if (size <= 0) {
+                    if (ins.memoryEffect != MemoryEffect.NONE && ins.memoryEffect != MemoryEffect.READ)
+                        zeroed.clear()
+                    continue
+                }
+                if (ins.memoryEffect == MemoryEffect.READ)
+                    continue
+                val isZeroStore = when (ins.opcode) {
+                    Opcode.STOREZM -> true
+                    Opcode.STOREIM -> {
+                        val imm = ins.immediate
+                        when (imm) {
+                            is ImmediateOperand.Integer -> imm.value == 0
+                            is ImmediateOperand.FloatValue -> imm.value == 0.0
+                            else -> false
+                        }
+                    }
+                    else -> false
+                }
+                if (isZeroStore) {
+                    val bytes = (0 until size).map { frameOffset + it }
+                    if (bytes.all { it in zeroed }) {
+                        toNop.add(i)
+                    } else {
+                        zeroed.addAll(bytes)
+                    }
+                } else {
+                    // unknown value written to this frame slot: invalidate
+                    for (b in 0 until size) zeroed.remove(frameOffset + b)
+                }
+            }
+            for (i in toNop.sortedDescending()) {
+                firstChunk2.instructions[i] = IRInstructions.simple(Opcode.NOP)
+            }
+        }
         sub.frameSize = frameSize
         sub.incomingSize = incomingSize
         sub.frameVregSlots = vregSlots

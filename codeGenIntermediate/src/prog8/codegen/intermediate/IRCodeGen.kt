@@ -1327,12 +1327,12 @@ class IRCodeGen(
             return code
         }
 
-// NOTE: bias-shift code not activated because it causes large code bloat
-//        if(pow2>=0 && signed && options.compTarget.cpu.is6502) {
-//            // signed division by a power of two: bias-corrected shift (much cheaper than a DIVS routine on the 6502)
-//            emitSignedDivByPow2Shift(code, dt, reg, pow2)
-//            return code
-//        }
+        // bias-shift code is enabled for m68k only: on the 6502 it causes large code bloat
+        if(pow2>=0 && signed && options.compTarget.cpu.is68k) {
+            // signed division by a power of two: bias-corrected shift (much cheaper than a DIVS routine on m68k)
+            emitSignedDivByPow2Shift(code, dt, reg, pow2)
+            return code
+        }
 
         // regular div (also used for signed division by a power of two on non-6502 targets: >> floors,
         // whereas / truncates toward zero for negative dividends, so a plain shift is wrong)
@@ -1373,21 +1373,21 @@ class IRCodeGen(
         // signed division by a power of two falls through to the real division below
         else
         {
-// NOTE: bias-shift code not activated because it causes large code bloat
-//            if(pow2>=0 && signed && options.compTarget.cpu.is6502) {
-//                // signed division by a power of two: bias-corrected shift (much cheaper than a DIVS routine on the 6502)
-//                val reg = registers.next(dt)
-//                code += if(knownAddress!=null)
-//                    IRInstructions.loadMemory(Opcode.LOADM, dt, reg, IRMemory.direct(knownAddress.toAddress()))
-//                else
-//                    IRInstructions.loadMemory(Opcode.LOADM, dt, reg, IRMemory.direct(symbol))
-//                emitSignedDivByPow2Shift(code, dt, reg, pow2)
-//                code += if(knownAddress!=null)
-//                    IRInstructions.storeMemory(Opcode.STOREM, dt, reg, IRMemory.direct(knownAddress.toAddress()))
-//                else
-//                    IRInstructions.storeMemory(Opcode.STOREM, dt, reg, IRMemory.direct(symbol))
-//                return code
-//            }
+// bias-shift code is enabled for m68k only: on the 6502 it causes large code bloat
+            if(pow2>=0 && signed && options.compTarget.cpu.is68k) {
+                // signed division by a power of two: bias-corrected shift (much cheaper than a DIVS routine on m68k)
+                val reg = registers.next(dt)
+                code += if(knownAddress!=null)
+                    IRInstructions.loadMemory(Opcode.LOADM, dt, reg, IRMemory.direct(knownAddress.toAddress()))
+                else
+                    IRInstructions.loadMemory(Opcode.LOADM, dt, reg, IRMemory.direct(symbol!!))
+                emitSignedDivByPow2Shift(code, dt, reg, pow2)
+                code += if(knownAddress!=null)
+                    IRInstructions.storeMemory(Opcode.STOREM, dt, reg, IRMemory.direct(knownAddress.toAddress()))
+                else
+                    IRInstructions.storeMemory(Opcode.STOREM, dt, reg, IRMemory.direct(symbol!!))
+                return code
+            }
 
             // regular div
             if (factor == 0) {
@@ -1418,12 +1418,14 @@ class IRCodeGen(
         }
     }
 
-/*    private fun emitSignedDivByPow2Shift(code: IRCodeChunk, dt: IRDataType, reg: Int, pow2: Int) {
-        // Signed division by 2^pow2 via a bias-corrected arithmetic shift, which is far cheaper
-        // than a DIVS routine on the 6502. Plain arithmetic shift floors toward -inf, whereas
-        // integer division truncates toward zero, so for negative dividends we must add the
-        // remainder before shifting. The sign-dependent correction is folded into the add:
+    private fun emitSignedDivByPow2Shift(code: IRCodeChunk, dt: IRDataType, reg: Int, pow2: Int) {
+        // Signed division by 2^pow2 via a bias-corrected arithmetic shift. Plain arithmetic
+        // shift floors toward -inf, whereas integer division truncates toward zero, so for
+        // negative dividends we must add the remainder before shifting. The sign-dependent
+        // correction is folded into the add:
         //   result = (x + ((x >> (W-1)) & (2^pow2 - 1))) >> pow2
+        // Only enabled for the 68k targets: without register allocation the regfile moves
+        // make the sequence large, so it is a size loss on other targets.
         val wordSize = when(dt) {
             IRDataType.BYTE -> 8
             IRDataType.WORD -> 16
@@ -1441,7 +1443,7 @@ class IRCodeGen(
         code += IRInstructions.binaryImmediate(Opcode.AND, dt, signReg, mask)   // signReg = correction
         code += IRInstructions.binary(Opcode.ADDR, dt, reg, signReg)        // reg = x + correction
         code += IRInstructions.binary(Opcode.ASRN, dt, reg, nReg)          // reg = result
-    }*/
+    }
 
     private fun translate(ifElse: PtIfElse): IRCodeChunks {
         val goto = ifElse.ifScope.children.firstOrNull() as? PtJump

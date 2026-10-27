@@ -81,6 +81,26 @@ internal fun AsmGen.translateLoadStore(insn: IRInstruction) {
             indirectLoad(dst, mem.pointer.intNumber, mem.displacement, type)
         }
 
+        Opcode.LOADMZ, Opcode.LOADMS, Opcode.LOADMZL, Opcode.LOADMSL -> {
+            val dst = insn.requireIntDest().intNumber
+            val target = resolveAddress(insn.requireMemory())
+            val isSign = insn.opcode in setOf(Opcode.LOADMS, Opcode.LOADMSL)
+            val isLong = insn.opcode in setOf(Opcode.LOADMZL, Opcode.LOADMSL)
+            val srcType = if (isLong) IRDataType.BYTE else type
+            loadFromMemory(dst, target, srcType)
+            extendLoadedValue(dst, srcType, isLong, isSign)
+        }
+
+        Opcode.LOADIZ, Opcode.LOADIS, Opcode.LOADIZL, Opcode.LOADISL -> {
+            val dst = insn.requireIntDest().intNumber
+            val mem = insn.requireMemory() as MemoryReference.Indirect
+            val isSign = insn.opcode in setOf(Opcode.LOADIS, Opcode.LOADISL)
+            val isLong = insn.opcode in setOf(Opcode.LOADIZL, Opcode.LOADISL)
+            val srcType = if (isLong) IRDataType.BYTE else type
+            indirectLoad(dst, mem.pointer.intNumber, mem.displacement, srcType)
+            extendLoadedValue(dst, srcType, isLong, isSign)
+        }
+
         Opcode.STOREM -> {
             val src = insn.requireIntSourceA().intNumber
             val target = resolveAddress(insn.requireMemory())
@@ -760,6 +780,62 @@ internal fun AsmGen.loadImmediate(reg: Int, value: Int, type: IRDataType) {
         }
         IRDataType.FLOAT -> {
             TODO("FLOAT LOAD immediate r$reg = $value")
+        }
+    }
+}
+
+// Widens the byte or word just loaded into dst to a word, or to a long when isLong is set.
+internal fun AsmGen.extendLoadedValue(dst: Int, srcType: IRDataType, isLong: Boolean, isSign: Boolean) {
+    if (isLong) {
+        if (isSign) {
+            emitLine("lda  ${regAddrLo(dst)}")
+            emitLine("and  #128")
+            emitLine("beq  +")
+            emitLine("lda  #255")
+            emitLine("sta  ${regAddrHi(dst)}")
+            emitLine("sta  ${regAddrByte(dst, 2)}")
+            emitLine("sta  ${regAddrByte(dst, 3)}")
+            emitUnconditionalBranch("++")
+            emitLabel("+")
+            emitStoreZero(regAddrHi(dst))
+            emitStoreZero(regAddrByte(dst, 2))
+            emitStoreZero(regAddrByte(dst, 3))
+            emitLabel("+")
+        } else {
+            emitStoreZero(regAddrHi(dst))
+            emitStoreZero(regAddrByte(dst, 2))
+            emitStoreZero(regAddrByte(dst, 3))
+        }
+    } else if (srcType == IRDataType.BYTE) {
+        if (isSign) {
+            emitLine("lda  ${regAddrLo(dst)}")
+            emitLine("and  #128")
+            emitLine("beq  +")
+            emitLine("lda  #255")
+            emitLine("sta  ${regAddrHi(dst)}")
+            emitUnconditionalBranch("++")
+            emitLabel("+")
+            emitStoreZero(regAddrHi(dst))
+            emitLabel("+")
+        } else {
+            emitStoreZero(regAddrHi(dst))
+        }
+    } else { // word source -> long dest: bytes 0 and 1 hold the word, only bytes 2 and 3 are extended
+        if (isSign) {
+            emitLine("lda  ${regAddrHi(dst)}")
+            emitLine("and  #128")
+            emitLine("beq  +")
+            emitLine("lda  #255")
+            emitLine("sta  ${regAddrByte(dst, 2)}")
+            emitLine("sta  ${regAddrByte(dst, 3)}")
+            emitUnconditionalBranch("++")
+            emitLabel("+")
+            emitStoreZero(regAddrByte(dst, 2))
+            emitStoreZero(regAddrByte(dst, 3))
+            emitLabel("+")
+        } else {
+            emitStoreZero(regAddrByte(dst, 2))
+            emitStoreZero(regAddrByte(dst, 3))
         }
     }
 }

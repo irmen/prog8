@@ -267,8 +267,14 @@ private fun AsmGen.shiftRegister(reg: Int, count: Int, type: IRDataType, isArith
         emitLine("$op$s  #$count, $SCRATCH_D0")
         emitStoreD0(reg, type)
     } else {
-        // m68k immediate-shift range is 1..8; larger counts go via a data register (move.w keeps counts <= 32767).
-        emitLine("move.w  #$count, $SCRATCH_D1")
+        // m68k immediate-shift range is 1..8; for larger counts the count
+        // has to go into a data register first. Use moveq for the common
+        // positive counts that fit its signed 8-bit immediate; move.w is
+        // still required for counts above 127.
+        if (count in 1..127)
+            emitLine("moveq  #$count, $SCRATCH_D1")
+        else
+            emitLine("move.w  #$count, $SCRATCH_D1")
         emitLoadD0(reg, type)
         emitLine("$op$s  $SCRATCH_D1, $SCRATCH_D0")
         emitStoreD0(reg, type)

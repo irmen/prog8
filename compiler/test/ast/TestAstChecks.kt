@@ -18,6 +18,26 @@ import prog8tests.helpers.compileText
 class TestAstChecks: FunSpec({
 
     val outputDir = tempdir().toPath()
+
+    test("warns when byte multiplication is widened after evaluation") {
+        val text = """
+            main {
+                ubyte @shared a
+                uword @shared bad
+                uword @shared good
+                uword @shared safe
+                sub start() {
+                    bad = a * 159
+                    good = (a as uword) * 159
+                    safe = a * 1
+                }
+            }
+        """
+        val errors = ErrorReporterForTests(keepMessagesAfterReporting = true)
+        compileText(Cx16Target(), false, text, outputDir, writeAssembly = false, errors = errors) shouldNotBe null
+        errors.warnings.count { it.contains("multiplication is evaluated as") } shouldBe 1
+        errors.warnings.single { it.contains("multiplication is evaluated as") } shouldContain "cast an operand to uword"
+    }
     
     test("conditional expression w/float works") {
         val text = """

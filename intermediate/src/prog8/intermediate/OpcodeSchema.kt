@@ -343,6 +343,27 @@ object OpcodeSchemas {
                 mem(MemoryKind.INDIRECT, MemoryEffect.READ)
             )
         }
+        // Extending loads: load a byte/word from memory and widen it into a wider register.
+        for (opcode in listOf(Opcode.LOADMZ, Opcode.LOADMS, Opcode.LOADIZ, Opcode.LOADIS)) {
+            val indirect = opcode in listOf(Opcode.LOADIZ, Opcode.LOADIS)
+            val kind = if (indirect) MemoryKind.INDIRECT else MemoryKind.DIRECT
+            define(opcode, "BW", memoryEffect = MemoryEffect.READ) { t ->
+                listOf(
+                    reg(fileOf(widened(t)), InstructionSlot.DEST, OperandRole.RESULT, OperandDirection.DEF, TypeRule.Fixed(widened(t))),
+                    mem(kind, MemoryEffect.READ)
+                )
+            }
+        }
+        for (opcode in listOf(Opcode.LOADMZL, Opcode.LOADMSL, Opcode.LOADIZL, Opcode.LOADISL)) {
+            val indirect = opcode in listOf(Opcode.LOADIZL, Opcode.LOADISL)
+            val kind = if (indirect) MemoryKind.INDIRECT else MemoryKind.DIRECT
+            define(opcode, "B", memoryEffect = MemoryEffect.READ) { t ->
+                listOf(
+                    reg(fileOf(IRDataType.LONG), InstructionSlot.DEST, OperandRole.RESULT, OperandDirection.DEF, TypeRule.Fixed(IRDataType.LONG)),
+                    mem(kind, MemoryEffect.READ)
+                )
+            }
+        }
         define(Opcode.LOADHFACZERO, "F") { listOf(freg(InstructionSlot.DEST, OperandRole.RESULT, OperandDirection.DEF)) }
         define(Opcode.LOADHFACONE, "F") { listOf(freg(InstructionSlot.DEST, OperandRole.RESULT, OperandDirection.DEF)) }
 

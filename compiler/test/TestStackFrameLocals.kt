@@ -161,6 +161,33 @@ main {
         ir.contains("FRAMESIZE=\"2\"") shouldBe true
     }
 
+    test("known-zero pass removes redundant zero stores but keeps resets") {
+        val src = """
+main {
+    sub leaf() {
+        ubyte a
+        ubyte b
+        a = 0
+        b = a
+        a = 0
+        a = 2
+        a = 0
+    }
+    sub start() {
+        leaf()
+    }
+}
+"""
+        val (_, ir) = compile(src)
+        val leafCode = ir.substringAfter("<SUB NAME=\"p8b_main.p8s_leaf\"")
+            .substringBefore("</SUB>")
+        // The prologue clear covers both bytes. The first two a=0 stores are redundant even
+        // though b=a reads a and writes the other frame byte in between; the final reset after
+        // a=2 remains.
+        leafCode.lines().count { it.trim() == "storezm.b [frame:-1]" } shouldBe 1
+        leafCode.lines().count { it.trim().startsWith("loadm.b r") && it.trim().endsWith(".b,[frame:-1]") } shouldBe 1
+    }
+
     test("recursive subroutine gets a frame with per-activation virtual registers") {
         // slice 3: a subroutine on a call-graph cycle moves its virtual registers into the frame,
         // so two live activations no longer share the flat program-static regfile

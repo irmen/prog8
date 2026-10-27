@@ -11,8 +11,9 @@
 main {
 
     sub start() {
+        sys.memcopy(&sprites.balloonsprite, $2000, 64)     ; copy to a 64-byte aligned address outside the VIC character ROM window ($1000-$1fff)
         for i in 0 to 7 {
-            c64.set_sprite_ptr(i, &sprites.balloonsprite)           ; alternatively, set directly:  c64.SPRPTR[i] = $0a00 / 64
+            c64.set_sprite_ptr(i, $2000)           ; alternatively, set directly:  c64.SPRPTR[i] = $0a00 / 64
         }
         sprites.set_sprites_X(0)
         sprites.set_sprites_Y(sprites.sprites_Y_start)
@@ -88,7 +89,9 @@ sprites {
         }
     }
 
-    ubyte[] @align64 balloonsprite = [
+    ; Sprites must start on an address aligned to 64 bytes;
+    ; main program copies it to a memory location visible to the VIC-II
+    ubyte[] balloonsprite = [
         %00000000,%01111111,%00000000,
         %00000001,%11111111,%11000000,
         %00000011,%11111111,%11100000,

@@ -274,12 +274,20 @@ class VirtualMachine(private val irProgram: IRProgram) {
             Opcode.NOP -> nextPc()
             Opcode.LOAD -> InsLOAD(ins)
             Opcode.LOADM -> InsLOADM(ins)
+            Opcode.LOADMZ -> InsLOADMZ(ins)
+            Opcode.LOADMS -> InsLOADMS(ins)
+            Opcode.LOADMZL -> InsLOADMZL(ins)
+            Opcode.LOADMSL -> InsLOADMSL(ins)
             Opcode.LOADX -> InsLOADX(ins)
             Opcode.LOADR -> InsLOADR(ins)
             Opcode.LOADHR -> InsLOADHR(ins)
             Opcode.LOADHFACZERO -> InsLOADHFACZERO(ins)
             Opcode.LOADHFACONE -> InsLOADHFACONE(ins)
             Opcode.LOADI -> InsLOADI(ins)
+            Opcode.LOADIZ -> InsLOADIZ(ins)
+            Opcode.LOADIS -> InsLOADIS(ins)
+            Opcode.LOADIZL -> InsLOADIZL(ins)
+            Opcode.LOADISL -> InsLOADISL(ins)
             Opcode.LOADP_INC -> InsLOADP_INC(ins)
             Opcode.STOREP_INC -> InsSTOREP_INC(ins)
             Opcode.STOREM -> InsSTOREM(ins)
@@ -642,6 +650,86 @@ class VirtualMachine(private val irProgram: IRProgram) {
             IRDataType.POINTER -> registers.setUL(dest, memory.getUL(baseAddr + offset.toUInt()))
             IRDataType.LONG -> registers.setSL(dest, memory.getSL(baseAddr + offset.toUInt()))
         }
+        nextPc()
+    }
+
+    private fun InsLOADMZ(i: IRInstruction) {
+        val dest = i.requireDest().registerNumber
+        val address = (i.requireMemory() as MemoryReference.Direct).resolvedAddress()
+        when (i.type!!) {
+            IRDataType.BYTE -> registers.setUW(dest, memory.getUB(address).toUShort())
+            IRDataType.WORD -> registers.setSL(dest, memory.getUW(address).toInt() and 0xFFFF)
+            else -> throw IllegalArgumentException("LOADMZ of unsupported type ${i.type}")
+        }
+        nextPc()
+    }
+
+    private fun InsLOADMS(i: IRInstruction) {
+        val dest = i.requireDest().registerNumber
+        val address = (i.requireMemory() as MemoryReference.Direct).resolvedAddress()
+        when (i.type!!) {
+            IRDataType.BYTE -> registers.setSW(dest, memory.getSB(address).toShort())
+            IRDataType.WORD -> registers.setSL(dest, memory.getSW(address).toInt())
+            else -> throw IllegalArgumentException("LOADMS of unsupported type ${i.type}")
+        }
+        nextPc()
+    }
+
+    private fun InsLOADMZL(i: IRInstruction) {
+        val dest = i.requireDest().registerNumber
+        val address = (i.requireMemory() as MemoryReference.Direct).resolvedAddress()
+        registers.setSL(dest, memory.getUB(address).toInt())
+        nextPc()
+    }
+
+    private fun InsLOADMSL(i: IRInstruction) {
+        val dest = i.requireDest().registerNumber
+        val address = (i.requireMemory() as MemoryReference.Direct).resolvedAddress()
+        registers.setSL(dest, memory.getSB(address).toInt())
+        nextPc()
+    }
+
+    private fun InsLOADIZ(i: IRInstruction) {
+        val dest = i.requireDest().registerNumber
+        val mem = i.requireMemory() as MemoryReference.Indirect
+        val baseAddr = mem.pointer.readPointerValue()
+        val address = baseAddr + mem.displacement.toUInt()
+        when (i.type!!) {
+            IRDataType.BYTE -> registers.setUW(dest, memory.getUB(address).toUShort())
+            IRDataType.WORD -> registers.setSL(dest, memory.getUW(address).toInt() and 0xFFFF)
+            else -> throw IllegalArgumentException("LOADIZ of unsupported type ${i.type}")
+        }
+        nextPc()
+    }
+
+    private fun InsLOADIS(i: IRInstruction) {
+        val dest = i.requireDest().registerNumber
+        val mem = i.requireMemory() as MemoryReference.Indirect
+        val baseAddr = mem.pointer.readPointerValue()
+        val address = baseAddr + mem.displacement.toUInt()
+        when (i.type!!) {
+            IRDataType.BYTE -> registers.setSW(dest, memory.getSB(address).toShort())
+            IRDataType.WORD -> registers.setSL(dest, memory.getSW(address).toInt())
+            else -> throw IllegalArgumentException("LOADIS of unsupported type ${i.type}")
+        }
+        nextPc()
+    }
+
+    private fun InsLOADIZL(i: IRInstruction) {
+        val dest = i.requireDest().registerNumber
+        val mem = i.requireMemory() as MemoryReference.Indirect
+        val baseAddr = mem.pointer.readPointerValue()
+        val address = baseAddr + mem.displacement.toUInt()
+        registers.setSL(dest, memory.getUB(address).toInt())
+        nextPc()
+    }
+
+    private fun InsLOADISL(i: IRInstruction) {
+        val dest = i.requireDest().registerNumber
+        val mem = i.requireMemory() as MemoryReference.Indirect
+        val baseAddr = mem.pointer.readPointerValue()
+        val address = baseAddr + mem.displacement.toUInt()
+        registers.setSL(dest, memory.getSB(address).toInt())
         nextPc()
     }
 
