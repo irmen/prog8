@@ -116,17 +116,17 @@ text matches before the rewrite's conditions are applied.
 
 ### Tier A - window-2 peepholes (no liveness needed)
 
-| ID | Pattern | Rewrite | Count |
-| --- | --- | --- | --- |
-| A1 | `move.S dN,M` / `move.S M,dN` | drop the reload | not re-measured |
-| A2 | `move.S dN,M` / `move.S M,dK` (K != N) | keep the store, replace reload with `move.S dN,dK` | not re-measured |
-| A3 | `move.S dA,dB` / `move.S dB,dA` | drop the second move | not re-measured |
-| A4 | `move.S dN,dN` | drop the self-move (see safety) | 14 |
-| A5 | `move.w/l #N,dK`, N in -128..127 (or $FF80..$FFFF for .w) | `moveq #N,dK` | 644 raw `move.w`/`move.l #imm,dN`; in-range subset not re-counted |
-| A6 | `move.b M,dN` / `and.l #$ff,dN` | `moveq #0,dN` / `move.b M,dN` | 21 |
-| A7 | `bCC L1` / `bra L2` / `L1:` | `bCC' L2` | about 14 `bCC` then `bra` pairs (rough; exact shape not checked) |
-| A8 | moved to "Moved items" (M2, AsmGen) | - | - |
-| A9 | `bra L` where `L:` is `rts`, or `unlk a5` then `rts` | copy the return sequence in place of the `bra` | 35 |
+| ID | Pattern | Rewrite | Count | Status |
+| --- | --- | --- | --- | --- |
+| A1 | `move.S dN,M` / `move.S M,dN` | drop the reload | 0 (eliminated by F1+allocator) | NOT WORTH IT (trivially 0) |
+| A2 | `move.S dN,M` / `move.S M,dK` (K != N) | keep the store, replace reload with `move.S dN,dK` | 35 (23 programs) | open |
+| A3 | `move.S dA,dB` / `move.S dB,dA` | drop the second move | 46 (23 programs) | open |
+| A4 | `move.S dN,dN` | drop the self-move (see safety) | 14 | DO NOT IMPLEMENT |
+| A5 | `move.w/l #N,dK`, N in -128..127 (or $FF80..$FFFF for .w) | `moveq #N,dK` | 644 raw `move.w`/`move.l #imm,dN`; in-range subset not re-counted | IMPLEMENTED (.l at emitter, .w via peephole) |
+| A6 | `move.b M,dN` / `and.l #$ff,dN` | `moveq #0,dN` / `move.b M,dN` | 17 (10 programs) | open |
+| A7 | `bCC L1` / `bra L2` / `L1:` | `bCC' L2` | about 14 `bCC` then `bra` pairs (rough; exact shape not checked) | IMPLEMENTED |
+| A8 | moved to "Moved items" (M2, AsmGen) | - | - | moved |
+| A9 | `bra L` where `L:` is `rts`, or `unlk a5` then `rts` | copy the return sequence in place of the `bra` | 35 | NOT WORTH IT |
 
 A6 has a better fix outside the peephole: an explicit zero-extension in the IR (see
 `m68k-compiler-optimizations.md`, F8). This peephole is the fallback for the cases that
@@ -168,12 +168,12 @@ Safety notes:
 
 ### Tier B - block-local liveness needed
 
-| ID | Pattern | Rewrite | Count |
-| --- | --- | --- | --- |
-| B1 | `move.b M,dA` / `moveq #0,dB` / `move.b dA,dB` | `moveq #0,dB` / `move.b M,dB` when dA is dead and `M` does not use `dB` | not re-measured |
-| B2 | `move.l #sym,dN` / `movea.l dN,aM` | `movea.l #sym,aM` when dN is dead | not re-measured |
-| B2b | `move.l M,dN` / `movea.l dN,aM` | `movea.l M,aM` when dN is dead | not re-measured |
-| B3 | `lea X,aN` / `movea.l aN,aM` | `lea X,aM` when aN is dead | not re-measured |
+| ID | Pattern | Rewrite | Count | Status |
+| --- | --- | --- | --- | --- |
+| B1 | `move.b M,dA` / `moveq #0,dB` / `move.b dA,dB` | `moveq #0,dB` / `move.b M,dB` when dA is dead and `M` does not use `dB` | 21 (14 programs) | open |
+| B2 | `move.l #sym,dN` / `movea.l dN,aM` | `movea.l #sym,aM` when dN is dead | 0 (eliminated by M1) | NOT WORTH IT (trivially 0) |
+| B2b | `move.l M,dN` / `movea.l dN,aM` | `movea.l M,aM` when dN is dead | 11 (4 programs) | open |
+| B3 | `lea X,aN` / `movea.l aN,aM` | `lea X,aM` when aN is dead | 11 (6 programs) | open |
 
 B1b (`move.S M,dA` / `move.S dA,dB`) is not a peephole. It is argument setup that the
 allocator should remove, and it is listed as M5 under "Moved items".
@@ -209,22 +209,22 @@ each one, so the owner should make the change. Counts are from the baseline scan
 register allocator, so it is listed here too.
 
 - **M1 - argument register hints (allocator) - IMPLEMENTED.** Pointer through a data register:
-  `move.l #sym,dN` / `movea.l dN,aM` (180 matches) and `move.l M,dN` / `movea.l dN,aM`
-  (296 matches). The most common pattern in the scan. Example
+  `move.l #sym,dN` / `movea.l dN,aM` (180 raw, 0 remaining after M1) and `move.l M,dN` /
+  `movea.l dN,aM` (296 raw, 11 remaining after M1). The most common pattern in the scan. Example
   `adpcmbench.asm:1359-1364`, from `txt.print("...")` (`adpcmbench.p8:28`). IR:
   `load.p r222.p,#prog8_interned_strings.string_1`, then
   `call p8b_txt.p8s_print(r222.p@s18)`. A pointer vreg used only as an `a0` argument
   should be allocated to `a0`. Peepholes B2 and B2b are partial fixes. The same hints
   remove the call-setup copies and self-moves (A3, A4, B1b). Example: `move.w d2,d2` /
   `move.w d3,d3` before `bsr blitter.line_draw` in `circles`.
-- **M2 - empty `run_global_inits` (AsmGen).** `bsr run_global_inits` in the program entry
+- **M2 - empty `run_global_inits` (AsmGen) - CLOSED-NOT WORTH IT.** `bsr run_global_inits` in the program entry
   point, and a `run_global_inits:` body that is only `rts`. Occurs in 15 programs (the
   old peephole item A8). `AsmGen.kt:1007-1009` always emits the label and the `rts`, and
   `AsmGen.kt:1058-1059` always emits the call for `p8b_main.p8s_start`. Fix: skip both
   when `program.globalInits` is empty. This changes the output for 15 programs, so it
   needs a decision (open question 2).
 - **M3 - zero-extended copy coalescing (allocator) - NOT WORTH IT.** The allocator part of F3:
-  `moveq #0,dB` / `move.b dA,dB` (404 matches). The allocator should place the result of
+  `moveq #0,dB` / `move.b dA,dB` (404 raw, 69 remaining after F3 fusion). The allocator should place the result of
   `loadm.b` in the register that the following `ext.b` writes. The IR fusion
   (compiler document, item 2) removes most of these. Peephole B1 is the fallback.
 - **M4 - sign-extension copy coalescing (allocator) - NOT WORTH IT.** The allocator part of F5:
@@ -245,7 +245,8 @@ register allocator, so it is listed here too.
   the full epilogue across paths with identical stack/register-save state; the simpler
   precursor (A9, single `bra` to a return block) was already closed as not worth the
   complexity. Not analysed further.
-- **M9 - local promotion to vregs (IR, allocator-dependent).** Promote non-escaping
+- **M9 - local promotion to vregs (IR, allocator-dependent) - COMPLEX.** Plan document:
+  `ideas/m68k-m9-local-promotion.md`. Promote non-escaping
   scalar locals and parameters to vregs before `StackFrameLayout`. This is the largest
   opportunity on the register-allocation branch. Earlier snapshots had 1,843 loads from
   frame locals and parameters, 193 loads from locals of static subroutines, and 334
@@ -298,12 +299,10 @@ Answered:
 
 Still open:
 
-1. **A5 `.w` form.** Include the `.w` form of `moveq` (A5) with a check on later reads,
-   or only the `.l` form? The `.w` form saves more cycles, but it needs the read check
-   described in the safety notes.
-2. **Skip the empty `run_global_inits` (M2).** Skip the call and the body when there are
-   no global initialisers? This is a small AsmGen change, and it changes the output for
-   15 programs.
-3. **Local promotion scope (M9).** Should promotion be limited to m68k for now? The 6502
-   effect is unknown, and vregs are not obviously cheaper than static cells there. Should
-   promotion also get its own plan document in `ideas/`? It is large enough to need one.
+(none)
+
+Answered (added):
+
+- **Local promotion scope (M9).** RESOLVED: plan document created at
+  `ideas/m68k-m9-local-promotion.md`. Recommendation: implement for m68k first,
+  measure 6502 separately, gate behind `is68k` if 6502 shows no benefit.

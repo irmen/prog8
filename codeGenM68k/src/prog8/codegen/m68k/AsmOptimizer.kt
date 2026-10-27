@@ -44,6 +44,13 @@ internal fun optimizeAssembly(lines: MutableList<String>) {
     if (leaMods.isNotEmpty()) {
         applyModifications(leaMods, lines, pretrimmed)
     }
+
+    // A5 .w form: rewrite move.w #N,dK to moveq #N,dK when safe (no longword read of dK
+    // before a full write or block boundary in the same basic block).
+    val moveqMods = optimizeMoveqWordForm(lines, pretrimmed)
+    if (moveqMods.isNotEmpty()) {
+        applyModifications(moveqMods, lines, pretrimmed)
+    }
 }
 
 /**
@@ -100,6 +107,101 @@ private fun optimizeRedundantLea(allPretrimmed: List<String>): List<Modification
         if (instr.replace(parenthesised, "").contains(SCRATCH_A0, ignoreCase = true))
             a0Base = null
     }
+    return mods
+}
+
+/**
+ * A5 .w form: rewrite `move.w #N,dK` to `moveq #N,dK` when N fits in -128..127
+ * (or $FF80..$FFFF unsigned), provided no subsequent longword read of dK occurs
+ * before a full write or block boundary in the same basic block.
+ */
+private fun optimizeMoveqWordForm(lines: MutableList<String>, allPretrimmed: List<String>): List<Modification> {
+    val controlTransfers = setOf(
+        "bra", "bsr", "jmp", "jsr", "rts", "rtr", "rte", "trap",
+        "bcc", "bcs", "beq", "bne", "bmi", "bpl", "bvc", "bvs",
+        "bhi", "bls", "bhs", "blo", "bgt", "ble", "bge", "blt",
+        "dbcc", "dbcs", "dbhi", "dbhs", "dblo", "dbls", "dbne", "dbnz", "dbeq", "dbz",
+        "dbmi", "dbpl", "dbge", "dblt", "dbgt", "dble", "dbvc", "dbvs", "dbtst", "dbset",
+        "dbclr", "dbchg", "dbf", "dbra"
+    )
+
+    // Filter to non-blank, non-comment lines
+    val filtered = allPretrimmed.withIndex()
+        .filter { it.value.isNotBlank() && !it.value.trimStart().startsWith(';') }
+        .map { IndexedValue(it.index, it.value.trimStart()) }
+        .toList()
+
+    val mods = mutableListOf<Modification>()
+
+    for (i in filtered.indices) {
+        val line = filtered[i].value
+        // Match move.w #N,dK
+        val lower = line.lowercase()
+        if (!lower.startsWith("move.w")) continue
+        val operands = line.substringAfter(' ').substringBefore(';').trim()
+        val parts = operands.split(',', limit = 2)
+        if (parts.size != 2) continue
+        val src = parts[0].trim()
+        val dst = parts[1].trim()
+        if (!src.startsWith("#")) continue
+        if (!dst.matches(Regex("d[0-7]"))) continue
+
+        // Parse immediate
+        val immStr = src.substring(1).trim()
+        val value = try {
+            when {
+                immStr.startsWith("$") -> immStr.substring(1).toInt(16)
+                immStr.startsWith("0x", ignoreCase = true) -> immStr.substring(2).toInt(16)
+                else -> immStr.toInt()
+            }
+        } catch (e: NumberFormatException) { continue }
+        // Normalize unsigned .w range to signed
+        val signedValue = if (value > 32767) value - 65536 else value
+        if (signedValue !in -128..127) continue
+
+        // Check safety: scan forward in same basic block
+        var safe = true
+        for (j in i + 1 until filtered.size) {
+            val nextLine = filtered[j].value
+            val nextLower = nextLine.lowercase()
+            val nextInstr = nextLine.substringBefore(';').trim()
+
+            // Block boundary?
+            if (hasLabel(nextLine)) { break }
+            val mnemonic = nextInstr.substringBefore(' ').substringBefore('\t').lowercase()
+            if (mnemonic in controlTransfers) { break }
+            if (nextLine.trimStart().startsWith(';')) { continue }
+
+            // Does this instruction fully write dK? (kills liveness)
+            // Full writes: move.l, moveq, clr.l, and.l/or.l/eor.l/add.l/sub.l/etc with dK as dest
+            val fullWritePattern = Regex("""\b(move\.l|moveq|clr\.l|and\.l|or\.l|eor\.l|add\.l|sub\.l|mulu\.l|muls\.l|divu\.l|divs\.l)\s+.*,\s*${Regex.escape(dst)}\b""")
+            if (fullWritePattern.containsMatchIn(nextInstr.lowercase())) { break }
+            // Also move.w/move.b/moveq with dK as dest is NOT a full write (only low bits)
+            // But move.l/moveq/clr.l are full writes (handled above)
+
+            // Check for longword read of dK
+            // A .l instruction that mentions dK (as source or in a read context)
+            if (nextInstr.lowercase().contains(".l") && nextInstr.contains(dst)) {
+                // But exclude if dK is only in the destination position of a full write (already handled above)
+                // Check if it's a read: dK appears not just as the destination of a full write
+                val parts2 = nextInstr.split(',', limit = 2)
+                val isDestOnly = parts2.size == 2 && parts2[1].trim() == dst && fullWritePattern.containsMatchIn(nextInstr.lowercase())
+                if (!isDestOnly) {
+                    safe = false
+                    break
+                }
+            }
+        }
+
+        if (safe) {
+            val originalLine = lines.getOrNull(filtered[i].index) ?: allPretrimmed[filtered[i].index]
+            val originalIndent = originalLine.takeWhile { it.isWhitespace() }
+            val label = keepLabel(filtered[i].value)
+            val labelPrefix = if (label.isNotEmpty()) "$label  " else ""
+            mods.add(Modification(filtered[i].index, false, "$originalIndent$labelPrefix" + "moveq  #${signedValue}, $dst"))
+        }
+    }
+
     return mods
 }
 

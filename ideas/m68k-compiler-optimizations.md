@@ -17,7 +17,10 @@ Remaining items are unimplemented.
 
 ## Recently implemented
 
-- [x] **A5** - use `moveq` for representable constants loaded into D0-D7.
+- [x] **A5** - use `moveq` for representable constants loaded into D0-D7. `.l` form
+  implemented at emitter level (InstrArithmetic, InstrControl, AsmGen); `.w` form
+  implemented as a peephole in AsmOptimizer (optimizeMoveqWordForm) with block-local
+  liveness check. Measured (Oct 2026): -416 binary bytes across 16 programs.
 - [x] **A7** - invert a conditional branch over an unconditional jump.
 - [x] **M6** - use `moveq` for representable constant shift/loop counts loaded into D1/D7.
 - [x] **F4 / M1** - avoid routing pointers through data registers. Pointer vregs used only as `a`-register call arguments get a `PREFER_ADDRESS` hint so they are allocated to an address register instead of a data register. Measured (Oct 2026): -1,044 binary bytes across 12 of 23 Amiga examples, zero binary regressions.
@@ -26,7 +29,9 @@ Remaining items are unimplemented.
 
 These items may only be beneficial on the register-allocation branch:
 
-- **M9** - promote scalar frame locals to virtual registers.
+- **M9** - promote scalar frame locals to virtual registers. **COMPLEX** (largest opportunity).
+  Plan document: `ideas/m68k-m9-local-promotion.md`. Recommendation: m68k first, measure
+  6502 separately, gate behind `is68k`.
 
 ## Closed as not worth implementing
 
@@ -42,7 +47,7 @@ These items may only be beneficial on the register-allocation branch:
 - **M4** - allocator-side coalescing for F5 sign-extending loads. Only 4 remaining
   patterns after IR fusion. Same interference issue as M3. Not worth implementing.
 - **F6 / M2** - remove an empty `run_global_inits` call. It saves only a single `jsr`,
-  which does not justify the added special-case complexity.
+  which does not justify the added special-case complexity. **CLOSED-NOT WORTH IT**.
 - **F7 / A9** - remove unconditional branches to shared return blocks. A local rewrite
   duplicates the `unlk`/`rts` epilogue or breaks other incoming paths; a worthwhile fix
   would require CFG block reordering, which is not justified for this small opportunity.
@@ -354,13 +359,11 @@ Answered:
   enabled for the 68k CPU family only (`is68k`); the 6502 path stays disabled. It is
   implemented and measured, but on `master` the size result is growth, not a gain
   (window3d +2.81% binary, above the 2% limit), because the regfile path turns the
-  shift sequence into many regfile moves. Whether the change stays on `master` or is
-  gated on the register allocation branch is not decided yet.
+  shift sequence into many regfile moves. DECIDED: keep as-is on both branches.
 - **Byte-truncation check.** Implemented as a warning for potentially overflowing narrow
   multiplication before an implicit widening conversion. Explicitly widening an operand
   before multiplication suppresses the warning.
 
 Still open:
 
-1. **F2 policy.** Whether the signed power-of-two division rewrite should remain on
-   `master` or be gated to the register-allocation branch remains undecided.
+(none)
