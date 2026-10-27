@@ -4,12 +4,17 @@
 
 Promote non-escaping scalar locals and parameters to virtual registers before
 `StackFrameLayout`. This is the largest remaining optimization opportunity on
-the register-allocation branch.
+the m68k branch.
 
-Related documents:
-- `m68k-compiler-optimizations.md` (F1, F4/M1, and other IR/AST items)
-- `m68k-asm-peepholes.md` (M9 moved item)
-- `m68k-register-allocation.md` (allocator design)
+**Status:** Not implemented. The prerequisites (register allocator as the default
+code path) are now in place (Stage 4 of the register-allocation effort is
+complete), so M9 is unblocked.
+
+Related documents (historical; the first two were removed after their items landed):
+- `m68k-compiler-optimizations.md` (removed) tracked F1, F4/M1 and other IR/AST items
+- `m68k-asm-peepholes.md` (removed) originally carried the M9 "moved" item
+- `m68k-register-allocation.md` (removed) carried the allocator design; the allocator
+  is now the sole code path in `M68kCodeGenerator.kt`
 
 ## Background
 
@@ -24,10 +29,11 @@ eliminating most frame-slot traffic.
   (negative offsets) and parameters into the incoming argument area (positive
   offsets).
 - Virtual registers (vregs) are allocated to physical registers by
-  `M68kRegisterAllocator`.
-- On `master` (no allocator), vregs get frame slots via `frameVregSlots` in
-  `AsmGen.kt`, so promotion alone only moves a local from one frame slot to
-  another. It needs the allocator to pay off.
+  `M68kRegisterAllocator`, which is now the sole code path (no flag or fallback).
+- `frameVregSlots` in `AsmGen.kt` still maps spilled vregs to frame slots, so
+  promoted locals that the allocator cannot keep in a physical register spill
+  back into the frame. Promotion only pays off in conjunction with the allocator,
+  which is now always on.
 
 ### Opportunity size
 
@@ -48,7 +54,8 @@ Reuse the `StackFrameLayout` checks. A local is eligible for promotion when ALL 
 - Not explicitly aligned (`align == 0`)
 - Not `@shared`
 - Not zeropage-wished (`zpwish` not `REQUIRE`/`PREFER`)
-- Plain scalar data: byte/word/long/pointer (not arrays, not structs, not strings)
+- Plain scalar data: byte/word/long/pointer (not structs, not strings; arrays are
+  frameable but are not promoted as a single vreg)
 
 Additionally:
 - Must not escape (address not taken, no asm reference)

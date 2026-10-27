@@ -53,6 +53,37 @@ class TestM68kRegisterAllocator : FunSpec({
         listOf("d2", "d3", "d4", "d5", "d6").contains(dataReg) shouldBe true
     }
 
+    test("pointer call-argument vreg is hinted to ADDRESS pool") {
+        // M1/F4: a pointer vreg used only as an a-register call argument should be
+        // allocated to an address register rather than routed through a data register.
+        val options = CompilationOptions.builder(Qemu68kTarget())
+            .output(OutputType.RAW).zeropage(ZeropageType.FLOATSAFE)
+            .compilerVersion("test").memtopAddress(0xffffu).optimize(true).build()
+        val program = IRProgram("test", IRSymbolTable(), options, DummyStringEncoder)
+        val chunk = IRCodeChunk(null, null)
+        // Load pointer from memory (not an immediate), so the vreg is not eligible for
+        // immediate-argument forwarding and must be allocated.
+        chunk.instructions.add(IRInstructions.loadMemory(Opcode.LOADM, IRDataType.POINTER, 1, IRMemory.direct("p8b_test.p8v_ptr")))
+        val callSite = CallSite(
+            CallTarget.Direct(CodeReference.Label("test.other", 0)),
+            arguments = listOf(
+                Calls.argument(1, IRDataType.POINTER, CallLocation.HardwareRegister(CallingConventionSlot(18)))
+            )
+        )
+        chunk.instructions.add(IRInstruction(Opcode.CALL, null, callSite = callSite))
+        val sub = IRSubroutine("test.start", emptyList(), emptyList(), Position.DUMMY)
+        sub.chunks.add(chunk)
+        val other = IRSubroutine("test.other", emptyList(), emptyList(), Position.DUMMY)
+        other.chunks.add(IRCodeChunk(null, null))
+        val block = IRBlock("test", false, IRBlock.Options(), Position.DUMMY)
+        block.children.add(sub)
+        block.children.add(other)
+        program.blocks.add(block)
+
+        val alloc = M68kRegisterAllocator(program).allocate().mapBySub[sub]!!
+        listOf("a2", "a3", "a4").contains(alloc[VirtualRegister.int(1)]) shouldBe true
+    }
+
     test("value live across a CALL is never allocated to a caller-saved register") {
         val options = CompilationOptions.builder(Qemu68kTarget())
             .output(OutputType.RAW).zeropage(ZeropageType.FLOATSAFE)

@@ -32,7 +32,7 @@ import prog8.intermediate.*
  *   - Known-unsound liveness for complex control flow (nested loops,
  *     conditionals, early returns) - see bug 2 below.
  *
- * Intended reuse path (per ideas/m68k-register-allocation.md):
+ * Intended reuse path (historical; ideas/m68k-register-allocation.md removed after Stage 4):
  *   - Stage 1: Make the m68k backend's instruction selection location-agnostic
  *     (operand() indirection returning "d3" if allocated, "p8_regfile+N" if
  *     spilled) - prerequisite bulk work, no behavior change.

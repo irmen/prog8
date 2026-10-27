@@ -142,16 +142,16 @@ private fun optimizeMoveqWordForm(lines: MutableList<String>, allPretrimmed: Lis
 
     for (i in filtered.indices) {
         val line = filtered[i].value
-        // Match move.w #N,dK
-        val lower = line.lowercase()
-        if (!lower.startsWith("move.w")) continue
-        val operands = line.substringAfter(' ').substringBefore(';').trim()
+        // Match move.w #N,dK (strip any label first, so "label: move.w ..." is also handled)
+        val instr = line.instructionPart().lowercase()
+        if (!instr.startsWith("move.w")) continue
+        val operands = line.instructionPart().instructionOperands() ?: continue
         val parts = operands.split(',', limit = 2)
         if (parts.size != 2) continue
         val src = parts[0].trim()
-        val dst = parts[1].trim()
+        val dst = parts[1].trim().lowercase()
         if (!src.startsWith("#")) continue
-        if (!dst.matches(Regex("d[0-7]"))) continue
+        if (!dst.matches(dataRegisterPattern)) continue
 
         // Parse immediate
         val immStr = src.substring(1).trim()
@@ -188,11 +188,12 @@ private fun optimizeMoveqWordForm(lines: MutableList<String>, allPretrimmed: Lis
 
             // Check for longword read of dK
             // A .l instruction that mentions dK (as source or in a read context)
-            if (nextInstr.lowercase().contains(".l") && nextInstr.contains(dst)) {
+            val nextInstrLower = nextInstr.lowercase()
+            if (nextInstrLower.contains(".l") && nextInstrLower.contains(dst)) {
                 // But exclude if dK is only in the destination position of a full write (already handled above)
                 // Check if it's a read: dK appears not just as the destination of a full write
-                val parts2 = nextInstr.split(',', limit = 2)
-                val isDestOnly = parts2.size == 2 && parts2[1].trim() == dst && fullWritePattern.containsMatchIn(nextInstr.lowercase())
+                val parts2 = nextInstrLower.split(',', limit = 2)
+                val isDestOnly = parts2.size == 2 && parts2[1].trim() == dst && fullWritePattern.containsMatchIn(nextInstrLower)
                 if (!isDestOnly) {
                     safe = false
                     break
@@ -205,7 +206,7 @@ private fun optimizeMoveqWordForm(lines: MutableList<String>, allPretrimmed: Lis
             val originalIndent = originalLine.takeWhile { it.isWhitespace() }
             val label = keepLabel(filtered[i].value)
             val labelPrefix = if (label.isNotEmpty()) "$label  " else ""
-            mods.add(Modification(filtered[i].index, false, "$originalIndent$labelPrefix" + "moveq  #${signedValue}, $dst"))
+            mods.add(Modification(filtered[i].index, false, "$originalIndent$labelPrefix" + "moveq  #${signedValue},$dst"))
         }
     }
 
@@ -480,13 +481,17 @@ private fun String.isRegister(): Boolean =
 
 /**
  * A plain memory operand that can be safely read twice and assumed to hit the same location
- * (e.g. "p8_regfile+268", "sys.DOSBase", "$1234", "symbol"); excludes registers and indirect
- * or indexed addressing whose effective address may change between the two accesses.
+ * (e.g. "p8_regfile+268", "sys.DOSBase", "symbol"); excludes registers, indirect or indexed
+ * addressing, and absolute hardware addresses such as "$dff180" whose read may have side effects.
  */
 private fun String.isSafeMemoryOperand(): Boolean {
     if (isEmpty()) return false
     if (isRegister()) return false
     if ('(' in this || ')' in this) return false
+    // Reject absolute addresses: named symbols are safe, but raw numeric/hex addresses may be
+    // hardware registers with read side effects (e.g., Amiga custom-chip registers).
+    if (startsWith("$")) return false
+    if (all { it.isDigit() }) return false
     return true
 }
 

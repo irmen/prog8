@@ -1492,6 +1492,19 @@ class TestInstructionSelectionOptimizations : FunSpec({
         lines.count { it == "    move.b  data,dtmp" } shouldBe 1
     }
 
+    test("A2 leaves absolute hardware-address reloads untouched") {
+        // Reading a hardware register can have side effects, so the reload must not be removed.
+        val lines = mutableListOf(
+            "    move.w  d0,\$dff180",
+            "    move.w  \$dff180,d1",
+            "    rts"
+        )
+        optimizeAssembly(lines)
+        lines.count { it == "    move.w  d0,\$dff180" } shouldBe 1
+        lines.count { it == "    move.w  \$dff180,d1" } shouldBe 1
+        lines.count { it == "    move.w  d0,d1" } shouldBe 0
+    }
+
     // === A6 zero-extend peephole ===
 
     test("A6 rewrites move.b+and.l zero-extension to moveq+move.b") {
@@ -1580,5 +1593,67 @@ class TestInstructionSelectionOptimizations : FunSpec({
         optimizeAssembly(lines)
         lines.count { it.contains("and.l") } shouldBe 1
         lines.count { it.contains("moveq") } shouldBe 0
+    }
+
+    // === A5 moveq word-form peephole ===
+
+    test("A5 rewrites move.w with small immediate to moveq") {
+        val lines = mutableListOf(
+            "    move.w  #42,d0",
+            "    move.w  d0,d1"
+        )
+        optimizeAssembly(lines)
+        lines.count { it.trimStart() == "moveq  #42,d0" } shouldBe 1
+        lines.count { it.contains("move.w  #42,d0") } shouldBe 0
+    }
+
+    test("A5 keeps move.w for immediate outside moveq range") {
+        val lines = mutableListOf(
+            "    move.w  #384,d0",
+            "    rts"
+        )
+        optimizeAssembly(lines)
+        lines.count { it.trimStart() == "move.w  #384,d0" } shouldBe 1
+        lines.count { it.contains("moveq  #384,d0") } shouldBe 0
+    }
+
+    test("A5 blocks rewrite when a longword read follows") {
+        val lines = mutableListOf(
+            "    move.w  #42,d0",
+            "    move.l  d0,d1",
+            "    rts"
+        )
+        optimizeAssembly(lines)
+        lines.count { it.trimStart() == "move.w  #42,d0" } shouldBe 1
+        lines.count { it.contains("moveq  #42,d0") } shouldBe 0
+    }
+
+    test("A5 allows rewrite when a full write precedes the longword read") {
+        val lines = mutableListOf(
+            "    move.w  #42,d0",
+            "    move.l  #0,d0",
+            "    move.l  d0,d1"
+        )
+        optimizeAssembly(lines)
+        lines.count { it.trimStart() == "moveq  #42,d0" } shouldBe 1
+    }
+
+    test("A5 handles tab-separated operands") {
+        val lines = mutableListOf(
+            "\tmove.w\t#42,d0",
+            "\tmove.w\td0,d1"
+        )
+        optimizeAssembly(lines)
+        lines.count { it.trim() == "moveq  #42,d0" } shouldBe 1
+    }
+
+    test("A5 handles label on the move.w line") {
+        val lines = mutableListOf(
+            "label:  move.w  #42,d0",
+            "    move.w  d0,d1"
+        )
+        optimizeAssembly(lines)
+        lines.count { it.contains("label:") } shouldBe 1
+        lines.any { it.contains("moveq  #42,d0") } shouldBe true
     }
 })
