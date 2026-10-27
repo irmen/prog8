@@ -1672,10 +1672,11 @@ Otherwise the compiler will warn you about discarding the result of the call.
     There is no guarantee of a left-to-right or right-to-left evaluation of the call arguments.
 
 .. caution::
-    Due to the way parameters are processed by the compiler,
-    subroutines are *non-reentrant*. This means you cannot create *recursive calls* (routines calling themselves)
-    without doing some manual work to save and restore the variables that need to retain their value between calls.
-    If you really need a recursive algorithm, there are a few options:
+    On the 6502-based and virtual targets, parameters are processed by the compiler into statically
+    allocated variables, so subroutines are *non-reentrant*: you cannot create *recursive calls*
+    (routines calling themselves) without doing some manual work to save and restore the variables
+    that need to retain their value between calls. If you really need a recursive algorithm, there
+    are a few options:
 
     - hand code it in embedded assembly
     - rewrite it as an iterative algorithm if possible
@@ -1684,6 +1685,11 @@ Otherwise the compiler will warn you about discarding the result of the call.
     Also, subroutines used in the main program should not be used from an IRQ handler. This is because
     the subroutine may be interrupted, and will then call itself from the IRQ handler. Results are
     then undefined because the variables will get overwritten.
+
+    On the m68k targets (``amiga500``, ``amiga1200``, ``qemu68k``) ordinary subroutine locals and
+    parameters live in stack frames, so those subroutines *are* reentrant and recursive by default.
+    ``@shared``, block-level and global variables are still static there, so a subroutine that uses
+    those from an IRQ handler or re-enters itself must still take care not to clobber them.
 
 
 .. _multiassign:

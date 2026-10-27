@@ -62,8 +62,9 @@ Variables
 ---------
 .. index:: single: Variables; Overview
 
-- There is no dynamic memory management in the language; all variables are statically allocated.
+- On the 6502-based and virtual targets there is no dynamic memory management in the language; all variables are statically allocated.
   (but user written libraries are possible that provide that indirectly).
+- On the m68k targets (``amiga500``, ``amiga1200``, ``qemu68k``) ordinary subroutine locals and parameters are allocated on the CPU stack, so those targets do have per-call storage; block-level, global, ``@shared`` and memory-slab variables remain statically allocated.
 - Variables can be declared everywhere inside the code but all variable declarations in a subroutine
   are moved to the top of the subroutine. An implicitly declared for-loop variable is first inserted immediately
   before its loop and is then handled in the same way. A for loop, or if/else blocks do not introduce a new scope.
@@ -78,8 +79,9 @@ Subroutines
 
 - Subroutines can be nested. Inner subroutines can directly access variables from their parent.
 - Subroutine parameters are just local variables in the subroutine. (you can access them directly as such via their scoped name, if you want)
-- There is no call stack for subroutine arguments: subroutine parameters are overwritten when called again. Thus recursion is not easily possible, but you can still do it with manual stack handling.
+- On the 6502-based and virtual targets there is no call stack for subroutine arguments: subroutine parameters are overwritten when called again. Thus recursion is not easily possible, but you can still do it with manual stack handling.
   There are a couple of example programs that show how to solve this in different ways, among which are fractal-tree.p8, maze.p8 and queens.p8
+- On the m68k targets (``amiga500``, ``amiga1200``, ``qemu68k``) ordinary subroutine locals and parameters live in stack frames, so subroutines *are* recursive and re-entrant by default.
 - There is no function overloading (except for a couple of builtin functions).
 - Subroutines can return multiple return values, and you can multi-assign those in a single statement.
 - Because every declared variable allocates some memory, it might be beneficial to share the same variables over different subroutines

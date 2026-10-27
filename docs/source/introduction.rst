@@ -282,5 +282,9 @@ guidance, and common pitfalls.
 
 If you need to write inline assembly (``%asm {{ }}`` blocks or ``asmsub`` routines),
 also load the ``asm6502-coder`` skill (``.agents/skills/asm6502-coder/``) for
-64tass assembler syntax, register conventions, and symbol prefixing rules.  
+64tass assembler syntax, register conventions, and symbol prefixing rules on the
+6502-based targets. For the m68k targets (``amiga500``, ``amiga1200``, ``qemu68k``),
+load the ``m68k-coder`` skill (``.agents/skills/m68k-coder/``) instead, which covers
+vasm mot syntax, the A5 frame pointer and register allocator conventions, and
+AmigaOS library call register usage.  
 
