@@ -1,6 +1,5 @@
 %import custom
 %import exec
-%import copper
 %import blitter
 %import math
 
@@ -59,92 +58,67 @@ main {
         }
         blitter.wait()
 
-        ; Allocate copper list in CHIP RAM (NOT cleared)
-        pointer copper_list = exec.AllocMem(256, exec.MEMF_CHIP)
-
-        ; Build the copper list using copper module routines
-        copper.init(copper_list)
-
-        ; Enable DMA: SET | DMAEN | BLTEN | BPLEN | COPEN = $83C0
-        copper.move($096, $83C0)
-
-        ; Set display registers for 320x256 1-bitplane screen
-        copper.move($0e0, msw(bitplane))    ; BPL1PTH - high word of bitplane pointer
-        copper.move($0e2, lsw(bitplane))    ; BPL1PTL - low word of bitplane pointer
-        copper.move($100, $1200)             ; BPLCON0: 1 bitplane, color burst on
-        copper.move($08e, $2c81)             ; DIWSTRT
-        copper.move($090, $2cc1)             ; DIWSTOP (256 lines, wraps around)
-        copper.move($092, $0038)             ; DDFSTRT
-        copper.move($094, $00d0)             ; DDFSTOP
-        copper.move($108, $0000)             ; BPL1MOD
-
-        ; Set initial background color to black
-        copper.move($180, $0000)             ; COLOR00 = black (background)
-        copper.move($182, $fff)              ; COLOR01 = white (foreground, for bitmap pixels)
-
-        ; Neon purple raster bar gradient (lines 90 to 113, 24 lines tall).
-        ; Amiga 12-bit RGB444: $RGB, where R/G/B are each 0..$F.
-        ; Colors ramp from dark purple at the edges to bright magenta at the center.
-        copper.wait(90, 0, $fffe)
-        copper.move($180, $010)      ; Line 90:  dark purple
-        copper.wait(91, 0, $fffe)
-        copper.move($180, $104)      ; Line 91
-        copper.wait(92, 0, $fffe)
-        copper.move($180, $207)      ; Line 92
-        copper.wait(93, 0, $fffe)
-        copper.move($180, $309)      ; Line 93
-        copper.wait(94, 0, $fffe)
-        copper.move($180, $50b)      ; Line 94
-        copper.wait(95, 0, $fffe)
-        copper.move($180, $70d)      ; Line 95
-        copper.wait(96, 0, $fffe)
-        copper.move($180, $90e)      ; Line 96
-        copper.wait(97, 0, $fffe)
-        copper.move($180, $b0f)      ; Line 97
-        copper.wait(98, 0, $fffe)
-        copper.move($180, $d0f)      ; Line 98
-        copper.wait(99, 0, $fffe)
-        copper.move($180, $e0f)      ; Line 99
-        copper.wait(100, 0, $fffe)
-        copper.move($180, $f0f)      ; Line 100: bright magenta
-        copper.wait(101, 0, $fffe)
-        copper.move($180, $f0f)      ; Line 101: peak (4 lines wide)
-        copper.wait(102, 0, $fffe)
-        copper.move($180, $f0f)      ; Line 102
-        copper.wait(103, 0, $fffe)
-        copper.move($180, $f0f)      ; Line 103
-        copper.wait(104, 0, $fffe)
-        copper.move($180, $e0f)      ; Line 104
-        copper.wait(105, 0, $fffe)
-        copper.move($180, $d0f)      ; Line 105
-        copper.wait(106, 0, $fffe)
-        copper.move($180, $b0f)      ; Line 106
-        copper.wait(107, 0, $fffe)
-        copper.move($180, $90e)      ; Line 107
-        copper.wait(108, 0, $fffe)
-        copper.move($180, $70d)      ; Line 108
-        copper.wait(109, 0, $fffe)
-        copper.move($180, $50b)      ; Line 109
-        copper.wait(110, 0, $fffe)
-        copper.move($180, $309)      ; Line 110
-        copper.wait(111, 0, $fffe)
-        copper.move($180, $207)      ; Line 111
-        copper.wait(112, 0, $fffe)
-        copper.move($180, $104)      ; Line 112
-        copper.wait(113, 0, $fffe)
-        copper.move($180, $0000)     ; Line 113: back to black background
-
-        copper.end()
+        ; Patch the bitplane pointer into the copper list (words 3 and 5)
+        copperdata.copper_list[3] = msw(bitplane)    ; BPL1PTH value
+        copperdata.copper_list[5] = lsw(bitplane)    ; BPL1PTL value
 
         ; Activate the copper list
-        copper.start(copper_list)
+        custom.COP1LC = &copperdata.copper_list
+        custom.DMACON = $8280    ; SET | DMAEN | COPEN
+        custom.COPJMP1 = 0
 
         ; Wait for left mouse click
         while not custom.left_button() {
         }
 
         custom.restore_system()
-        exec.FreeMem(copper_list, 256)
         exec.FreeMem(bitplane, 10240)
     }
+}
+
+copperdata {
+    %option amiga_chipram
+
+    ; Raw copper list words, one MOVE/WAIT instruction per line.
+    ; MOVE = register offset, value (bit 0 of word 1 clear).
+    ; WAIT = (vpos<<8) | (hpos<<1) | 1, $fffe (bit 0 set, no blitter wait).
+    ; END = $ffff, $fffe.
+    uword[120] copper_list = [
+        $0096, $83c0,    ; MOVE DMACON: SET | DMAEN | BLTEN | BPLEN | COPEN
+        $00e0, $0000,    ; MOVE BPL1PTH (patched at startup)
+        $00e2, $0000,    ; MOVE BPL1PTL (patched at startup)
+        $0100, $1200,    ; MOVE BPLCON0: 1 bitplane, color burst on
+        $008e, $2c81,    ; MOVE DIWSTRT
+        $0090, $2cc1,    ; MOVE DIWSTOP
+        $0092, $0038,    ; MOVE DDFSTRT
+        $0094, $00d0,    ; MOVE DDFSTOP
+        $0108, $0000,    ; MOVE BPL1MOD
+        $0180, $0000,    ; MOVE COLOR00 = black (background)
+        $0182, $0fff,    ; MOVE COLOR01 = white (foreground)
+        $5a01, $fffe, $0180, $0010,    ; WAIT 90  + COLOR00 dark purple
+        $5b01, $fffe, $0180, $0104,    ; WAIT 91
+        $5c01, $fffe, $0180, $0207,    ; WAIT 92
+        $5d01, $fffe, $0180, $0309,    ; WAIT 93
+        $5e01, $fffe, $0180, $050b,    ; WAIT 94
+        $5f01, $fffe, $0180, $070d,    ; WAIT 95
+        $6001, $fffe, $0180, $090e,    ; WAIT 96
+        $6101, $fffe, $0180, $0b0f,    ; WAIT 97
+        $6201, $fffe, $0180, $0d0f,    ; WAIT 98
+        $6301, $fffe, $0180, $0e0f,    ; WAIT 99
+        $6401, $fffe, $0180, $0f0f,    ; WAIT 100 bright magenta
+        $6501, $fffe, $0180, $0f0f,    ; WAIT 101 peak
+        $6601, $fffe, $0180, $0f0f,    ; WAIT 102
+        $6701, $fffe, $0180, $0f0f,    ; WAIT 103
+        $6801, $fffe, $0180, $0e0f,    ; WAIT 104
+        $6901, $fffe, $0180, $0d0f,    ; WAIT 105
+        $6a01, $fffe, $0180, $0b0f,    ; WAIT 106
+        $6b01, $fffe, $0180, $090e,    ; WAIT 107
+        $6c01, $fffe, $0180, $070d,    ; WAIT 108
+        $6d01, $fffe, $0180, $050b,    ; WAIT 109
+        $6e01, $fffe, $0180, $0309,    ; WAIT 110
+        $6f01, $fffe, $0180, $0207,    ; WAIT 111
+        $7001, $fffe, $0180, $0104,    ; WAIT 112
+        $7101, $fffe, $0180, $0000,    ; WAIT 113 back to black
+        $ffff, $fffe     ; END
+    ]
 }

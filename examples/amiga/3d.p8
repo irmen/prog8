@@ -1,6 +1,5 @@
 %import custom
 %import exec
-%import copper
 %import blitter
 %import math
 
@@ -14,7 +13,6 @@ main {
     sub start() {
         pointer bitplane1 = exec.AllocMem(10240, exec.MEMF_CHIP | exec.MEMF_CLEAR)
         pointer bitplane2 = exec.AllocMem(10240, exec.MEMF_CHIP | exec.MEMF_CLEAR)
-        pointer copper_list = exec.AllocMem(512, exec.MEMF_CHIP)
 
         ; Take over the Amiga hardware and configure a 320x256 one-bitplane display.
         custom.grab_system()
@@ -24,7 +22,12 @@ main {
         pointer current_bitplane = bitplane1
         pointer back_bitplane = bitplane2
 
-        setup_copper(current_bitplane, copper_list)
+        ; Patch the bitplane pointer into the copper list (words 3 and 5) and start it.
+        copperdata.copper_list[3] = msw(current_bitplane)
+        copperdata.copper_list[5] = lsw(current_bitplane)
+        custom.COP1LC = &copperdata.copper_list
+        custom.DMACON = $8280    ; SET | DMAEN | COPEN
+        custom.COPJMP1 = 0
 
         const ubyte TEXT_Y = 240
         ; Copy the generated monochrome message into the reserved bottom strip of BOTH bitplanes.
@@ -66,7 +69,9 @@ main {
             ; Wait for vertical blank, then ensure blitter is done before swapping.
             custom.waitvsync()
             blitter.wait()
-            update_copper_bitplane(copper_list, back_bitplane)
+            ; Swap the bitplane pointer in the copper list (words 3 and 5).
+            copperdata.copper_list[3] = msw(back_bitplane)
+            copperdata.copper_list[5] = lsw(back_bitplane)
             pointer temp = current_bitplane
             current_bitplane = back_bitplane
             back_bitplane = temp
@@ -133,7 +138,6 @@ main {
         }
 
         custom.restore_system()
-        exec.FreeMem(copper_list, 512)
         exec.FreeMem(bitplane1, 10240)
         exec.FreeMem(bitplane2, 10240)
     }
@@ -152,122 +156,74 @@ main {
         return sin8_fixed(angle + $4000)
     }
 
-    sub setup_copper(pointer bitplane, pointer copper_list) {
-        copper.init(copper_list)
-        copper.move($096, $83C0)
-        copper.move($0e0, msw(bitplane))
-        copper.move($0e2, lsw(bitplane))
-        copper.move($100, $1200)
-        copper.move($08e, $2c81)
-        copper.move($090, $2cc1)
-        copper.move($092, $0038)
-        copper.move($094, $00d0)
-        copper.move($108, $0000)
-        copper.move($180, $0000)
-        copper.move($182, $fff)
+}
 
-        ; The copper paints a static black-purple-green-red raster gradient.
-        copper.wait(48, 0, $fffe)
-        copper.move($180, $0000)
-        copper.wait(53, 0, $fffe)
-        copper.move($180, $101)
-        copper.wait(58, 0, $fffe)
-        copper.move($180, $202)
-        copper.wait(63, 0, $fffe)
-        copper.move($180, $303)
-        copper.wait(68, 0, $fffe)
-        copper.move($180, $404)
-        copper.wait(73, 0, $fffe)
-        copper.move($180, $505)
-        copper.wait(78, 0, $fffe)
-        copper.move($180, $606)
-        copper.wait(83, 0, $fffe)
-        copper.move($180, $707)
-        copper.wait(88, 0, $fffe)
-        copper.move($180, $808)
-        copper.wait(93, 0, $fffe)
-        copper.move($180, $909)
-        copper.wait(98, 0, $fffe)
-        copper.move($180, $a0a)
-        copper.wait(103, 0, $fffe)
-        copper.move($180, $b0b)
-        copper.wait(108, 0, $fffe)
-        copper.move($180, $c0c)
-        copper.wait(113, 0, $fffe)
-        copper.move($180, $d0d)
-        copper.wait(118, 0, $fffe)
-        copper.move($180, $e0e)
-        copper.wait(123, 0, $fffe)
-        copper.move($180, $f0f)
-        copper.wait(128, 0, $fffe)
-        copper.move($180, $e2e)
-        copper.wait(133, 0, $fffe)
-        copper.move($180, $d4d)
-        copper.wait(138, 0, $fffe)
-        copper.move($180, $c6c)
-        copper.wait(143, 0, $fffe)
-        copper.move($180, $a8a)
-        copper.wait(148, 0, $fffe)
-        copper.move($180, $8a8)
-        copper.wait(153, 0, $fffe)
-        copper.move($180, $6a6)
-        copper.wait(158, 0, $fffe)
-        copper.move($180, $4c4)
-        copper.wait(163, 0, $fffe)
-        copper.move($180, $2e2)
-        copper.wait(168, 0, $fffe)
-        copper.move($180, $0f0)
-        copper.wait(173, 0, $fffe)
-        copper.move($180, $1e0)
-        copper.wait(178, 0, $fffe)
-        copper.move($180, $2d0)
-        copper.wait(183, 0, $fffe)
-        copper.move($180, $3c0)
-        copper.wait(188, 0, $fffe)
-        copper.move($180, $4b0)
-        copper.wait(193, 0, $fffe)
-        copper.move($180, $5a0)
-        copper.wait(198, 0, $fffe)
-        copper.move($180, $690)
-        copper.wait(203, 0, $fffe)
-        copper.move($180, $780)
-        copper.wait(208, 0, $fffe)
-        copper.move($180, $870)
-        copper.wait(213, 0, $fffe)
-        copper.move($180, $960)
-        copper.wait(218, 0, $fffe)
-        copper.move($180, $a50)
-        copper.wait(223, 0, $fffe)
-        copper.move($180, $b40)
-        copper.wait(228, 0, $fffe)
-        copper.move($180, $c30)
-        copper.wait(233, 0, $fffe)
-        copper.move($180, $f00)
-        copper.wait(238, 0, $fffe)
-        copper.move($180, $d00)
-        copper.wait(243, 0, $fffe)
-        copper.move($180, $b00)
-        copper.wait(248, 0, $fffe)
-        copper.move($180, $800)
-        copper.wait(253, 0, $fffe)
-        copper.move($180, $400)
-        copper.wait(255, 0, $fffe)
-        copper.move($180, $0000)
-        copper.end()
-        copper.start(copper_list)
-    }
+copperdata {
+    %option amiga_chipram
 
-    sub update_copper_bitplane(pointer copper_list, pointer bitplane) {
-        ; Update the bitplane pointer in the copper list.
-        ; Copper list layout after init():
-        ;   offset 0-3:  move $096, $83C0
-        ;   offset 4-7:  move $0e0, msw(bitplane)
-        ;   offset 8-11: move $0e2, lsw(bitplane)
-        ; Only the value words (offsets 6 and 10) need updating.
-        pokew(copper_list + 6, msw(bitplane))
-        pokew(copper_list + 10, lsw(bitplane))
-    }
-
+    ; Raw copper list words, one MOVE/WAIT instruction per line.
+    ; MOVE = register offset, value (bit 0 of word 1 clear).
+    ; WAIT = (vpos<<8) | (hpos<<1) | 1, $fffe (bit 0 set, no blitter wait).
+    ; END = $ffff, $fffe.
+    ; Words 3 and 5 are the bitplane pointer, patched at startup and each frame.
+    ; The copper paints a static black-purple-green-red raster gradient.
+    uword[196] copper_list = [
+        $0096, $83c0,    ; MOVE DMACON: SET | DMAEN | BLTEN | BPLEN | COPEN
+        $00e0, $0000,    ; MOVE BPL1PTH (patched at runtime)
+        $00e2, $0000,    ; MOVE BPL1PTL (patched at runtime)
+        $0100, $1200,    ; MOVE BPLCON0: 1 bitplane, color burst on
+        $008e, $2c81,    ; MOVE DIWSTRT
+        $0090, $2cc1,    ; MOVE DIWSTOP
+        $0092, $0038,    ; MOVE DDFSTRT
+        $0094, $00d0,    ; MOVE DDFSTOP
+        $0108, $0000,    ; MOVE BPL1MOD
+        $0180, $0000,    ; MOVE COLOR00 = black (background)
+        $0182, $0fff,    ; MOVE COLOR01 = white (foreground)
+        $3001, $fffe, $0180, $0000,    ; WAIT 48
+        $3501, $fffe, $0180, $0101,    ; WAIT 53
+        $3a01, $fffe, $0180, $0202,    ; WAIT 58
+        $3f01, $fffe, $0180, $0303,    ; WAIT 63
+        $4401, $fffe, $0180, $0404,    ; WAIT 68
+        $4901, $fffe, $0180, $0505,    ; WAIT 73
+        $4e01, $fffe, $0180, $0606,    ; WAIT 78
+        $5301, $fffe, $0180, $0707,    ; WAIT 83
+        $5801, $fffe, $0180, $0808,    ; WAIT 88
+        $5d01, $fffe, $0180, $0909,    ; WAIT 93
+        $6201, $fffe, $0180, $0a0a,    ; WAIT 98
+        $6701, $fffe, $0180, $0b0b,    ; WAIT 103
+        $6c01, $fffe, $0180, $0c0c,    ; WAIT 108
+        $7101, $fffe, $0180, $0d0d,    ; WAIT 113
+        $7601, $fffe, $0180, $0e0e,    ; WAIT 118
+        $7b01, $fffe, $0180, $0f0f,    ; WAIT 123 magenta
+        $8001, $fffe, $0180, $0e2e,    ; WAIT 128
+        $8501, $fffe, $0180, $0d4d,    ; WAIT 133
+        $8a01, $fffe, $0180, $0c6c,    ; WAIT 138
+        $8f01, $fffe, $0180, $0a8a,    ; WAIT 143
+        $9401, $fffe, $0180, $08a8,    ; WAIT 148
+        $9901, $fffe, $0180, $06a6,    ; WAIT 153
+        $9e01, $fffe, $0180, $04c4,    ; WAIT 158
+        $a301, $fffe, $0180, $02e2,    ; WAIT 163
+        $a801, $fffe, $0180, $00f0,    ; WAIT 168 green
+        $ad01, $fffe, $0180, $01e0,    ; WAIT 173
+        $b201, $fffe, $0180, $02d0,    ; WAIT 178
+        $b701, $fffe, $0180, $03c0,    ; WAIT 183
+        $bc01, $fffe, $0180, $04b0,    ; WAIT 188
+        $c101, $fffe, $0180, $05a0,    ; WAIT 193
+        $c601, $fffe, $0180, $0690,    ; WAIT 198
+        $cb01, $fffe, $0180, $0780,    ; WAIT 203
+        $d001, $fffe, $0180, $0870,    ; WAIT 208
+        $d501, $fffe, $0180, $0960,    ; WAIT 213
+        $da01, $fffe, $0180, $0a50,    ; WAIT 218
+        $df01, $fffe, $0180, $0b40,    ; WAIT 223
+        $e401, $fffe, $0180, $0c30,    ; WAIT 228
+        $e901, $fffe, $0180, $0f00,    ; WAIT 233 red
+        $ee01, $fffe, $0180, $0d00,    ; WAIT 238
+        $f301, $fffe, $0180, $0b00,    ; WAIT 243
+        $f801, $fffe, $0180, $0800,    ; WAIT 248
+        $fd01, $fffe, $0180, $0400,    ; WAIT 253
+        $ff01, $fffe, $0180, $0000,    ; WAIT 255 back to black
+        $ffff, $fffe     ; END
+    ]
 }
 
 textdata {

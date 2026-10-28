@@ -1,11 +1,10 @@
 
 Prog8 compiler v14.0-BETA3 by Irmen de Jong (irmen@razorvine.net)
-Prerelease version from git commit e98adeaf in branch master
+Prerelease version from git commit b6aa726d in branch master
 This software is licensed under the GNU GPL 3.0, see https://www.gnu.org/licenses/gpl.html
 
 Compiling program import-all-amiga500.p8
 Compiler target: amiga500
-[93mWARN  [0m[90mfile:///home/irmen/Projects/prog8/docs/import-all-amiga500.p8:1:54: [0mfloating-point code requires a 68020 or better CPU with an 68881/68882 FPU; assembler options set to -m68020 -m68881. This program will NOT run on an Amiga 500/600 or 1200 without fp coprocessor!
 
 
 BUILTIN FUNCTIONS
@@ -464,22 +463,6 @@ conv  {
     str_uwbin  (uword value) -> str
     str_uwhex  (uword value) -> str
     str_w  (word value) -> str
-}
-
-
-LIBRARY MODULE NAME: copper
----------------------------
-
-copper  {
-    long @shared  _copper_pos
-    append_raster_colors  (ubyte vpos_start, ^^uword colors, ubyte num_lines)
-    end  ()
-    get_pos  () -> long @A0
-    init  (long list_ptr @A0)
-    move  (uword reg_addr @D0, uword value @D1)
-    skip  (ubyte vpos @D0, ubyte hpos @D1, uword compare_mask @D2)
-    start  (long list_ptr @A0)
-    wait  (ubyte vpos @D0, ubyte hpos @D1, uword compare_mask @D2)
 }
 
 

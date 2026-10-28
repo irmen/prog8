@@ -5,7 +5,6 @@
 %import asyncio
 %import buffers
 %import blitter
-%import copper
 %import iffparse
 %import icon
 %import compression

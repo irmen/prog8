@@ -531,9 +531,6 @@ modules. Import them the same way as any other library::
 ``blitter``
     Blitter operations and the ``MINTERM`` logic modes.
 
-``copper``
-    Copper list builder and manager.
-
 ``easygfx``
     Friendly OS graphics wrapper in the style of the ``gfx_*`` pixel modules:
     per-call pen, client-relative coordinates, no structs or tag lists to manage.
