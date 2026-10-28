@@ -130,9 +130,9 @@ class SymbolExtractor {
         val range = enum.position.toLspRange()
 
         val enumSymbol = DocumentSymbol(enum.name, SymbolKind.Enum, range, range)
-        // enum members don't carry individual positions, so they share the enum's range
-        enumSymbol.children = enum.members.map { (name, _) ->
-            DocumentSymbol(name, SymbolKind.EnumMember, range, range)
+        enumSymbol.children = enum.members.map { member ->
+            val memberRange = member.position.toLspRange()
+            DocumentSymbol(member.name, SymbolKind.EnumMember, memberRange, memberRange)
         }.toMutableList()
 
         return enumSymbol

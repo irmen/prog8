@@ -475,9 +475,9 @@ class AstPreprocessor(val program: Program,
         // `myEnum` (without `::Member`) keeps failing with "undefined symbol" as intended.
         val container = parent as IStatementContainer
         val prefix = enumTargetPath.dropLast(1)
-        val inserts = enumDecl.members.map { (member, _) ->
-            val memberTarget = IdentifierReference(prefix + "${enumDecl.name}::$member", alias.position)
-            AstInsert.before(alias, Alias("${alias.alias}::$member", memberTarget, alias.visibility, alias.position), container)
+        val inserts = enumDecl.members.map { member ->
+            val memberTarget = IdentifierReference(prefix + "${enumDecl.name}::${member.name}", alias.position)
+            AstInsert.before(alias, Alias("${alias.alias}::${member.name}", memberTarget, alias.visibility, alias.position), container)
         }
         return inserts + AstRemove(alias, container)
     }
@@ -496,7 +496,7 @@ class AstPreprocessor(val program: Program,
         val memberName = parts[1]
         val enumPath = nameInSource.dropLast(1) + enumName
         val enumNode = alias.definingScope.lookup(enumPath) as? Enumeration ?: return false
-        return enumNode.members.any { it.first == memberName }
+        return enumNode.members.any { it.name == memberName }
     }
 
     override fun after(typecast: TypecastExpression, parent: Node): Iterable<AstModification> {
@@ -574,8 +574,8 @@ class AstPreprocessor(val program: Program,
             return noModifications
         }
         for(member in enum.members) {
-            if("::" in member.first) {
-                errors.err("invalid enum member name '${member.first}'", enum.position)
+            if("::" in member.name) {
+                errors.err("invalid enum member name '${member.name}'", member.position)
                 return noModifications
             }
         }
@@ -583,15 +583,22 @@ class AstPreprocessor(val program: Program,
         // replace enum by a bunch of const vardecls inside a subroutine for scoping
         val dt = DataType.forDt(enum.type)
         var value = -1
+        val seenValues = mutableSetOf<Int>()
         val constants = enum.members.map {
-            val membername = "${enum.name}::${it.first}"
-            if(it.second!=null) {
-                if(it.second!!>value) {
-                    value = it.second!!
-                } else {
-                    errors.err("invalid enum sequence member value ${it.first} = ${it.second}", enum.position)
+            val membername = "${enum.name}::${it.name}"
+            val memberValue = it.value
+            if(memberValue!=null) {
+                // explicit values may be in any order, they only have to be unique
+                if(!seenValues.add(memberValue)) {
+                    errors.err("invalid enum sequence member value", it.position)
                 }
-            } else value++
+                if(memberValue>value) {
+                    value = memberValue
+                }
+            } else {
+                value++
+                seenValues.add(value)
+            }
             val membervalue = NumericLiteral(enum.type, value.toDouble(), enum.position)
             VarDecl.builder(dt, enum.position)
                 .names(membername)

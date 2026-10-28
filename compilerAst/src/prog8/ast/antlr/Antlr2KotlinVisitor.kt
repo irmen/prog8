@@ -956,15 +956,15 @@ class Antlr2KotlinVisitor(val source: SourceCode, private val target: ICompilati
 
     override fun visitEnum(ctx: EnumContext): Enumeration {
         val name = getname(ctx.identifier())
-        val members1 = ctx.enum_member().map {
-            getname(it.identifier()) to it.integerliteral()?.accept(this) as NumericLiteral?
+        val members = mutableListOf<Enumeration.EnumMember>()
+        var largestType = BaseDataType.UBYTE
+        for(member in ctx.enum_member()) {
+            val value = member.integerliteral()?.accept(this) as NumericLiteral?
+            if(value!=null && value.type.largerSizeThan(largestType))
+                largestType = value.type
+            members.add(Enumeration.EnumMember(getname(member.identifier()), value?.number?.toInt(), member.toPosition()))
         }
-        val datatypes = members1.mapNotNull { it.second?.type }
-        val largestType = datatypes.fold(BaseDataType.UBYTE) { acc, dt -> if (dt.largerSizeThan(acc)) dt else acc }
-        val members = members1.map {
-            it.first to it.second?.number?.toInt()
-        }.toTypedArray()
-        return Enumeration(name, largestType, members, visibilityFromTokens(ctx), ctx.toPosition(), leadingBlockComment(ctx))
+        return Enumeration(name, largestType, members.toTypedArray(), visibilityFromTokens(ctx), ctx.toPosition(), leadingBlockComment(ctx))
     }
 
 

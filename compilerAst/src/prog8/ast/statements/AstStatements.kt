@@ -643,7 +643,10 @@ class StructFieldRef(val pointer: IdentifierReference, val struct: StructDecl, v
 
 }
 
-class Enumeration(override val name: String, val type: BaseDataType, val members: Array<Pair<String, Int?>>, val visibility: Visibility?, override val position: Position, var blockComment: String? = null) : Statement(), INamedStatement {
+class Enumeration(override val name: String, val type: BaseDataType, val members: Array<EnumMember>, val visibility: Visibility?, override val position: Position, var blockComment: String? = null) : Statement(), INamedStatement {
+
+    class EnumMember(val name: String, val value: Int?, val position: Position)
+
     override lateinit var parent: Node
 
     override fun linkParents(parent: Node) {

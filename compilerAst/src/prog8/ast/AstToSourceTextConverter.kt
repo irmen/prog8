@@ -249,9 +249,9 @@ class AstToSourceTextConverter(val output: (text: String) -> Unit, val program: 
             output("public ")
         output("enum ${enum.name} { ")
         for(member in enum.members) {
-            output(member.first)
-            if(member.second!=null)
-                output(" = ${member.second}")
+            output(member.name)
+            if(member.value!=null)
+                output(" = ${member.value}")
             if(member !== enum.members.last())
                 output(", ")
         }
