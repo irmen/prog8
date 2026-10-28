@@ -124,3 +124,15 @@ class CompilationOptions(val output: OutputType,
         }
     }
 }
+
+
+
+/**
+ * Version information of the prog8 compiler that produced a compilation result.
+ * Combines the compiler version string with the git commit hash and date of that build.
+ */
+data class CompilerVersionInfo(
+    val version: String,
+    val gitSha: String? = null,
+    val gitDate: String? = null,
+)
