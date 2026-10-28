@@ -62,7 +62,7 @@ class IRFileWriter(private val irProgram: IRProgram, outfileOverride: Path?) {
         xml.writeCharacters("\n")
         xml.writeStartElement("PROGRAM")
         xml.writeAttribute("NAME", irProgram.name)
-        xml.writeAttribute("COMPILERVERSION", irProgram.options.compilerVersion)
+        xml.writeAttribute("COMPILERVERSION", irProgram.options.compilerVersion.version)
         xml.writeAttribute("IRFORMAT", IR_FORMAT_VERSION.toString())
         xml.writeCharacters("\n")
         writeOptions()

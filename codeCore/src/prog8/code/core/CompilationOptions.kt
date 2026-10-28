@@ -14,7 +14,7 @@ class CompilationOptions(val output: OutputType,
                          val noSysInit: Boolean,
                          val romable: Boolean,
                          val compTarget: ICompilationTarget,
-                         val compilerVersion: String,
+                         val compilerVersion: CompilerVersionInfo,
                          // these are set later, based on command line arguments or options in the source code:
                          var loadAddress: UInt,
                          var memtopAddress: UInt,
@@ -57,7 +57,7 @@ class CompilationOptions(val output: OutputType,
             private var floats: Boolean = false
             private var noSysInit: Boolean = false
             private var romable: Boolean = false
-            private var compilerVersion: String = "unknown"
+            private var compilerVersion: CompilerVersionInfo = CompilerVersionInfo("unknown")
             private var loadAddress: UInt = compTarget.PROGRAM_LOAD_ADDRESS
             private var memtopAddress: UInt = compTarget.PROGRAM_MEMTOP_ADDRESS
             private var varsAddress: UInt? = null
@@ -88,7 +88,8 @@ class CompilationOptions(val output: OutputType,
             fun floats(floats: Boolean) = apply { this.floats = floats }
             fun noSysInit(noSysInit: Boolean) = apply { this.noSysInit = noSysInit }
             fun romable(romable: Boolean) = apply { this.romable = romable }
-            fun compilerVersion(compilerVersion: String) = apply { this.compilerVersion = compilerVersion }
+            fun compilerVersion(compilerVersion: String) = apply { this.compilerVersion = CompilerVersionInfo(compilerVersion) }
+            fun compilerVersion(compilerVersion: CompilerVersionInfo) = apply { this.compilerVersion = compilerVersion }
             fun loadAddress(loadAddress: UInt) = apply { this.loadAddress = loadAddress }
             fun memtopAddress(memtopAddress: UInt) = apply { this.memtopAddress = memtopAddress }
             fun varsAddress(varsAddress: UInt?) = apply { this.varsAddress = varsAddress }

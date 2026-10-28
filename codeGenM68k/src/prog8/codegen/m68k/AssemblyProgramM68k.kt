@@ -11,6 +11,86 @@ import kotlin.io.path.exists
 import kotlin.io.path.readText
 import kotlin.io.path.writeText
 
+/**
+ * The exact vasm command prog8 runs to assemble the asm file of [name], or null when the target and
+ * output combination is not assembled by vasm directly. The generated asm header embeds the same command.
+ */
+fun assemblerCommandM68k(options: CompilationOptions, name: String): List<String>? {
+    val cpu = when(options.compTarget.cpu) {
+        CpuType.M68000 -> "68000"
+        CpuType.M68020 -> "68020"
+        else -> return null
+    }
+    val assemblerCpu = if(options.compTarget.name == "amiga500" && options.floats) "68020" else cpu
+    val outs = OutputFiles.of(options, name)
+
+    return when(options.output) {
+        OutputType.ELF -> mutableListOf(
+            "vasmm68k_mot",
+            "-m$assemblerCpu",
+            "-m68881",  // enable FPU
+            "-Felf",
+            "-opt-speed",
+            "-warnunaligned",
+            "-ldots",
+            "-spaces",
+            "-o", outs.obj().toString(),
+            outs.asm().toString()
+        ).also { cmd ->
+            if (options.asmListfile)
+                cmd.addAll(listOf("-L", outs.list().toString()))
+            if (options.asmQuiet)
+                cmd.add("-quiet")
+        }
+        OutputType.AMIGAHUNK -> when(options.compTarget) {
+            is Amiga500Target -> mutableListOf(
+                "vasmm68k_mot",
+                "-m$assemblerCpu",
+                *if(options.floats) arrayOf("-m68881") else emptyArray(),
+                "-Fhunkexe",
+                "-kick1hunks",   // old hunk format compatible with AmigaDOS 1.3
+                "-opt-speed",
+                "-warnunaligned",
+                "-ldots",
+                "-spaces",
+                "-nosym",       // no debug symbols
+                "-o", outs.programFile.toString(),
+                outs.asm().toString()
+            ).also { cmd ->
+                if (options.asmListfile) {
+                    cmd.add("-L")
+                    cmd.add(outs.list().toString())
+                    cmd.add("-Lns")
+                }
+                if (options.asmQuiet)
+                    cmd.add("-quiet")
+            }
+            is Amiga1200Target -> mutableListOf(
+                "vasmm68k_mot",
+                "-m$assemblerCpu",
+                "-m68881",  // enable FPU
+                "-Fhunkexe",
+                "-opt-speed",
+                "-warnunaligned",
+                "-ldots",
+                "-spaces",
+                "-nosym",       // no debug symbols
+                "-o", outs.programFile.toString(),
+                outs.asm().toString()
+            ).also { cmd ->
+                if (options.asmListfile) {
+                    cmd.add("-L")
+                    cmd.add(outs.list().toString())
+                }
+                if (options.asmQuiet)
+                    cmd.add("-quiet")
+            }
+            else -> null
+        }
+        else -> null
+    }
+}
+
 class AssemblyProgramM68k(override val name: String) : IAssemblyProgram {
 
     override val irInstructionCount: Int = 0
@@ -61,35 +141,14 @@ class AssemblyProgramM68k(override val name: String) : IAssemblyProgram {
     }
 
     override fun assemble(options: CompilationOptions, errors: IErrorReporter): Boolean {
-        val cpu = when(options.compTarget.cpu) {
-            CpuType.M68000 -> "68000"
-            CpuType.M68020 -> "68020"
-            else -> error("invalid cpu type for m68k codegen ${options.compTarget.cpu}")
-        }
-        val assemblerCpu = if(options.compTarget.name == "amiga500" && options.floats) "68020" else cpu
         val outs = OutputFiles.of(options, name)
+        val assembleCmd = assemblerCommandM68k(options, name)
+            ?: error("Unsupported output type for m68k: ${options.output}")
 
-        when(options.output) {
+        return when(options.output) {
             OutputType.ELF -> {
                 // Step 1: assemble to ELF object file
                 val objFile = outs.obj()
-                val listFile = outs.list()
-                val assembleCmd = mutableListOf(
-                    "vasmm68k_mot",
-                    "-m$assemblerCpu",
-                    "-m68881",  // enable FPU
-                    "-Felf",
-                    "-opt-speed",
-                    "-warnunaligned",
-                    "-ldots",
-                    "-spaces",
-                    "-o", objFile.toString(),
-                    outs.asm().toString()
-                )
-                if (options.asmListfile)
-                    assembleCmd.addAll(listOf("-L", listFile.toString()))
-                if (options.asmQuiet)
-                    assembleCmd.add("-quiet")
                 if (!runProcess(assembleCmd, options.quiet, "vasm"))
                     return false
                 // clean up any leftover ELF/obj files from previous builds
@@ -112,66 +171,16 @@ class AssemblyProgramM68k(override val name: String) : IAssemblyProgram {
                 linkScript.deleteIfExists()
                 if(linkOk && !options.quiet)
                     println("Executable written to '$elfFile'")
-                return linkOk
+                linkOk
             }
             OutputType.AMIGAHUNK -> {
-                // Step 1: assemble directly to AmigaHunk executable file
+                // assemble directly to AmigaHunk executable file
                 val exefile = outs.programFile
-                val listfile = outs.list()
-                val assembleCmd = when(options.compTarget) {
-                    is Amiga500Target -> {
-                        mutableListOf(
-                            "vasmm68k_mot",
-                            "-m$assemblerCpu",
-                            *if(options.floats) arrayOf("-m68881") else emptyArray(),
-                            "-Fhunkexe",
-                            "-kick1hunks",   // old hunk format compatible with AmigaDOS 1.3
-                            "-opt-speed",
-                            "-warnunaligned",
-                            "-ldots",
-                            "-spaces",
-                            "-nosym",       // no debug symbols
-                            "-o", exefile.toString(),
-                            outs.asm().toString()
-                        ).also { cmd ->
-                            if (options.asmListfile) {
-                                cmd.add("-L")
-                                cmd.add(listfile.toString())
-                                cmd.add("-Lns")
-                            }
-                            if (options.asmQuiet)
-                                cmd.add("-quiet")
-                        }
-                    }
-                    is Amiga1200Target -> {
-                        mutableListOf(
-                            "vasmm68k_mot",
-                            "-m$assemblerCpu",
-                            "-m68881",  // enable FPU
-                            "-Fhunkexe",
-                            "-opt-speed",
-                            "-warnunaligned",
-                            "-ldots",
-                            "-spaces",
-                            "-nosym",       // no debug symbols
-                            "-o", exefile.toString(),
-                            outs.asm().toString()
-                        ).also { cmd ->
-                            if (options.asmListfile) {
-                                cmd.add("-L")
-                                cmd.add(listfile.toString())
-                            }
-                            if (options.asmQuiet)
-                                cmd.add("-quiet")
-                        }
-                    }
-                    else -> error("unsupported target for AMIGAHUNK output: ${options.compTarget.name}")
-                }
                 if (!runProcess(assembleCmd, options.quiet, "vasm"))
                     return false
                 if(!options.quiet)
                     println("Executable written to '$exefile'")
-                return true
+                true
             }
             else -> error("Unsupported output type: ${options.output}")
         }

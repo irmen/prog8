@@ -122,7 +122,7 @@ class TestBuilders : FunSpec({
             options.output shouldBe target.defaultOutputType
             options.launcher shouldBe CbmPrgLauncherType.NONE
             options.zeropage shouldBe ZeropageType.DONTUSE
-            options.compilerVersion shouldBe "unknown"
+            options.compilerVersion.version shouldBe "unknown"
             options.loadAddress shouldBe target.PROGRAM_LOAD_ADDRESS
             options.memtopAddress shouldBe target.PROGRAM_MEMTOP_ADDRESS
         }

@@ -607,7 +607,7 @@ internal fun determineCompilationOptions(program: Program, compTarget: ICompilat
         .floats(floatsEnabled)
         .noSysInit(noSysInit)
         .romable(romable)
-        .compilerVersion(VERSION)
+        .compilerVersion(CompilerVersionInfo(VERSION, prog8.buildversion.GIT_SHA, prog8.buildversion.GIT_DATE))
         .build()
         .apply { this.privateSymbols = privateSymbols }
 }

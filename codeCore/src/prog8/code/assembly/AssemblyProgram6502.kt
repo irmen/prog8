@@ -5,7 +5,53 @@ import prog8.code.core.*
 import prog8.code.target.C128Target
 import prog8.code.target.C64Target
 import prog8.code.target.PETTarget
-import java.nio.file.Path
+
+
+/**
+ * The exact 64tass command prog8 runs to assemble the asm file of [name], or null when the output
+ * type is not assembled this way. The generated asm header embeds the same command as a comment.
+ */
+fun assemblerCommand6502(options: CompilationOptions, name: String): List<String>? {
+    val outs = OutputFiles.of(options, name)
+
+    val command = when(options.output) {
+        OutputType.PRG -> mutableListOf("64tass", "--cbm-prg", "--ascii", "--case-sensitive", "--long-branch",
+            "-Wall", "-Wno-implied-reg", "--no-monitor", "--dump-labels", "--vice-labels", "--labels=${outs.viceMonList()}")
+        OutputType.XEX -> mutableListOf("64tass", "--atari-xex", "--case-sensitive", "--long-branch",
+            "-Wall", "-Wno-implied-reg", "--no-monitor", "--dump-labels", "--vice-labels", "--labels=${outs.viceMonList()}")
+        OutputType.RAW -> mutableListOf("64tass", "--nostart", "--case-sensitive", "--long-branch",
+            "-Wall", "-Wno-implied-reg", "--no-monitor", "--dump-labels", "--vice-labels", "--labels=${outs.viceMonList()}")
+        OutputType.LIBRARY -> mutableListOf("64tass", "--ascii", "--case-sensitive", "--long-branch",
+            "-Wall", "-Wno-implied-reg", "--no-monitor", "--dump-labels", "--vice-labels", "--labels=${outs.viceMonList()}")
+        else -> return null
+    }
+
+    if(options.warnSymbolShadowing)
+        command.add("-Wshadow")
+    else
+        command.add("-Wno-shadow")
+
+    if(options.asmQuiet)
+        command.add("--quiet")
+
+    if(options.asmListfile)
+        command.add("--list=${outs.list()}")
+
+    // keep additionalAssemblerOptions BEFORE --output: a target config may contain its own --output
+    if(options.compTarget.additionalAssemblerOptions.isNotEmpty())
+        command.addAll(options.compTarget.additionalAssemblerOptions)
+
+    command.addAll(listOf("--output", outs.programFile.toString(), outs.asm().toString()))
+
+    if(options.output == OutputType.LIBRARY) {
+        if(options.compTarget.name in listOf(C64Target.NAME, C128Target.NAME, PETTarget.NAME))
+            command.add("--cbm-prg")
+        else
+            command.add("--nostart")       // should be headerless bin, because basic has problems doing a normal LOAD"lib",8,1 - need to use BLOAD
+    }
+
+    return command
+}
 
 
 class AssemblyProgram6502(
@@ -19,112 +65,22 @@ class AssemblyProgram6502(
 
     override fun assemble(options: CompilationOptions, errors: IErrorReporter): Boolean {
 
-        val assemblerCommand: List<String>
         val outs = OutputFiles.of(options, name)
+        val assemblerCommand = assemblerCommand6502(options, name)
+            ?: error("Unsupported output type: ${compTarget.defaultOutputType}")
 
-        fun addRemainingOptions(command: MutableList<String>, program: Path, assembly: Path): List<String> {
-            // keep additionalAssemblerOptions BEFORE --output: a target config may contain its own --output
-            if(options.compTarget.additionalAssemblerOptions.isNotEmpty())
-                command.addAll(options.compTarget.additionalAssemblerOptions)
-
-            command.addAll(listOf("--output", program.toString(), assembly.toString()))
-            return command
-        }
-
-        when(options.output) {
-            OutputType.PRG -> {
-                // CBM machines .prg generation.
-
-                val command = mutableListOf("64tass", "--cbm-prg", "--ascii", "--case-sensitive", "--long-branch",
-                    "-Wall", "-Wno-implied-reg", "--no-monitor", "--dump-labels", "--vice-labels", "--labels=${outs.viceMonList()}")
-
-                if(options.warnSymbolShadowing)
-                    command.add("-Wshadow")
-                else
-                    command.add("-Wno-shadow")
-
-                if(options.asmQuiet)
-                    command.add("--quiet")
-
-                if(options.asmListfile) {
-                    command.add("--list=${outs.list()}")
-                }
-
-                assemblerCommand = addRemainingOptions(command, outs.programFile, outs.asm())
-                if(!options.quiet)
-                    println("\nCreating prg for target ${compTarget.name}.")
-            }
-            OutputType.XEX -> {
-                // Atari800XL .xex generation.
-
-                val command = mutableListOf("64tass", "--atari-xex", "--case-sensitive", "--long-branch",
-                    "-Wall", "-Wno-implied-reg", "--no-monitor", "--dump-labels", "--vice-labels", "--labels=${outs.viceMonList()}")
-
-                if(options.warnSymbolShadowing)
-                    command.add("-Wshadow")
-                else
-                    command.add("-Wno-shadow")
-
-                if(options.asmQuiet)
-                    command.add("--quiet")
-
-                if(options.asmListfile)
-                    command.add("--list=${outs.list()}")
-
-                assemblerCommand = addRemainingOptions(command, outs.programFile, outs.asm())
-                if(!options.quiet)
-                    println("\nCreating xex for target ${compTarget.name}.")
-            }
-            OutputType.RAW -> {
-                // Neo6502/headerless raw program generation.
-                val command = mutableListOf("64tass", "--nostart", "--case-sensitive", "--long-branch",
-                    "-Wall", "-Wno-implied-reg", "--no-monitor", "--dump-labels", "--vice-labels", "--labels=${outs.viceMonList()}")
-
-                if(options.warnSymbolShadowing)
-                    command.add("-Wshadow")
-                else
-                    command.add("-Wno-shadow")
-
-                if(options.asmQuiet)
-                    command.add("--quiet")
-
-                if(options.asmListfile)
-                    command.add("--list=${outs.list()}")
-
-                assemblerCommand = addRemainingOptions(command, outs.programFile, outs.asm())
-                if(!options.quiet)
-                    println("\nCreating raw binary for target ${compTarget.name}.")
-            }
-            OutputType.LIBRARY -> {
-                // CBM machines library (.bin) generation (with or without 2 byte load address header depending on the compilation target machine)
-
-                val command = mutableListOf("64tass", "--ascii", "--case-sensitive", "--long-branch",
-                    "-Wall", "-Wno-implied-reg", "--no-monitor", "--dump-labels", "--vice-labels", "--labels=${outs.viceMonList()}")
-
-                if(options.warnSymbolShadowing)
-                    command.add("-Wshadow")
-                else
-                    command.add("-Wno-shadow")
-
-                if(options.asmQuiet)
-                    command.add("--quiet")
-
-                if(options.asmListfile)
-                    command.add("--list=${outs.list()}")
-
-                if(compTarget.name in listOf(C64Target.NAME, C128Target.NAME, PETTarget.NAME)) {
-                    if(!options.quiet)
+        if(!options.quiet) {
+            when(options.output) {
+                OutputType.PRG -> println("\nCreating prg for target ${compTarget.name}.")
+                OutputType.XEX -> println("\nCreating xex for target ${compTarget.name}.")
+                OutputType.RAW -> println("\nCreating raw binary for target ${compTarget.name}.")
+                OutputType.LIBRARY ->
+                    if(compTarget.name in listOf(C64Target.NAME, C128Target.NAME, PETTarget.NAME))
                         println("\nCreating binary library file with header for target ${compTarget.name}.")
-                    command.add("--cbm-prg")
-                } else {
-                    if(!options.quiet)
+                    else
                         println("\nCreating binary library file without header for target ${compTarget.name}.")
-                    command.add("--nostart")       // should be headerless bin, because basic has problems doing a normal LOAD"lib",8,1 - need to use BLOAD
-                }
-
-                assemblerCommand = addRemainingOptions(command, outs.programFile, outs.asm())
+                else -> { }
             }
-            else -> error("Unsupported output type: ${compTarget.defaultOutputType}")
         }
 
         val proc = ProcessBuilder(assemblerCommand)
