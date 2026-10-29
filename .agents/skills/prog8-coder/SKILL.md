@@ -22,6 +22,10 @@ Search in this folder first before looking online!
 
 - A program normally has a `main` block with a parameterless `start` entry
   subroutine. Other blocks and subroutines may be added.
+- Built-in targets are `c64`, `c128`, `cx16`, `pet32`, `virtual`, `amiga500`,
+  `amiga1200`, and `qemu68k`. The first four are 6502-family targets;
+  `amiga500` uses a 68000, while `amiga1200` and `qemu68k` use a 68020.
+  Custom target configuration files can also be passed to `-target`.
 - `%import modulename` imports a module without aliases. Use its defined prefix,
   such as `%import textio` followed by `txt.print(...)`.
 - `sys` is always available and needs no import.
@@ -57,9 +61,9 @@ libraries.
 
 - Primitive types include `bool`, `byte`, `ubyte`, `word`, `uword`, `long`,
   `float`, `str`, and `pointer`.
-- `pointer` is target-sized: 16-bit on 6502 targets, 32-bit on `amiga500`,
-  `qemu68k`, and `virtual`. Use it for portable addresses, not `uword` or
-  `long` chosen by assumption.
+- `pointer` is target-sized: 16-bit on 6502 targets and 32-bit on M68K and
+  virtual targets. Use it for portable addresses, not `uword` or `long` chosen
+  by assumption.
 - M68000 targets are big-endian and use 32-bit pointers. Load the `m68k-coder`
   skill for assembly details.
 - `float` requires `%import floats`.

@@ -201,7 +201,8 @@ The compiler evaluates the pointer expression exactly once and then stores the v
     Structs are primarily supported as a *reference type* accessed through a pointer.
     However, you can also declare an *array of struct instances* (see below), and a plain struct instance
     can be used as an lvalue in a few specific assignment cases.
-    It is not yet possible to use a struct as a standalone value type, or as a memory-mapped type.
+    It is not yet possible to use a struct as a standalone value type, or to declare a single
+    memory-mapped struct instance (an *array* of struct instances can be memory-mapped, see below).
     The compiler replaces whole-struct assignments with a memory copy. You are allowed to write::
 
         ptr2^^ = ptr1^^
@@ -260,6 +261,31 @@ The struct size counts toward the same target size limits as other arrays.
 On 6502-family targets a struct cannot exceed 256 bytes, so the maximum number of elements in an
 array of structs is limited by that size (for example, at most 128 elements for a 2-byte struct, and
 fewer for larger structs). On 32-bit targets the per-array size limit is much larger.
+
+An array of struct instances can also be memory-mapped at a fixed address, which is useful to overlay
+a hardware register block. The element stride is the struct size::
+
+    struct AudioChannel {
+        pointer LC       ; sample pointer
+        uword LEN        ; length in words
+        uword PER        ; period
+        uword VOL        ; volume
+        word DAT         ; sample data (write only)
+        uword pad0       ; filler, so the element stride matches the hardware's 16 bytes
+        uword pad1
+    }
+
+    ; the four Paula channel register blocks start at $dff0a0 (16 bytes apart)
+    &AudioChannel[4] channels = $dff0a0
+
+    sub start() {
+        channels[0].VOL = 64
+        channels[1].PER = 428
+    }
+
+Note that the fields are laid out in memory exactly as the struct declaration defines them
+(there is no alignment padding), so add explicit filler fields when the hardware register block
+requires gaps.
 
 .. note::
     Arrays of struct instances cannot be used as subroutine parameters (the same restriction applies

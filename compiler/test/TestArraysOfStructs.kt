@@ -7,6 +7,7 @@ import io.kotest.matchers.shouldBe
 import io.kotest.matchers.string.shouldContain
 import io.kotest.matchers.string.shouldNotContain
 import prog8.code.core.BaseDataType
+import prog8.code.target.Amiga500Target
 import prog8.code.target.C64Target
 import prog8.code.target.Qemu68kTarget
 import prog8.code.target.VMTarget
@@ -334,6 +335,51 @@ class TestArraysOfStructs: FunSpec({
         // check assembly was generated without needing vasm (assemble=false)
         val asmFiles = out.toFile().listFiles()!!.filter { it.name.endsWith(".asm") }
         (asmFiles.isNotEmpty() || result.codegenAst != null) shouldBe true
+    }
+
+    // A memory-mapped array of struct instances used to crash the compiler on the first field
+    // write: the element stride was taken from the array datatype's element type, which has
+    // STRUCT_INSTANCE as sub but no way to reach the resolved struct subtype.
+    test("memory-mapped struct array - field write uses the struct stride (m68k)") {
+        val out = tempdir().toPath()
+        val src = $$"""
+            main {
+                struct Chan { pointer LC  uword LEN  uword PER }
+                &Chan[4] chans = $dff0a0
+                sub start() {
+                    chans[2].PER = 428
+                    uword v = chans[3].LEN
+                }
+            }
+        """
+        compileText(Amiga500Target(), true, src, out, writeAssembly = true, assemble = false)!!
+        val asm = out.toFile().listFiles()!!.single { it.name.endsWith(".asm") }.readText()
+        val lines = asm.lines().map { it.trim().replace(Regex("\\s+"), " ") }
+        // struct is 8 bytes (4 byte pointer + 2 + 2), so chans[2] is at +16 and PER at +6
+        lines.any { it == "move.w #428,$00dff0b6" } shouldBe true
+    }
+
+    test("memory-mapped struct array - field write uses the struct stride (6502)") {
+        val out = tempdir().toPath()
+        val src = $$"""
+            main {
+                struct Chan { pointer LC  uword LEN  uword PER }
+                &Chan[4] chans = $0400
+                sub start() {
+                    ubyte @shared idx
+                    idx = 3
+                    chans[1].LEN = 1234
+                    chans[idx].PER = 428
+                }
+            }
+        """
+        compileText(C64Target(), true, src, out, writeAssembly = true, assemble = false)!!
+        val asm = out.toFile().listFiles()!!.single { it.name.endsWith(".asm") }.readText()
+        val lines = asm.lines().map { it.trim().replace(Regex("\\s+"), " ") }
+        // struct is 6 bytes (2 byte pointer + 2 + 2), so chans[1].LEN is at $0400+8
+        lines.any { it == "sta $0408" } shouldBe true
+        // the variable index is scaled by the struct size, not by the pointer size
+        lines.any { it == "ldy #6" } shouldBe true
     }
 
     // A struct instance's initializer arguments are held in a property rather than in the AST

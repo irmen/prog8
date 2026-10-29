@@ -46,6 +46,36 @@ cx16    ``cx16.getrombank()`` , ``cx16.getrambank()`` ``cx16.rombank(x)`` , ``cx
 other   N/A                                           N/A
 ======= ============================================= ===========
 
+Banked data on the Commander X16
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Use the ``-varshigh <rambank>`` compiler option to place uninitialized,
+non-zero-page variables and ``memory()`` slabs in the ``$A000-$BFFF`` window
+of a chosen HIRAM bank. For example, compile with bank 3::
+
+    prog8c -target cx16 -varshigh 3 program.p8
+
+The compiler selects that bank while initializing the relocated BSS at startup,
+but it does not switch banks automatically around later variable accesses. The
+selected HIRAM bank must match the bank containing the variables whenever the
+program reads or writes them. Initialized data remains in the program image and
+is not moved by ``-varshigh``. See :doc:`compiling` for the placement options.
+
+A program normally needs no bank switching around accesses to these variables:
+leave the configured HIRAM bank selected while using them. 
+If code must temporarily use another HIRAM bank, save the current bank, switch,
+and restore it afterward. For example, when bank 3 is active,
+``cx16.push_rambank(4)`` switches to bank 4 and ``cx16.pop_rambank()`` restores
+bank 3. This lets later accesses to the relocated variables continue to work.
+Pair each push with a pop on every control-flow path. Use ``cx16.rambank(bank)``
+when deliberately changing the active bank without saving the previous one.
+
+The ``%varsaddress <address>`` directive and ``-varsaddress <address>`` option
+are raw-address alternatives, not bank selectors. When placing BSS in the
+``$A000-$BFFF`` window this way, the program must also arrange for the intended
+HIRAM bank to be active during initialization and every access. See
+:doc:`programming` for the directive.
+
 Calling a subroutine in another memory bank can be done by using the ``callfar`` or ``callfar2`` builtin functions.
 
 When you are using the routines above, you are doing explicit manual banks control.

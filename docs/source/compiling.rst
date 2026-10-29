@@ -336,6 +336,8 @@ One or more .p8 module files
 
     cx16: $A000 - $BFFF  ; 8 kB in the specified HIRAM bank (note: no auto bank switching is done, you must make sure yourself that this HIRAM bank is active when accessing these variables!)
 
+    At startup the compiler selects the specified bank while clearing this BSS area. Later variable accesses do not switch banks automatically; use ``cx16.rambank()`` or the push/pop helpers to select the bank when needed.
+
     If you use this option, you can no longer use the part of the above memory area that is
     allotted to the variables/slabs, for your own purposes. The output of the 64tass assembler step at the
     end of compilation shows precise details of where and how much memory is used by the variables
