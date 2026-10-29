@@ -996,6 +996,19 @@ case you have to use { } to enclose them.
 
 The else part is optional.
 
+A ``when`` that is the final statement of a subroutine with return values is special:
+when control falls out of it - no choice matched, there is no ``else`` part, or the ``else``
+part doesn't ``return`` - the subroutine returns the default zero value of its return type(s).
+For any other final statement, a missing ``return`` is still a compile error::
+
+    sub pick(ubyte id) -> ubyte {
+        when id {
+            1 -> return 11
+            2 -> return 22
+            ; 3 falls out of the when and returns 0
+        }
+    }
+
 
 .. note::
     Instead of chaining several value equality checks together using ``or`` (ex.: ``if x==1 or xx==5 or xx==9``),

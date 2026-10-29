@@ -282,6 +282,26 @@ main {
         errors.errors[0] shouldContain "doesn't end with a return"
     }
 
+    test("final when in a value-returning subroutine gets a default return") {
+        val src = """
+main {
+    sub choose(ubyte value) -> ubyte {
+        when value {
+            1 -> return 11
+            2 -> return 22
+            3 -> return 33
+            4 -> return 44
+        }
+    }
+    sub start() {
+        cx16.r0L = choose(5)
+    }
+}"""
+        val errors = ErrorReporterForTests()
+        compileText(Cx16Target(), true, src, outputDir, errors, writeAssembly = false) shouldNotBe null
+        errors.errors shouldBe emptyList()
+    }
+
     test("asmsub body restriction") {
         val src="""
 main {

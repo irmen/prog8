@@ -2242,6 +2242,11 @@ wavfile
 .. note::
     the sample rate in hertz can be converted to a vera rate value via::
 
+        vera_rate = (wavfile.sample_rate as long * 65536 / 25000000) as ubyte + 1
+        vera_rate_hz = (vera_rate as uword * 25000000 / 65536) as uword
+
+        ; floating-point alternative::
+
         const float vera_freq_factor = 25e6 / 65536.0
         vera_rate = (wavfile.sample_rate as float / vera_freq_factor) + 1.0 as ubyte
         vera_rate_hz = (vera_rate as float) * vera_freq_factor as uword

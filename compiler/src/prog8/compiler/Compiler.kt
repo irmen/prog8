@@ -645,6 +645,7 @@ private fun processAst(program: Program, errors: IErrorReporter, compilerOptions
     errors.report()
     program.changeNotExpressionAndIfComparisonExpr(errors, compilerOptions.compTarget)
     errors.report()
+    program.addDefaultReturnAfterFinalWhen()
     program.addTypecasts(errors, compilerOptions)
     errors.report()
     program.variousCleanups(errors, compilerOptions)

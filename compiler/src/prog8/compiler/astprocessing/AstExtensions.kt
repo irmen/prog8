@@ -3,6 +3,7 @@ package prog8.compiler.astprocessing
 import prog8.ast.IStatementContainer
 import prog8.ast.Node
 import prog8.ast.Program
+import prog8.ast.defaultZero
 import prog8.ast.expressions.*
 import prog8.ast.statements.*
 import prog8.ast.walk.*
@@ -59,6 +60,24 @@ internal fun Program.checkVarDeclsOnOwnLine(errors: IErrorReporter) {
         }
     }
     checker.visit(this)
+}
+
+internal fun Program.addDefaultReturnAfterFinalWhen() {
+    val adder = object : AstWalker() {
+        override fun after(subroutine: Subroutine, parent: Node): Iterable<AstModification> {
+            if(subroutine.returntypes.isEmpty() || subroutine.returntypes.any { !(it.isNumericOrBool || it.isString || it.isPointer) })
+                return noModifications
+            val lastStatement = subroutine.statements.reversed().dropWhile {
+                it is Subroutine || it is VarDecl || it is Directive || (it is Assignment && it.origin== AssignmentOrigin.VARINIT)
+            }.firstOrNull() as? When ?: return noModifications
+            val zeroValues = Array<Expression>(subroutine.returntypes.size) {
+                defaultZero(InferredTypes.knownFor(subroutine.returntypes[it]), lastStatement.position)
+            }
+            return listOf(AstInsert.after(lastStatement, Return(zeroValues, lastStatement.position), subroutine))
+        }
+    }
+    adder.visit(this)
+    adder.applyModifications()
 }
 
 internal fun Program.checkValid(errors: IErrorReporter, compilerOptions: CompilationOptions) {    // semantic analysis to see if the program is valid.

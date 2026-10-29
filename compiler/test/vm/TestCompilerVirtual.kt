@@ -2256,6 +2256,80 @@ main {
         }
     }
 
+    test("when return choices with an else return compile and run") {
+        val src = """
+main {
+    ubyte @shared selected
+    ubyte @shared fallback
+    sub rotate_90_left(ubyte dir) -> ubyte {
+        when dir {
+            1 -> return 11
+            2 -> return 22
+            3 -> return 33
+            4 -> return 44
+            else -> return 55
+        }
+    }
+    sub start() {
+        selected = rotate_90_left(3)
+        fallback = rotate_90_left(0)
+    }
+}"""
+        val result = compileText(VMTarget(), true, src, outputDir, writeAssembly = true)!!
+        val virtfile = result.compilationOptions.outputDir.resolve(result.compilerAst.name + ".p8ir")
+        val irContent = virtfile.readText()
+        irContent.contains("jumpi") shouldBe true
+        val irProgram = IRFileReader().read(irContent)
+        irProgram.st.stripAllPrefixes()
+        val allocations = VmVariableAllocator(irProgram.st, irProgram.encoding, irProgram.options.compTarget).allocations
+        VmRunner().runAndTestProgram(irContent) { vm ->
+            vm.memory.getUB(allocations["main.selected"]!!) shouldBe 33u
+            vm.memory.getUB(allocations["main.fallback"]!!) shouldBe 55u
+        }
+    }
+
+    test("final when fallthrough returns zero") {
+        val src = """
+main {
+    ubyte @shared else_result
+    ubyte @shared no_else_result
+    ubyte @shared else_count
+    sub with_else(ubyte dir) -> ubyte {
+        when dir {
+            1 -> return 11
+            2 -> return 22
+            3 -> return 33
+            4 -> return 44
+            else -> else_count++
+        }
+    }
+    sub without_else(ubyte dir) -> ubyte {
+        when dir {
+            1 -> return 11
+            2 -> return 22
+            3 -> return 33
+            4 -> return 44
+        }
+    }
+    sub start() {
+        else_result = with_else(0)
+        no_else_result = without_else(0)
+    }
+}"""
+        val result = compileText(VMTarget(), true, src, outputDir, writeAssembly = true)!!
+        val virtfile = result.compilationOptions.outputDir.resolve(result.compilerAst.name + ".p8ir")
+        val irContent = virtfile.readText()
+        irContent.contains("jumpi") shouldBe true
+        val irProgram = IRFileReader().read(irContent)
+        irProgram.st.stripAllPrefixes()
+        val allocations = VmVariableAllocator(irProgram.st, irProgram.encoding, irProgram.options.compTarget).allocations
+        VmRunner().runAndTestProgram(irContent) { vm ->
+            vm.memory.getUB(allocations["main.else_result"]!!) shouldBe 0u
+            vm.memory.getUB(allocations["main.no_else_result"]!!) shouldBe 0u
+            vm.memory.getUB(allocations["main.else_count"]!!) shouldBe 1u
+        }
+    }
+
     test("when without else with call choice bodies ignores out-of-bounds dispatch") {
         val src = """
 main {

@@ -107,12 +107,14 @@ registers survive calls. Long operations may clobber `R12-R15`.
 ## Syntax Pitfalls
 
 - Hex uses `$FF`, binary uses `%1010`, and casts use `expression as type`.
-- There is no automatic type widening in expression results: `byte * byte`
-  remains a byte. Cast explicitly when a wider result is needed. Assignments,
-  call arguments, and mixed-type expressions do widen implicitly
-  (`ubyte`/`byte` to `word`/`uword` to `long`); only same-width signedness
-  reinterpretation (`uword` to `word` and back) needs an explicit `as` cast.
-- `&` is an untyped address and `&&` is a typed pointer. Complex pointer field
+- There is no automatic type widening in expression results: the result keeps
+  the operands' type. `byte * byte`, `ubyte * ubyte`, `word * word` and
+  `uword * uword` all stay in their own type and can overflow/truncate. Cast
+  an operand explicitly (e.g. `(a as uword) * b`) when a wider result is
+  needed. Assignments, call arguments, and mixed-type expressions do widen
+  implicitly (`ubyte`/`byte` to `word`/`uword` to `long`); only same-width
+  signedness reinterpretation (`uword` to `word` and back) needs an explicit
+  `as` cast.- `&` is an untyped address and `&&` is a typed pointer. Complex pointer field
   assignments may require `ptr^^.field`.
 - `and`, `or`, `xor`, and `not` are logical operators. Use `&`, `|`, `^`, and
   `~` for bitwise operations.
