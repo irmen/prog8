@@ -531,6 +531,16 @@ modules. Import them the same way as any other library::
 ``blitter``
     Blitter operations and the ``MINTERM`` logic modes.
 
+``sound``
+    Direct Paula audio: hardware-banging 4-channel 8-bit PCM playback with no
+    OS involved, to be used after ``custom.grab_system()``. Plays samples once,
+    looped, as 14-bit channel pairs, or as double-buffered gapless streams.
+    All sample data must be in CHIP RAM. One-shot samples must start with a
+    single zero word; after the sample ends Paula loops on that word, so the
+    channel falls silent. ``is_playing`` and ``stream_ready`` poll the audio
+    interrupt request flag to notice the end, so no interrupt handler is
+    installed.
+
 ``easygfx``
     Friendly OS graphics wrapper in the style of the ``gfx_*`` pixel modules:
     per-call pen, client-relative coordinates, no structs or tag lists to manage.

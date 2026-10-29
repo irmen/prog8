@@ -31,4 +31,5 @@
 %import timer
 %import audio
 %import ptplayer
+%import sound
 %import trackdisk

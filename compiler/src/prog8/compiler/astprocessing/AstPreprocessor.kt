@@ -590,7 +590,7 @@ class AstPreprocessor(val program: Program,
             if(memberValue!=null) {
                 // explicit values may be in any order, they only have to be unique
                 if(!seenValues.add(memberValue)) {
-                    errors.err("invalid enum sequence member value", it.position)
+                    errors.err("invalid enum sequence member value ${it.name} = $memberValue", it.position)
                 }
                 if(memberValue>value) {
                     value = memberValue
