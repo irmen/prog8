@@ -702,12 +702,18 @@ private fun scanLibraryFiles(dump: String?, searchPattern: String?, plainText: B
         presenter.printlnLine("")
     }
 
+    var sharedModuleDisplayNames: Map<String, String> = emptyMap()
+    fun displayLibraryPath(path: Path): String {
+        val relativePath = path.absolutePathString().drop(libraryPrefix.length+1)
+        return sharedModuleDisplayNames[relativePath] ?: relativePath
+    }
+
     fun search(path: Path, currentPattern: Regex, maxHits: Int = Int.MAX_VALUE): List<Triple<String, Int, String>> {
         val hits = mutableListOf<Triple<String, Int, String>>()
         path.useLines { lines ->
             lines.forEachIndexed { index, line ->
                 if (currentPattern.containsMatchIn(line)) {
-                    hits.add(Triple(path.absolutePathString().drop(libraryPrefix.length+1), index + 1, line.trimStart()))
+                    hits.add(Triple(displayLibraryPath(path), index + 1, line.trimStart()))
                     if (hits.size >= maxHits) return@useLines
                 }
             }
@@ -728,6 +734,27 @@ private fun scanLibraryFiles(dump: String?, searchPattern: String?, plainText: B
         val dir = fs.getPath(libraryPrefix)
         val allFiles = Files.walk(dir).use { paths -> paths.filter { Files.isRegularFile(it) }.toList() }
         if (searchPattern != null) {
+            // Shared modules are implementation details. Show the public module
+            // name used by their target-specific wrappers when it is unambiguous.
+            val sharedModuleNames = allFiles
+                .filter { it.parent == dir && it.fileName.toString().startsWith("shared_") }
+                .map { it.fileName.toString().removeSuffix(".p8") }
+                .toSet()
+            val sharedModuleImporters = mutableMapOf<String, MutableSet<String>>()
+            val importRegex = Regex("""(?m)^\s*%import\s+([A-Za-z_][A-Za-z0-9_]*)\b""")
+            allFiles
+                .filter { it.fileName.toString().endsWith(".p8") && !it.fileName.toString().startsWith("shared_") }
+                .forEach { importer ->
+                    val importerName = importer.fileName.toString()
+                    importRegex.findAll(importer.readText()).forEach { match ->
+                        val importedModule = match.groupValues[1]
+                        if (importedModule in sharedModuleNames)
+                            sharedModuleImporters.getOrPut(importedModule) { mutableSetOf() }.add(importerName)
+                    }
+                }
+            sharedModuleDisplayNames = sharedModuleImporters.mapNotNull { (moduleName, importers) ->
+                importers.singleOrNull()?.let { "$moduleName.p8" to it }
+            }.toMap()
             val p = pattern!!
             val allHits = mutableListOf<Triple<String, Int, String>>()
             for (file in allFiles) {

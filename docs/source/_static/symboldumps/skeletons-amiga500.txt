@@ -1,6 +1,6 @@
 
 Prog8 compiler v14.0-BETA3 by Irmen de Jong (irmen@razorvine.net)
-Prerelease version from git commit 789581ec in branch master
+Prerelease version from git commit 4c93abd6 in branch master
 This software is licensed under the GNU GPL 3.0, see https://www.gnu.org/licenses/gpl.html
 
 Compiling program import-all-amiga500.p8
@@ -4763,20 +4763,23 @@ sound  {
     const uword  PERIOD_MIN
     const ubyte  VOL_MAX
     const ubyte  VOL_MUTE
+    closedown  ()
     init  ()
     is_playing  (ubyte channel) -> bool
     loop  (ubyte channel, long sample, uword len_words, uword period, ubyte volume)
     play  (ubyte channel, long sample, uword len_words, uword period, ubyte volume)
     play_14bit  (ubyte hi_channel, long sample_hi, long sample_lo, uword len_words, uword period, ubyte volume)
+    set_freqvol  (ubyte channel, uword samplerate, ubyte volume)
     set_period  (ubyte channel, uword period)
     set_volume  (ubyte channel, ubyte volume)
-    shutdown  ()
     start  ()
     stop  (ubyte channel)
     stop_all  ()
     stream_ready  () -> byte
     stream_start  (ubyte channel, long buf_a, long buf_b, uword len_words, uword period, ubyte volume)
     stream_stop  (ubyte channel)
+    wait_all  ()
+    wait_channel  (ubyte channel)
 }
 
 

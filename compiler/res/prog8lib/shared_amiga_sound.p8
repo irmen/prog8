@@ -82,8 +82,8 @@ sound {
         ; automatically. This routine is kept for API compatibility.
     }
 
-    sub shutdown() {
-        ; Disable audio DMA and silence all channels.
+    sub closedown() {
+        ; -- Close down the audio hardware on all 4 channels. Does not wait for sounds to finish playing.
         stop_all()
         custom.DMACON = custom.DMAF_AUDIO
     }
@@ -175,6 +175,16 @@ sound {
             hw_set_period(other, period)             ; a 14-bit pair must stay in sync
     }
 
+    sub set_freqvol(ubyte channel, uword samplerate, ubyte volume) {
+        ; -- Change the playback rate and volume of the sound currently playing on this channel.
+        ; Takes effect immediately. Both are always set together.
+        if channel>3 or samplerate==0
+            return
+        uword period = CLOCK_PAL / samplerate as uword
+        set_period(channel, period)
+        set_volume(channel, volume)
+    }
+
     sub is_playing(ubyte channel) -> bool {
         ; True while the channel's DMA is still running.
         if channel>3
@@ -190,6 +200,20 @@ sound {
         if mode==MODE_LOOP or mode==MODE_STREAM
             return (custom.DMACONR & (custom.DMAF_AUD0 << channel))!=0
         return false
+    }
+
+    sub wait_channel(ubyte channel) {
+        ; wait for the current sound(s) on this channel to finish playing.
+        while is_playing(channel) {
+        }
+    }
+
+    sub wait_all() {
+        ; wait for all channels to finish playing their sounds.
+        wait_channel(0)
+        wait_channel(1)
+        wait_channel(2)
+        wait_channel(3)
     }
 
     ; ========== Double-buffered streaming ==========

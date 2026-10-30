@@ -114,10 +114,14 @@ registers survive calls. Long operations may clobber `R12-R15`.
   needed. Assignments, call arguments, and mixed-type expressions do widen
   implicitly (`ubyte`/`byte` to `word`/`uword` to `long`); only same-width
   signedness reinterpretation (`uword` to `word` and back) needs an explicit
-  `as` cast.- `&` is an untyped address and `&&` is a typed pointer. Complex pointer field
+  `as` cast.
+- `&` is an untyped address and `&&` is a typed pointer. Complex pointer field
   assignments may require `ptr^^.field`.
 - `and`, `or`, `xor`, and `not` are logical operators. Use `&`, `|`, `^`, and
   `~` for bitwise operations.
+- Augmented assignments are supported: `+=`, `-=`, `*=`, `/=`, `&=`, `|=`,
+  `^=`, `<<=`, and `>>=`. They are useful for concise updates, including
+  accumulating bit flags (for example, `state |= JOY_FIRE2`).
 - `and` and `or` short-circuit, so the right operand may not be evaluated.
 - There is no `elif`, bare block, or semicolon statement separator. Semicolon
   starts a comment. Prefer one statement per line and four-space indentation.
