@@ -253,6 +253,106 @@ IRQ7 = $7C
         }}
     }
 
+    ; Bit masks; combine these flags with |.
+    const ubyte JOY_UP = %00000001
+    const ubyte JOY_DOWN = %00000010
+    const ubyte JOY_LEFT = %00000100
+    const ubyte JOY_RIGHT = %00001000
+    const ubyte JOY_FIRE = %00010000
+    const ubyte JOY_FIRE2 = %00100000
+
+    private uword[2] mouse_previous
+    private bool[2] mouse_initialized
+
+    sub joystick_axes(ubyte port) -> byte, byte {
+        ; Return screen axes in -1..1: x right, y down.
+        if port>1
+            return 0, 0
+        uword state = ~read_joydat(port) ; JOYxDAT direction signals are active low.
+        byte x = 0
+        byte y = 0
+        if (state & $0002)!=0
+            x = -1
+        if (state & $0200)!=0
+            x += 1
+        state = ~(state ^ (state << 1)) ; Decode vertical direction from its quadrature pair.
+        if (state & $0002)!=0
+            y = -1
+        if (state & $0200)!=0
+            y += 1
+        return x, y
+    }
+
+    sub joystick_fire(ubyte port) -> bool {
+        ; Fire switches are active low on CIA-A PRA bits 6 and 7.
+        when port {
+            0 -> return (CIAA_PRA & $40)==0
+            1 -> return (CIAA_PRA & $80)==0
+            else -> return false
+        }
+    }
+
+    sub joystick_fire2(ubyte port) -> bool {
+        ; Second fire is active low on pin 9: POTGOR bit 10 or 14.
+        when port {
+            0 -> return (POTGOR & $0400)==0
+            1 -> return (POTGOR & $4000)==0
+            else -> return false
+        }
+    }
+
+    sub joystick_state(ubyte port) -> ubyte {
+        ; Read directions directly; opposite switches cancel like joystick_axes().
+        if port>1
+            return 0
+        uword directions = ~read_joydat(port)
+        uword vertical = ~(directions ^ (directions << 1))
+        ubyte state = 0
+        if (vertical & $0002)!=0 and (vertical & $0200)==0
+            state |= JOY_UP
+        if (vertical & $0200)!=0 and (vertical & $0002)==0
+            state |= JOY_DOWN
+        if (directions & $0002)!=0 and (directions & $0200)==0
+            state |= JOY_LEFT
+        if (directions & $0200)!=0 and (directions & $0002)==0
+            state |= JOY_RIGHT
+        if joystick_fire(port)
+            state |= JOY_FIRE
+        if joystick_fire2(port)
+            state |= JOY_FIRE2
+        return state
+    }
+
+    sub mouse_init(ubyte port) {
+        ; Set the starting counter values used by mouse_delta().
+        if port>1
+            return
+        mouse_previous[port] = read_joydat(port)
+        mouse_initialized[port] = true
+    }
+
+    sub mouse_delta(ubyte port) -> byte, byte {
+        ; Poll once per frame; each 8-bit counter wraps independently.
+        if port>1
+            return 0, 0
+        uword current = read_joydat(port)
+        if not mouse_initialized[port] {
+            mouse_previous[port] = current
+            mouse_initialized[port] = true
+            return 0, 0
+        }
+        uword previous = mouse_previous[port]
+        mouse_previous[port] = current
+        byte dx = (lsb(current)-lsb(previous)) as byte
+        byte dy = (msb(current)-msb(previous)) as byte
+        return dx, dy
+    }
+
+    private inline sub read_joydat(ubyte port) -> uword {
+        ; Read the custom-chip data register for the selected port.
+        return if port==0 then JOY0DAT else JOY1DAT
+    }
+
     ; ========== mouse button status ==========
 
     sub left_button() -> bool {

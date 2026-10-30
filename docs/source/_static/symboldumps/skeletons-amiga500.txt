@@ -1,6 +1,6 @@
 
 Prog8 compiler v14.0-BETA3 by Irmen de Jong (irmen@razorvine.net)
-Prerelease version from git commit 4c93abd6 in branch master
+Prerelease version from git commit d687497a in branch master
 This software is licensed under the GNU GPL 3.0, see https://www.gnu.org/licenses/gpl.html
 
 Compiling program import-all-amiga500.p8
@@ -771,6 +771,12 @@ custom  {
     &uword  JOY0DAT
     &uword  JOY1DAT
     &uword  JOYTEST
+    const ubyte  JOY_DOWN
+    const ubyte  JOY_FIRE
+    const ubyte  JOY_FIRE2
+    const ubyte  JOY_LEFT
+    const ubyte  JOY_RIGHT
+    const ubyte  JOY_UP
     const uword  MINTERM_AND
     const uword  MINTERM_CLEAR
     const uword  MINTERM_COPY
@@ -867,8 +873,14 @@ custom  {
     filter_off  ()
     filter_on  ()
     grab_system  ()
+    joystick_axes  (ubyte port) -> byte, byte
+    joystick_fire  (ubyte port) -> bool
+    joystick_fire2  (ubyte port) -> bool
+    joystick_state  (ubyte port) -> ubyte
     left_button  () -> bool
     middle_button  () -> bool
+    mouse_delta  (ubyte port) -> byte, byte
+    mouse_init  (ubyte port)
     restore_system  ()
     right_button  () -> bool
     set_aga_color  (ubyte color_index @D0, long rgb24 @D1)

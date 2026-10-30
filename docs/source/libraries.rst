@@ -526,7 +526,22 @@ modules. Import them the same way as any other library::
     Direct access to the custom chipset, with no library involved. Contains
     ``grab_system()``/``restore_system()`` to take over the whole system and interrupt
     handlers for hardware banging programs (games, demos), ``waitvsync()``, AGA colour
-    register writes, and the CIA mouse buttons.
+    register writes, and controller input routines. ``joystick_axes(port)`` returns
+    signed x/y values in -1..1. ``joystick_fire(port)`` and
+    ``joystick_fire2(port)`` return the two fire-button states;
+    ``joystick_state(port)`` combines directions and fire buttons into bit flags
+    such as ``custom.JOY_UP`` and ``custom.JOY_FIRE2``. These flags can be
+    combined with bitwise OR.
+    ``mouse_delta(port)`` returns signed x/y movement since its previous call.
+    ``left_button()``, ``middle_button()`` and ``right_button()`` read the three
+    mouse buttons on connector 1. The first joystick fire input is read from CIA-A;
+    the second is on pin 9 via POTGOR.
+    Ports are zero-based: 0 is JOY0DAT / connector 1, 1 is JOY1DAT / connector 2.
+    Use the joystick routines with a digital joystick and the mouse routines with
+    a mouse or trackball; these are direct hardware readers, not gameport.device calls.
+    Call ``mouse_init(port)`` before polling if you want the first delta measured
+    from that point; otherwise the first ``mouse_delta`` call returns zero.
+    Poll mouse deltas once per frame because each hardware counter is 8-bit.
 
 ``blitter``
     Blitter operations and the ``MINTERM`` logic modes.
