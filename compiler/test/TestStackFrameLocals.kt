@@ -1496,4 +1496,122 @@ main {
         errors.errors.size shouldBe 1
         errors.errors[0] shouldContain "not valid for subroutines"
     }
+
+    // Regression tests for an m68k codegen bug: when a framed subroutine's local is promoted to
+    // a vreg, the register-in-memory opcodes (ADDM/ORM/...) must rewrite to the register form
+    // with the PROMOTED LOCAL's vreg as destination. The earlier code swapped the operands,
+    // computing the result into the operand (e.g. the mask) register instead, so `state |= mask`
+    // left `state` unchanged (visible as `or.b <state>,<mask>` in the asm).
+
+    // the IR text of the sub whose name ends with "p8s_<name>"
+    fun irSubByName(ir: String, name: String): String {
+        val lines = ir.lineSequence().dropWhile { !it.contains("SUB NAME=\"") || !it.contains("p8s_$name\"") }.toList()
+        require(lines.isNotEmpty()) { "no IR sub found ending in p8s_$name" }
+        return lines.takeWhile { !it.startsWith("</SUB>") }.joinToString("\n")
+    }
+
+    // the assembly lines of the sub whose name ends with "p8s_<name>"
+    fun asmSubByName(lines: List<String>, name: String): List<String> {
+        val start = lines.indexOfFirst { it.startsWith("; ---- Subroutine:") && it.contains("p8s_$name") }
+        require(start >= 0) { "no asm sub found ending in p8s_$name" }
+        val end = lines.indexOfFirst { it.startsWith("; End of subroutine:") && it.contains("p8s_$name") }
+        return lines.subList(start, end)
+    }
+
+    // every rewrite of a register-in-memory op must keep the promoted local's vreg as the DEST
+    fun assertRegisterOpsTargetTheLocal(irSlice: String, localInitRegex: Regex, vararg opRegexes: Regex) {
+        val localReg = localInitRegex.find(irSlice)!!.groupValues[1]
+        for (opex in opRegexes) {
+            val matches = opex.findAll(irSlice).toList()
+            matches.any() shouldBe true
+            for (m in matches)
+                m.groupValues[1] shouldBe localReg
+        }
+    }
+
+    test("promoted |= (and &= ^=) write the result into the local's vreg") {
+        val src = $$"""
+%zeropage basicsafe
+
+main {
+    sub joy(ubyte mask) -> ubyte {
+        ubyte state = 0
+        if mask > 0
+            state |= 1
+        if mask > 1
+            state |= 2
+        if mask > 2
+            state &= $FD
+        if mask > 3
+            state ^= 32
+        return state
+    }
+
+    sub start() {
+        void joy(3)
+    }
+}
+"""
+        val (lines, ir) = compile(src, Qemu68kTarget())
+        val irSlice = irSubByName(ir, "joy")
+        // the promoted local's vreg is the one zero-initialized: 'load.b rX,#0'
+        assertRegisterOpsTargetTheLocal(
+            irSlice,
+            Regex("""load\.b (r\d+)\.b,#0\.b"""),
+            Regex("""orr\.b (r\d+)\.b,(r\d+)\.b"""),
+            Regex("""andr\.b (r\d+)\.b,(r\d+)\.b"""),
+            Regex("""xorr\.b (r\d+)\.b,(r\d+)\.b"""),
+        )
+        // and in the assembly, the or/and/eor destination must be the register holding state
+        val asmSlice = asmSubByName(lines, "joy")
+        val stateAsmReg = Regex("""clr\.b\s+(d\d)""").find(asmSlice.joinToString("\n"))!!.groupValues[1]
+        for (op in listOf("or", "and", "eor")) {
+            val opLines = asmSlice.filter { Regex("""^$op\.b\s+d\d,d\d$""").matches(it) }
+            opLines.any() shouldBe true
+            for (line in opLines)
+                line.substringBefore(';').trim().substringAfter(',') shouldBe stateAsmReg
+        }
+    }
+
+    test("promoted += and -= with register or immediate RHS write the result into the local's vreg") {
+        val src = """
+main {
+    sub bump(ubyte n) -> ubyte {
+        ubyte s = 0
+        s += 2              ; immediate form (ADDIM)
+        s += n              ; ADDM rewrite
+        s -= n              ; SUBM rewrite
+        s += n
+        return s
+    }
+
+    sub start() {
+        void bump(5)
+    }
+}
+"""
+        val (lines, ir) = compile(src, Qemu68kTarget())
+        val irSlice = irSubByName(ir, "bump")
+        assertRegisterOpsTargetTheLocal(
+            irSlice,
+            Regex("""load\.b (r\d+)\.b,#0\.b"""),
+            Regex("""add\.b (r\d+)\.b,#2\.b"""),
+            Regex("""addr\.b (r\d+)\.b,(r\d+)\.b"""),
+            Regex("""subr\.b (r\d+)\.b,(r\d+)\.b"""),
+        )
+        val asmSlice = asmSubByName(lines, "bump")
+        val stateAsmReg = Regex("""clr\.b\s+(d\d)""").find(asmSlice.joinToString("\n"))!!.groupValues[1]
+        // addq #2 (or addi) form for the constant increment: destination is the local's register
+        val constAdds = asmSlice.filter { Regex("""^add(?:i|q)\.b\s+#2,d\d$""").matches(it) }
+        constAdds.any() shouldBe true
+        for (line in constAdds)
+            line.substringBefore(';').trim().substringAfter(',') shouldBe stateAsmReg
+        // register-operand add/sub writes the local's register
+        for (op in listOf("add", "sub")) {
+            val opLines = asmSlice.filter { Regex("""^$op\.b\s+d\d,d\d$""").matches(it) }
+            opLines.any() shouldBe true
+            for (line in opLines)
+                line.substringBefore(';').trim().substringAfter(',') shouldBe stateAsmReg
+        }
+    }
 })

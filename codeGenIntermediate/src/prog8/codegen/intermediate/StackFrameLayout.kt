@@ -1418,50 +1418,52 @@ class StackFrameLayout(
             Opcode.INCM -> IRInstruction(Opcode.INC, type, dest = vrOperand(OperandRole.RESULT, OperandDirection.USE_DEF))
             Opcode.DECM -> IRInstruction(Opcode.DEC, type, dest = vrOperand(OperandRole.RESULT, OperandDirection.USE_DEF))
             Opcode.NEGM -> IRInstruction(Opcode.NEG, type, dest = vrOperand(OperandRole.RESULT, OperandDirection.USE_DEF))
+            // register-in-memory ops mean [mem] = [mem] OP srcA: when the memory slot is
+            // promoted to a vreg, the RESULT must land in that vreg, not in the operand register.
             Opcode.ADDM -> {
                 val reg = instr.srcA ?: return null
-                val dest = RegisterOperand(reg.register, type, OperandRole.RESULT, OperandDirection.USE_DEF, reg.allocationHint)
-                IRInstruction(Opcode.ADDR, type, dest = dest, srcA = vrOperand(OperandRole.RIGHT, OperandDirection.USE))
+                val src = RegisterOperand(reg.register, type, OperandRole.RIGHT, OperandDirection.USE, reg.allocationHint)
+                IRInstruction(Opcode.ADDR, type, dest = vrOperand(OperandRole.RESULT, OperandDirection.USE_DEF), srcA = src)
             }
             Opcode.SUBM -> {
                 val reg = instr.srcA ?: return null
-                val dest = RegisterOperand(reg.register, type, OperandRole.RESULT, OperandDirection.USE_DEF, reg.allocationHint)
-                IRInstruction(Opcode.SUBR, type, dest = dest, srcA = vrOperand(OperandRole.RIGHT, OperandDirection.USE))
+                val src = RegisterOperand(reg.register, type, OperandRole.RIGHT, OperandDirection.USE, reg.allocationHint)
+                IRInstruction(Opcode.SUBR, type, dest = vrOperand(OperandRole.RESULT, OperandDirection.USE_DEF), srcA = src)
             }
             Opcode.MULM -> {
                 val reg = instr.srcA ?: return null
-                val dest = RegisterOperand(reg.register, type, OperandRole.RESULT, OperandDirection.USE_DEF, reg.allocationHint)
-                IRInstruction(Opcode.MULR, type, dest = dest, srcA = vrOperand(OperandRole.RIGHT, OperandDirection.USE))
+                val src = RegisterOperand(reg.register, type, OperandRole.RIGHT, OperandDirection.USE, reg.allocationHint)
+                IRInstruction(Opcode.MULR, type, dest = vrOperand(OperandRole.RESULT, OperandDirection.USE_DEF), srcA = src)
             }
             Opcode.MULSM -> {
                 val reg = instr.srcA ?: return null
-                val dest = RegisterOperand(reg.register, type, OperandRole.RESULT, OperandDirection.USE_DEF, reg.allocationHint)
-                IRInstruction(Opcode.MULSR, type, dest = dest, srcA = vrOperand(OperandRole.RIGHT, OperandDirection.USE))
+                val src = RegisterOperand(reg.register, type, OperandRole.RIGHT, OperandDirection.USE, reg.allocationHint)
+                IRInstruction(Opcode.MULSR, type, dest = vrOperand(OperandRole.RESULT, OperandDirection.USE_DEF), srcA = src)
             }
             Opcode.DIVM -> {
                 val reg = instr.srcA ?: return null
-                val dest = RegisterOperand(reg.register, type, OperandRole.RESULT, OperandDirection.USE_DEF, reg.allocationHint)
-                IRInstruction(Opcode.DIVR, type, dest = dest, srcA = vrOperand(OperandRole.RIGHT, OperandDirection.USE))
+                val src = RegisterOperand(reg.register, type, OperandRole.RIGHT, OperandDirection.USE, reg.allocationHint)
+                IRInstruction(Opcode.DIVR, type, dest = vrOperand(OperandRole.RESULT, OperandDirection.USE_DEF), srcA = src)
             }
             Opcode.DIVSM -> {
                 val reg = instr.srcA ?: return null
-                val dest = RegisterOperand(reg.register, type, OperandRole.RESULT, OperandDirection.USE_DEF, reg.allocationHint)
-                IRInstruction(Opcode.DIVSR, type, dest = dest, srcA = vrOperand(OperandRole.RIGHT, OperandDirection.USE))
+                val src = RegisterOperand(reg.register, type, OperandRole.RIGHT, OperandDirection.USE, reg.allocationHint)
+                IRInstruction(Opcode.DIVSR, type, dest = vrOperand(OperandRole.RESULT, OperandDirection.USE_DEF), srcA = src)
             }
             Opcode.ANDM -> {
                 val reg = instr.srcA ?: return null
-                val dest = RegisterOperand(reg.register, type, OperandRole.RESULT, OperandDirection.USE_DEF, reg.allocationHint)
-                IRInstruction(Opcode.ANDR, type, dest = dest, srcA = vrOperand(OperandRole.RIGHT, OperandDirection.USE))
+                val src = RegisterOperand(reg.register, type, OperandRole.RIGHT, OperandDirection.USE, reg.allocationHint)
+                IRInstruction(Opcode.ANDR, type, dest = vrOperand(OperandRole.RESULT, OperandDirection.USE_DEF), srcA = src)
             }
             Opcode.ORM -> {
                 val reg = instr.srcA ?: return null
-                val dest = RegisterOperand(reg.register, type, OperandRole.RESULT, OperandDirection.USE_DEF, reg.allocationHint)
-                IRInstruction(Opcode.ORR, type, dest = dest, srcA = vrOperand(OperandRole.RIGHT, OperandDirection.USE))
+                val src = RegisterOperand(reg.register, type, OperandRole.RIGHT, OperandDirection.USE, reg.allocationHint)
+                IRInstruction(Opcode.ORR, type, dest = vrOperand(OperandRole.RESULT, OperandDirection.USE_DEF), srcA = src)
             }
             Opcode.XORM -> {
                 val reg = instr.srcA ?: return null
-                val dest = RegisterOperand(reg.register, type, OperandRole.RESULT, OperandDirection.USE_DEF, reg.allocationHint)
-                IRInstruction(Opcode.XORR, type, dest = dest, srcA = vrOperand(OperandRole.RIGHT, OperandDirection.USE))
+                val src = RegisterOperand(reg.register, type, OperandRole.RIGHT, OperandDirection.USE, reg.allocationHint)
+                IRInstruction(Opcode.XORR, type, dest = vrOperand(OperandRole.RESULT, OperandDirection.USE_DEF), srcA = src)
             }
             Opcode.ADDIM -> {
                 val imm = instr.immediate ?: return null
