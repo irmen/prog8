@@ -201,7 +201,7 @@ internal class VariousCleanups(val program: Program, val errors: IErrorReporter,
                     val boolean = NumericLiteral.fromBoolean(ecv.asBooleanValue, typecast.expression.position)
                     return listOf(AstReplaceNode(typecast, boolean, parent))
                 } else {
-                    val zero = defaultZero(et.getOrUndef().base, typecast.position)
+                    val zero = defaultZero(et.getOrUndef().base, typecast.position, options.compTarget)
                     val cmp = BinaryExpression(typecast.expression, "!=", zero, typecast.position)
                     return listOf(AstReplaceNode(typecast, cmp, parent))
                 }

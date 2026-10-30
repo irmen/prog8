@@ -71,7 +71,7 @@ internal fun Program.addDefaultReturnAfterFinalWhen() {
                 it is Subroutine || it is VarDecl || it is Directive || (it is Assignment && it.origin== AssignmentOrigin.VARINIT)
             }.firstOrNull() as? When ?: return noModifications
             val zeroValues = Array<Expression>(subroutine.returntypes.size) {
-                defaultZero(InferredTypes.knownFor(subroutine.returntypes[it]), lastStatement.position)
+                defaultZero(InferredTypes.knownFor(subroutine.returntypes[it]), lastStatement.position, target)
             }
             return listOf(AstInsert.after(lastStatement, Return(zeroValues, lastStatement.position), subroutine))
         }

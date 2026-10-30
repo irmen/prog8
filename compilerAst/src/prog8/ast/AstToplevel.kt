@@ -9,6 +9,7 @@ import prog8.ast.walk.AstWalker
 import prog8.ast.walk.IAstVisitor
 import prog8.code.core.BaseDataType
 import prog8.code.core.Encoding
+import prog8.code.core.ICompilationTarget
 import prog8.code.core.Position
 import prog8.code.source.SourceCode
 
@@ -480,7 +481,7 @@ internal object BuiltinFunctionScopePlaceholder : INameScope {
 }
 
 
-fun defaultZero(dt: BaseDataType, position: Position) = when(dt) {
+fun defaultZero(dt: BaseDataType, position: Position, target: ICompilationTarget) = when(dt) {
     BaseDataType.BOOL -> NumericLiteral(BaseDataType.BOOL, 0.0,  position)
     BaseDataType.UBYTE -> NumericLiteral(BaseDataType.UBYTE, 0.0,  position)
     BaseDataType.BYTE -> NumericLiteral(BaseDataType.BYTE, 0.0,  position)
@@ -488,8 +489,8 @@ fun defaultZero(dt: BaseDataType, position: Position) = when(dt) {
     BaseDataType.WORD -> NumericLiteral(BaseDataType.WORD, 0.0, position)
     BaseDataType.LONG -> NumericLiteral(BaseDataType.LONG, 0.0, position)
     BaseDataType.FLOAT -> NumericLiteral(BaseDataType.FLOAT, 0.0, position)
-    BaseDataType.POINTER -> NumericLiteral(BaseDataType.UWORD, 0.0, position)
+    BaseDataType.POINTER -> NumericLiteral(target.pointerBaseType, 0.0, position)
     else -> throw FatalAstException("can only determine default zero value for a numeric type, not for $dt at $position")
 }
 
-fun defaultZero(idt: InferredTypes.InferredType, position: Position) = defaultZero(idt.getOrUndef().base, position)
+fun defaultZero(idt: InferredTypes.InferredType, position: Position, target: ICompilationTarget) = defaultZero(idt.getOrUndef().base, position, target)

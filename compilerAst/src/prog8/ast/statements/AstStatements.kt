@@ -492,10 +492,10 @@ class VarDecl(
     override fun toString() =
         "VarDecl(name=$name, vartype=$type, datatype=$datatype, value=$value, pos=$position)"
 
-    fun zeroElementValue(): NumericLiteral {
+    fun zeroElementValue(target: ICompilationTarget): NumericLiteral {
         if(allowInitializeWithZero) {
-            return if(datatype.isArray) defaultZero(datatype.sub!!, position)
-                else defaultZero(datatype.base, position)
+            return if(datatype.isArray) defaultZero(datatype.sub!!, position, target)
+                else defaultZero(datatype.base, position, target)
         }
         else
             throw IllegalArgumentException("attempt to get zero value for vardecl that shouldn't get it")

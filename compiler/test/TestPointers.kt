@@ -3598,6 +3598,48 @@ main {
         compileText(Amiga500Target(), true, srcReturn, outputDir, writeAssembly = false) shouldNotBe null
     }
 
+    test("subroutine ending in a when statement with pointer return type compiles on 32-bit pointer targets") {
+        // a trailing when triggers insertion of a synthesized default return; for a pointer return type
+        // the zero must be a literal of the pointer's own width, because an implicit non-long -> pointer
+        // cast is rejected by AstChecker on targets with POINTER_MEM_SIZE>2
+        // (see addDefaultReturnAfterFinalWhen)
+        val src = """
+            %zeropage basicsafe
+            main {
+                struct Node {
+                    uword value
+                    ^^Node next
+                }
+                ^^Node @shared n0 = []
+                ^^Node @shared n1 = []
+
+                sub pick(ubyte which) -> ^^Node {
+                    when which {
+                        0 -> return n0
+                        else -> return n1
+                    }
+                }
+
+                sub start() {
+                    void pick(1)
+                }
+            }"""
+        compileText(Amiga500Target(), false, src, outputDir, writeAssembly = false) shouldNotBe null
+        compileText(Amiga500Target(), true, src, outputDir, writeAssembly = false) shouldNotBe null
+        compileText(Qemu68kTarget(), false, src, outputDir, writeAssembly = false) shouldNotBe null
+
+        // the synthesized return carries a zero of the pointer's own numeric width (long on 4-byte pointers)
+        val result = compileText(Amiga500Target(), false, src, outputDir, writeAssembly = true, assemble = false)!!
+        val pickSub = result.codegenAst!!.children
+            .filterIsInstance<PtBlock>()
+            .flatMap { it.children.filterIsInstance<PtSub>() }
+            .single { it.name.endsWith("pick") }
+        val insertedReturn = pickSub.children.last() as PtReturn
+        val zero = insertedReturn.children.single() as PtNumber
+        zero.type shouldBe DataType.forDt(BaseDataType.LONG)
+        zero.number shouldBe 0.0
+    }
+
 
     test("parenthesized pointer field access desugars same as unparenthesized") {
         val src="""

@@ -1,6 +1,6 @@
 
 Prog8 compiler v14.0-BETA3 by Irmen de Jong (irmen@razorvine.net)
-Prerelease version from git commit b6aa726d in branch master
+Prerelease version from git commit 789581ec in branch master
 This software is licensed under the GNU GPL 3.0, see https://www.gnu.org/licenses/gpl.html
 
 Compiling program import-all-amiga500.p8
@@ -4743,6 +4743,40 @@ ptplayer  {
     remove  ()
     songname  () -> long @A0
     volumes  () -> ubyte @D0, ubyte @D1, ubyte @D2, ubyte @D3
+}
+
+
+LIBRARY MODULE NAME: sound
+--------------------------
+
+sound  {
+    const uword  ADKF_LEDFILTER_OFF
+    const long  CLOCK_PAL
+    const ubyte  Channel::C0
+    const ubyte  Channel::C1
+    const ubyte  Channel::C2
+    const ubyte  Channel::C3
+    const ubyte  MODE_FREE
+    const ubyte  MODE_LOOP
+    const ubyte  MODE_ONESHOT
+    const ubyte  MODE_STREAM
+    const uword  PERIOD_MIN
+    const ubyte  VOL_MAX
+    const ubyte  VOL_MUTE
+    init  ()
+    is_playing  (ubyte channel) -> bool
+    loop  (ubyte channel, long sample, uword len_words, uword period, ubyte volume)
+    play  (ubyte channel, long sample, uword len_words, uword period, ubyte volume)
+    play_14bit  (ubyte hi_channel, long sample_hi, long sample_lo, uword len_words, uword period, ubyte volume)
+    set_period  (ubyte channel, uword period)
+    set_volume  (ubyte channel, ubyte volume)
+    shutdown  ()
+    start  ()
+    stop  (ubyte channel)
+    stop_all  ()
+    stream_ready  () -> byte
+    stream_start  (ubyte channel, long buf_a, long buf_b, uword len_words, uword period, ubyte volume)
+    stream_stop  (ubyte channel)
 }
 
 

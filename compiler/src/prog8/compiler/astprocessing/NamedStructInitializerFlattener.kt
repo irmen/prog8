@@ -11,10 +11,11 @@ import prog8.ast.statements.StructField
 import prog8.ast.walk.AstModification
 import prog8.ast.walk.AstWalker
 import prog8.code.core.BaseDataType
+import prog8.code.core.ICompilationTarget
 import prog8.code.core.IErrorReporter
 import prog8.code.core.Position
 
-internal class NamedStructInitializerFlattener(private val errors: IErrorReporter) : AstWalker() {
+internal class NamedStructInitializerFlattener(private val errors: IErrorReporter, private val target: ICompilationTarget) : AstWalker() {
 
     override fun after(initializer: StaticStructInitializer, parent: Node): Iterable<AstModification> {
         if(initializer.namedArgs.isEmpty())
@@ -56,18 +57,18 @@ internal class NamedStructInitializerFlattener(private val errors: IErrorReporte
 
     private fun defaultValueForField(field: StructField, position: Position): Expression {
         return when {
-            field.type.isString -> defaultZero(BaseDataType.STR, position)
+            field.type.isString -> defaultZero(BaseDataType.STR, position, target)
             field.isArray -> {
                 val size = field.constSize() ?: 1
                 val elementType = field.type.elementType()
-                val elements = Array<Expression>(size) { defaultZero(elementType.base, position) }
+                val elements = Array<Expression>(size) { defaultZero(elementType.base, position, target) }
                 ArrayLiteral(InferredTypes.knownFor(field.type), elements, position)
             }
-            else -> defaultZero(field.type.base, position)
+            else -> defaultZero(field.type.base, position, target)
         }
     }
 }
 
 internal fun Program.flattenNamedStructInitializers(errors: IErrorReporter) {
-    NamedStructInitializerFlattener(errors).visit(this)
+    NamedStructInitializerFlattener(errors, target).visit(this)
 }

@@ -63,7 +63,7 @@ internal class StatementReorderer(
                                     false,
                                     position = decl.position
                                 ),
-                                    decl.zeroElementValue(), AssignmentOrigin.VARINIT, decl.position)
+                                    decl.zeroElementValue(options.compTarget), AssignmentOrigin.VARINIT, decl.position)
                                 return listOf(AstInsert.after(decl, assignzero, parent as IStatementContainer))
                             }
                         }
