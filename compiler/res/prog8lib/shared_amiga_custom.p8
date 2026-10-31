@@ -897,4 +897,215 @@ IRQ7 = $7C
     &ubyte  CIAB_ICR     = $bfdd00   ; CIA-B interrupt control
     &ubyte  CIAB_CRA     = $bfde00   ; CIA-B control A
     &ubyte  CIAB_CRB     = $bfdf00   ; CIA-B control B
+
+    ; ========== Amiga raw keyboard ==========
+    ; Raw keyboard programming sources:
+    ; - Amiga Bootcamp keyboard guide
+    ;   https://github.com/alfishe/amiga-bootcamp/blob/main/10_devices/keyboard.md
+    ; - Hardware Reference Manual, keyboard appendix
+    ;   https://www.amigarealm.com/computing/knowledge/hardref/aph.htm
+    ; - Amiga 500 direct keyboard access
+    ;   https://bumbershootsoft.wordpress.com/2024/08/17/amiga-500-direct-keyboard-access/
+
+    enum KeyCode {
+        GRAVE           = $00,
+        KEY_1           = $01,
+        KEY_2           = $02,
+        KEY_3           = $03,
+        KEY_4           = $04,
+        KEY_5           = $05,
+        KEY_6           = $06,
+        KEY_7           = $07,
+        KEY_8           = $08,
+        KEY_9           = $09,
+        KEY_0           = $0a,
+        MINUS           = $0b,
+        EQUALS          = $0c,
+        INTL_3          = $0d,
+        UNDEFINED_0E    = $0e,
+        NP_0            = $0f,
+        Q               = $10,
+        W               = $11,
+        E               = $12,
+        R               = $13,
+        T               = $14,
+        Y               = $15,
+        U               = $16,
+        I               = $17,
+        O               = $18,
+        P               = $19,
+        LBRACKET        = $1a,
+        RBRACKET        = $1b,
+        UNDEFINED_1C    = $1c,
+        NP_1            = $1d,
+        NP_2            = $1e,
+        NP_3            = $1f,
+        A               = $20,
+        S               = $21,
+        D               = $22,
+        F               = $23,
+        G               = $24,
+        H               = $25,
+        J               = $26,
+        K               = $27,
+        L               = $28,
+        SEMICOLON       = $29,
+        QUOTE           = $2a,
+        INTL_1          = $2b,
+        UNDEFINED_2C    = $2c,
+        NP_4            = $2d,
+        NP_5            = $2e,
+        NP_6            = $2f,
+        INTL_2          = $30,
+        Z               = $31,
+        X               = $32,
+        C               = $33,
+        V               = $34,
+        B               = $35,
+        N               = $36,
+        M               = $37,
+        COMMA           = $38,
+        PERIOD          = $39,
+        SLASH           = $3a,
+        BRAZIL_SLASH    = $3b,
+        NP_PERIOD       = $3c,
+        NP_7            = $3d,
+        NP_8            = $3e,
+        NP_9            = $3f,
+        SPACE           = $40,
+        BACKSPACE       = $41,
+        TAB             = $42,
+        NP_ENTER        = $43,
+        RETURN          = $44,
+        ESC             = $45,
+        DELETE          = $46,
+        INSERT          = $47,
+        PAGE_UP         = $48,
+        PAGE_DOWN       = $49,
+        NP_MINUS        = $4a,
+        F11             = $4b,
+        CURSOR_UP       = $4c,
+        CURSOR_DOWN     = $4d,
+        CURSOR_RIGHT    = $4e,
+        CURSOR_LEFT     = $4f,
+        F1              = $50,
+        F2              = $51,
+        F3              = $52,
+        F4              = $53,
+        F5              = $54,
+        F6              = $55,
+        F7              = $56,
+        F8              = $57,
+        F9              = $58,
+        F10             = $59,
+        NP_LPAREN       = $5a,
+        NP_RPAREN       = $5b,
+        NP_SLASH        = $5c,
+        NP_ASTERISK     = $5d,
+        NP_PLUS         = $5e,
+        HELP            = $5f,
+        LSHIFT          = $60,
+        RSHIFT          = $61,
+        CAPSLOCK        = $62,
+        CONTROL         = $63,
+        LALT            = $64,
+        RALT            = $65,
+        LAMIGA          = $66,
+        RAMIGA          = $67,
+        LMOUSE          = $68,
+        RMOUSE          = $69,
+        MMOUSE          = $6a,
+        MENU            = $6b,
+        NP_COMMA        = $6c,
+        PRINTSCREEN     = $6d,
+        BREAK           = $6e,
+        F12             = $6f,
+        HOME            = $70,
+        END             = $71,
+        AUD_STOP        = $72,
+        AUD_PLAY_PAUSE  = $73,
+        AUD_PREV_TRACK  = $74,
+        AUD_NEXT_TRACK  = $75,
+        AUD_SHUFFLE     = $76,
+        AUD_REPEAT      = $77,
+        RESET_WARNING   = $78,
+        UNDEFINED_79    = $79,
+        UNDEFINED_7A    = $7a,
+        UNDEFINED_7B    = $7b,
+        UNDEFINED_7C    = $7c,
+        UNDEFINED_7D    = $7d,
+        UNDEFINED_7E    = $7e,
+        UNDEFINED_7F    = $7f,
+        KEYCODE_BAD     = $f9,
+        KEYBOARD_OVERFLOW = $fa,
+        SELFTEST_FAILED = $fc,
+        POWERUP_START   = $fd,
+        POWERUP_END     = $fe,
+    }
+
+    ; 128-key state matrix: one bit per Amiga raw key code (0-127).
+    ; Bit 7 of a received code means key-up (release); bit 7 clear means key-down.
+    ; Read with custom.key_pressed(code), or directly: byte = code >> 3, bit = code & 7.
+    ubyte[16] key_state = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+
+    sub raw_keyboard_poll() -> bool, ubyte {
+        ; Poll CIA-A for a new raw key event and update key_state.
+        ; On a real event, acknowledge by holding KDAT low using CIA-A
+        ; Timer A in one-shot mode (~107 us), so timing is CPU-speed independent.
+        if (CIAA_ICR & $08)==0
+            return false, 0
+        ubyte inverted = ~CIAA_SDR
+        ubyte keycode = ((inverted >> 1) | (inverted << 7)) as ubyte
+        ubyte code = keycode & $7f
+        bool released = (keycode & $80) != 0
+        ubyte byte_index = code >> 3
+        ubyte bit_index = code & 7
+        ubyte mask = 1 << bit_index
+        if released
+            key_state[byte_index] &= ~mask
+        else
+            key_state[byte_index] |= mask
+        if keycode!=KeyCode::SELFTEST_FAILED {
+            ubyte ciaa_cra = CIAA_CRA
+            ubyte ciaa_talo = CIAA_TALO
+            ubyte ciaa_tahi = CIAA_TAHI
+            CIAA_ICR = $01
+            CIAA_CRA = $48
+            CIAA_SDR = 0
+            CIAA_TALO = 75
+            CIAA_TAHI = 0
+            repeat {
+                if (CIAA_ICR & $01)!=0
+                    break
+            }
+            CIAA_CRA = ciaa_cra
+            CIAA_TALO = ciaa_talo
+            CIAA_TAHI = ciaa_tahi
+        }
+        return true, keycode
+    }
+
+    sub key_pressed(ubyte code) -> bool {
+        ; Query the 128-key state matrix for the given 7-bit key code.
+        ; code is 0-127; byte index = code >> 3, bit index = code & 7.
+        ubyte byte_index = code >> 3
+        ubyte bit_index = code & 7
+        return (key_state[byte_index] & (1 << bit_index)) != 0
+    }
+
+    asmsub any_key_pressed() -> bool @D0 {
+        ; True if any of the 128 tracked keys is currently held down.
+        %asm {{
+            lea     custom.key_state,a0
+            moveq   #15,d0
+1$:         tst.b   (a0)+
+            bne.s   2$
+            dbra    d0,1$
+            moveq   #0,d0
+            rts
+2$:         moveq   #1,d0
+            rts
+        }}
+    }
 }
+

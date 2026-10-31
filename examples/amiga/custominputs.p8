@@ -1,6 +1,6 @@
 ; Single 320x256 lores bitplane display, following the setup in 3d.p8.
 ; The plane is filled with an alternating-bit test pattern.
-; This version takes over the system and runs continuously; reset to stop it.
+; Press ESC to restore the system and exit.
 
 %import custom
 %import exec
@@ -17,6 +17,8 @@ main {
     const ubyte SPRITE_MOUSE_RIGHT = 3
     const ubyte SPRITE_JOY_FIRE = 4
     const ubyte SPRITE_JOY_FIRE2 = 5
+
+    ; Keyboard routines are provided by shared_amiga_custom (custom.raw_keyboard_poll, custom.key_pressed, custom.KeyCode).
 
     sub set_sprite_position(word x, word y) {
         ; Convert visible-screen coordinates to the sprite's beam coordinates.
@@ -81,8 +83,10 @@ main {
         pointer bitplane = exec.AllocMem(10240, exec.MEMF_CHIP | exec.MEMF_CLEAR)
         if bitplane==0
             return
+        ubyte saved_ciaa_cra = custom.CIAA_CRA
 
         custom.grab_system()
+        custom.CIAA_CRA = saved_ciaa_cra & $bf
 
         ; Enable DMA master and blitter DMA while preparing the plane.
         custom.DMACON = $8240
@@ -145,7 +149,20 @@ main {
                 set_sprite_color(color)
                 current_color = color
             }
+            bool key_received
+            ubyte keycode
+            key_received, keycode = custom.raw_keyboard_poll()
+            if key_received and (keycode & $80)==0 and keycode<=custom.KeyCode::RAMIGA {
+                if keycode==custom.KeyCode::ESC
+                    break
+                sprite_x = clamp(((keycode & $7f) as word) * 2, 0, (SCREEN_WIDTH - SPRITE_SIZE) as word)
+                set_sprite_position(sprite_x, sprite_y)
+            }
         }
+
+        custom.CIAA_CRA = saved_ciaa_cra
+        custom.restore_system()
+        exec.FreeMem(bitplane, 10240)
     }
 }
 
