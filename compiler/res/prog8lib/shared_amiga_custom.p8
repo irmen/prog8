@@ -4,6 +4,32 @@
 custom {
     %option merge, no_symbol_prefixing, ignore_unused
 
+    enum CHIPSET {
+        OCS,
+        ECS,
+        AGA
+    }
+
+    sub detect_chipset() -> ubyte {
+        ; returns the custom chipset in this Amiga (OCS, ECS or AGA)
+        ubyte denise_id = lsb(DENISEID)
+        bool stable = true
+        repeat 31 {
+            if lsb(DENISEID)!=denise_id {
+                stable = false
+                break
+            }
+        }
+        if stable and denise_id==$f8
+            return CHIPSET::AGA
+        if stable and denise_id==$fc
+            return CHIPSET::ECS
+
+        ubyte agnus_id = ((VPOSR >> 8) as ubyte) & $7f
+        if (agnus_id & $70)>=$20
+            return CHIPSET::ECS
+        return CHIPSET::OCS
+    }
 
     asmsub grab_system() {
         ; take over the whole OS and system, to run hardware banging programs (games, demos, etc)
@@ -263,6 +289,9 @@ IRQ7 = $7C
 
     private uword[2] mouse_previous
     private bool[2] mouse_initialized
+    private word[2] mouse_x_remainder
+    private word[2] mouse_y_remainder
+    private ubyte[2] mouse_delta_divisor
 
     sub joystick_axes(ubyte port) -> byte, byte {
         ; Return screen axes in -1..1: x right, y down.
@@ -323,28 +352,80 @@ IRQ7 = $7C
         return state
     }
 
-    sub mouse_init(ubyte port) {
-        ; Set the starting counter values used by mouse_delta().
+    sub mouse_init(ubyte port, ubyte scale_divisor) {
+        ; Set the starting counter values and sensitivity used by mouse_delta().
         if port>1
             return
+        ; Only power-of-two divisors are supported; invalid values mean raw counts.
+        if scale_divisor!=1 and scale_divisor!=2 and scale_divisor!=4 and scale_divisor!=8
+            scale_divisor = 1
         mouse_previous[port] = read_joydat(port)
         mouse_initialized[port] = true
+        mouse_delta_divisor[port] = scale_divisor
+        mouse_x_remainder[port] = 0
+        mouse_y_remainder[port] = 0
+    }
+
+    private inline sub scale_mouse_delta(word total, ubyte divisor) -> byte, word {
+        ; The supported divisors are powers of two, so scale with constant shifts.
+        ; Divide the magnitude first to make negative results truncate toward zero.
+        bool negative = total<0
+        word magnitude = total
+        if negative
+            magnitude = -total
+        word pixels = 0
+        word remainder = 0
+        when divisor {
+            1 -> pixels = magnitude
+            2 -> {
+                pixels = magnitude >> 1
+                remainder = magnitude & 1
+            }
+            4 -> {
+                pixels = magnitude >> 2
+                remainder = magnitude & 3
+            }
+            8 -> {
+                pixels = magnitude >> 3
+                remainder = magnitude & 7
+            }
+            else -> pixels = magnitude
+        }
+        if negative {
+            pixels = -pixels
+            remainder = -remainder
+        }
+        return pixels as byte, remainder
     }
 
     sub mouse_delta(ubyte port) -> byte, byte {
         ; Poll once per frame; each 8-bit counter wraps independently.
+        ; Scale by the divisor selected by mouse_init(), retaining fractions.
         if port>1
             return 0, 0
         uword current = read_joydat(port)
         if not mouse_initialized[port] {
             mouse_previous[port] = current
             mouse_initialized[port] = true
+            mouse_delta_divisor[port] = 1
+            mouse_x_remainder[port] = 0
+            mouse_y_remainder[port] = 0
             return 0, 0
         }
         uword previous = mouse_previous[port]
         mouse_previous[port] = current
-        byte dx = (lsb(current)-lsb(previous)) as byte
-        byte dy = (msb(current)-msb(previous)) as byte
+        byte raw_dx = (lsb(current)-lsb(previous)) as byte
+        byte raw_dy = (msb(current)-msb(previous)) as byte
+        word total_x = mouse_x_remainder[port] + (raw_dx as word)
+        word total_y = mouse_y_remainder[port] + (raw_dy as word)
+        byte dx
+        byte dy
+        word remainder_x
+        word remainder_y
+        dx, remainder_x = scale_mouse_delta(total_x, mouse_delta_divisor[port])
+        dy, remainder_y = scale_mouse_delta(total_y, mouse_delta_divisor[port])
+        mouse_x_remainder[port] = remainder_x
+        mouse_y_remainder[port] = remainder_y
         return dx, dy
     }
 

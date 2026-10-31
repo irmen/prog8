@@ -1,6 +1,6 @@
 
 Prog8 compiler v14.0-BETA3 by Irmen de Jong (irmen@razorvine.net)
-Prerelease version from git commit d687497a in branch master
+Prerelease version from git commit 1afa823f in branch master
 This software is licensed under the GNU GPL 3.0, see https://www.gnu.org/licenses/gpl.html
 
 Compiling program import-all-amiga500.p8
@@ -634,6 +634,9 @@ custom  {
     &uword  BPLCON4
     &uword  BPLHSTOP
     &uword  BPLHSTRT
+    const ubyte  CHIPSET::AGA
+    const ubyte  CHIPSET::ECS
+    const ubyte  CHIPSET::OCS
     &ubyte  CIAA_CRA
     &ubyte  CIAA_CRB
     &ubyte  CIAA_DDRA
@@ -870,6 +873,7 @@ custom  {
     &uword  VTOTAL
     long @shared  cpuVBR
     bool @shared  isPAL
+    detect_chipset  () -> ubyte
     filter_off  ()
     filter_on  ()
     grab_system  ()
@@ -880,7 +884,7 @@ custom  {
     left_button  () -> bool
     middle_button  () -> bool
     mouse_delta  (ubyte port) -> byte, byte
-    mouse_init  (ubyte port)
+    mouse_init  (ubyte port, ubyte scale_divisor)
     restore_system  ()
     right_button  () -> bool
     set_aga_color  (ubyte color_index @D0, long rgb24 @D1)
