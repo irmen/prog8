@@ -50,8 +50,11 @@ custom {
         return CHIPSET::OCS
     }
 
-    asmsub grab_system() {
+    asmsub grab_system(bool replace_view @D0) {
         ; take over the whole OS and system, to run hardware banging programs (games, demos, etc)
+        ; if replace_view is true, a blank NULL view is loaded first and all DMA is
+        ; disabled; otherwise the currently active View (and its copper list) is left
+        ; untouched and display DMA (copper, raster) is kept running so it stays visible.
         %asm {{
 
 exec_AttnFlags = 296
@@ -71,6 +74,7 @@ IRQ7 = $7C
 
             move.l  d6,-(sp)        ; OS calls do not preserve d6
             move.l  a5,-(sp)        ; a5 is the frame pointer register, but it is needed below for Supervisor()
+            move.l  d0,-(sp)        ; stash replace_view (d0 is clobbered by the Supervisor/OS calls below)
             move.l  4.w,a6
             jsr     exec.Forbid(a6)        ; Do not run other tasks
             btst.b  #0,exec_AttnFlags+1(a6)    ; Check if > 68000 processor
@@ -84,10 +88,18 @@ IRQ7 = $7C
 
             move.l  sys.GfxBase,a6     ; A6 = Graphics base
             move.l  gfx_ActiView(a6),custom.savedView    ; Store current View pointer
+            tst.b   3(sp)              ; replace the current View?
+            bne.s   .replaceview
+            move.w  #$007F,d1        ; DMA mask: audio, disk, blitter and sprites only,
+                                     ; keep copper/raster so the View stays visible
+            bra.s   .havemask
+.replaceview:
             sub.l   a1,a1            ; NULL view = default settings
             jsr    GfxLoadView(a6)        ; Load the view
             jsr    GfxWaitTOF(a6)        ; Wait one screen refresh
             jsr    GfxWaitTOF(a6)        ; Wait a 2nd (in case of interlace)
+            move.w  #$01FF,d1        ; DMA mask: disable everything
+.havemask:
 
             move.w  #$8000,d0        ; Value
             move.w  custom.DMACONR,custom.savedDMACON    ; Store system DMA channels
@@ -100,7 +112,7 @@ IRQ7 = $7C
             btst.b  #14-8,custom.DMACONR    ; Dummy read
 3$          btst.b  #14-8,custom.DMACONR    ; Blitter still busy?
             bne.s   3$                      ; If yes, wait a bit
-            move.w  #$01FF,custom.DMACON    ; Disable all DMA
+            move.w  d1,custom.DMACON     ; Disable selected DMA channels
             move.w  #$3FFF,custom.INTENA    ; Disable all interrupts
 
             move.l  custom.cpuVBR,a0         ; A0 = Pointer to vector base
@@ -112,7 +124,8 @@ IRQ7 = $7C
 .getvbr:    dc.l    $4E7A0801            ; MOVEC VBR,d0  - privileged instruction
             rte
 
-.skip:      move.l  (sp)+,a5        ; restore the caller's frame pointer
+.skip:      addq.w  #4,sp         ; drop stashed replace_view
+            move.l  (sp)+,a5        ; restore the caller's frame pointer
             move.l  (sp)+,d6
             rts
 

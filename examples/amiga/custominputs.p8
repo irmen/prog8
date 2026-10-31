@@ -85,7 +85,7 @@ main {
             return
         ubyte saved_ciaa_cra = custom.CIAA_CRA
 
-        custom.grab_system()
+        custom.grab_system(true)
         custom.CIAA_CRA = saved_ciaa_cra & $bf
 
         ; Enable DMA master and blitter DMA while preparing the plane.

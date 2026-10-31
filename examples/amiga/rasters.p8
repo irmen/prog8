@@ -6,7 +6,7 @@
 
 main {
     sub start() {
-        custom.grab_system()
+        custom.grab_system(true)
 
         ubyte offset = 0
         ubyte green_offset = 0

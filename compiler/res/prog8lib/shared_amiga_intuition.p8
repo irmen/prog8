@@ -76,7 +76,7 @@ intuition {
     extsub @bank 4   -282 = ShowTitle(^^Screen screen @A0, bool showIt @D0)
     extsub @bank 4   -288 = SizeWindow(^^Window window @A0, word dx @D0, word dy @D1)
     extsub @bank 4   -294 = ViewAddress() -> ^^graphics.View @D0
-    extsub @bank 4   -300 = ViewPortAddress(^^Window window @A0) -> pointer @D0
+    extsub @bank 4   -300 = ViewPortAddress(^^Window window @A0) -> ^^graphics.ViewPort @D0
     extsub @bank 4   -306 = WindowToBack(^^Window window @A0)
     extsub @bank 4   -312 = WindowToFront(^^Window window @A0)
     extsub @bank 4   -318 = WindowLimits(^^Window window @A0, long widthMin @D0, long heightMin @D1, long widthMax @D2, long heightMax @D3) -> bool @D0

@@ -458,8 +458,13 @@ modules. Import them the same way as any other library::
     ``graphics``, ``intuition``, ``icon`` and ``utility`` for you, so their modules are
     ready to use without doing anything. (``exec`` needs no opening at all: ExecBase always
     lives at 4.w and is available as ``sys.SysBase``.) The remaining libraries below -
-    ``iffparse``, ``lowlevel``, ``arexx`` and ``asyncio`` - must be opened on demand by
-    calling their ``openlib()`` subroutine, and closed again with ``closelib()``.
+    ``iffparse``, ``lowlevel``, ``arexx``, ``asyncio``, ``asllib``, ``datatypes`` (amiga1200
+    only, kickstart 3.0+) and ``diskfont`` - must be opened on demand by calling their
+    ``openlib()`` subroutine, and closed again with ``closelib()``. You do not have to call
+    ``closelib()`` yourself: the startup code closes every library that was actually opened
+    (including the on-demand ones) automatically when the program exits. Calling ``closelib()``
+    manually is still fine and recommended when you are done with a library well before the
+    program ends, to free its resources early.
 
 ``exec`` (``exec.library``)
     Memory allocation, message ports, interrupts, device and resource management. Also the
@@ -502,6 +507,25 @@ modules. Import them the same way as any other library::
 ``asyncio`` (``asyncio.library``)
     Asynchronous file IO.
 
+``asllib`` (``asl.library``)
+    Standard requesters: file, font and screen-mode. Requires Kickstart 2.0 or newer.
+    See ``examples/amiga/aslfile.p8``.
+
+``diskfont`` (``diskfont.library``)
+    Loading and using fonts from disk. Opened on demand.
+
+``datatypes`` (``datatypes.library``, **amiga1200 only**, AmigaOS 3.1 / V40)
+    Essentials subset for loading and inspecting media (images, sounds, text) via DataType
+    objects: object lifecycle and attribute queries (``GetDTAttrsA``),
+    8SVX playback via ``DoDTMethodA`` / ``DTM_TRIGGER``, and picture rendering in
+    Intuition windows via ``AddDTObject``. It includes ``DataType`` / ``DataTypeHeader``
+    metadata and ``BitMapHeader``, the
+    ``GID_*`` / ``DTF_*`` classification constants, and ``DTA_*`` / ``PDTA_*`` /
+    ``SDTA_*`` / ``TDTA_*`` / ``ADTA_*`` tags.
+    On OS 3.1, sound metadata includes sample length, period, volume and cycles; exact sample
+    rate is not exposed by the V40 sound datatype.
+    See ``examples/amiga/datatype.p8``.
+
 **Devices and hardware**
 
 ``trackdisk`` (``trackdisk.device``)
@@ -524,8 +548,10 @@ modules. Import them the same way as any other library::
 
 ``custom``
     Direct access to the custom chipset, with no library involved. Contains
-    ``grab_system()``/``restore_system()`` to take over the whole system and interrupt
-    handlers for hardware banging programs (games, demos), ``waitvsync()``, AGA colour
+    ``grab_system(replace_view)``/``restore_system()`` to take over the whole system and interrupt
+    handlers for hardware banging programs (games, demos); pass true to load
+    a blank NULL view first, false to leave the currently active View untouched
+    (display DMA stays on). ``waitvsync()``, AGA colour
     register writes, and controller input routines. ``detect_chipset()`` returns
     ``custom.CHIPSET::OCS``, ``custom.CHIPSET::ECS`` or
     ``custom.CHIPSET::AGA`` using the Denise ID and VPOSR hardware registers.
@@ -562,6 +588,12 @@ modules. Import them the same way as any other library::
     channel falls silent. ``is_playing`` and ``stream_ready`` poll the audio
     interrupt request flag to notice the end, so no interrupt handler is
     installed.
+
+``ptplayer``
+    ProTracker module (MOD) player: load and play Amiga ProTracker modules via
+    the ptplayer playroutine. Install the player with ``ptplayer.install()``,
+    start playback with ``ptplayer.play()`` / ``ptplayer.stop()`` and query
+    status with the module's routines. See ``examples/amiga/modplay.p8``.
 
 ``easygfx``
     Friendly OS graphics wrapper in the style of the ``gfx_*`` pixel modules:

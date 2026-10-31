@@ -15,7 +15,7 @@ import kotlin.time.DurationUnit
 import kotlin.time.measureTime
 
 
-internal class CompilerDaemon(private val socketPath: Path) {
+internal class CompilerDaemon(private val socketPath: Path, private val quiet: Boolean = false) {
     companion object {
         private const val IDLE_TIMEOUT_MS = 5 * 60_000L
 
@@ -46,11 +46,13 @@ internal class CompilerDaemon(private val socketPath: Path) {
         server.register(selector, SelectionKey.OP_ACCEPT)
 
         val pid = myPid()
-        System.err.println(buildString {
-            append("prog8c daemon")
-            if (pid != null) append(" (pid $pid)")
-            append(" running at $socketPath")
-        })
+        if (!quiet) {
+            System.err.println(buildString {
+                append("prog8c daemon")
+                if (pid != null) append(" (pid $pid)")
+                append(" running at $socketPath")
+            })
+        }
 
         var lastRequestTime = System.currentTimeMillis()
 

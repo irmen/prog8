@@ -1,6 +1,6 @@
 
 Prog8 compiler v14.0-BETA3 by Irmen de Jong (irmen@razorvine.net)
-Prerelease version from git commit 489e6b3a in branch master
+Prerelease version from git commit 214ddab0 in branch master
 This software is licensed under the GNU GPL 3.0, see https://www.gnu.org/licenses/gpl.html
 
 Compiling program import-all-amiga1200.p8
@@ -1292,7 +1292,7 @@ custom  {
     detect_chipset  () -> ubyte
     filter_off  ()
     filter_on  ()
-    grab_system  ()
+    grab_system  (bool replace_view)
     joystick_axes  (ubyte port) -> byte, byte
     joystick_fire  (ubyte port) -> bool
     joystick_fire2  (ubyte port) -> bool
@@ -1308,6 +1308,232 @@ custom  {
     set_aga_color  (ubyte color_index @D0, long rgb24 @D1)
     set_aga_color_nibbles  (ubyte color_index @D0, uword rgb_high_nibbles @D1, uword rgb_low_nibbles @D2)
     waitvsync  ()
+}
+
+
+LIBRARY MODULE NAME: datatypes
+------------------------------
+
+datatypes  {
+    struct BitMapHeader
+    struct DataType
+    struct DataTypeHeader
+    struct dtTrigger
+    const long  ADTA_Allocated
+    const long  ADTA_CRegs
+    const long  ADTA_ColorRegisters
+    const long  ADTA_ColorTable
+    const long  ADTA_ColorTable2
+    const long  ADTA_Cycles
+    const long  ADTA_Depth
+    const long  ADTA_Dummy
+    const long  ADTA_Frame
+    const long  ADTA_FrameIncrement
+    const long  ADTA_Frames
+    const long  ADTA_FramesPerSecond
+    const long  ADTA_GRegs
+    const long  ADTA_Height
+    const long  ADTA_KeyFrame
+    const long  ADTA_ModeID
+    const long  ADTA_NumAlloc
+    const long  ADTA_NumColors
+    const long  ADTA_Period
+    const long  ADTA_Remap
+    const long  ADTA_Sample
+    const long  ADTA_SampleLength
+    const long  ADTA_Screen
+    const long  ADTA_Volume
+    const long  ADTA_Width
+    const uword  ADTM_Dummy
+    const uword  ADTM_LOADFRAME
+    const uword  ADTM_LOCATE
+    const uword  ADTM_PAUSE
+    const uword  ADTM_START
+    const uword  ADTM_STOP
+    const uword  ADTM_UNLOADFRAME
+    const ubyte  CMP_FIBDELTA
+    const ubyte  CMP_NONE
+    const long  DTA_ARexxPortName
+    const long  DTA_BaseName
+    const long  DTA_Busy
+    const long  DTA_Conductor
+    const long  DTA_ControlPanel
+    const long  DTA_Data
+    const long  DTA_DataType
+    const long  DTA_DestCols
+    const long  DTA_DestRows
+    const long  DTA_Domain
+    const long  DTA_Dummy
+    const long  DTA_ErrorLevel
+    const long  DTA_ErrorNumber
+    const long  DTA_ErrorString
+    const long  DTA_FrameInfo
+    const long  DTA_GroupID
+    const long  DTA_Handle
+    const long  DTA_Height
+    const long  DTA_HorizUnit
+    const long  DTA_Immediate
+    const long  DTA_LayoutProc
+    const long  DTA_Left
+    const long  DTA_Methods
+    const long  DTA_Name
+    const long  DTA_NodeName
+    const long  DTA_NominalHoriz
+    const long  DTA_NominalVert
+    const long  DTA_ObjAnnotation
+    const long  DTA_ObjAuthor
+    const long  DTA_ObjCopyright
+    const long  DTA_ObjName
+    const long  DTA_ObjVersion
+    const long  DTA_ObjectID
+    const long  DTA_PrinterProc
+    const long  DTA_PrinterStatus
+    const long  DTA_RastPort
+    const long  DTA_RelBottom
+    const long  DTA_RelHeight
+    const long  DTA_RelRight
+    const long  DTA_RelWidth
+    const long  DTA_Repeat
+    const long  DTA_SelectDomain
+    const long  DTA_SourceType
+    const long  DTA_Special
+    const long  DTA_Sync
+    const long  DTA_TextAttr
+    const long  DTA_TextFont
+    const long  DTA_Title
+    const long  DTA_Top
+    const long  DTA_TopHoriz
+    const long  DTA_TopVert
+    const long  DTA_TotalHoriz
+    const long  DTA_TotalPHoriz
+    const long  DTA_TotalPVert
+    const long  DTA_TotalVert
+    const long  DTA_TriggerMethods
+    const long  DTA_UserData
+    const long  DTA_VertUnit
+    const long  DTA_VisibleHoriz
+    const long  DTA_VisibleVert
+    const long  DTA_Width
+    const uword  DTF_ASCII
+    const uword  DTF_BINARY
+    const uword  DTF_CASE
+    const uword  DTF_IFF
+    const uword  DTF_MISC
+    const uword  DTF_SYSTEM1
+    const uword  DTF_TYPE_MASK
+    const uword  DTMSG_TYPE_OFFSET
+    const uword  DTM_ABORTPRINT
+    const uword  DTM_ASYNCLAYOUT
+    const uword  DTM_CLEARSELECTED
+    const uword  DTM_COPY
+    const uword  DTM_DISPOSEMEMBER
+    const uword  DTM_DRAW
+    const uword  DTM_Dummy
+    const uword  DTM_FRAMEBOX
+    const uword  DTM_GOTO
+    const uword  DTM_NEWMEMBER
+    const uword  DTM_OBTAINDRAWINFO
+    const uword  DTM_PRINT
+    const uword  DTM_PROCLAYOUT
+    const uword  DTM_RELEASEDRAWINFO
+    const uword  DTM_REMOVEDTOBJECT
+    const uword  DTM_SELECT
+    const uword  DTM_TRIGGER
+    const uword  DTM_WRITE
+    const ubyte  DTST_CLIPBOARD
+    const ubyte  DTST_FILE
+    const ubyte  DTST_HOTLINK
+    const ubyte  DTST_RAM
+    const ubyte  DTWM_IFF
+    const ubyte  DTWM_RAW
+    const long  GID_ANIMATION
+    const long  GID_DOCUMENT
+    const long  GID_INSTRUMENT
+    const long  GID_MOVIE
+    const long  GID_MUSIC
+    const long  GID_PICTURE
+    const long  GID_SOUND
+    const long  GID_SYSTEM
+    const long  GID_TEXT
+    const long  ID_8SVX
+    const long  ID_ANIM
+    const long  ID_BMHD
+    const long  ID_BODY
+    const long  ID_CMAP
+    const long  ID_ILBM
+    const long  ID_VHDR
+    const long  PDTA_Allocated
+    const long  PDTA_BitMap
+    const long  PDTA_BitMapHeader
+    const long  PDTA_CRegs
+    const long  PDTA_ClassBitMap
+    const long  PDTA_ColorRegisters
+    const long  PDTA_ColorTable
+    const long  PDTA_ColorTable2
+    const long  PDTA_DestBitMap
+    const long  PDTA_FreeSourceBitMap
+    const long  PDTA_GRegs
+    const long  PDTA_Grab
+    const long  PDTA_ModeID
+    const long  PDTA_NumAlloc
+    const long  PDTA_NumColors
+    const long  PDTA_NumSparse
+    const long  PDTA_Remap
+    const long  PDTA_Screen
+    const long  PDTA_SparseTable
+    const ubyte  SAMPLETYPE_Left
+    const ubyte  SAMPLETYPE_Right
+    const ubyte  SAMPLETYPE_Stereo
+    const long  SDTA_Continuous
+    const long  SDTA_Cycles
+    const long  SDTA_Dummy
+    const long  SDTA_Period
+    const long  SDTA_Sample
+    const long  SDTA_SampleLength
+    const long  SDTA_SignalBit
+    const long  SDTA_SignalTask
+    const long  SDTA_Volume
+    const ubyte  STM_ACTIVATE_FIELD
+    const ubyte  STM_BROWSE_NEXT
+    const ubyte  STM_BROWSE_PREV
+    const ubyte  STM_COMMAND
+    const ubyte  STM_CONTENTS
+    const ubyte  STM_FASTFORWARD
+    const ubyte  STM_INDEX
+    const ubyte  STM_LOCATE
+    const ubyte  STM_NEXT_FIELD
+    const ubyte  STM_PAUSE
+    const ubyte  STM_PLAY
+    const ubyte  STM_PREV_FIELD
+    const ubyte  STM_RESUME
+    const ubyte  STM_RETRACE
+    const ubyte  STM_REWIND
+    const ubyte  STM_STOP
+    const long  TAG_USER
+    const long  TDTA_Buffer
+    const long  TDTA_BufferLen
+    const long  TDTA_LineList
+    const long  Unity
+    const ubyte  cmpByteRun1
+    const ubyte  cmpByteRun2
+    const ubyte  cmpNone
+    const ubyte  mskHasMask
+    const ubyte  mskHasTransparentColor
+    const ubyte  mskLasso
+    const ubyte  mskNone
+    AddDTObject  (^^intuition.Window win @A0, ^^intuition.Requester req @A1, long o @A2, long pos @D0) -> long @D0@bank 31 = -$48
+    DisposeDTObject  (long o @A0)@bank 31 = -$36
+    DoDTMethodA  (long o @A0, ^^intuition.Window win @A1, ^^intuition.Requester req @A2, long msg @A3) -> long @D0@bank 31 = -$5a
+    GetDTAttrsA  (long o @A0, long attrs @A2) -> long @D0@bank 31 = -$42
+    GetDTString  (long id @D0) -> str @D0@bank 31 = -$8a
+    NewDTObjectA  (str name @D0, long attrs @A0) -> long @D0@bank 31 = -$30
+    ObtainDataTypeA  (long k_type @D0, long handle @A0, long attrs @A1) -> long @D0@bank 31 = -$24
+    RefreshDTObjectA  (long o @A0, ^^intuition.Window win @A1, ^^intuition.Requester req @A2, long attrs @A3)@bank 31 = -$4e
+    ReleaseDataType  (long dt @A0)@bank 31 = -$2a
+    RemoveDTObject  (^^intuition.Window win @A0, long o @A1) -> long @D0@bank 31 = -$60
+    SetDTAttrsA  (long o @A0, ^^intuition.Window win @A1, ^^intuition.Requester req @A2, long attrs @A3) -> long @D0@bank 31 = -$3c
+    closelib  ()
+    openlib  () -> bool
 }
 
 
@@ -5243,6 +5469,7 @@ sys  {
     long @shared  AslBase
     long @shared  AsyncIOBase
     long @shared  DOSBase
+    long @shared  DataTypesBase
     long @shared  DiskfontBase
     long @shared  GfxBase
     long @shared  IFFParseBase

@@ -36,7 +36,7 @@ import kotlin.system.exitProcess
 fun main(args: Array<String>) {
     if (args.contains("--daemon-server")) {
         val socketPath = CompilerDaemon.getDefaultSocketPath()
-        CompilerDaemon(socketPath).run()
+        CompilerDaemon(socketPath, args.contains("--daemon-quiet")).run()
         return
     }
 
@@ -792,12 +792,14 @@ private fun compileViaDaemon(compilerArgs: CompilerArguments, plainText: Boolean
     var wasExisting = true
     // Suppress the informational daemon messages when output should be quiet,
     // or when only a symbol/variable dump is requested (its output must not be polluted).
+    // This also starts the daemon itself in quiet mode (no banner on stderr, which would
+    // otherwise pollute e.g. a redirected `-dumpsymbols` output file).
     val silent = compilerArgs.quietAll || compilerArgs.dumpSymbols || compilerArgs.dumpVariables
 
     if (channel == null) {
         wasExisting = false
         if (!silent) println("Starting prog8c daemon...")
-        if (!startDaemonProcess()) {
+        if (!startDaemonProcess(silent)) {
             System.err.println("Failed to start prog8c daemon")
             return null
         }
@@ -818,7 +820,7 @@ private fun compileViaDaemon(compilerArgs: CompilerArguments, plainText: Boolean
     // Existing daemon rejected us (version mismatch) and has self-terminated.
     // Start a fresh daemon.
     if (!silent) println("Starting new prog8c daemon (previous was stale)...")
-    if (!startDaemonProcess()) {
+    if (!startDaemonProcess(silent)) {
         System.err.println("Failed to start prog8c daemon")
         return null
     }
@@ -841,7 +843,7 @@ private fun printCompileStart(args: CompilerArguments) {
     println("Compiler target: ${getCompilationTargetByName(args.compilationTarget).name}")
 }
 
-private fun startDaemonProcess(): Boolean {
+private fun startDaemonProcess(quiet: Boolean = false): Boolean {
     return try {
         val javaHome = System.getProperty("java.home")
         val javaCmd = "$javaHome/bin/java"
@@ -859,6 +861,8 @@ private fun startDaemonProcess(): Boolean {
             cmd.addAll(listOf("-cp", classpath, "prog8.CompilerMainKt"))
         }
         cmd.add("--daemon-server")
+        if (quiet)
+            cmd.add("--daemon-quiet")
 
         val pb = ProcessBuilder(cmd)
         pb.directory(ImportFileSystem.userHome.toFile())
@@ -951,7 +955,9 @@ private fun communicateWithDaemon(channel: SocketChannel, compilerArgs: Compiler
         val response = DaemonProtocol.decodeResponse(responseJson)
 
         if (response.versionError != null) {
-            System.err.println(response.versionError)
+            val silent = compilerArgs.quietAll || compilerArgs.dumpSymbols || compilerArgs.dumpVariables
+            if (!silent)
+                System.err.println(response.versionError)
             return response
         }
 

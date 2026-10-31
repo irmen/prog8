@@ -15,7 +15,7 @@ main {
         pointer bitplane2 = exec.AllocMem(10240, exec.MEMF_CHIP | exec.MEMF_CLEAR)
 
         ; Take over the Amiga hardware and configure a 320x256 one-bitplane display.
-        custom.grab_system()
+        custom.grab_system(true)
         custom.DMACON = $83C0
 
 

@@ -3,6 +3,7 @@
 %import adpcm
 %import arexx
 %import asllib
+%import datatypes
 %import asyncio
 %import buffers
 %import blitter

@@ -1,9 +1,8 @@
 
 Prog8 compiler v14.0-BETA3 by Irmen de Jong (irmen@razorvine.net)
-Prerelease version from git commit 489e6b3a in branch master
+Prerelease version from git commit 214ddab0 in branch master
 This software is licensed under the GNU GPL 3.0, see https://www.gnu.org/licenses/gpl.html
 
-prog8c daemon (pid 36425) running at /run/user/1000/prog8c-daemon.sock
 Compiling program import-all-amiga500.p8
 Compiler target: amiga500
 
@@ -1293,7 +1292,7 @@ custom  {
     detect_chipset  () -> ubyte
     filter_off  ()
     filter_on  ()
-    grab_system  ()
+    grab_system  (bool replace_view)
     joystick_axes  (ubyte port) -> byte, byte
     joystick_fire  (ubyte port) -> bool
     joystick_fire2  (ubyte port) -> bool

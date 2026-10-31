@@ -5,7 +5,7 @@
 
 main {
     sub start() {
-        custom.grab_system()
+        custom.grab_system(true)
 
         ; Allocate bitplane in CHIP RAM (320x256 = 10240 bytes, NOT cleared)
         pointer bitplane = exec.AllocMem(10240, exec.MEMF_CHIP)

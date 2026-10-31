@@ -10,7 +10,7 @@ Requirements: Pillow  (pip install pillow)
 
 import argparse
 from PIL import Image, features
-from typing import TypeAlias, Tuple, Optional
+from typing import TypeAlias, Tuple, Optional, Any
 
 RGBList: TypeAlias = list[tuple[int, int, int]]
 
@@ -43,20 +43,22 @@ for line in _colors.splitlines():
 
 
 class BitmapImage:
-    def __init__(self, filename: str, image: Image = None) -> None:
+    def __init__(self, filename: str, image: Optional[Image.Image] = None) -> None:
         """Just load the given bitmap image file (any format allowed)."""
         if image is not None:
-            self.img = image
+            self.img: Image.Image = image
         else:
             self.img = Image.open(filename)
-        self.size = self.img.size
+        self.size: tuple[int, int] = self.img.size
+        self.width: int
+        self.height: int
         self.width, self.height = self.size
 
     def save(self, filename: str) -> None:
         """Save the image to a new file, format based on the file extension."""
         self.img.save(filename)
 
-    def get_image(self) -> Image:
+    def get_image(self) -> Image.Image:
         """Gets access to a copy of the Pillow Image class that holds the loaded image"""
         return self.img.copy()
 
@@ -71,9 +73,9 @@ class BitmapImage:
 
     def get_palette(self) -> RGBList:
         """Return the image's palette as a list of (r,g,b) tuples"""
-        return flat_palette_to_rgb(self.img.getpalette())
+        return flat_palette_to_rgb(self.img.getpalette() or [])
 
-    def get_vera_palette(self) -> bytes:
+    def get_vera_palette(self) -> bytearray:
         """
         Returns the image's palette as GB0R words (RGB in little-endian), suitable for the Vera palette registers.
         The palette must be in 12 bit color space already! Because this routine just takes the upper 4 bits of every channel value.
@@ -96,7 +98,7 @@ class BitmapImage:
         assert self.has_palette()
         data = bytearray(width * height)
         index = 0
-        pix = self.img.load()
+        pix: Any = self.img.load()
         for py in range(y, y + height):
             for px in range(x, x + width):
                 data[index] = pix[px, py]
@@ -120,7 +122,7 @@ class BitmapImage:
         assert self.has_palette()
         data = bytearray(width // 2 * height)
         index = 0
-        pix = self.img.load()
+        pix: Any = self.img.load()
         for py in range(y, y + height):
             for px in range(x, x + width, 2):
                 pix1 = pix[px, py]
@@ -138,7 +140,7 @@ class BitmapImage:
         assert self.has_palette()
         data = bytearray(self.width // 2 * self.height)
         index = 0
-        pix = self.img.load()
+        pix: Any = self.img.load()
         for py in range(self.height):
             for px in range(0, self.width, 2):
                 pix1 = pix[px, py]
@@ -202,9 +204,9 @@ class BitmapImage:
         # palette creation needs dithering for good results; NONE would give a poor palette so fallback
         dither_method = dither if dither != Image.Dither.NONE else Image.Dither.FLOYDSTEINBERG
         palette_image = image_for_palette.quantize(colors=num_colors, dither=dither_method, method=quantize_method, kmeans=10)
-        if len(palette_image.getpalette()) // 3 > num_colors:
+        if len(palette_image.getpalette() or []) // 3 > num_colors:
             palette_image = image_for_palette.quantize(colors=num_colors - 1, dither=dither_method, method=quantize_method, kmeans=10)
-        palette_rgb = flat_palette_to_rgb(palette_image.getpalette())
+        palette_rgb = flat_palette_to_rgb(palette_image.getpalette() or [])
         palette_rgb = list(dict.fromkeys(palette_8to4(palette_rgb)))
         if preserve_first_16_colors:
             palette_rgb = default_colors[:16] + palette_rgb
