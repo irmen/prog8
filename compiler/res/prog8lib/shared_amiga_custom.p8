@@ -4,6 +4,25 @@
 custom {
     %option merge, no_symbol_prefixing, ignore_unused
 
+    ; OS-interaction note:
+    ;   The read-only helpers below (joystick_*, mouse_*, key_pressed,
+    ;   raw_keyboard_poll reads) only read hardware registers and are safe
+    ;   to use while the OS is running. However:
+    ;     - For keyboard, do NOT run raw_keyboard_poll() at the same time as
+    ;       OS keyboard input (IDCMP/input.device): both acknowledge the same
+    ;       CIAA_SDR event and will race, causing missed/duplicated keys.
+    ;       Use either OS input or custom hardware polling, not both.
+    ;     - raw_keyboard_poll() uses CIA-A Timer A (one-shot) for the key
+    ;       acknowledge; do not use that timer from elsewhere at the same time.
+    ;     - grab_system()/restore_system() and direct writes to DMACON,
+    ;       INTENA, BLTCON0, AUDxPER, COP1LC, etc. must NOT be used while the
+    ;       OS is running - they take over or conflict with OS drivers.
+    ;   Rule of thumb: use custom for input reading alongside the OS for
+    ;   joystick/mouse, but for keyboard and timers pick one owner (OS input
+    ;   or custom hardware polling), never both. Games that need raw keyboard
+    ;   input usually grab_system() and use custom exclusively; windowed apps
+    ;   should use IDCMP and leave raw_keyboard_poll() alone.
+
     enum CHIPSET {
         OCS,
         ECS,

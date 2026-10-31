@@ -1,6 +1,6 @@
 
 Prog8 compiler v14.0-BETA3 by Irmen de Jong (irmen@razorvine.net)
-Prerelease version from git commit 1afa823f in branch master
+Prerelease version from git commit 489e6b3a in branch master
 This software is licensed under the GNU GPL 3.0, see https://www.gnu.org/licenses/gpl.html
 
 Compiling program import-all-amiga1200.p8
@@ -253,6 +253,287 @@ arexx  {
     LockRexxBase  (long resource @D0)@bank 29 = -$01c2
     SetRexxVarFromMsg  (str var @A0, ^^arexx.RexxMsg msgptr @A2, str value @A1) -> long @D0@bank 29 = -$01f2
     UnlockRexxBase  (long resource @D0)@bank 29 = -$01c8
+    closelib  ()
+    openlib  () -> bool
+}
+
+
+LIBRARY MODULE NAME: asllib
+---------------------------
+
+asllib  {
+    struct FileRequester
+    struct FontRequester
+    struct ScreenModeRequester
+    const long  ASLFO_Activate
+    const long  ASLFO_BackColors
+    const long  ASLFO_CSFilterFunc
+    const long  ASLFO_DoBackPen
+    const long  ASLFO_DoCharSet
+    const long  ASLFO_DoDrawMode
+    const long  ASLFO_DoFrontPen
+    const long  ASLFO_DoSpecialMode
+    const long  ASLFO_DoStyle
+    const long  ASLFO_FilterFunc
+    const long  ASLFO_FixedWidthOnly
+    const long  ASLFO_Flags
+    const long  ASLFO_FrontColors
+    const long  ASLFO_HookFunc
+    const long  ASLFO_InitialBackPen
+    const long  ASLFO_InitialCharSet
+    const long  ASLFO_InitialDrawMode
+    const long  ASLFO_InitialFlags
+    const long  ASLFO_InitialFrontPen
+    const long  ASLFO_InitialHeight
+    const long  ASLFO_InitialLeftEdge
+    const long  ASLFO_InitialName
+    const long  ASLFO_InitialSize
+    const long  ASLFO_InitialSpecMode
+    const long  ASLFO_InitialStyle
+    const long  ASLFO_InitialTopEdge
+    const long  ASLFO_InitialWidth
+    const long  ASLFO_IntuiMsgFunc
+    const long  ASLFO_Locale
+    const long  ASLFO_MaxBackPen
+    const long  ASLFO_MaxFrontPen
+    const long  ASLFO_MaxHeight
+    const long  ASLFO_MinHeight
+    const long  ASLFO_ModeList
+    const long  ASLFO_NegativeText
+    const long  ASLFO_OTagOnly
+    const long  ASLFO_PopToFront
+    const long  ASLFO_PositiveText
+    const long  ASLFO_PrivateIDCMP
+    const long  ASLFO_PubScreenName
+    const long  ASLFO_SampleText
+    const long  ASLFO_ScalableOnly
+    const long  ASLFO_Screen
+    const long  ASLFO_SleepWindow
+    const long  ASLFO_TextAttr
+    const long  ASLFO_TitleText
+    const long  ASLFO_UserData
+    const long  ASLFO_Window
+    const ubyte  ASLFRSORTBY_Date
+    const ubyte  ASLFRSORTBY_Name
+    const ubyte  ASLFRSORTBY_Size
+    const ubyte  ASLFRSORTDRAWERS_First
+    const ubyte  ASLFRSORTDRAWERS_Last
+    const ubyte  ASLFRSORTDRAWERS_Mix
+    const ubyte  ASLFRSORTORDER_Ascend
+    const ubyte  ASLFRSORTORDER_Descend
+    const long  ASLFR_AcceptPattern
+    const long  ASLFR_Activate
+    const long  ASLFR_DoMultiSelect
+    const long  ASLFR_DoPatterns
+    const long  ASLFR_DoSaveMode
+    const long  ASLFR_DrawersOnly
+    const long  ASLFR_FilterDrawers
+    const long  ASLFR_FilterFunc
+    const long  ASLFR_Flags1
+    const long  ASLFR_Flags2
+    const long  ASLFR_GetSortBy
+    const long  ASLFR_GetSortDrawers
+    const long  ASLFR_GetSortOrder
+    const long  ASLFR_HookFunc
+    const long  ASLFR_InitialDrawer
+    const long  ASLFR_InitialFile
+    const long  ASLFR_InitialHeight
+    const long  ASLFR_InitialLeftEdge
+    const long  ASLFR_InitialPattern
+    const long  ASLFR_InitialShowVolumes
+    const long  ASLFR_InitialTopEdge
+    const long  ASLFR_InitialWidth
+    const long  ASLFR_IntuiMsgFunc
+    const long  ASLFR_Locale
+    const long  ASLFR_NegativeText
+    const long  ASLFR_PopToFront
+    const long  ASLFR_PositiveText
+    const long  ASLFR_PrivateIDCMP
+    const long  ASLFR_PubScreenName
+    const long  ASLFR_RejectIcons
+    const long  ASLFR_RejectPattern
+    const long  ASLFR_Screen
+    const long  ASLFR_SetSortBy
+    const long  ASLFR_SetSortDrawers
+    const long  ASLFR_SetSortOrder
+    const long  ASLFR_SleepWindow
+    const long  ASLFR_TextAttr
+    const long  ASLFR_TitleText
+    const long  ASLFR_UserData
+    const long  ASLFR_Window
+    const ubyte  ASLOPTION_ASLOverrides
+    const ubyte  ASLPOS_CenterMouse
+    const ubyte  ASLPOS_CenterScreen
+    const ubyte  ASLPOS_CenterWindow
+    const ubyte  ASLPOS_DefaultPosition
+    const ubyte  ASLPOS_MASK
+    const ubyte  ASLPOS_ScreenPosition
+    const ubyte  ASLPOS_WindowPosition
+    const ubyte  ASLSIZE_DefaultSize
+    const ubyte  ASLSIZE_MASK
+    const ubyte  ASLSIZE_RelativeSize
+    const long  ASLSM_Activate
+    const long  ASLSM_CustomSMList
+    const long  ASLSM_DoAutoScroll
+    const long  ASLSM_DoDepth
+    const long  ASLSM_DoHeight
+    const long  ASLSM_DoOverscanType
+    const long  ASLSM_DoWidth
+    const long  ASLSM_FilterFunc
+    const long  ASLSM_InitialAutoScroll
+    const long  ASLSM_InitialDisplayDepth
+    const long  ASLSM_InitialDisplayHeight
+    const long  ASLSM_InitialDisplayID
+    const long  ASLSM_InitialDisplayWidth
+    const long  ASLSM_InitialHeight
+    const long  ASLSM_InitialInfoLeftEdge
+    const long  ASLSM_InitialInfoOpened
+    const long  ASLSM_InitialInfoTopEdge
+    const long  ASLSM_InitialLeftEdge
+    const long  ASLSM_InitialOverscanType
+    const long  ASLSM_InitialTopEdge
+    const long  ASLSM_InitialWidth
+    const long  ASLSM_IntuiMsgFunc
+    const long  ASLSM_Locale
+    const long  ASLSM_MaxDepth
+    const long  ASLSM_MaxHeight
+    const long  ASLSM_MaxWidth
+    const long  ASLSM_MinDepth
+    const long  ASLSM_MinHeight
+    const long  ASLSM_MinWidth
+    const long  ASLSM_NegativeText
+    const long  ASLSM_PopToFront
+    const long  ASLSM_PositiveText
+    const long  ASLSM_PrivateIDCMP
+    const long  ASLSM_PropertyFlags
+    const long  ASLSM_PropertyMask
+    const long  ASLSM_PubScreenName
+    const long  ASLSM_Screen
+    const long  ASLSM_SleepWindow
+    const long  ASLSM_TextAttr
+    const long  ASLSM_TitleText
+    const long  ASLSM_UserData
+    const long  ASLSM_Window
+    const long  ASL_BackPen
+    const long  ASL_CancelText
+    const long  ASL_Dir
+    const long  ASL_Dummy
+    const long  ASL_ExtFlags1
+    const long  ASL_File
+    const ubyte  ASL_FileRequest
+    const long  ASL_FontFlags
+    const long  ASL_FontHeight
+    const long  ASL_FontName
+    const ubyte  ASL_FontRequest
+    const long  ASL_FontStyles
+    const long  ASL_FrontPen
+    const long  ASL_FuncFlags
+    const long  ASL_Hail
+    const long  ASL_Height
+    const long  ASL_HookFunc
+    const long  ASL_LeftEdge
+    const long  ASL_MaxHeight
+    const long  ASL_MinHeight
+    const long  ASL_ModeList
+    const long  ASL_OKText
+    const long  ASL_Pattern
+    const ubyte  ASL_ScreenModeRequest
+    const long  ASL_TB
+    const long  ASL_TopEdge
+    const long  ASL_Width
+    const long  ASL_Window
+    const ubyte  FIL1B_MATCHDIRS
+    const ubyte  FIL1B_NOFILES
+    const ubyte  FIL1F_MATCHDIRS
+    const ubyte  FIL1F_NOFILES
+    const ubyte  FILB_DOMSGFUNC
+    const ubyte  FILB_DOWILDFUNC
+    const ubyte  FILB_MULTISELECT
+    const ubyte  FILB_NEWIDCMP
+    const ubyte  FILB_PATGAD
+    const ubyte  FILB_SAVE
+    const ubyte  FILF_DOMSGFUNC
+    const ubyte  FILF_DOWILDFUNC
+    const ubyte  FILF_MULTISELECT
+    const ubyte  FILF_NEWIDCMP
+    const ubyte  FILF_PATGAD
+    const ubyte  FILF_SAVE
+    const ubyte  FOB_DOBACKPEN
+    const ubyte  FOB_DODRAWMODE
+    const ubyte  FOB_DOFONTSTYLE
+    const ubyte  FOB_DOFRONTPEN
+    const ubyte  FOB_DOMSGFUNC
+    const ubyte  FOB_DOWILDFUNC
+    const ubyte  FOB_FIXEDWIDTHONLY
+    const ubyte  FOB_PRIVATE
+    const ubyte  FOB_SPECIALMODE_NONE
+    const ubyte  FOB_SPECIALMODE_OUTLINE
+    const ubyte  FOB_SPECIALMODE_SHADOW
+    const ubyte  FOF_DOBACKPEN
+    const ubyte  FOF_DODRAWMODE
+    const ubyte  FOF_DOFONTSTYLE
+    const ubyte  FOF_DOFRONTPEN
+    const ubyte  FOF_DOMSGFUNC
+    const ubyte  FOF_DOWILDFUNC
+    const ubyte  FOF_FIXEDWIDTHONLY
+    const ubyte  FOF_PRIVATE
+    const ubyte  FOF_SPECIALMODE_NONE
+    const ubyte  FOF_SPECIALMODE_OUTLINE
+    const ubyte  FOF_SPECIALMODE_SHADOW
+    const ubyte  FONB_BACKCOLOR
+    const ubyte  FONB_DOMSGFUNC
+    const ubyte  FONB_DOWILDFUNC
+    const ubyte  FONB_DRAWMODE
+    const ubyte  FONB_FIXEDWIDTH
+    const ubyte  FONB_FRONTCOLOR
+    const ubyte  FONB_NEWIDCMP
+    const ubyte  FONB_STYLES
+    const ubyte  FONF_BACKCOLOR
+    const ubyte  FONF_DOMSGFUNC
+    const ubyte  FONF_DOWILDFUNC
+    const ubyte  FONF_DRAWMODE
+    const ubyte  FONF_FIXEDWIDTH
+    const ubyte  FONF_FRONTCOLOR
+    const ubyte  FONF_NEWIDCMP
+    const ubyte  FONF_STYLES
+    const ubyte  FRB_DOMSGFUNC
+    const ubyte  FRB_DOMULTISELECT
+    const ubyte  FRB_DOPATTERNS
+    const ubyte  FRB_DOSAVEMODE
+    const ubyte  FRB_DOWILDFUNC
+    const ubyte  FRB_DRAWERSONLY
+    const ubyte  FRB_FILTERDRAWERS
+    const ubyte  FRB_PRIVATEIDCMP
+    const ubyte  FRB_REJECTICONS
+    const ubyte  FRF_DOMSGFUNC
+    const ubyte  FRF_DOMULTISELECT
+    const ubyte  FRF_DOPATTERNS
+    const ubyte  FRF_DOSAVEMODE
+    const ubyte  FRF_DOWILDFUNC
+    const ubyte  FRF_DRAWERSONLY
+    const ubyte  FRF_FILTERDRAWERS
+    const ubyte  FRF_PRIVATEIDCMP
+    const ubyte  FRF_REJECTICONS
+    const ubyte  RFB_DOCOLOR
+    const ubyte  RFB_DOMSGFUNC
+    const ubyte  RFB_DOWILDFUNC
+    const ubyte  RFB_MULTISELECT
+    const ubyte  RFB_NEWIDCMP
+    const ubyte  RFB_PATGAD
+    const ubyte  RFF_DOCOLOR
+    const ubyte  RFF_DOMSGFUNC
+    const ubyte  RFF_DOWILDFUNC
+    const ubyte  RFF_MULTISELECT
+    const ubyte  RFF_NEWIDCMP
+    const ubyte  RFF_PATGAD
+    AbortAslRequest  (long requester @A0)@bank 7 = -$4e
+    ActivateAslRequest  (long requester @A0)@bank 7 = -$54
+    AllocAslRequest  (long reqType @D0, long tagList @A0) -> long @D0@bank 7 = -$30
+    AllocFileRequest  () -> ^^asllib.FileRequester @D0@bank 7 = -$1e
+    AslRequest  (long requester @A0, long tagList @A1) -> bool @D0@bank 7 = -$3c
+    FreeAslRequest  (long requester @A0)@bank 7 = -$36
+    FreeFileRequest  (^^asllib.FileRequester fileReq @A0)@bank 7 = -$24
+    RequestFile  (^^asllib.FileRequester fileReq @A0) -> bool @D0@bank 7 = -$2a
     closelib  ()
     openlib  () -> bool
 }
@@ -780,6 +1061,139 @@ custom  {
     const ubyte  JOY_LEFT
     const ubyte  JOY_RIGHT
     const ubyte  JOY_UP
+    const ubyte  KeyCode::A
+    const ubyte  KeyCode::AUD_NEXT_TRACK
+    const ubyte  KeyCode::AUD_PLAY_PAUSE
+    const ubyte  KeyCode::AUD_PREV_TRACK
+    const ubyte  KeyCode::AUD_REPEAT
+    const ubyte  KeyCode::AUD_SHUFFLE
+    const ubyte  KeyCode::AUD_STOP
+    const ubyte  KeyCode::B
+    const ubyte  KeyCode::BACKSPACE
+    const ubyte  KeyCode::BRAZIL_SLASH
+    const ubyte  KeyCode::BREAK
+    const ubyte  KeyCode::C
+    const ubyte  KeyCode::CAPSLOCK
+    const ubyte  KeyCode::COMMA
+    const ubyte  KeyCode::CONTROL
+    const ubyte  KeyCode::CURSOR_DOWN
+    const ubyte  KeyCode::CURSOR_LEFT
+    const ubyte  KeyCode::CURSOR_RIGHT
+    const ubyte  KeyCode::CURSOR_UP
+    const ubyte  KeyCode::D
+    const ubyte  KeyCode::DELETE
+    const ubyte  KeyCode::E
+    const ubyte  KeyCode::END
+    const ubyte  KeyCode::EQUALS
+    const ubyte  KeyCode::ESC
+    const ubyte  KeyCode::F
+    const ubyte  KeyCode::F1
+    const ubyte  KeyCode::F10
+    const ubyte  KeyCode::F11
+    const ubyte  KeyCode::F12
+    const ubyte  KeyCode::F2
+    const ubyte  KeyCode::F3
+    const ubyte  KeyCode::F4
+    const ubyte  KeyCode::F5
+    const ubyte  KeyCode::F6
+    const ubyte  KeyCode::F7
+    const ubyte  KeyCode::F8
+    const ubyte  KeyCode::F9
+    const ubyte  KeyCode::G
+    const ubyte  KeyCode::GRAVE
+    const ubyte  KeyCode::H
+    const ubyte  KeyCode::HELP
+    const ubyte  KeyCode::HOME
+    const ubyte  KeyCode::I
+    const ubyte  KeyCode::INSERT
+    const ubyte  KeyCode::INTL_1
+    const ubyte  KeyCode::INTL_2
+    const ubyte  KeyCode::INTL_3
+    const ubyte  KeyCode::J
+    const ubyte  KeyCode::K
+    const ubyte  KeyCode::KEYBOARD_OVERFLOW
+    const ubyte  KeyCode::KEYCODE_BAD
+    const ubyte  KeyCode::KEY_0
+    const ubyte  KeyCode::KEY_1
+    const ubyte  KeyCode::KEY_2
+    const ubyte  KeyCode::KEY_3
+    const ubyte  KeyCode::KEY_4
+    const ubyte  KeyCode::KEY_5
+    const ubyte  KeyCode::KEY_6
+    const ubyte  KeyCode::KEY_7
+    const ubyte  KeyCode::KEY_8
+    const ubyte  KeyCode::KEY_9
+    const ubyte  KeyCode::L
+    const ubyte  KeyCode::LALT
+    const ubyte  KeyCode::LAMIGA
+    const ubyte  KeyCode::LBRACKET
+    const ubyte  KeyCode::LMOUSE
+    const ubyte  KeyCode::LSHIFT
+    const ubyte  KeyCode::M
+    const ubyte  KeyCode::MENU
+    const ubyte  KeyCode::MINUS
+    const ubyte  KeyCode::MMOUSE
+    const ubyte  KeyCode::N
+    const ubyte  KeyCode::NP_0
+    const ubyte  KeyCode::NP_1
+    const ubyte  KeyCode::NP_2
+    const ubyte  KeyCode::NP_3
+    const ubyte  KeyCode::NP_4
+    const ubyte  KeyCode::NP_5
+    const ubyte  KeyCode::NP_6
+    const ubyte  KeyCode::NP_7
+    const ubyte  KeyCode::NP_8
+    const ubyte  KeyCode::NP_9
+    const ubyte  KeyCode::NP_ASTERISK
+    const ubyte  KeyCode::NP_COMMA
+    const ubyte  KeyCode::NP_ENTER
+    const ubyte  KeyCode::NP_LPAREN
+    const ubyte  KeyCode::NP_MINUS
+    const ubyte  KeyCode::NP_PERIOD
+    const ubyte  KeyCode::NP_PLUS
+    const ubyte  KeyCode::NP_RPAREN
+    const ubyte  KeyCode::NP_SLASH
+    const ubyte  KeyCode::O
+    const ubyte  KeyCode::P
+    const ubyte  KeyCode::PAGE_DOWN
+    const ubyte  KeyCode::PAGE_UP
+    const ubyte  KeyCode::PERIOD
+    const ubyte  KeyCode::POWERUP_END
+    const ubyte  KeyCode::POWERUP_START
+    const ubyte  KeyCode::PRINTSCREEN
+    const ubyte  KeyCode::Q
+    const ubyte  KeyCode::QUOTE
+    const ubyte  KeyCode::R
+    const ubyte  KeyCode::RALT
+    const ubyte  KeyCode::RAMIGA
+    const ubyte  KeyCode::RBRACKET
+    const ubyte  KeyCode::RESET_WARNING
+    const ubyte  KeyCode::RETURN
+    const ubyte  KeyCode::RMOUSE
+    const ubyte  KeyCode::RSHIFT
+    const ubyte  KeyCode::S
+    const ubyte  KeyCode::SELFTEST_FAILED
+    const ubyte  KeyCode::SEMICOLON
+    const ubyte  KeyCode::SLASH
+    const ubyte  KeyCode::SPACE
+    const ubyte  KeyCode::T
+    const ubyte  KeyCode::TAB
+    const ubyte  KeyCode::U
+    const ubyte  KeyCode::UNDEFINED_0E
+    const ubyte  KeyCode::UNDEFINED_1C
+    const ubyte  KeyCode::UNDEFINED_2C
+    const ubyte  KeyCode::UNDEFINED_79
+    const ubyte  KeyCode::UNDEFINED_7A
+    const ubyte  KeyCode::UNDEFINED_7B
+    const ubyte  KeyCode::UNDEFINED_7C
+    const ubyte  KeyCode::UNDEFINED_7D
+    const ubyte  KeyCode::UNDEFINED_7E
+    const ubyte  KeyCode::UNDEFINED_7F
+    const ubyte  KeyCode::V
+    const ubyte  KeyCode::W
+    const ubyte  KeyCode::X
+    const ubyte  KeyCode::Y
+    const ubyte  KeyCode::Z
     const uword  MINTERM_AND
     const uword  MINTERM_CLEAR
     const uword  MINTERM_COPY
@@ -873,6 +1287,8 @@ custom  {
     &uword  VTOTAL
     long @shared  cpuVBR
     bool @shared  isPAL
+    ubyte[]  key_state
+    any_key_pressed  () -> bool @D0
     detect_chipset  () -> ubyte
     filter_off  ()
     filter_on  ()
@@ -881,10 +1297,12 @@ custom  {
     joystick_fire  (ubyte port) -> bool
     joystick_fire2  (ubyte port) -> bool
     joystick_state  (ubyte port) -> ubyte
+    key_pressed  (ubyte code) -> bool
     left_button  () -> bool
     middle_button  () -> bool
     mouse_delta  (ubyte port) -> byte, byte
     mouse_init  (ubyte port, ubyte scale_divisor)
+    raw_keyboard_poll  () -> bool, ubyte
     restore_system  ()
     right_button  () -> bool
     set_aga_color  (ubyte color_index @D0, long rgb24 @D1)
@@ -4822,6 +5240,7 @@ LIBRARY MODULE NAME: syslib
 
 sys  {
     long @shared  AHIBase
+    long @shared  AslBase
     long @shared  AsyncIOBase
     long @shared  DOSBase
     long @shared  DiskfontBase

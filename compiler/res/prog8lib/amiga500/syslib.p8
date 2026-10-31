@@ -42,6 +42,7 @@ sys {
     pointer @shared AsyncIOBase     ; loaded from disk on demand
     pointer @shared LowLevelBase    ; kickstart 2.0+, loaded from disk on demand
     pointer @shared DiskfontBase    ; loaded from disk on demand
+    pointer @shared AslBase         ; asl.library, opened on demand (kickstart 2.0+)
     pointer @shared TimerBase       ; opened on demand
 
     ^^ubyte @shared arguments       ; CLI argument string (null-terminated), or NULL if Workbench launch

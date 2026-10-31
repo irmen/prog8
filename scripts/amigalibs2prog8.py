@@ -128,6 +128,10 @@ STRUCT_NAME_MAP = {
     'KeyQuery':       ('KeyQuery',         'kq_'),
     # workbench
     'DiskObject':     ('DiskObject',       'do_'),
+    # asl
+    'FileRequester':  ('FileRequester',    'fr_'),
+    'FontRequester':  ('FontRequester',    'fo_'),
+    'ScreenModeRequester': ('ScreenModeRequester', 'sm_'),
 }
 
 # Typed list link fields - keep in sync with exec.p8 hand edits and docs NDK reference
@@ -1052,7 +1056,14 @@ LIBRARY_BANK_MAP = {
 # NOTE: diskfont is intentionally NOT auto-generated: shared_amiga_diskfont.p8 is
 # hand-maintained, trimmed to pre-2.0 content (the SFD contains post-2.0
 # outline-engine, diskfont-control and tagged-font APIs).
-AMIGA_LIBS = ["exec", "dos", "graphics", "intuition", "utility", "iffparse", "arexx", "icon", "lowlevel"]
+AMIGA_LIBS = ["exec", "dos", "graphics", "intuition", "utility", "iffparse", "arexx", "icon", "lowlevel", "asl"]
+
+# Some library module names clash with CPU instruction mnemonics (e.g. "asl" is
+# a 68k shift instruction), so the generated Prog8 module/block name is
+# overridden here while the library is still resolved by its real name.
+LIB_MODULE_NAME = {
+    'asl': 'asllib',
+}
 
 # ---------------------------------------------------------------------------
 # Library-specific helper routines (not from NDK, hand-maintained)
@@ -1191,6 +1202,21 @@ LIBRARY_HELPERS = {
         %asm {{
             lea     184(a0), a1
         }}
+    }
+''',
+    'asl': '''
+    sub openlib() -> bool {
+        ; not opened at startup: asl.library only exists on kickstart 2.0+,
+        ; so it must be opened on demand and may legitimately fail
+        sys.AslBase = exec.OpenLibrary("asl.library", 0)
+        return sys.AslBase!=0
+    }
+
+    sub closelib() {
+        if sys.AslBase!=0 {
+            exec.CloseLibrary(sys.AslBase)
+            sys.AslBase = 0
+        }
     }
 ''',
 }
@@ -1828,6 +1854,7 @@ LIB_HEADERS = {
     'arexx': ['rexx/storage.h', 'rexx/rexxio.h', 'dos/dos.h'],
     'iffparse': ['libraries/iffparse.h'],
     'lowlevel': ['libraries/lowlevel.h', 'devices/timer.h', 'utility/tagitem.h'],
+    'asl': ['libraries/asl.h', 'utility/tagitem.h', 'graphics/text.h', 'graphics/displayinfo.h'],
 }
 
 # Which struct tags belong to which library (to avoid cross-library duplication)
@@ -1847,6 +1874,7 @@ LIB_STRUCT_TAGS = {
                  'StoredProperty', 'CollectionItem'},
     'lowlevel': {'KeyQuery'},
     'icon': {'DiskObject'},
+    'asl': {'FileRequester', 'FontRequester', 'ScreenModeRequester'},
 }
 
 # Additional .i files holding a library's structs/consts that live outside its
@@ -1855,6 +1883,7 @@ LIB_EXTRA_I_FILES = {
     'iffparse': ('libraries', 'iffparse.i'),
     'icon':     ('workbench', 'workbench.i'),
     'lowlevel': ('libraries', 'lowlevel.i'),
+    'asl': ('libraries', 'asl.i'),
 }
 
 
@@ -2163,6 +2192,7 @@ def main():
     # Phase 2: Generate each lib with cross-lib typed pointers
     for lib in AMIGA_LIBS:
         arexx_alias = (lib == 'arexx')
+        modname = LIB_MODULE_NAME.get(lib, lib)
         lvo_lib = 'rexxsyslib' if arexx_alias else lib
         lvo_p = os.path.join(ndk, 'Include_I', 'lvo', f'{lvo_lib}_lib.i')
         sfd_p = os.path.join(ndk, 'SFD', f'{lvo_lib}_lib.sfd')
@@ -2279,7 +2309,7 @@ def main():
         if needed_imports:
             out_lines.append("")
 
-        out_lines.append(f"{lib} {{")
+        out_lines.append(f"{modname} {{")
         # The shared_amiga_*.p8 files are included by a thin <lib>.p8 wrapper
         # that re-declares the same block, so they must merge instead of
         # redefining it.
@@ -2350,7 +2380,7 @@ def main():
         content = "\n".join(out_lines) + "\n"
 
         # Write transactionally only if changed
-        out_path = os.path.join(out_dir, f"{name_prefix}{lib}.p8")
+        out_path = os.path.join(out_dir, f"{name_prefix}{modname}.p8")
         existing = None
         if os.path.exists(out_path):
             with open(out_path, 'r', encoding='utf-8') as f:
