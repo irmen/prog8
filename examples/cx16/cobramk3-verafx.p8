@@ -99,12 +99,14 @@ main {
         ; recording its endpoints so it can be erased again next frame.
         num_drawn = 0
         ubyte @zp edgeIdx
+        verafx.line_batch_begin()
         for edgeIdx in 0 to shipdata.totalNumberOfEdges-1 {
             if matrix_math.face_visible[matrix_math.edgeFaceA[edgeIdx]] or
                     (matrix_math.edgeFaceB[edgeIdx] != 255 and matrix_math.face_visible[matrix_math.edgeFaceB[edgeIdx]]) {
                 draw_and_record(edgeIdx, line_color)
             }
         }
+        verafx.line_batch_end()
         line_color++
     }
 
@@ -115,7 +117,7 @@ main {
         ubyte @zp y1 = matrix_math.screeny[vFrom] as ubyte
         uword @zp x2 = matrix_math.screenx[vTo] as uword
         ubyte @zp y2 = matrix_math.screeny[vTo] as ubyte
-        verafx.line(x1, y1, x2, y2, color)
+        verafx.line_batch_draw(x1, y1, x2, y2, color)
         if color!=0 {
             ; remember the endpoints so we can erase this edge next frame
             prev_x1[num_drawn] = x1
@@ -132,9 +134,11 @@ main {
         if num_drawn==0
             return
         ubyte @zp i
+        verafx.line_batch_begin()
         for i in 0 to num_drawn-1 {
-            verafx.line(prev_x1[i], prev_y1[i], prev_x2[i], prev_y2[i], 0)
+            verafx.line_batch_draw(prev_x1[i], prev_y1[i], prev_x2[i], prev_y2[i], 0)
         }
+        verafx.line_batch_end()
     }
 }
 
@@ -190,6 +194,9 @@ matrix_math {
             rotatedz[i] = Azx*shipdata.xcoor[i] + Azy*shipdata.ycoor[i] + Azz*shipdata.zcoor[i]
 
             ; perspective projection, done once per vertex instead of once per edge
+            ; (tiny optimization possible: precompute a reciprocal table,
+            ;  screen = center + (coord * proj_table[persp]) >> 12 with proj_table[p] = round(4096/p),
+            ;  replacing this division by a table lookup plus multiply-shift)
             word persp = 180 + rotatedz[i]/256
             if persp < 32
                 persp = 32

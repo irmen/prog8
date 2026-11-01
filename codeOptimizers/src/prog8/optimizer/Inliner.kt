@@ -460,8 +460,10 @@ class Inliner(private val program: Program, private val options: CompilationOpti
                 (sub.statements.count { it !is VarDecl || it.origin != VarDeclOrigin.SUBROUTINEPARAM } == 2 &&
                  sub.statements.lastOrNull()?.let(::isEmptyReturn) == true)
             )
-            require(hasOnlyBodyAndReturn) {
-                "invalid inline sub at ${sub.position}"
+            if (!hasOnlyBodyAndReturn) {
+                errors.err("inline subroutine '${sub.name}' must contain only one body statement, optionally followed by an empty return, otherwise it cannot be inlined", sub.position)
+                sub.inline = false
+                return noModifications
             }
             return if(sub.isAsmSubroutine) {
                 sub.hasBeenInlined=true

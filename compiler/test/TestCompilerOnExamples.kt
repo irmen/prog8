@@ -220,7 +220,7 @@ class TestCompilerOnExamplesCx16: FunSpec({
             ExampleSizes("charsets", cx16SizeOptimized=1125, cx16SizeUnoptimized=1417),
             ExampleSizes("circles", cx16SizeOptimized=2679, cx16SizeUnoptimized=6581),
             ExampleSizes("cobramk3-cpu", cx16SizeOptimized=7787, cx16SizeUnoptimized=11761),
-            ExampleSizes("cobramk3-verafx", cx16SizeOptimized=5133, cx16SizeUnoptimized=6829),
+            ExampleSizes("cobramk3-verafx", cx16SizeOptimized=5156, cx16SizeUnoptimized=6853),
             ExampleSizes("colorbars", cx16SizeOptimized=1606, cx16SizeUnoptimized=3648),
             ExampleSizes("cxlogo", cx16SizeOptimized=599, cx16SizeUnoptimized=2639),
             ExampleSizes("diskspeed", cx16SizeOptimized=6111, cx16SizeUnoptimized=9829),

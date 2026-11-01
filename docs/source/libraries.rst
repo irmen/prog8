@@ -2227,11 +2227,12 @@ Read the :source:`textio source code <compiler/res/prog8lib/cx16/textio.p8>`
 to see what's in there. (Note: slight variations for different compiler targets)
 
 
-verafx  (cx16 only)
-^^^^^^^^^^^^^^^^^^^
+verafx
+^^^^^^
 .. index:: pair: Libraries; verafx
 
-Available for the Cx16 target. Routines that use the Vera FX logic to accelerate certain operations.
+Available for the CX16 target and for C64 programs using the VERA64 board.
+These routines use VERA FX to accelerate certain operations.
 
 ``available``
     Returns true if Vera FX is available, false if not (that would be an older Vera chip)
@@ -2249,8 +2250,16 @@ Available for the Cx16 target. Routines that use the Vera FX logic to accelerate
     Very quickly draw a line between two points using the Vera FX line draw helper.
     It only works in the 320x240 256 color (8 bpp) bitmap screen mode (the default cx16 screen mode 128,
     as used by the ``gfx_lores`` module, with the bitmap at vram address 0).
-    WARNING: it does NOT work in 4 bpp screen modes, because the helper has a hardware bug there.
+    The hardware helper supports 8 bpp and 4 bpp (using nibble increments), but
+    this Prog8 routine configures only 8 bpp. VERA firmware 48.0.1 has a line-helper
+    bug in 4 bpp mode. The hardware documentation does not specify a 1 bpp mode.
     No bounds checking or clipping is performed, all coordinates must lie within the screen (0..319, 0..239).
+
+``line_batch_begin``, ``line_batch_draw``, ``line_batch_end``
+    Draw several lines while configuring and resetting the FX line helper only once per batch.
+    Pair ``line_batch_begin`` with ``line_batch_end``. Do not use other VERA FX
+    operations, such as ``muls``, inside a batch.
+    ``line`` remains available as a single-line wrapper.
 
 ``muls``
     The VeraFX signed word 16*16 to 32 multiplier is accessible via the ``muls`` routine.

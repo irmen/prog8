@@ -878,6 +878,24 @@ main {
         val fooCall = startSub.statements.any { it is FunctionCallStatement && it.target.nameInSource.last() == "foo" }
         fooCall shouldBe false
     }
+    test("inline subroutine with multiple statements reports a clear error") {
+        val src = """
+            main {
+                sub start() {
+                    foo()
+                }
+                inline sub foo() {
+                    cx16.VERA_CTRL = 0
+                    cx16.VERA_FX_CTRL = 1
+                    cx16.VERA_CTRL = 0
+                }
+            }
+        """.trimIndent()
+        val errors = ErrorReporterForTests(keepMessagesAfterReporting = true)
+        compileText(Cx16Target(), optimize = true, src, outputDir, writeAssembly = false, errors = errors) shouldBe null
+        errors.errors.size shouldBe 1
+        errors.errors[0] shouldContain "inline subroutine 'foo' must contain only one body statement"
+    }
     test("multiplication by negative power of two (simpleAst)") {
         val src = """
             main {

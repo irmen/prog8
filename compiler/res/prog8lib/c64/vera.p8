@@ -636,11 +636,35 @@ verafx {
     }
 
     sub line(uword x1, ubyte y1, uword x2, ubyte y2, ubyte color) {
+        line_batch_begin()
+        line_batch_draw(x1, y1, x2, y2, color)
+        line_batch_end()
+    }
+
+    ; Pair begin/end around one or more line_batch_draw() calls.
+    sub line_batch_begin() {
+        vera.VERA_CTRL = 2<<1
+        vera.VERA_FX_CTRL = %00000001
+        vera.VERA_CTRL = 0
+    }
+
+    sub line_batch_end() {
+        vera.VERA_CTRL = 2<<1
+        vera.VERA_FX_CTRL = 0
+        vera.VERA_CTRL = 1
+        vera.VERA_ADDR_H = 0
+        vera.VERA_CTRL = 0
+        vera.VERA_ADDR_H = 0
+        vera.VERA_CTRL = 0
+    }
+
+    sub line_batch_draw(uword x1, ubyte y1, uword x2, ubyte y2, ubyte color) {
         ; Use the Vera FX line draw helper to draw a line very fast in a 320x240 256 color (8 bpp) bitmap screen
         ; (the default cx16 screen mode 128, as used by the gfx_lores module, with the bitmap at vram address 0).
-        ; WARNING: ONLY WORKS IN 8 BPP SCREEN MODE! The helper has a hardware bug in 4 bpp mode.
+        ; This routine configures 8 bpp; the FX helper also supports 4 bpp using nibble increments.
+        ; VERA firmware 48.0.1 has a line-helper bug in 4 bpp mode.
         ; No bounds checking or clipping is done, all coordinates must lie within the screen (0..319, 0..239).
-        ; Also resets the address increments of DATA0 and DATA1 to 0 afterwards.
+        ; In a batch, FX mode and address increments remain active until line_batch_end().
         ; The line is always drawn from top to bottom (y1<=y2 after sorting), this avoids the negative
         ; (decrement) y-increments that the helper handles poorly. x can go either left or right.
         ubyte @zp octant
@@ -692,11 +716,7 @@ verafx {
         ubyte[4] @shared sometimes_incr_table = [ $e0, $e0, $10, $18 ]
 
         %asm {{
-            ; set up the FX line draw helper and the start address in ADDR1
-            lda  #(2<<1)
-            sta  vera.VERA_CTRL         ; dcsel = 2
-            lda  #%00000001
-            sta  vera.VERA_FX_CTRL      ; addr1 mode = line draw helper (8 bpp)
+            ; set the line slope and address increments for this line
             lda  #(3<<1)
             sta  vera.VERA_CTRL         ; dcsel = 3
             lda  slope
@@ -758,16 +778,6 @@ verafx {
             dey
             bne  -
 _done
-            ; reset the FX registers back to normal
-            lda  #(2<<1)
-            sta  vera.VERA_CTRL     ; dcsel = 2
-            ldx  #0
-            stx  vera.VERA_FX_CTRL  ; addr1 mode = normal again
-            lda  #1
-            sta  vera.VERA_CTRL     ; addrsel = 1 (bit 0)
-            stx  vera.VERA_ADDR_H   ; reset ADDR1 (DATA1) address increment
-            stx  vera.VERA_CTRL     ; addrsel = 0
-            stx  vera.VERA_ADDR_H   ; reset ADDR0 (DATA0) address increment
             rts
 
             ; multiplication by 320 lookup table (used to add the y-offset to the start address above)

@@ -50,13 +50,15 @@ main {
             vera_gfx.disc(160, 120, radius, radius)
         }
 
+        verafx.line_batch_begin()
         for x in 0 to 319 step 10 {
-            verafx.line(x, 0, 319-x, 239, lsb(x))
+            verafx.line_batch_draw(x, 0, 319-x, 239, lsb(x))
         }
 
         for y in 0 to 239 step 10 {
-            verafx.line(0, y, 319, 239-y, y)
+            verafx.line_batch_draw(0, y, 319, 239-y, y)
         }
+        verafx.line_batch_end()
 
         for x in 20 to 80 step 10 {
             vera_gfx.text(x, lsb(x), lsb(x), sc:"hello from vera64 and prog8")
