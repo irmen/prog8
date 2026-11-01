@@ -35,12 +35,14 @@ already-exposed registers, so they need no NDK or regeneration.
 1. **Hardware display setup** (highest value) — DONE: `custom.compute_display()`
     in `shared_amiga_custom.p8` takes `width, height, depth`, a `mode`
     bitmask (`DISPLAY_HIRES`, `DISPLAY_PAL`/`DISPLAY_NTSC`, `DISPLAY_EHB`,
-    `DISPLAY_HAM`) plus a chip-RAM `BitMap` and fills a
+    `DISPLAY_HAM`) and fills a
     `custom.DisplayRegs` shadow struct (`DIWSTRT/STOP`, `DDFSTRT/STOP`,
-    `BPLCON0/1`, `BPL1/2MOD`, `FMODE`, plane pointers); the main program
-    writes the actual custom registers from it, since most of them are
-    write-only. The plane pointers are part of the struct, so the main
-    program reinstalls them every frame (no copper). `custom.is_pal()`
+    `BPLCON0/1`, `BPL1/2MOD`, `FMODE`); the main program patches them into
+    its own copper list along with the bitplane pointers (which it manages
+    itself), and installs it via `COP1LC`, since most of them are
+    write-only. The copper then reprograms the display every frame by
+    itself.
+    `custom.is_pal()`
     reports the machine's TV standard. On AGA, 32-bit fetch is selected
     with compensated DDF values; the caller must reset `FMODE` to `$0000`
     before `restore_system()`. `examples/amiga/viewdemo.p8` demonstrates it.
@@ -57,7 +59,7 @@ already-exposed registers, so they need no NDK or regeneration.
    or exact custom timings).
 
 2. **Bitplane manager** — allocate chip-RAM bitplanes, set pointers, clear
-   them, handle modulo/interleaved layouts. Pairs with #1.
+   them, handle modulo layouts. Pairs with #1.
 
 3. **Copper list builder** — currently only `CMove`/`CWait` extsubs exist. A
    small helper generating copper lists for common effects (raster bars,

@@ -1,6 +1,6 @@
 
 Prog8 compiler v14.0-BETA3 by Irmen de Jong (irmen@razorvine.net)
-Prerelease version from git commit a866be44 in branch master
+Prerelease version from git commit ad84b2ea in branch master
 This software is licensed under the GNU GPL 3.0, see https://www.gnu.org/licenses/gpl.html
 
 Compiling program import-all-amiga1200.p8
@@ -1296,7 +1296,7 @@ custom  {
     bool @shared  isPAL
     ubyte[]  key_state
     any_key_pressed  () -> bool @D0
-    compute_display  (word width, word height, ubyte depth, uword mode, ^^graphics.BitMap bm) -> ^^custom.DisplayRegs
+    compute_display  (word width, word height, ubyte depth, uword mode) -> ^^custom.DisplayRegs
     detect_chipset  () -> ubyte
     filter_off  ()
     filter_on  ()

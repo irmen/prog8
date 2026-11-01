@@ -5,6 +5,7 @@
 
 main {
     sub start() {
+        ^^custom.DisplayRegs regs = custom.compute_display(320, 256, 1, custom.DISPLAY_DEFAULT, 0)
         custom.grab_system(true)
 
         ; Allocate bitplane in CHIP RAM (320x256 = 10240 bytes, NOT cleared)
@@ -61,6 +62,13 @@ main {
         ; Patch the bitplane pointer into the copper list (words 3 and 5)
         copperdata.copper_list[3] = msw(bitplane)    ; BPL1PTH value
         copperdata.copper_list[5] = lsw(bitplane)    ; BPL1PTL value
+        copperdata.copper_list[7] = regs.fmode
+        copperdata.copper_list[9] = regs.bplcon0
+        copperdata.copper_list[11] = regs.diwstrt
+        copperdata.copper_list[13] = regs.diwstop
+        copperdata.copper_list[15] = regs.ddfstrt
+        copperdata.copper_list[17] = regs.ddfstop
+        copperdata.copper_list[19] = regs.bpl1mod
 
         ; Activate the copper list
         custom.COP1LC = &copperdata.copper_list
@@ -71,6 +79,7 @@ main {
         while not custom.left_button() {
         }
 
+        custom.FMODE = $0000
         custom.restore_system()
         exec.FreeMem(bitplane, 10240)
     }
@@ -83,10 +92,11 @@ copperdata {
     ; MOVE = register offset, value (bit 0 of word 1 clear).
     ; WAIT = (vpos<<8) | (hpos<<1) | 1, $fffe (bit 0 set, no blitter wait).
     ; END = $ffff, $fffe.
-    uword[120] copper_list = [
+    uword[122] copper_list = [
         $0096, $83c0,    ; MOVE DMACON: SET | DMAEN | BLTEN | BPLEN | COPEN
         $00e0, $0000,    ; MOVE BPL1PTH (patched at startup)
         $00e2, $0000,    ; MOVE BPL1PTL (patched at startup)
+        $01fc, $0000,    ; MOVE FMODE (patched from compute_display)
         $0100, $1200,    ; MOVE BPLCON0: 1 bitplane, color burst on
         $008e, $2c81,    ; MOVE DIWSTRT
         $0090, $2cc1,    ; MOVE DIWSTOP

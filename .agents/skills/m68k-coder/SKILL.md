@@ -8,10 +8,6 @@ description: Writing or understanding Motorola 68000/68020 assembly in vasm mot 
 Use Motorola syntax for `vasm`, not Devpac or other assemblers. Keep answers
 concise and practical.
 
-Reference documentation for the assembler and linker is available locally in
-`~/Documents/prog8-dev-resources` (the vasm and vlink manuals). Search this
-folder first before looking online.
-
 ## Syntax
 
 - Labels begin in column 1. Instructions are indented at least four spaces.
@@ -36,28 +32,8 @@ folder first before looking online.
 
 ## FPU Size Suffixes
 
-FPU instructions that access memory **must** include a size suffix: `.s`
-(single, 4 bytes), `.d` (double, 8 bytes), or `.x` (extended, 12 bytes).
-Without a suffix, vasm defaults to `.x`, reading 12 bytes and corrupting
-results when the operand is smaller.
-
-**Use `.s` with memory operands:**
-```asm
-        fmove.s  value(pc),fp0      ; load float from memory
-        fcmp.s   other(pc),fp0      ; compare float in memory
-        ftst.s   value(pc)          ; test float in memory
-```
-
-**Omit the suffix for register-to-register operations:**
-```asm
-        fadd     fp1,fp0            ; fp0 = fp0 + fp1
-        fcmp     fp1,fp0            ; compare fp0 vs fp1
-        ftst     fp0                ; test fp0
-        fintrz   fp0,fp0            ; truncate fp0
-```
-
-The FPU registers are always 80-bit internally, so no size suffix is needed
-when both operands are registers.
+FPU memory operands require `.s`, `.d`, or `.x`; without a suffix, vasm
+defaults to `.x` (12 bytes). Register-to-register operations need no suffix.
 
 ## Architecture
 
@@ -67,17 +43,7 @@ when both operands are registers.
   is at offset `+3`.
 - Word and long accesses must be even-aligned on 68000. 68020 permits
   misalignment but it is slower.
-- **Byte `A7` auto-update steps by 2, not 1.** If A7 (== SP, the stack pointer) is the address
-  register and the operand length for post-increment or post-decrement is one byte, A7 is
-  decremented/incremented by 2 instead of 1, to maintain a word-aligned stack. This is the
-  specified behaviour of all the 680x0, not a 68000 quirk, so it is identical everywhere and
-  safe to rely on. Word and long operands step by 2 and 4.
-  ```asm
-        move.b  d0,-(sp)          ; A7 steps by 2, so SP stays word-aligned
-        ...
-        addq.l  #2, sp            ; and the matching pop is #2, not #1
-  ```
-  Do not "fix" this to an explicit `subq.l #1,sp`: that leaves SP odd and cause crash.
+- Byte pre/post-increment on `A7` adjusts the stack by 2, not 1, preserving word alignment.
 - The 68000 (`amiga500`) has only word multiply/divide and no scaled indexing,
   bit-field, or 32-bit multiply/divide instructions. The 68020 (`amiga1200`,
   `qemu68k`) adds those features and `extb.l`.
@@ -88,8 +54,7 @@ when both operands are registers.
   to long requires `moveq #0,d0` first, then `move.b src,d0`, then `move.l d0,dst`
   (or mask with `and.l #$ff` / `and.l #$ffff`). Relying on `move.b` to clear the
   upper bits is a common bug that corrupts values.
-- `movea` does not set condition codes; `move` does. Keep the stack word
-  aligned and push words or longs, never bytes.
+- `movea` does not set condition codes; `move` does. Keep the stack word-aligned.
 
 ## Registers and Calls
 
@@ -109,27 +74,18 @@ when both operands are registers.
 
 - Normal framed subroutines use `link a5,#-N` and `unlk a5`; locals are at
   negative `A5` offsets and incoming parameters are at positive offsets.
-- Arguments use word-packed slots of natural width: byte, bool, word and uword
-  arguments take a 2-byte slot; long, pointer and float arguments take a 4-byte
-  slot. The caller pushes arguments left-to-right (a byte sits at the base byte
-  of its 2-byte slot, the second byte is garbage; word values fill their slot)
-  and removes the complete argument area after the call. The area
-  size is always even, so the stack stays word-aligned; slot bases accumulate from
-  the rightmost argument at `8(a5)` according to each argument's width.
+- Arguments use natural-width, word-aligned slots: byte/bool/word/uword take 2
+  bytes; long/pointer/float take 4. The caller pushes left-to-right and cleans
+  the full area; offsets start at `8(a5)` from the rightmost argument.
 - A normal call preserves the caller's frame. A `goto` or conditional branch
   leaving the current subroutine must execute `unlk a5` on the taken path before
   transferring control.
-- The built-in Prog8 `call(address)` is a zero-argument indirect call. It does
-  not marshal stack arguments. `asmsub` and `extsub` keep their explicit
-  register-annotated ABI, separate from normal framed calls.
-- Push narrow arguments into their own 2-byte slots, each with one instruction: a
-  byte uses `move.b ..., -(sp)` (A7 byte predecrement steps by 2, reserving the
-  slot; the byte lands at the slot's base byte), a word uses a plain
-  `move.w ..., -(sp)`. Never push a narrow value where the callee expects a
-  wide (4-byte) argument: the slot sizes must line up exactly.
-  Wide arguments (`move.l ..., -(sp)` / `fmove.s fp0,-(sp)`) push in one step.
-  Use `lea N(sp),sp` for the cleanup when the call returns a status flag
-  (`addq` clobbers CCR).
+- `call(address)` is a zero-argument indirect call; it does not marshal arguments.
+  `asmsub` and `extsub` use their explicit register-annotated ABI.
+- Push byte arguments with `move.b` into a 2-byte A7 slot (A7 advances by 2),
+  words with `move.w`, and 4-byte arguments with `move.l`/`fmove.s`. Never
+  mismatch argument and slot widths. Use `lea N(sp),sp` for cleanup when `addq`
+  would clobber return flags.
 
 ## Prog8 Integration
 
@@ -195,3 +151,12 @@ listing is needed.
 
 Prog8 runs `amiga500` programs with `vamos --cpu 68000` and `qemu68k` programs
 with `qemu-system-m68k -M virt -cpu m68020 -m 1M -kernel program.elf -nographic`.
+
+## Searching
+
+Look for local M68K references in `~/Documents/prog8-dev-resources` first. It
+contains the vasm and vlink manuals and Amiga-specific resources such as NDK
+headers and autodocs. Search this folder before looking online.
+
+Never search recursively from the filesystem root (for example, `find /`).
+Always scope searches to a known, specific directory.

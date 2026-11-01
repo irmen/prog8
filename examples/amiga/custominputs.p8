@@ -85,6 +85,7 @@ main {
             return
         ubyte saved_ciaa_cra = custom.CIAA_CRA
 
+        ^^custom.DisplayRegs regs = custom.compute_display(SCREEN_WIDTH as word, SCREEN_HEIGHT as word, 1, custom.DISPLAY_DEFAULT, 0)
         custom.grab_system(true)
         custom.CIAA_CRA = saved_ciaa_cra & $bf
 
@@ -102,12 +103,13 @@ main {
         ; Copper reapplies the bitmap configuration each frame; CPU restores sprite pointers.
         copperdata.copper_list[1] = msw(bitplane)
         copperdata.copper_list[3] = lsw(bitplane)
-        copperdata.copper_list[5] = 0
-        copperdata.copper_list[15] = $00d0
-        if custom.detect_chipset()==custom.CHIPSET::AGA {
-            copperdata.copper_list[5] = $0001
-            copperdata.copper_list[15] = $00c8
-        }
+        copperdata.copper_list[5] = regs.fmode
+        copperdata.copper_list[7] = regs.bplcon0
+        copperdata.copper_list[9] = regs.diwstrt
+        copperdata.copper_list[11] = regs.diwstop
+        copperdata.copper_list[13] = regs.ddfstrt
+        copperdata.copper_list[15] = regs.ddfstop
+        copperdata.copper_list[17] = regs.bpl1mod
         custom.COP1LC = &copperdata.copper_list
         custom.DMACON = $83e0
         custom.COPJMP1 = 0
@@ -161,6 +163,7 @@ main {
         }
 
         custom.CIAA_CRA = saved_ciaa_cra
+        custom.FMODE = $0000
         custom.restore_system()
         exec.FreeMem(bitplane, 10240)
     }

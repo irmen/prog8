@@ -9,15 +9,6 @@ You are an expert Prog8 assistant. Keep answers concise and practical. This
 skill covers `.p8` source and `.p8ir` intermediate representation for the
 6502, M68000, and virtual targets.
 
-Various reference documentation is available locally in
-`~/Documents/prog8-dev-resources`: 
-
-Prog8 reference documentation, emulator manuals such as VICE and the X16
-emulator, the 64tass/vasm/vlink assembler and linker docs, X16 hardware and register specs,
-the Amiga NDK (docs and includes), and other resources. 
-Search in this folder first before looking online!
-
-
 ## Essentials
 
 - A program normally has a `main` block with a parameterless `start` entry
@@ -176,3 +167,14 @@ Use `if_cs`, `if_cc`, `if_z`, and `if_nz` for direct CPU-flag branches.
 - Use `-check` for syntax and semantic checks without output generation.
 - Use `-noopt` to determine whether a failure is optimizer-related.
 - For IR execution, use `-vmtrace` when control flow needs inspection.
+
+
+## Searching
+
+Look for local references in `~/Documents/prog8-dev-resources` first. It
+contains Prog8 documentation, emulator manuals, assembler and linker manuals,
+X16 references, Amiga NDK materials, and other resources. Search there before
+looking online.
+
+Never search recursively from the filesystem root (for example, `find /`).
+Always scope searches to a known, specific directory.

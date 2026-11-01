@@ -595,7 +595,7 @@ some_label:
 
 main {
     sub start() {
-        custom.grab_system()
+        custom.grab_system(true)
         custom.restore_system()
     }
 }
@@ -606,7 +606,7 @@ main {
         val grab = asm.substring(asm.indexOf("custom.grab_system:"), asm.indexOf("; End of subroutine: custom.grab_system"))
         grab.lines().map { it.substringBefore(';').trim() }.let { lines ->
             lines.count { it == "move.l  a5,-(sp)" } shouldBe 1
-            lines.count { it == ".skip:      move.l  (sp)+,a5" } shouldBe 1
+            lines.count { it.startsWith("move.l") && it.endsWith("(sp)+,a5") } shouldBe 1
         }
     }
 

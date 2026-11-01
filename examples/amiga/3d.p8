@@ -15,6 +15,7 @@ main {
         pointer bitplane2 = exec.AllocMem(10240, exec.MEMF_CHIP | exec.MEMF_CLEAR)
 
         ; Take over the Amiga hardware and configure a 320x256 one-bitplane display.
+        ^^custom.DisplayRegs regs = custom.compute_display(320, 256, 1, custom.DISPLAY_DEFAULT, 0)
         custom.grab_system(true)
         custom.DMACON = $83C0
 
@@ -25,6 +26,13 @@ main {
         ; Patch the bitplane pointer into the copper list (words 3 and 5) and start it.
         copperdata.copper_list[3] = msw(current_bitplane)
         copperdata.copper_list[5] = lsw(current_bitplane)
+        copperdata.copper_list[7] = regs.fmode
+        copperdata.copper_list[9] = regs.bplcon0
+        copperdata.copper_list[11] = regs.diwstrt
+        copperdata.copper_list[13] = regs.diwstop
+        copperdata.copper_list[15] = regs.ddfstrt
+        copperdata.copper_list[17] = regs.ddfstop
+        copperdata.copper_list[19] = regs.bpl1mod
         custom.COP1LC = &copperdata.copper_list
         custom.DMACON = $8280    ; SET | DMAEN | COPEN
         custom.COPJMP1 = 0
@@ -137,6 +145,7 @@ main {
             angle_z += ROT_Z_SPEED
         }
 
+        custom.FMODE = $0000
         custom.restore_system()
         exec.FreeMem(bitplane1, 10240)
         exec.FreeMem(bitplane2, 10240)
@@ -167,10 +176,11 @@ copperdata {
     ; END = $ffff, $fffe.
     ; Words 3 and 5 are the bitplane pointer, patched at startup and each frame.
     ; The copper paints a static black-purple-green-red raster gradient.
-    uword[196] copper_list = [
+    uword[198] copper_list = [
         $0096, $83c0,    ; MOVE DMACON: SET | DMAEN | BLTEN | BPLEN | COPEN
         $00e0, $0000,    ; MOVE BPL1PTH (patched at runtime)
         $00e2, $0000,    ; MOVE BPL1PTL (patched at runtime)
+        $01fc, $0000,    ; MOVE FMODE (patched from compute_display)
         $0100, $1200,    ; MOVE BPLCON0: 1 bitplane, color burst on
         $008e, $2c81,    ; MOVE DIWSTRT
         $0090, $2cc1,    ; MOVE DIWSTOP

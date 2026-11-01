@@ -1,6 +1,5 @@
 %import exec
 %import syslib
-%import graphics
 
 custom {
     %option merge, no_symbol_prefixing, ignore_unused
@@ -195,56 +194,40 @@ IRQ7 = $7C
         }}
     }
 
-    asmsub is_pal() -> bool @Pz {
-        ; -- True if this machine is PAL, false if it is NTSC.
-        ; Reads ExecBase's VBlankFrequency (50 = PAL, 60 = NTSC).
-        %asm {{
-            move.l  4.w,a6
-            cmp.b   #50,$212(a6)
-            seq     d0
-            rts
-        }}
-    }
-
-    struct DisplayRegs {  ; total size: 50
+    struct DisplayRegs {  ; total size: 18
         uword diwstrt     ; 0
         uword diwstop     ; 2
         uword ddfstrt     ; 4
         uword ddfstop     ; 6
         uword bplcon0     ; 8
-        uword bplcon1     ; 10
         uword bpl1mod     ; 12
         uword bpl2mod     ; 14
         uword fmode       ; 16
-        pointer[8] planes ; 18
     }
 
     private ^^DisplayRegs regs = []
 
     const uword DISPLAY_DEFAULT = $0000  ; lores, machine's own TV standard
     const uword DISPLAY_HIRES   = $0001  ; 640-pixel mode (else 320-pixel)
-    const uword DISPLAY_PAL     = $0002  ; force PAL (else the machine's own standard)
-    const uword DISPLAY_NTSC    = $0004  ; force NTSC (else the machine's own standard)
-    const uword DISPLAY_EHB     = $0008  ; extra half-brite (needs depth 6)
-    const uword DISPLAY_HAM     = $0010  ; hold-and-modify (needs depth 6, or 8 on AGA)
+    const uword DISPLAY_EHB     = $0002  ; extra half-brite (needs depth 6)
+    const uword DISPLAY_HAM     = $0004  ; hold-and-modify (needs depth 6, or 8 on AGA)
 
-    sub compute_display(word width, word height, ubyte depth, uword mode, ^^graphics.BitMap bm) -> ^^DisplayRegs {
+    sub compute_display(word width, word height, ubyte depth, uword mode, word stride) -> ^^DisplayRegs {
         ; Compute the shadow display registers for a bare-metal playfield.
         ; No hardware is touched; the caller writes the struct fields to the
         ; custom registers itself (install BPLxPT every frame, the rest once).
         ;
         ; width/height describe the visible area in pixels. width must be a
-        ; multiple of 16 (min 32). mode is a combination of the DISPLAY_ flags
-        ; (DISPLAY_PAL/DISPLAY_NTSC force that TV standard, both set is an error;
-        ; with neither, the machine's own standard from the OS is used).
+        ; multiple of 16 (min 32). mode is a combination of the DISPLAY_ flags.
+        ; stride is the bitplane row pitch in bytes (0 uses width / 8).
         ; Height is just the visible line count and must fit that
         ; standard's frame. depth is 1-8 bitplanes (7-8 need AGA). Only
         ; plain lores/hires (+EHB/HAM) are supported: no interlace, no
         ; DBLPAL/DBLNTSC, no superhires, no dual playfield.
         ;
-        ; bm supplies the plane pointers and is usually an InitBitMap +
-        ; AllocRaster bitmap in CHIP RAM. Pass 0 to leave the plane pointers
-        ; zeroed (e.g. to inspect the timing values before allocating planes).
+        ; Plane pointers are not part of the struct; the caller manages the
+        ; bitplanes and BPLxPT itself (usually an InitBitMap + AllocRaster
+        ; bitmap in CHIP RAM).
         ;
         ; Returns a pointer to the single statically allocated DisplayRegs
         ; instance, or 0 if the mode is not supported (bad geometry, or more
@@ -252,28 +235,14 @@ IRQ7 = $7C
         ; selected with compensated DDF values; reset FMODE to $0000 before
         ; handing the display back to the OS.
         bool hires = (mode & DISPLAY_HIRES) != 0
-        ; TV standard: the machine's own unless DISPLAY_PAL/DISPLAY_NTSC forces
-        ; one; forcing both at once is an error.
-        if (mode & DISPLAY_PAL) != 0 and (mode & DISPLAY_NTSC) != 0
-            return 0
-        bool pal = is_pal()
-        if (mode & DISPLAY_PAL) != 0
-            pal = true
-        if (mode & DISPLAY_NTSC) != 0
-            pal = false
         bool ehb = (mode & DISPLAY_EHB) != 0
         bool ham = (mode & DISPLAY_HAM) != 0
         if depth == 0 or depth > 8
             return 0
         if width < 32 or (width & 15) != 0
             return 0
-        if pal {
-            if height > 267
-                return 0
-        } else {
-            if height > 217
-                return 0
-        }
+        if height > 267
+            return 0
         if ehb and ham
             return 0
         if ehb and depth != 6
@@ -284,31 +253,36 @@ IRQ7 = $7C
         if depth > 6 and not is_aga
             return 0
 
-        ; Data-fetch window. DDF units move 16 pixels per plane row; hires
-        ; fetches twice as fast so its window grows half as fast per word.
-        ; With AGA 32-bit fetch each slot takes two words, so the window
-        ; starts one slot earlier and needs half the slots.
         uword wpl = ((width as uword) + 15) >> 4
+        uword rowBytes = (width as uword) >> 3
+        if stride != 0
+            rowBytes = stride as uword
         if is_aga {
-            regs.fmode = $0001      ; 32-bit bitplane fetch, 16-bit sprite fetch
-            uword cycles = (wpl + 1) >> 1
+            ; AGA longword fetches cover 32 pixels (16 DDF units lores, 8 hires).
+            uword fetchLongwords = ((width as uword) + 31) >> 5
+            uword fetchedBytes = fetchLongwords * 4
+            regs.fmode = $0001
             if hires {
-                regs.ddfstrt = $0034
-                regs.ddfstop = $0034 + (cycles - 2) * 4
+                regs.ddfstrt = $003c
+                regs.ddfstop = $003c + (fetchLongwords - 1) * 8
             } else {
-                regs.ddfstrt = $0030
-                regs.ddfstop = $0030 + (cycles - 1) * 8
+                regs.ddfstrt = $0038
+                regs.ddfstop = $0038 + (fetchLongwords - 1) * 16
             }
+            regs.bpl1mod = ((rowBytes as word) - (fetchedBytes as word)) as uword
         } else {
             regs.fmode = $0000
             if hires {
-                regs.ddfstrt = $003c
-                regs.ddfstop = $003c + (wpl - 2) * 4
+                regs.ddfstrt = $0038
+                regs.ddfstop = $00d8
+                regs.bpl1mod = ((rowBytes as word) - (((wpl + 2) as word) * 2)) as uword
             } else {
                 regs.ddfstrt = $0038
-                regs.ddfstop = $0038 + (wpl - 1) * 8
+                regs.ddfstop = $0038 + wpl * 8
+                regs.bpl1mod = ((rowBytes as word) - (((wpl + 1) as word) * 2)) as uword
             }
         }
+        regs.bpl2mod = regs.bpl1mod
 
         ; Display window. Units are lores pixels, so hires widths are halved.
         ; VSTART is always $2c; VSTOP wraps at 256 which yields $f4 for a
@@ -332,22 +306,8 @@ IRQ7 = $7C
             con0 |= $0800
         if depth == 8
             con0 |= $0010
+        con0 |= $0200    ; color burst enable
         regs.bplcon0 = con0
-        regs.bplcon1 = 0
-
-        ; Modulo: planar bitmaps need none.
-        regs.bpl1mod = 0
-        regs.bpl2mod = 0
-
-        if bm == 0 {
-            for p in 0 to depth - 1 {
-                regs.planes[p] = 0
-            }
-        } else {
-            for p in 0 to depth - 1 {
-                regs.planes[p] = bm.Planes[p]
-            }
-        }
         return regs
     }
 
@@ -943,7 +903,6 @@ IRQ7 = $7C
     &uword  BPLHSTOP    = $dff1d6   ; bitplane horizontal stop (AGA)
     &uword  HHPOSW      = $dff1d8   ; horizontal hardware position write (AGA)
     &uword  HHPOSR      = $dff1da   ; horizontal hardware position read (AGA)
-    &uword  BEAMCON0    = $dff1dc   ; beam counter control (ECS)
     &uword  HSSTRT      = $dff1de   ; H sync start (ECS)
     &uword  VSSTRT      = $dff1e0   ; V sync start (ECS)
     &uword  DIWHIGH     = $dff1e4   ; display window high bits (ECS)
@@ -1297,4 +1256,3 @@ IRQ7 = $7C
         }}
     }
 }
-
