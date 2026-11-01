@@ -326,6 +326,9 @@ Directives
     To reference the contents of the included binary data, you can put a label in your prog8 code
     just before the %asmbinary.  To find out where the included binary data ends, add another label directly after it.
     An example program for this can be found below at the description of %asminclude.
+    It can also be used inside an ``asmsub`` to provide (part of) the subroutine's machine code,
+    for example to wrap a preassembled binary blob in a callable subroutine.
+    On the 6502 targets this is assembled via 64tass ``.binary``, on the M68k targets via vasm ``incbin``.
 
 
 .. index:: pair: Directives; %asminclude
@@ -1567,7 +1570,13 @@ Such subroutines are defined with ``asmsub`` like this::
             }}
     }
 
-the statement body of such a subroutine can only consist of just inline assembly.
+the statement body of such a subroutine can only consist of inline assembly (``%asm``)
+and/or binary blobs (``%asmbinary``).
+A blob is included verbatim by the assembler, so it is a convenient way to wrap
+preassembled machine code in a callable subroutine with a register calling convention.
+Because the compiler cannot look inside the blob, it cannot verify that it returns
+properly: you get a warning if the body contains a blob but no explicit return
+instruction, so make sure the blob ends with ``rts``/``jmp``/``bra``.
 
 The ``@ <register>`` part is required for rom and assembly-subroutines, as it specifies the
 cpu registers that take the arguments.  You can use the regular set of registers

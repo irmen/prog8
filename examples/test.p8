@@ -1,9 +1,12 @@
-%import custom
-
 main {
     sub start() {
-        custom.grab_system(false)
-        repeat 100 custom.waitvsync()
-        custom.restore_system()
+    }
+
+    asmsub loader1() -> bool @D0 {
+        %asmbinary "ocean_loader.68k"
+    }
+
+    asmsub loader2() -> bool @D0 {
+        %asmbinary "ocean_loader_v2.68k"
     }
 }

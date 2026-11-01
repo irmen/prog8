@@ -271,7 +271,12 @@ internal fun IdentifierReference.isSubroutineParameter(): Boolean {
     return vardecl!=null && vardecl.origin==VarDeclOrigin.SUBROUTINEPARAM && vardecl.definingSubroutine?.parameters?.any { it.name==vardecl.name } == true
 }
 
-internal fun Subroutine.hasRtsInAsm(checkOnlyLastInstruction: Boolean): Boolean {
+internal fun Subroutine.hasRtsInAsm(checkOnlyLastInstruction: Boolean, trustBlobs: Boolean = true): Boolean {
+    // a binary blob (%asmbinary) is opaque machine code that is trusted to return properly,
+    // just like an extsub with a fixed address (which is exempt from this check).
+    // pass trustBlobs=false to only consider textual assembly.
+    if(trustBlobs && statements.any { it is Directive && it.directive=="%asmbinary" })
+        return true
     val asms = statements
         .asSequence()
         .filterIsInstance<InlineAssembly>()

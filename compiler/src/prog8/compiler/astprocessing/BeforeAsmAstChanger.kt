@@ -80,6 +80,8 @@ internal class BeforeAsmAstChanger(val program: Program, private val options: Co
                     errors.err("asmsub seems to never return as it doesn't end with rts/jmp/branch. If this is intended, add a '; !notreached!' comment at the end", subroutine.position)
                 else if (!subroutine.hasRtsInAsm(false))
                     errors.err("asmsub seems to never return as it doesn't end with rts/jmp/branch. If this is intended, add a '; !notreached!' comment at the end", subroutine.position)
+                else if(subroutine.statements.any { it is Directive && it.directive=="%asmbinary" } && !subroutine.hasRtsInAsm(false, trustBlobs=false))
+                    errors.warn("asmsub body is a binary blob (%asmbinary) without an explicit return instruction; the compiler cannot verify the blob returns properly, make sure it ends with rts/jmp/bra", subroutine.position)
             }
         }
 

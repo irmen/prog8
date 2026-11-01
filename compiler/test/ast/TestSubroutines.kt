@@ -321,4 +321,31 @@ main {
         errors.errors.size shouldBe 1
         errors.errors[0] shouldContain "asmsub can only contain inline assembly (%asm)"
     }
+
+    test("asmsub with binary blob") {
+        outputDir.resolve("blob_for_asmsub.bin").toFile().writeBytes(ByteArray(16) { 0x4e.toByte() })
+        val src="""
+main {
+    sub start() {
+        ok()
+        ok3()
+    }
+    asmsub ok() {
+        %asmbinary "blob_for_asmsub.bin"
+    }
+    asmsub ok2() -> bool @Pc {
+        %asm {{ nop }}
+        %asmbinary "blob_for_asmsub.bin", 0, 8
+    }
+    asmsub ok3() {
+        %asm {{ rts }}
+        %asmbinary "blob_for_asmsub.bin"
+    }
+}"""
+        val errors = ErrorReporterForTests(keepMessagesAfterReporting = true)
+        compileText(VMTarget(), false, src, outputDir, errors, writeAssembly=false)
+        errors.errors shouldBe emptyList()
+        errors.warnings.size shouldBe 2
+        errors.warnings.forEach { it shouldContain "binary blob" }
+    }
 })

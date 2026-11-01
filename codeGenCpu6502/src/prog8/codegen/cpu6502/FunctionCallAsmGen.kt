@@ -81,7 +81,7 @@ internal class FunctionCallAsmGen(private val program: PtProgram, private val as
                 // NOTE: *if* there is a return statement, it will be the only one, and the very last statement of the subroutine
                 // (this condition has been enforced by an ast check earlier)
                 asmgen.out("  \t; inlined routine follows: ${sub.name}")
-                sub.children.forEach { asmgen.translate(it as PtInlineAssembly) }
+                sub.children.forEach { asmgen.translate(it) }
                 asmgen.out("  \t; inlined routine end: ${sub.name}")
             } else {
                 val bank = sub.address?.constbank?.toString()

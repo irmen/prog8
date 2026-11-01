@@ -588,7 +588,10 @@ internal class AstChecker(private val program: Program,
         if(!hasReturnOrExternalJumpOrRts(subroutine)) {
             if (subroutine.returntypes.isNotEmpty()) {
                 // for asm subroutines with an address, no statement check is possible.
-                if (subroutine.asmAddress == null && !subroutine.inline) {
+                // the same goes for a subroutine whose body is a binary blob (%asmbinary):
+                // opaque machine code is trusted to return properly.
+                val hasBlob = subroutine.statements.any { it is Directive && it.directive=="%asmbinary" }
+                if (subroutine.asmAddress == null && !subroutine.inline && !hasBlob) {
                     err("non-inline subroutine has result value(s) and thus must have at least one 'return' or external 'goto' in it (or the assembler equivalent in case of %asm)")
                     haveReturnError = true
                 }
@@ -721,8 +724,8 @@ internal class AstChecker(private val program: Program,
                     "registers it uses (D2-D6/A2-A4/FP2-FP7) and must not destroy D7 or A5")
             }
 
-            if(subroutine.statements.any{it !is InlineAssembly})
-                err("asmsub can only contain inline assembly (%asm)")
+            if(subroutine.statements.any{it !is InlineAssembly && !(it is Directive && it.directive=="%asmbinary")})
+                err("asmsub can only contain inline assembly (%asm) and binary blobs (%asmbinary)")
 
             val statusFlagsNoCarry = subroutine.asmParameterRegisters.mapNotNull { it.statusflag }.toSet() - Statusflag.Pc
             if(statusFlagsNoCarry.isNotEmpty())
