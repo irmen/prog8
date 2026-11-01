@@ -1570,8 +1570,8 @@ Such subroutines are defined with ``asmsub`` like this::
             }}
     }
 
-the statement body of such a subroutine can only consist of inline assembly (``%asm``)
-and/or binary blobs (``%asmbinary``).
+the statement body of such a subroutine can only consist of inline assembly (``%asm``),
+binary blobs (``%asmbinary``) and assembly includes (``%asminclude``).
 A blob is included verbatim by the assembler, so it is a convenient way to wrap
 preassembled machine code in a callable subroutine with a register calling convention.
 Because the compiler cannot look inside the blob, it cannot verify that it returns

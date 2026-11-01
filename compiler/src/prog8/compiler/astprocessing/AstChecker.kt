@@ -515,6 +515,15 @@ internal class AstChecker(private val program: Program,
                 if(inlineAssembly.hasReturnOrRts())
                     count++
             }
+            override fun visit(directive: Directive) {
+                // an included assembly file may contain the return; scan it the same way
+                if(directive.directive=="%asminclude") {
+                    loadAsmIncludeText(directive)?.let {
+                        if(InlineAssembly(it, false, directive.position).hasReturnOrRts())
+                            count++
+                    }
+                }
+            }
         }
 
         val s=Searcher()
@@ -724,8 +733,8 @@ internal class AstChecker(private val program: Program,
                     "registers it uses (D2-D6/A2-A4/FP2-FP7) and must not destroy D7 or A5")
             }
 
-            if(subroutine.statements.any{it !is InlineAssembly && !(it is Directive && it.directive=="%asmbinary")})
-                err("asmsub can only contain inline assembly (%asm) and binary blobs (%asmbinary)")
+            if(subroutine.statements.any{it !is InlineAssembly && !(it is Directive && (it.directive=="%asmbinary" || it.directive=="%asminclude"))})
+                err("asmsub can only contain inline assembly (%asm), binary blobs (%asmbinary) and assembly includes (%asminclude)")
 
             val statusFlagsNoCarry = subroutine.asmParameterRegisters.mapNotNull { it.statusflag }.toSet() - Statusflag.Pc
             if(statusFlagsNoCarry.isNotEmpty())
@@ -1741,6 +1750,15 @@ internal class AstChecker(private val program: Program,
             override fun visit(inlineAssembly: InlineAssembly) {
                 if(inlineAssembly.hasReturnOrRts())
                     count++
+            }
+            override fun visit(directive: Directive) {
+                // an included assembly file may contain a return; scan it the same way
+                if(directive.directive=="%asminclude") {
+                    loadAsmIncludeText(directive)?.let {
+                        if(InlineAssembly(it, false, directive.position).hasReturnOrRts())
+                            count++
+                    }
+                }
             }
         }
         val s = Searcher()

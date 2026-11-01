@@ -8,7 +8,11 @@ import prog8.ast.expressions.*
 import prog8.ast.statements.*
 import prog8.ast.walk.*
 import prog8.code.core.*
+import prog8.code.source.ImportFileSystem
+import prog8.code.source.SourceCode
 import java.io.CharConversionException
+import kotlin.io.path.Path
+import kotlin.io.path.isRegularFile
 
 
 internal fun invalidNumberOfArgsError(errors: IErrorReporter, pos: Position, numArgs: Int, params: List<String>, zeroAllowed: Boolean=false) {
@@ -271,15 +275,41 @@ internal fun IdentifierReference.isSubroutineParameter(): Boolean {
     return vardecl!=null && vardecl.origin==VarDeclOrigin.SUBROUTINEPARAM && vardecl.definingSubroutine?.parameters?.any { it.name==vardecl.name } == true
 }
 
+internal fun loadAsmIncludeText(directive: Directive): String? {
+    // mirror SimplifiedAstMaker.loadAsmIncludeFile so the rts-check sees the same text
+    // the code generator will use. Missing/unreadable files yield null here and are
+    // reported later when the include is actually expanded.
+    val filename = directive.args.getOrNull(0)?.string ?: return null
+    return try {
+        if(SourceCode.isLibraryResource(filename)) {
+            ImportFileSystem.getResource("/prog8lib/${SourceCode.withoutPrefix(filename)}").text
+        } else {
+            val source = directive.definingModule.source
+            val sib = Path(source.origin).resolveSibling(filename)
+            val path = if(sib.isRegularFile()) sib else Path(filename)
+            ImportFileSystem.getFile(path, source.isFromLibrary).text
+        }
+    } catch(_: Exception) {
+        null
+    }
+}
+
 internal fun Subroutine.hasRtsInAsm(checkOnlyLastInstruction: Boolean, trustBlobs: Boolean = true): Boolean {
     // a binary blob (%asmbinary) is opaque machine code that is trusted to return properly,
     // just like an extsub with a fixed address (which is exempt from this check).
     // pass trustBlobs=false to only consider textual assembly.
     if(trustBlobs && statements.any { it is Directive && it.directive=="%asmbinary" })
         return true
-    val asms = statements
-        .asSequence()
-        .filterIsInstance<InlineAssembly>()
+    // expand %asminclude directives in source order so a trailing (or only) include counts
+    val asms = statements.asSequence().flatMap {
+        when(it) {
+            is InlineAssembly -> sequenceOf(it)
+            is Directive -> if(it.directive=="%asminclude")
+                loadAsmIncludeText(it)?.let { text -> sequenceOf(InlineAssembly(text, false, it.position)) } ?: emptySequence()
+            else emptySequence()
+            else -> emptySequence()
+        }
+    }
     if(checkOnlyLastInstruction) {
         val lastAsm = asms.lastOrNull() ?: return false
         val lastLine = lastAsm.assembly.lineSequence().map { it.trim() }.lastOrNull {

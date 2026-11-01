@@ -137,8 +137,8 @@ internal class AstIdentifiersChecker(private val errors: IErrorReporter,
                     nameError(name, symbol.position, subroutine)
             }
 
-            if(subroutine.isAsmSubroutine && subroutine.statements.any{it !is InlineAssembly && !(it is Directive && it.directive=="%asmbinary")}) {
-                errors.err("asmsub can only contain inline assembly (%asm) and binary blobs (%asmbinary)", subroutine.position)
+            if(subroutine.isAsmSubroutine && subroutine.statements.any{it !is InlineAssembly && !(it is Directive && (it.directive=="%asmbinary" || it.directive=="%asminclude"))}) {
+                errors.err("asmsub can only contain inline assembly (%asm), binary blobs (%asmbinary) and assembly includes (%asminclude)", subroutine.position)
             }
 
             if(compTarget.name != VMTarget.NAME) {
