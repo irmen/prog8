@@ -32,11 +32,20 @@ The gap is **bare-metal display setup** for demos/games that disable the OS
 via `custom.grab_system()`. These are pure Prog8/asm helpers on top of
 already-exposed registers, so they need no NDK or regeneration.
 
-1. **Hardware display setup** (highest value) — given `width, height, depth,
-   hires, lace, superhires`, compute and write `DIWSTRT/STOP`,
-   `DDFSTRT/STOP`, `BPLCON0/1`, `BPL1/2MOD`, and the `BPLxPT` registers.
-   This is fiddly and a common source of "black screen" bugs. A
-   `display.setup(...)` would save a lot of pain.
+1. **Hardware display setup** (highest value) — DONE: `custom.compute_display()`
+    in `shared_amiga_custom.p8` takes `width, height, depth`, a `mode`
+    bitmask (`DISPLAY_HIRES`, `DISPLAY_PAL`/`DISPLAY_NTSC`, `DISPLAY_EHB`,
+    `DISPLAY_HAM`) plus a chip-RAM `BitMap` and fills a
+    `custom.DisplayRegs` shadow struct (`DIWSTRT/STOP`, `DDFSTRT/STOP`,
+    `BPLCON0/1`, `BPL1/2MOD`, `FMODE`, plane pointers); the main program
+    writes the actual custom registers from it, since most of them are
+    write-only. The plane pointers are part of the struct, so the main
+    program reinstalls them every frame (no copper). `custom.is_pal()`
+    reports the machine's TV standard. On AGA, 32-bit fetch is selected
+    with compensated DDF values; the caller must reset `FMODE` to `$0000`
+    before `restore_system()`. `examples/amiga/viewdemo.p8` demonstrates it.
+    Non-interlaced AGA lores/hires (+EHB/HAM) only; no DBLPAL/DBLNTSC,
+    superhires or dual playfield.
 
    Safer alternative: let the OS set up the display first by opening an
    Intuition screen (or `easygfx.fullscreen(...)`) with the desired mode,

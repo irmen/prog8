@@ -1,6 +1,6 @@
 
 Prog8 compiler v14.0-BETA3 by Irmen de Jong (irmen@razorvine.net)
-Prerelease version from git commit 214ddab0 in branch master
+Prerelease version from git commit a866be44 in branch master
 This software is licensed under the GNU GPL 3.0, see https://www.gnu.org/licenses/gpl.html
 
 Compiling program import-all-amiga1200.p8
@@ -780,6 +780,7 @@ LIBRARY MODULE NAME: custom
 ---------------------------
 
 custom  {
+    struct DisplayRegs
     const uword  ABC
     const uword  ABNC
     &uword  ADKCON
@@ -995,6 +996,12 @@ custom  {
     &uword  DDFSTOP
     &uword  DDFSTRT
     &uword  DENISEID
+    const uword  DISPLAY_DEFAULT
+    const uword  DISPLAY_EHB
+    const uword  DISPLAY_HAM
+    const uword  DISPLAY_HIRES
+    const uword  DISPLAY_NTSC
+    const uword  DISPLAY_PAL
     &uword  DIWHIGH
     &uword  DIWSTOP
     &uword  DIWSTRT
@@ -1289,10 +1296,12 @@ custom  {
     bool @shared  isPAL
     ubyte[]  key_state
     any_key_pressed  () -> bool @D0
+    compute_display  (word width, word height, ubyte depth, uword mode, ^^graphics.BitMap bm) -> ^^custom.DisplayRegs
     detect_chipset  () -> ubyte
     filter_off  ()
     filter_on  ()
-    grab_system  (bool replace_view)
+    grab_system  (bool replace_view @D0)
+    is_pal  () -> bool @Pz
     joystick_axes  (ubyte port) -> byte, byte
     joystick_fire  (ubyte port) -> bool
     joystick_fire2  (ubyte port) -> bool
@@ -2787,12 +2796,14 @@ graphics  {
     struct ClipRect
     struct ColorMap
     struct Layer
+    struct RasInfo
     struct RastPort
     struct TextAttr
     struct TextExtent
     struct TextFont
     struct TmpRas
     struct View
+    struct ViewPort
     const long  A2024FIFTEENHERTZ_KEY
     const long  A2024TENHERTZ_KEY
     const long  A2024_MONITOR_ID
@@ -3504,7 +3515,7 @@ graphics  {
     AddFont  (^^graphics.TextFont textFont @A1)@bank 3 = -$01e0
     AddVSprite  (long vSprite @A0, ^^graphics.RastPort rp @A1)@bank 3 = -$66
     AllocBitMap  (long sizex @D0, long sizey @D1, long depth @D2, long flags @D3, ^^graphics.BitMap friend_bitmap @A0) -> ^^graphics.BitMap @D0@bank 3 = -$0396
-    AllocDBufInfo  (long vp @A0) -> long @D0@bank 3 = -$03c6
+    AllocDBufInfo  (^^graphics.ViewPort vp @A0) -> long @D0@bank 3 = -$03c6
     AllocRaster  (uword width @D0, uword height @D1) -> long @D0@bank 3 = -$01ec
     AllocSpriteDataA  (^^graphics.BitMap bm @A2, long tags @A1) -> long @D0@bank 3 = -$03fc
     AndRectRegion  (long region @A0, long rectangle @A1)@bank 3 = -$01f8
@@ -3516,7 +3527,7 @@ graphics  {
     AreaMove  (^^graphics.RastPort rp @A1, word x @D0, word y @D1) -> long @D0@bank 3 = -$fc
     AskFont  (^^graphics.RastPort rp @A1, ^^graphics.TextAttr textAttr @A0)@bank 3 = -$01da
     AskSoftStyle  (^^graphics.RastPort rp @A1) -> long @D0@bank 3 = -$54
-    AttachPalExtra  (^^graphics.ColorMap cm @A0, long vp @A1) -> long @D0@bank 3 = -$0342
+    AttachPalExtra  (^^graphics.ColorMap cm @A0, ^^graphics.ViewPort vp @A1) -> long @D0@bank 3 = -$0342
     AttemptLockLayerRom  (^^graphics.Layer layer @A5) -> bool @D0@bank 3 = -$028e
     BestModeIDA  (long tags @A0) -> long @D0@bank 3 = -$041a
     BitMapScale  (long bitScaleArgs @A0)@bank 3 = -$02a6
@@ -3529,10 +3540,10 @@ graphics  {
     CBump  (long copList @A1)@bank 3 = -$016e
     CMove  (long copList @A1, long destination @D0, word data @D1) -> long @D0@bank 3 = -$0174
     CWait  (long copList @A1, word v @D0, word h @D1) -> long @D0@bank 3 = -$017a
-    CalcIVG  (^^graphics.View v @A0, long vp @A1) -> uword @D0@bank 3 = -$033c
-    ChangeExtSpriteA  (long vp @A0, long oldsprite @A1, long newsprite @A2, long tags @A3) -> long @D0@bank 3 = -$0402
-    ChangeSprite  (long vp @A0, long sprite @A1, long newData @A2)@bank 3 = -$01a4
-    ChangeVPBitMap  (long vp @A0, ^^graphics.BitMap bm @A1, long db @A2)@bank 3 = -$03ae
+    CalcIVG  (^^graphics.View v @A0, ^^graphics.ViewPort vp @A1) -> uword @D0@bank 3 = -$033c
+    ChangeExtSpriteA  (^^graphics.ViewPort vp @A0, long oldsprite @A1, long newsprite @A2, long tags @A3) -> long @D0@bank 3 = -$0402
+    ChangeSprite  (^^graphics.ViewPort vp @A0, long sprite @A1, long newData @A2)@bank 3 = -$01a4
+    ChangeVPBitMap  (^^graphics.ViewPort vp @A0, ^^graphics.BitMap bm @A1, long db @A2)@bank 3 = -$03ae
     ClearEOL  (^^graphics.RastPort rp @A1)@bank 3 = -$2a
     ClearRectRegion  (long region @A0, long rectangle @A1) -> bool @D0@bank 3 = -$020a
     ClearRegion  (long region @A0)@bank 3 = -$0210
@@ -3540,14 +3551,14 @@ graphics  {
     ClipBlit  (^^graphics.RastPort srcRP @A0, word xSrc @D0, word ySrc @D1, ^^graphics.RastPort destRP @A1, word xDest @D2, word yDest @D3, word xSize @D4, word ySize @D5, ubyte minterm @D6)@bank 3 = -$0228
     CloseFont  (^^graphics.TextFont textFont @A1)@bank 3 = -$4e
     CloseMonitor  (long monitorSpec @A0) -> bool @D0@bank 3 = -$02d0
-    CoerceMode  (long vp @A0, long monitorid @D0, long flags @D1) -> long @D0@bank 3 = -$03a8
+    CoerceMode  (^^graphics.ViewPort vp @A0, long monitorid @D0, long flags @D1) -> long @D0@bank 3 = -$03a8
     CopySBitMap  (^^graphics.Layer layer @A0)@bank 3 = -$01c2
     DisownBlitter  ()@bank 3 = -$01ce
     DisposeRegion  (long region @A0)@bank 3 = -$0216
     DoCollision  (^^graphics.RastPort rp @A1)@bank 3 = -$6c
     Draw  (^^graphics.RastPort rp @A1, word x @D0, word y @D1)@bank 3 = -$f6
     DrawEllipse  (^^graphics.RastPort rp @A1, word xCenter @D0, word yCenter @D1, word a @D2, word b @D3)@bank 3 = -$b4
-    DrawGList  (^^graphics.RastPort rp @A1, long vp @A0)@bank 3 = -$72
+    DrawGList  (^^graphics.RastPort rp @A1, ^^graphics.ViewPort vp @A0)@bank 3 = -$72
     EraseRect  (^^graphics.RastPort rp @A1, word xMin @D0, word yMin @D1, word xMax @D2, word yMax @D3)@bank 3 = -$032a
     ExtendFont  (^^graphics.TextFont font @A0, long fontTags @A1) -> long @D0@bank 3 = -$0330
     FindColor  (^^graphics.ColorMap cm @A3, long r @D1, long g @D2, long b @D3, long maxcolor @D4) -> long @D0@bank 3 = -$03f0
@@ -3563,7 +3574,7 @@ graphics  {
     FreeRaster  (long p @A0, uword width @D0, uword height @D1)@bank 3 = -$01f2
     FreeSprite  (word num @D0)@bank 3 = -$019e
     FreeSpriteData  (long sp @A2)@bank 3 = -$0408
-    FreeVPortCopLists  (long vp @A0)@bank 3 = -$021c
+    FreeVPortCopLists  (^^graphics.ViewPort vp @A0)@bank 3 = -$021c
     GetAPen  (^^graphics.RastPort rp @A0) -> long @D0@bank 3 = -$035a
     GetBPen  (^^graphics.RastPort rp @A0) -> long @D0@bank 3 = -$0360
     GetBitMapAttr  (^^graphics.BitMap bm @A0, long attrnum @D1) -> long @D0@bank 3 = -$03c0
@@ -3577,7 +3588,7 @@ graphics  {
     GetRGB4  (^^graphics.ColorMap colorMap @A0, long entry @D0) -> long @D0@bank 3 = -$0246
     GetRPAttrsA  (^^graphics.RastPort rp @A0, long tags @A1)@bank 3 = -$0414
     GetSprite  (long sprite @A0, word num @D0) -> word @D0@bank 3 = -$0198
-    GetVPModeID  (long vp @A0) -> long @D0@bank 3 = -$0318
+    GetVPModeID  (^^graphics.ViewPort vp @A0) -> long @D0@bank 3 = -$0318
     GfxAssociate  (long associateNode @A0, long gfxNodePtr @A1)@bank 3 = -$02a0
     GfxFree  (long gfxNodePtr @A0)@bank 3 = -$029a
     GfxLookUp  (long associateNode @A0) -> long @D0@bank 3 = -$02be
@@ -3589,16 +3600,16 @@ graphics  {
     InitMasks  (long vSprite @A0)@bank 3 = -$7e
     InitRastPort  (^^graphics.RastPort rp @A1)@bank 3 = -$c6
     InitTmpRas  (^^graphics.TmpRas tmpRas @A0, long buffer @A1, long size @D0) -> ^^graphics.TmpRas @D0@bank 3 = -$01d4
-    InitVPort  (long vp @A0)@bank 3 = -$cc
+    InitVPort  (^^graphics.ViewPort vp @A0)@bank 3 = -$cc
     InitView  (^^graphics.View view @A1)@bank 3 = -$0168
-    LoadRGB32  (long vp @A0, long table @A1)@bank 3 = -$0372
-    LoadRGB4  (long vp @A0, long colors @A1, word count @D0)@bank 3 = -$c0
+    LoadRGB32  (^^graphics.ViewPort vp @A0, long table @A1)@bank 3 = -$0372
+    LoadRGB4  (^^graphics.ViewPort vp @A0, long colors @A1, word count @D0)@bank 3 = -$c0
     LoadView  (^^graphics.View view @A1)@bank 3 = -$de
     LockLayerRom  (^^graphics.Layer layer @A5)@bank 3 = -$01b0
-    MakeVPort  (^^graphics.View view @A0, long vp @A1) -> long @D0@bank 3 = -$d8
+    MakeVPort  (^^graphics.View view @A0, ^^graphics.ViewPort vp @A1) -> long @D0@bank 3 = -$d8
     ModeNotAvailable  (long modeID @D0) -> long @D0@bank 3 = -$031e
     Move  (^^graphics.RastPort rp @A1, word x @D0, word y @D1)@bank 3 = -$f0
-    MoveSprite  (long vp @A0, long sprite @A1, word x @D0, word y @D1)@bank 3 = -$01aa
+    MoveSprite  (^^graphics.ViewPort vp @A0, long sprite @A1, word x @D0, word y @D1)@bank 3 = -$01aa
     MrgCop  (^^graphics.View view @A1) -> long @D0@bank 3 = -$d2
     NewRegion  () -> long @D0@bank 3 = -$0204
     NextDisplayInfo  (long displayID @D0) -> long @D0@bank 3 = -$02dc
@@ -3618,12 +3629,12 @@ graphics  {
     RectFill  (^^graphics.RastPort rp @A1, word xMin @D0, word yMin @D1, word xMax @D2, word yMax @D3)@bank 3 = -$0132
     ReleasePen  (^^graphics.ColorMap cm @A0, long n @D0)@bank 3 = -$03b4
     RemFont  (^^graphics.TextFont textFont @A1)@bank 3 = -$01e6
-    RemIBob  (long bob @A0, ^^graphics.RastPort rp @A1, long vp @A2)@bank 3 = -$84
+    RemIBob  (long bob @A0, ^^graphics.RastPort rp @A1, ^^graphics.ViewPort vp @A2)@bank 3 = -$84
     RemVSprite  (long vSprite @A0)@bank 3 = -$8a
     ScalerDiv  (uword factor @D0, uword numerator @D1, uword denominator @D2) -> uword @D0@bank 3 = -$02ac
     ScrollRaster  (^^graphics.RastPort rp @A1, word dx @D0, word dy @D1, word xMin @D2, word yMin @D3, word xMax @D4, word yMax @D5)@bank 3 = -$018c
     ScrollRasterBF  (^^graphics.RastPort rp @A1, word dx @D0, word dy @D1, word xMin @D2, word yMin @D3, word xMax @D4, word yMax @D5)@bank 3 = -$03ea
-    ScrollVPort  (long vp @A0)@bank 3 = -$024c
+    ScrollVPort  (^^graphics.ViewPort vp @A0)@bank 3 = -$024c
     SetABPenDrMd  (^^graphics.RastPort rp @A1, long apen @D0, long bpen @D1, long drawmode @D2)@bank 3 = -$037e
     SetAPen  (^^graphics.RastPort rp @A1, ubyte pen @D0)@bank 3 = -$0156
     SetBPen  (^^graphics.RastPort rp @A1, ubyte pen @D0)@bank 3 = -$015c
@@ -3633,9 +3644,9 @@ graphics  {
     SetFont  (^^graphics.RastPort rp @A1, ^^graphics.TextFont textFont @A0) -> long @D0@bank 3 = -$42
     SetMaxPen  (^^graphics.RastPort rp @A0, long maxpen @D0)@bank 3 = -$03de
     SetOutlinePen  (^^graphics.RastPort rp @A0, long pen @D0) -> long @D0@bank 3 = -$03d2
-    SetRGB32  (long vp @A0, long n @D0, long r @D1, long g @D2, long b @D3)@bank 3 = -$0354
+    SetRGB32  (^^graphics.ViewPort vp @A0, long n @D0, long r @D1, long g @D2, long b @D3)@bank 3 = -$0354
     SetRGB32CM  (^^graphics.ColorMap cm @A0, long n @D0, long r @D1, long g @D2, long b @D3)@bank 3 = -$03e4
-    SetRGB4  (long vp @A0, word index @D0, ubyte red @D1, ubyte green @D2, ubyte blue @D3)@bank 3 = -$0120
+    SetRGB4  (^^graphics.ViewPort vp @A0, word index @D0, ubyte red @D1, ubyte green @D2, ubyte blue @D3)@bank 3 = -$0120
     SetRGB4CM  (^^graphics.ColorMap colorMap @A0, word index @D0, ubyte red @D1, ubyte green @D2, ubyte blue @D3)@bank 3 = -$0276
     SetRPAttrsA  (^^graphics.RastPort rp @A0, long tags @A1)@bank 3 = -$040e
     SetRast  (^^graphics.RastPort rp @A1, ubyte pen @D0)@bank 3 = -$ea
@@ -3652,7 +3663,7 @@ graphics  {
     UnlockLayerRom  (^^graphics.Layer layer @A5)@bank 3 = -$01b6
     VBeamPos  () -> long @D0@bank 3 = -$0180
     VideoControl  (^^graphics.ColorMap colorMap @A0, long tagarray @A1) -> bool @D0@bank 3 = -$02c4
-    WaitBOVP  (long vp @A0)@bank 3 = -$0192
+    WaitBOVP  (^^graphics.ViewPort vp @A0)@bank 3 = -$0192
     WaitBlit  ()@bank 3 = -$e4
     WaitTOF  ()@bank 3 = -$010e
     WeighTAMatch  (^^graphics.TextAttr reqTextAttr @A0, ^^graphics.TextAttr targetTextAttr @A1, long targetTags @A2) -> word @D0@bank 3 = -$0324
@@ -5155,7 +5166,7 @@ intuition  {
     UnlockPubScreen  (str name @A0, ^^intuition.Screen screen @A1)@bank 4 = -$0204
     UnlockPubScreenList  ()@bank 4 = -$0210
     ViewAddress  () -> ^^graphics.View @D0@bank 4 = -$0126
-    ViewPortAddress  (^^intuition.Window window @A0) -> long @D0@bank 4 = -$012c
+    ViewPortAddress  (^^intuition.Window window @A0) -> ^^graphics.ViewPort @D0@bank 4 = -$012c
     WBenchToBack  () -> bool @D0@bank 4 = -$0150
     WBenchToFront  () -> bool @D0@bank 4 = -$0156
     WindowLimits  (^^intuition.Window window @A0, long widthMin @D0, long heightMin @D1, long widthMax @D2, long heightMax @D3) -> bool @D0@bank 4 = -$013e

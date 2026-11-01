@@ -1,5 +1,6 @@
 %import exec
 %import syslib
+%import graphics
 
 custom {
     %option merge, no_symbol_prefixing, ignore_unused
@@ -192,6 +193,162 @@ IRQ7 = $7C
     BEQ.S   .WaitLineNext
     rts
         }}
+    }
+
+    asmsub is_pal() -> bool @Pz {
+        ; -- True if this machine is PAL, false if it is NTSC.
+        ; Reads ExecBase's VBlankFrequency (50 = PAL, 60 = NTSC).
+        %asm {{
+            move.l  4.w,a6
+            cmp.b   #50,$212(a6)
+            seq     d0
+            rts
+        }}
+    }
+
+    struct DisplayRegs {  ; total size: 50
+        uword diwstrt     ; 0
+        uword diwstop     ; 2
+        uword ddfstrt     ; 4
+        uword ddfstop     ; 6
+        uword bplcon0     ; 8
+        uword bplcon1     ; 10
+        uword bpl1mod     ; 12
+        uword bpl2mod     ; 14
+        uword fmode       ; 16
+        pointer[8] planes ; 18
+    }
+
+    private ^^DisplayRegs regs = []
+
+    const uword DISPLAY_DEFAULT = $0000  ; lores, machine's own TV standard
+    const uword DISPLAY_HIRES   = $0001  ; 640-pixel mode (else 320-pixel)
+    const uword DISPLAY_PAL     = $0002  ; force PAL (else the machine's own standard)
+    const uword DISPLAY_NTSC    = $0004  ; force NTSC (else the machine's own standard)
+    const uword DISPLAY_EHB     = $0008  ; extra half-brite (needs depth 6)
+    const uword DISPLAY_HAM     = $0010  ; hold-and-modify (needs depth 6, or 8 on AGA)
+
+    sub compute_display(word width, word height, ubyte depth, uword mode, ^^graphics.BitMap bm) -> ^^DisplayRegs {
+        ; Compute the shadow display registers for a bare-metal playfield.
+        ; No hardware is touched; the caller writes the struct fields to the
+        ; custom registers itself (install BPLxPT every frame, the rest once).
+        ;
+        ; width/height describe the visible area in pixels. width must be a
+        ; multiple of 16 (min 32). mode is a combination of the DISPLAY_ flags
+        ; (DISPLAY_PAL/DISPLAY_NTSC force that TV standard, both set is an error;
+        ; with neither, the machine's own standard from the OS is used).
+        ; Height is just the visible line count and must fit that
+        ; standard's frame. depth is 1-8 bitplanes (7-8 need AGA). Only
+        ; plain lores/hires (+EHB/HAM) are supported: no interlace, no
+        ; DBLPAL/DBLNTSC, no superhires, no dual playfield.
+        ;
+        ; bm supplies the plane pointers and is usually an InitBitMap +
+        ; AllocRaster bitmap in CHIP RAM. Pass 0 to leave the plane pointers
+        ; zeroed (e.g. to inspect the timing values before allocating planes).
+        ;
+        ; Returns a pointer to the single statically allocated DisplayRegs
+        ; instance, or 0 if the mode is not supported (bad geometry, or more
+        ; than 6 planes on OCS/ECS). On AGA, 32-bit bitplane fetch is
+        ; selected with compensated DDF values; reset FMODE to $0000 before
+        ; handing the display back to the OS.
+        bool hires = (mode & DISPLAY_HIRES) != 0
+        ; TV standard: the machine's own unless DISPLAY_PAL/DISPLAY_NTSC forces
+        ; one; forcing both at once is an error.
+        if (mode & DISPLAY_PAL) != 0 and (mode & DISPLAY_NTSC) != 0
+            return 0
+        bool pal = is_pal()
+        if (mode & DISPLAY_PAL) != 0
+            pal = true
+        if (mode & DISPLAY_NTSC) != 0
+            pal = false
+        bool ehb = (mode & DISPLAY_EHB) != 0
+        bool ham = (mode & DISPLAY_HAM) != 0
+        if depth == 0 or depth > 8
+            return 0
+        if width < 32 or (width & 15) != 0
+            return 0
+        if pal {
+            if height > 267
+                return 0
+        } else {
+            if height > 217
+                return 0
+        }
+        if ehb and ham
+            return 0
+        if ehb and depth != 6
+            return 0
+        if ham and depth != 6 and depth != 8
+            return 0
+        bool is_aga = detect_chipset() == CHIPSET::AGA
+        if depth > 6 and not is_aga
+            return 0
+
+        ; Data-fetch window. DDF units move 16 pixels per plane row; hires
+        ; fetches twice as fast so its window grows half as fast per word.
+        ; With AGA 32-bit fetch each slot takes two words, so the window
+        ; starts one slot earlier and needs half the slots.
+        uword wpl = ((width as uword) + 15) >> 4
+        if is_aga {
+            regs.fmode = $0001      ; 32-bit bitplane fetch, 16-bit sprite fetch
+            uword cycles = (wpl + 1) >> 1
+            if hires {
+                regs.ddfstrt = $0034
+                regs.ddfstop = $0034 + (cycles - 2) * 4
+            } else {
+                regs.ddfstrt = $0030
+                regs.ddfstop = $0030 + (cycles - 1) * 8
+            }
+        } else {
+            regs.fmode = $0000
+            if hires {
+                regs.ddfstrt = $003c
+                regs.ddfstop = $003c + (wpl - 2) * 4
+            } else {
+                regs.ddfstrt = $0038
+                regs.ddfstop = $0038 + (wpl - 1) * 8
+            }
+        }
+
+        ; Display window. Units are lores pixels, so hires widths are halved.
+        ; VSTART is always $2c; VSTOP wraps at 256 which yields $f4 for a
+        ; 200-line (NTSC) field and $2c for a 256-line (PAL) field.
+        regs.diwstrt = $2c81
+        uword lores_width = width as uword
+        if hires
+            lores_width = lores_width >> 1
+        uword hstop = $81 + lores_width - $0100
+        uword vstop = ($2c + (height as uword)) & $ff
+        regs.diwstop = (vstop << 8) | hstop
+
+        ; Bitplane control. BPU holds the depth; BPU3 (bit 4, AGA) extends
+        ; it past 6 planes. HIRES, EHB and HAM are bits 15, 7 and 11.
+        uword con0 = ((depth & 7) as uword) << 12
+        if hires
+            con0 |= $8000
+        if ehb
+            con0 |= $0080
+        if ham
+            con0 |= $0800
+        if depth == 8
+            con0 |= $0010
+        regs.bplcon0 = con0
+        regs.bplcon1 = 0
+
+        ; Modulo: planar bitmaps need none.
+        regs.bpl1mod = 0
+        regs.bpl2mod = 0
+
+        if bm == 0 {
+            for p in 0 to depth - 1 {
+                regs.planes[p] = 0
+            }
+        } else {
+            for p in 0 to depth - 1 {
+                regs.planes[p] = bm.Planes[p]
+            }
+        }
+        return regs
     }
 
 
@@ -471,19 +628,19 @@ IRQ7 = $7C
     sub left_button() -> bool {
         ; Returns true if the left mouse button (port 1) is pressed.
         ; Left button is CIA-A PRA bit 6, active low.
-        return (custom.CIAA_PRA & %01000000) == 0
+        return (CIAA_PRA & %01000000) == 0
     }
 
     sub right_button() -> bool {
         ; Returns true if the right mouse button (port 1) is pressed.
         ; Right button is POTGOR ($dff016) bit 10, active low.
-        return (custom.POTGOR & %0000010000000000) == 0
+        return (POTGOR & %0000010000000000) == 0
     }
 
     sub middle_button() -> bool {
         ; Returns true if the middle mouse button (port 1) is pressed.
         ; Middle button is POTGOR ($dff016) bit 8, active low.
-        return (custom.POTGOR & %0000000100000000) == 0
+        return (POTGOR & %0000000100000000) == 0
     }
 
 

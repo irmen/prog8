@@ -551,7 +551,10 @@ modules. Import them the same way as any other library::
     ``grab_system(replace_view)``/``restore_system()`` to take over the whole system and interrupt
     handlers for hardware banging programs (games, demos); pass true to load
     a blank NULL view first, false to leave the currently active View untouched
-    (display DMA stays on). ``waitvsync()``, AGA colour
+    (display DMA stays on). ``compute_display()`` computes shadow display
+    register values (``DisplayRegs``) for a bare-metal playfield without
+    Intuition or View/ViewPort setup; ``is_pal()`` reports the machine's TV
+    standard. ``waitvsync()``, AGA colour
     register writes, and controller input routines. ``detect_chipset()`` returns
     ``custom.CHIPSET::OCS``, ``custom.CHIPSET::ECS`` or
     ``custom.CHIPSET::AGA`` using the Denise ID and VPOSR hardware registers.
