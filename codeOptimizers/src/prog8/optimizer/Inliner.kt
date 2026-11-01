@@ -26,6 +26,10 @@ private class CannotInlineException : Exception()
  * - Handling parameterized inlining can easily lead to infinite loops or recursion
  *   in the optimizer if not done VERY CAREFULLY (e.g. self-referential subroutines).
  * - Subroutines must have a single functional statement in their body to be auto-inlined.
+ * - Multi-parameter inlining additionally requires simple (side-effect free) arguments.
+ *   On m68k targets the single-statement body may be a single-return-value expression
+ *   or, for void subroutines, a single call statement (forwarding wrapper).
+ *   Other targets still require the single-return-value expression case.
  * - Multi-return value subroutines are not yet supported for auto-inlining.
  */
 class Inliner(private val program: Program, private val options: CompilationOptions, private val errors: IErrorReporter): AstWalker() {
@@ -283,15 +287,20 @@ class Inliner(private val program: Program, private val options: CompilationOpti
             val bodyStmt = sub.statements.firstOrNull { it !is VarDecl || it.origin != VarDeclOrigin.SUBROUTINEPARAM }
             if ((bodyStmt as? Assignment)?.target?.identifier?.nameInSource?.lastOrNull() in paramNames)
                 return false to "cannot inline subroutine that assigns to its parameter"
-            // v1 only supports the single-return-value expression case on this path.
-            // Void and multi-value statement call sites keep the previous restriction.
+            // v1 only supports the single-return-value expression case on this path,
+            // plus void subroutines whose body is a single call statement
+            // (typically a forwarding wrapper). Void and multi-value statement
+            // call sites keep the previous restriction otherwise.
             val returnStmt = bodyStmt as? Return
-                ?: return false to "multi-parameter inlining requires a single return statement"
-            if (returnStmt.values.size != 1) {
-                return false to "multi-parameter inlining requires a single return value"
-            }
-            if (!isFairlySimpleReturnExpression(returnStmt.values[0], paramNames)) {
-                return false to "multi-parameter inline body is too complex"
+            if (returnStmt != null) {
+                if (returnStmt.values.size != 1) {
+                    return false to "multi-parameter inlining requires a single return value"
+                }
+                if (!isFairlySimpleReturnExpression(returnStmt.values[0], paramNames)) {
+                    return false to "multi-parameter inline body is too complex"
+                }
+            } else if (bodyStmt !is FunctionCallStatement) {
+                return false to "multi-parameter inlining requires a single return statement or a single call statement"
             }
             // fall through to the 6502-independent checks below (none apply to m68k)
         } else if (sub.parameters.size == 1) {

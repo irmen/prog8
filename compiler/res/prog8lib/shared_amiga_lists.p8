@@ -106,6 +106,13 @@
 lists {
     %option merge, ignore_unused
 
+    ; NOTE: these are deliberately thin forwarding wrappers rather than
+    ; aliases to the exec routines. The untyped `pointer` parameters accept
+    ; custom node/list structs, while the exec routines require ^^List/^^Node;
+    ; the casts are centralized here so callers don't need them. (Now zero-cost:
+    ; void multi-parameter forwarding wrappers are inlined on m68k.)
+    ; `is_empty` isn't a forward at all, it has its own logic.
+
     alias Node = exec.MinNode
     alias List = exec.MinList
     alias FullNode = exec.Node
@@ -120,34 +127,34 @@ lists {
     }
 
     inline sub add_head(pointer listptr, pointer node) {
-        exec.AddHead(listptr, node)
+        exec.AddHead(listptr as ^^exec.List, node as ^^exec.Node)
     }
 
     inline sub add_tail(pointer listptr, pointer node) {
-        exec.AddTail(listptr, node)
+        exec.AddTail(listptr as ^^exec.List, node as ^^exec.Node)
     }
 
     inline sub insert(pointer listptr, pointer node, pointer pred) {
-        exec.Insert(listptr, node, pred)
+        exec.Insert(listptr as ^^exec.List, node as ^^exec.Node, pred as ^^exec.Node)
     }
 
     inline sub remove(pointer node) {
-        exec.Remove(node)
+        exec.Remove(node as ^^exec.Node)
     }
 
     inline sub remove_head(pointer listptr) -> pointer {
-        return exec.RemHead(listptr)
+        return exec.RemHead(listptr as ^^exec.List)
     }
 
     inline sub remove_tail(pointer listptr) -> pointer {
-        return exec.RemTail(listptr)
+        return exec.RemTail(listptr as ^^exec.List)
     }
 
     inline sub enqueue(pointer listptr, pointer node) {
-        exec.Enqueue(listptr, node)
+        exec.Enqueue(listptr as ^^exec.List, node as ^^exec.Node)
     }
 
     inline sub find_name(pointer listptr, str name) -> pointer {
-        return exec.FindName(listptr, name)
+        return exec.FindName(listptr as ^^exec.List, name)
     }
 }

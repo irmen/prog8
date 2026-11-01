@@ -17,6 +17,7 @@ import prog8.code.ast.*
 import prog8.code.core.BaseDataType
 import prog8.code.core.DataType
 import prog8.code.core.Position
+import prog8.code.target.Amiga500Target
 import prog8.code.target.C64Target
 import prog8.code.target.Cx16Target
 import prog8.code.target.VMTarget
@@ -75,6 +76,57 @@ main {
     }
 }"""
         compileText(C64Target(), true, src, outputDir) shouldNotBe null
+    }
+
+    test("inline void multi-parameter forwarding call on m68k") {
+        // void subroutines with multiple parameters are inlined on m68k targets
+        // when the body is a single call statement (forwarding wrapper)
+        val src="""
+main {
+    ubyte counter
+    inline sub wrap(ubyte a, ubyte b) {
+        target(a, b)
+    }
+    sub target(ubyte x, ubyte y) {
+        counter = x
+    }
+    sub start() {
+        wrap(1, 2)
+    }
+}"""
+        val errors = ErrorReporterForTests()
+        val result = compileText(Amiga500Target(), true, src, outputDir, errors)!!
+        errors.errors shouldBe emptyList()
+        val startSub = result.compilerAst.entrypoint
+        withClue("call to wrapper should have been inlined away") {
+            startSub.statements.none { it is FunctionCallStatement && it.target.nameInSource.last() == "wrap" } shouldBe true
+        }
+        withClue("forwarded call should remain") {
+            startSub.statements.any { it is FunctionCallStatement && it.target.nameInSource.last() == "target" } shouldBe true
+        }
+    }
+
+    test("do not inline void multi-parameter call with complex args on m68k") {
+        val src="""
+main {
+    ubyte counter
+    inline sub wrap(ubyte a, ubyte b) {
+        target(a, b)
+    }
+    sub target(ubyte x, ubyte y) {
+        counter = x
+    }
+    sub start() {
+        wrap(counter+1, 2)
+    }
+}"""
+        val errors = ErrorReporterForTests()
+        val result = compileText(Amiga500Target(), true, src, outputDir, errors)!!
+        errors.errors shouldBe emptyList()
+        val startSub = result.compilerAst.entrypoint
+        withClue("call with complex args should not have been inlined") {
+            startSub.statements.any { it is FunctionCallStatement && it.target.nameInSource.last() == "wrap" } shouldBe true
+        }
     }
 
     test("do not inline asmsub with parameters") {
