@@ -1161,6 +1161,45 @@ LIBRARY_HELPERS = {
     const uword LORES = 0
     const ubyte LACE = $0004
     const ubyte SUPERHIRES = $20
+
+    ; Canonical $00RRGGBB palette loaders for Intuition ViewPorts. You only
+    ; ever deal in 24-bit longs; conversion happens inside and the ECS/AGA
+    ; path is picked at runtime, so one binary serves both chipsets.
+    sub load_palette(^^ViewPort vp, ^^long rgb24, uword count) {
+        ; Same visible result as LoadRGB32/LoadRGB4 with no caller-managed
+        ; table buffer. AGA: SetRGB32 loop ($xx000000 channels). ECS: SetRGB4
+        ; loop (top nibbles). Kickstart 1.3 compatible on the ECS path (AGA
+        ; hardware implies 3.0+, where the 32-bit calls exist).
+        if count == 0
+            return
+        if custom.detect_chipset()==custom.CHIPSET::AGA {
+            for n in 0 to count-1 {
+                long rgb = rgb24[n]
+                SetRGB32(vp, n as long, ((rgb >> 16) & $ff) << 24,
+                         ((rgb >> 8) & $ff) << 24, (rgb & $ff) << 24)
+            }
+        } else {
+            for n in 0 to count-1 {
+                long rgb32 = rgb24[n]
+                SetRGB4(vp, n as word, (((rgb32 >> 16) & $f0) >> 4) as ubyte,
+                        (((rgb32 >> 8) & $f0) >> 4) as ubyte, ((rgb32 & $f0) >> 4) as ubyte)
+            }
+        }
+    }
+
+    sub set_palette_color(^^ViewPort vp, uword index, long rgb24) {
+        ; Single canonical color into a ViewPort's colormap. Index above 31
+        ; is ignored on ECS.
+        if custom.detect_chipset()==custom.CHIPSET::AGA {
+            SetRGB32(vp, index as long, ((rgb24 >> 16) & $ff) << 24,
+                     ((rgb24 >> 8) & $ff) << 24, (rgb24 & $ff) << 24)
+        } else {
+            if index > 31
+                return
+            SetRGB4(vp, index as word, (((rgb24 >> 16) & $f0) >> 4) as ubyte,
+                    (((rgb24 >> 8) & $f0) >> 4) as ubyte, ((rgb24 & $f0) >> 4) as ubyte)
+        }
+    }
 ''',
     'exec': '''
     asmsub NewList(^^List list @A0) {
@@ -2328,6 +2367,8 @@ def main():
             needed_imports.add('exec')
         if helper and 'graphics.' in helper:
             needed_imports.add('graphics')
+        if helper and 'custom.' in helper:
+            needed_imports.add('custom')
 
         # Build output string
         out_lines = []

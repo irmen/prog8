@@ -1,6 +1,6 @@
 
 Prog8 compiler v14.0-BETA3 by Irmen de Jong (irmen@razorvine.net)
-Prerelease version from git commit ad84b2ea in branch master
+Prerelease version from git commit cf170efb in branch master
 This software is licensed under the GNU GPL 3.0, see https://www.gnu.org/licenses/gpl.html
 
 Compiling program import-all-amiga500.p8
@@ -747,6 +747,27 @@ conv  {
 }
 
 
+LIBRARY MODULE NAME: copper
+---------------------------
+
+copper  {
+    uword  capacity
+    uword  cursor
+    ^^uword  list
+    uword  overflows
+    aga_move  (ubyte index) -> uword
+    aga_set  (uword base, ubyte index, long rgb24)
+    attach_planes  (ubyte depth) -> uword
+    end  ()
+    init  (^^uword buffer, uword words)
+    move  (uword reg, uword value) -> uword
+    rasterbar  (ubyte vstart, ubyte lines) -> uword
+    set  (uword slot, uword value)
+    skip  (ubyte v, ubyte h)
+    wait  (ubyte v, ubyte h)
+}
+
+
 LIBRARY MODULE NAME: coroutines
 -------------------------------
 
@@ -1000,8 +1021,6 @@ custom  {
     const uword  DISPLAY_EHB
     const uword  DISPLAY_HAM
     const uword  DISPLAY_HIRES
-    const uword  DISPLAY_NTSC
-    const uword  DISPLAY_PAL
     &uword  DIWHIGH
     &uword  DIWSTOP
     &uword  DIWSTRT
@@ -1296,26 +1315,29 @@ custom  {
     bool @shared  isPAL
     ubyte[]  key_state
     any_key_pressed  () -> bool @D0
-    compute_display  (word width, word height, ubyte depth, uword mode) -> ^^custom.DisplayRegs
+    compute_display  (word width, word height, ubyte depth, uword mode, word stride) -> ^^custom.DisplayRegs
+    cycle_forward  (^^long rgb24, uword count)
     detect_chipset  () -> ubyte
     filter_off  ()
     filter_on  ()
     grab_system  (bool replace_view @D0)
-    is_pal  () -> bool @Pz
     joystick_axes  (ubyte port) -> byte, byte
     joystick_fire  (ubyte port) -> bool
     joystick_fire2  (ubyte port) -> bool
     joystick_state  (ubyte port) -> ubyte
     key_pressed  (ubyte code) -> bool
     left_button  () -> bool
+    load_colors  (^^long rgb24, ubyte count)
     middle_button  () -> bool
     mouse_delta  (ubyte port) -> byte, byte
     mouse_init  (ubyte port, ubyte scale_divisor)
+    pack12  (long rgb24 @D0) -> uword @D0
     raw_keyboard_poll  () -> bool, ubyte
     restore_system  ()
     right_button  () -> bool
     set_aga_color  (ubyte color_index @D0, long rgb24 @D1)
-    set_aga_color_nibbles  (ubyte color_index @D0, uword rgb_high_nibbles @D1, uword rgb_low_nibbles @D2)
+    set_color  (ubyte index, long rgb24)
+    set_ocs_color  (ubyte index, long rgb24)
     waitvsync  ()
 }
 
@@ -3447,6 +3469,8 @@ graphics  {
     WritePixelLine8  (^^graphics.RastPort rp @A0, uword xstart @D0, uword ystart @D1, uword width @D2, long array @A2, ^^graphics.RastPort tempRP @A1) -> long @D0@bank 3 = -$0306
     XorRectRegion  (long region @A0, long rectangle @A1) -> bool @D0@bank 3 = -$022e
     XorRegionRegion  (long srcRegion @A0, long destRegion @A1) -> bool @D0@bank 3 = -$026a
+    load_palette  (^^graphics.ViewPort vp, ^^long rgb24, uword count)
+    set_palette_color  (^^graphics.ViewPort vp, uword index, long rgb24)
 }
 
 
@@ -5173,6 +5197,22 @@ math  {
 }
 
 
+LIBRARY MODULE NAME: playfield
+------------------------------
+
+playfield  {
+    ^^graphics.BitMap  bitmap
+    ^^custom.DisplayRegs  regs
+    apply_registers  ()
+    clear  ()
+    create  (word width, word height, ubyte depth, uword mode, word stride) -> bool
+    destroy  ()
+    patch_copper  (^^uword copper, uword base)
+    set_scroll  (ubyte fine)
+    show  ()
+}
+
+
 LIBRARY MODULE NAME: ptplayer
 -----------------------------
 
@@ -5542,3 +5582,4 @@ wavfile  {
 }
 
 
+tch, shutting down

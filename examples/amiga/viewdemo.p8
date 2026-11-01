@@ -22,7 +22,7 @@ main {
         if setup_bitmap() == false {
             return
         }
-        regs = custom.compute_display(WIDTH, HEIGHT, DEPTH, custom.DISPLAY_HIRES, 0)
+        regs = custom.compute_display(WIDTH, HEIGHT, WIDTH, DEPTH, custom.DISPLAY_HIRES, 0)
         if regs == 0 {
             free_bitmap()
             return

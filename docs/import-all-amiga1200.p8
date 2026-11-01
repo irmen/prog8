@@ -13,6 +13,7 @@
 %import coroutines
 %import custom
 %import conv
+%import copper
 %import emudbg
 %import floats
 %import lists
@@ -33,5 +34,6 @@
 %import timer
 %import audio
 %import ptplayer
+%import playfield
 %import sound
 %import trackdisk

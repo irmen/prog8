@@ -85,7 +85,7 @@ main {
             return
         ubyte saved_ciaa_cra = custom.CIAA_CRA
 
-        ^^custom.DisplayRegs regs = custom.compute_display(SCREEN_WIDTH as word, SCREEN_HEIGHT as word, 1, custom.DISPLAY_DEFAULT, 0)
+        ^^custom.DisplayRegs regs = custom.compute_display(SCREEN_WIDTH as word, SCREEN_HEIGHT as word, SCREEN_WIDTH as word, 1, custom.DISPLAY_DEFAULT, 0)
         custom.grab_system(true)
         custom.CIAA_CRA = saved_ciaa_cra & $bf
 

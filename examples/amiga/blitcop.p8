@@ -5,7 +5,7 @@
 
 main {
     sub start() {
-        ^^custom.DisplayRegs regs = custom.compute_display(320, 256, 1, custom.DISPLAY_DEFAULT, 0)
+        ^^custom.DisplayRegs regs = custom.compute_display(320, 256, 320, 1, custom.DISPLAY_DEFAULT, 0)
         custom.grab_system(true)
 
         ; Allocate bitplane in CHIP RAM (320x256 = 10240 bytes, NOT cleared)

@@ -551,11 +551,19 @@ modules. Import them the same way as any other library::
     ``grab_system(replace_view)``/``restore_system()`` to take over the whole system and interrupt
     handlers for hardware banging programs (games, demos); pass true to load
     a blank NULL view first, false to leave the currently active View untouched
-    (display DMA stays on). ``compute_display()`` computes shadow display
+    (display DMA stays on). ``compute_display()`` accepts a vertical offset
+    in scanlines (positive moves the display down) and computes shadow display
     register values (``DisplayRegs``) for a bare-metal playfield without
-    Intuition or View/ViewPort setup; ``is_pal()`` reports the machine's TV
-    standard. ``waitvsync()``, AGA colour
-    register writes, and controller input routines. ``detect_chipset()`` returns
+    Intuition or View/ViewPort setup. ``view_width``/``view_height`` are the
+    visible viewport; ``bitmap_width`` sets the backing bitplane row pitch.
+    The caller can allocate extra bitmap rows and update plane pointers for
+    vertical scrolling. The shared ``isPAL`` boolean (set by ``grab_system()``)
+    reports the machine's TV standard. ``waitvsync()``,
+    AGA colour register writes, and controller input routines. Canonical
+    ``$00RRGGBB`` palette helpers ``load_colors()``/``set_color()``/
+    ``cycle_forward()`` and ``pack12()`` load the bare-metal palette AGA-aware
+    (``graphics`` has the matching ``ViewPort`` loaders
+    ``load_palette()``/``set_palette_color()``). ``detect_chipset()`` returns
     ``custom.CHIPSET::OCS``, ``custom.CHIPSET::ECS`` or
     ``custom.CHIPSET::AGA`` using the Denise ID and VPOSR hardware registers.
     ``joystick_axes(port)`` returns signed x/y values in -1..1.
@@ -581,6 +589,31 @@ modules. Import them the same way as any other library::
 
 ``blitter``
     Blitter operations and the ``MINTERM`` logic modes.
+
+``playfield``
+    Bare-metal bitplane manager to pair with ``custom.compute_display()``:
+    ``create()`` accepts viewport and backing bitmap dimensions plus the same
+    vertical offset, allocates chip-RAM bitplanes, and computes the shadow
+    display registers. Larger bitmap dimensions provide scrolling room; callers
+    move plane pointers to select the viewport. ``clear()`` zeroes the planes,
+    ``show()`` installs plane addresses into ``BPLxPT``,
+    ``apply_registers()`` writes the rest of the shadow registers once per
+    setup, ``patch_copper()`` patches plane addresses into a copper list, and
+    ``set_scroll()`` sets fine horizontal scroll. Kickstart 1.3 compatible
+    (the ``AllocBitMap`` fast path is only
+    used on 3.0+). See ``examples/amiga/viewdemo.p8`` for
+    the equivalent manual setup.
+
+``copper``
+    Bare-metal copper list builder: emits raw copper words into a caller-owned
+    chip-RAM buffer, for use with or without the OS. ``move()`` returns the value
+    word's index so the main loop patches values in place instead of
+    rebuilding; ``wait()``/``skip()`` hide the instruction encoding,
+    ``attach_planes()`` emits ``BPLxPT`` slots for ``playfield.patch_copper()``,
+    ``rasterbar()`` builds a patchable per-scanline color skeleton, and
+    ``aga_move()``/``aga_set()`` encapsulate the four-MOVE 24-bit AGA color
+    sequence behind a single slot handle.
+    Emissions beyond capacity are dropped and counted in ``overflows``.
 
 ``sound``
     Direct Paula audio: hardware-banging 4-channel 8-bit PCM playback with no
