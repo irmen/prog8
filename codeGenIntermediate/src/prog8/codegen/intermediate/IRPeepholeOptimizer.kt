@@ -272,7 +272,7 @@ class IRPeepholeOptimizer(private val irprog: IRProgram, private val retainSSA: 
                     else if(lastChunk.isEmpty()) {
                         val label = lastChunk.label
                         chunks += if(label!=null)
-                            IRInlineBinaryChunk(label, candidate.data, candidate.next)
+                            IRInlineBinaryChunk(label, candidate.data, candidate.next, candidate.sourceFile, candidate.sourceOffset, candidate.sourceLength)
                         else
                             candidate
                     } else {

@@ -265,6 +265,9 @@ class IRFileWriter(private val irProgram: IRProgram, outfileOverride: Path?) {
     private fun writeInlineBytes(chunk: IRInlineBinaryChunk) {
         xml.writeStartElement("BYTES")
         chunk.label?.let { xml.writeAttribute("LABEL", it) }
+        chunk.sourceFile?.let { xml.writeAttribute("FILE", it.toString()) }
+        chunk.sourceOffset?.let { xml.writeAttribute("OFFSET", it.toString()) }
+        chunk.sourceLength?.let { xml.writeAttribute("LENGTH", it.toString()) }
         chunk.data.withIndex().forEach {(index, byte) ->
             xml.writeCharacters(byte.toString(16).padStart(2,'0'))
             if(index and 63 == 63 && index < chunk.data.size-1)

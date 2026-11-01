@@ -633,11 +633,15 @@ class IRFileReader {
         val start = reader.nextEvent().asStartElement()
         require(start.name.localPart=="BYTES") { "missing BYTES" }
         val label = start.attributes.asSequence().singleOrNull { it.name.localPart == "LABEL" }?.value?.ifBlank { null }
+        val attrs = start.attributes.asSequence().associate { it.name.localPart to it.value }
+        val sourceFile = attrs["FILE"]?.ifBlank { null }?.let { Path(it) }
+        val sourceOffset = attrs["OFFSET"]?.ifBlank { null }?.toUInt()
+        val sourceLength = attrs["LENGTH"]?.ifBlank { null }?.toUInt()
         val text = readText(reader).replace("\n", "")
         require(reader.nextEvent().isEndElement)
 
         val bytes = text.windowed(2, step = 2).map { it.toUByte(16) }
-        return IRInlineBinaryChunk(label, bytes, null)
+        return IRInlineBinaryChunk(label, bytes, null, sourceFile, sourceOffset, sourceLength)
     }
 
     private fun parseAsmSubroutine(reader: XMLEventReader): IRAsmSubroutine {

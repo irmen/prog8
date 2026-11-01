@@ -35,6 +35,7 @@ import prog8.code.StStructInstanceBlockName
 import prog8.code.assembly.assemblerCommand6502
 import prog8.code.assembly.assemblerCommandComment
 import prog8.code.core.*
+import prog8.code.sanitize
 import prog8.codegen.new6502.optimization.PeepholeOptimizer
 import prog8.intermediate.*
 
@@ -167,11 +168,28 @@ internal class AsmGen(val program: IRProgram, private val target: ICompilationTa
         output.appendLine(code)
     }
 
-    private fun emitInlineBinaryData(data: Collection<UByte>) {
-        val hexBytes = data.map { asmHexByte(it.toInt()) }
-        for(chunk in hexBytes.chunked(32)) {
-            if(chunk.isNotEmpty())
-                emitRaw("    .byte  ${chunk.joinToString(", ")}")
+    private fun emitInlineBinaryData(chunk: IRInlineBinaryChunk) {
+        // same as the regular 6502 backend: reference the file via 64tass' .binary
+        // directive instead of embedding every byte (keeps huge binaries out of the .asm)
+        val sourceFile = chunk.sourceFile
+        if(sourceFile != null) {
+            try {
+                val outputDir = program.options.outputDir.sanitize()
+                val pathForAssembler = outputDir.relativize(sourceFile.sanitize())
+                    .normalize()
+                    .toString().replace('\\', '/')
+                val offset = if(chunk.sourceOffset!=null) ", ${chunk.sourceOffset}" else ""
+                val length = if(chunk.sourceLength!=null) ", ${chunk.sourceLength}" else ""
+                emitRaw("    .binary \"$pathForAssembler\" $offset $length")
+                return
+            } catch(_: IllegalArgumentException) {
+                // different drive/volume than the output dir: fall through to embedding
+            }
+        }
+        val hexBytes = chunk.data.map { asmHexByte(it.toInt()) }
+        for(bytes in hexBytes.chunked(32)) {
+            if(bytes.isNotEmpty())
+                emitRaw("    .byte  ${bytes.joinToString(", ")}")
         }
     }
 
@@ -641,7 +659,7 @@ internal class AsmGen(val program: IRProgram, private val target: ICompilationTa
                     }
                     is IRLoopChunk -> translateLoopChunk(element)
                     is IRInlineAsmChunk -> emitRaw(element.assembly)
-                    is IRInlineBinaryChunk -> emitInlineBinaryData(element.data)
+                    is IRInlineBinaryChunk -> emitInlineBinaryData(element)
                 }
             }
             val endDirective = if (block.options.forceOutput) ".bend" else ".pend"
@@ -694,7 +712,7 @@ internal class AsmGen(val program: IRProgram, private val target: ICompilationTa
                 is IRInlineBinaryChunk -> {
                     val cl = chunk.label
                     if (cl != null) emitLabel(cl)
-                    emitInlineBinaryData(chunk.data)
+                    emitInlineBinaryData(chunk)
                 }
             }
         }
@@ -794,7 +812,7 @@ internal class AsmGen(val program: IRProgram, private val target: ICompilationTa
                 is IRInlineBinaryChunk -> {
                     val cl = chunk.label
                     if (cl != null) emitRaw("    $cl:")
-                    emitInlineBinaryData(chunk.data)
+                    emitInlineBinaryData(chunk)
                 }
             }
         }
@@ -860,7 +878,7 @@ internal class AsmGen(val program: IRProgram, private val target: ICompilationTa
                 is IRInlineBinaryChunk -> {
                     val cl = chunk.label
                     if(cl!=null) emitLabel(cl)
-                    emitInlineBinaryData(chunk.data)
+                    emitInlineBinaryData(chunk)
                 }
             }
         }

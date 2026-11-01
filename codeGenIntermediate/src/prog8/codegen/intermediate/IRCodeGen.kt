@@ -378,7 +378,7 @@ class IRCodeGen(
                                 replacement
                             }
                             is IRInlineAsmChunk -> IRInlineAsmChunk(sub.label, first.assembly, first.isIR, first.next)
-                            is IRInlineBinaryChunk -> IRInlineBinaryChunk(sub.label, first.data, first.next)
+                            is IRInlineBinaryChunk -> IRInlineBinaryChunk(sub.label, first.data, first.next, first.sourceFile, first.sourceOffset, first.sourceLength)
                             is IRLoopChunk -> IRLoopChunk(sub.label, first.trip, first.body, first.next)
                         }
                         sub.chunks.removeAt(0)
@@ -466,7 +466,7 @@ class IRCodeGen(
             is PtConditionalBranch -> translate(node)
             is PtSwap -> translate(node)
             is PtInlineAssembly -> listOf(IRInlineAsmChunk(null, node.assembly, node.isIR, null))
-            is PtIncludeBinary -> listOf(IRInlineBinaryChunk(null, readBinaryData(node), null))
+            is PtIncludeBinary -> listOf(binaryChunk(null, node))
             is PtAddressOf,
             is PtContainmentCheck,
             is PtMemoryByte,
@@ -497,6 +497,9 @@ class IRCodeGen(
 
         return nonEmptyChunks
     }
+
+    private fun binaryChunk(label: String?, node: PtIncludeBinary): IRInlineBinaryChunk =
+        IRInlineBinaryChunk(label, readBinaryData(node), null, node.file, node.offset, node.length)
 
     private fun readBinaryData(node: PtIncludeBinary): Collection<UByte> {
         return node.file.readBytes()
@@ -622,7 +625,7 @@ class IRCodeGen(
                 IRInlineAsmChunk(label, first.assembly, first.isIR, first.next)
             }
             is IRInlineBinaryChunk -> {
-                IRInlineBinaryChunk(label, first.data, first.next)
+                IRInlineBinaryChunk(label, first.data, first.next, first.sourceFile, first.sourceOffset, first.sourceLength)
             }
             is IRLoopChunk -> {
                 // transplant label: create wrapper chunk that falls through to loop
@@ -1976,7 +1979,7 @@ class IRCodeGen(
                     irBlock += IRInlineAsmChunk(null, child.assembly, child.isIR, null)
                 }
                 is PtIncludeBinary -> {
-                    irBlock += IRInlineBinaryChunk(null, readBinaryData(child), null)
+                    irBlock += binaryChunk(null, child)
                 }
                 is PtLabel -> {
                     irBlock += IRCodeChunk(child.name, null)

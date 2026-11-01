@@ -1,6 +1,7 @@
 package prog8.intermediate
 
 import prog8.code.core.*
+import java.nio.file.Path
 
 val IMemSizer.pointerIRType: IRDataType
     get() = if(POINTER_MEM_SIZE > 2u) IRDataType.LONG else IRDataType.WORD
@@ -757,8 +758,14 @@ class IRInlineAsmChunk(label: String?,
 
 class IRInlineBinaryChunk(label: String?,
                           val data: Collection<UByte>,
-                          next: IRCodeChunkBase?): IRCodeChunkBase(label, next) {
-    // note: no instructions, data is in the property
+                          next: IRCodeChunkBase?,
+                          val sourceFile: Path? = null,
+                          val sourceOffset: UInt? = null,
+                          val sourceLength: UInt? = null): IRCodeChunkBase(label, next) {
+    // note: no instructions, data is in the property.
+    // sourceFile/Offset/Length remember the original %asmbinary include so backends
+    // with a binary-include directive (64tass .binary, vasm incbin) can reference the
+    // file instead of embedding every byte; data stays populated for backends without one.
     override fun isEmpty() = data.isEmpty()
     override fun isNotEmpty() = data.isNotEmpty()
     override fun usedRegisters() = RegistersUsed(emptyMap(), emptyMap(), emptyMap())
