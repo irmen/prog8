@@ -1883,9 +1883,9 @@ main {
         irContent shouldContain "bstvc"
     }
 
-    test("asmsub multi-assign with a status flag and a register return orders the register read first") {
-        // The register return must be read before the flag extraction (which uses a
-        // scratch hardware register), protected by an outer PUSHST/POPST.
+    test("asmsub multi-assign with a status flag and a register return extracts the flag first") {
+        // The single status flag is extracted before anything can clobber the status
+        // bits, so no PUSHST/POPST is needed.
         val src = """
 %option no_sysinit
 main {
@@ -1909,15 +1909,15 @@ main {
         val result = compileText(VMTarget(), optimize=false, src, outputDir, writeAssembly = true)!!
         val virtfile = result.compilationOptions.outputDir.resolve(result.compilerAst.name + ".p8ir")
         val lines = virtfile.readText().lines().map { it.trim() }
-        // one outer PUSHST/POPST pair (only one flag, so no per-flag wrapping)
-        lines.count { it == "pushst" } shouldBe 1
-        lines.count { it == "popst" } shouldBe 1
-        // the register read (loadhr) must come before the flag extraction (roxl)
+        // no PUSHST/POPST pair anymore (only one flag, so no per-flag wrapping either)
+        lines.count { it == "pushst" } shouldBe 0
+        lines.count { it == "popst" } shouldBe 0
+        // the flag extraction (roxl) must come before the register read (loadhr)
         val loadhrIdx = lines.indexOfFirst { it.startsWith("loadhr") }
         val roxlIdx = lines.indexOfFirst { it.startsWith("roxl") }
         loadhrIdx shouldBeGreaterThan -1
         roxlIdx shouldBeGreaterThan -1
-        (loadhrIdx < roxlIdx) shouldBe true
+        (roxlIdx < loadhrIdx) shouldBe true
     }
 
     test("asmsub multi-assign with multiple status flags in one call saves the status around each flag") {

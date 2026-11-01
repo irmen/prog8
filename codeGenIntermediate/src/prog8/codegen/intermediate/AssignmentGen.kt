@@ -82,7 +82,15 @@ internal class AssignmentGen(private val codeGen: IRCodeGen, private val exprGen
 
                     val hasStatusFlags = flagPairs.any { !isVoidTarget(it) }
                     val hasOtherResults = otherPairs.any { !isVoidTarget(it) }
-                    if (hasStatusFlags && hasOtherResults) {
+                    val numFlags = flagPairs.count { !isVoidTarget(it) }
+                    if (hasStatusFlags && hasOtherResults && numFlags == 1) {
+                        // A single status flag is extracted first, before anything can
+                        // clobber the CPU status bits - no PUSHST/POPST needed. This is
+                        // also the only way to do it on the 68000, which cannot save or
+                        // restore the CCR with an unprivileged instruction.
+                        processFlagPairs()
+                        otherPairs.forEach(::processPair)
+                    } else if (hasStatusFlags && hasOtherResults) {
                         // The non-flag register returns are read before the flag extraction,
                         // so the extraction's scratch register cannot clobber them. The flag
                         // bits are preserved across the register loads/stores with PUSHST/POPST.

@@ -192,7 +192,8 @@ class TestNewCodegenBugs : FunSpec({
     test("status flag return does not clobber an A register return value") {
         // Regression test: in a multi-assign returning both a status flag and a byte in A,
         // the flag extraction (which uses A as scratch) used to destroy the byte return.
-        // The register return is now read first, protected by a PUSHST/POPST (php/plp on 6502).
+        // The single flag is now extracted first, before anything can clobber the
+        // status bits, so no PUSHST/POPST (php/plp on 6502) is needed.
         val src = $$"""
             %option no_sysinit
             %launcher none
@@ -223,15 +224,15 @@ class TestNewCodegenBugs : FunSpec({
         val start = asm.indexOf("; ---- Subroutine: p8b_main.p8s_start")
         val end = asm.indexOf("; ---- Subroutine:", start + 1).let { if (it < 0) asm.length else it }
         val lines = asm.substring(start, end).lines().map { it.trim() }
-        // the register read (loadhr) must happen before the flag extraction's lda #0
+        // the flag extraction (lda #0) must happen before the register read (loadhr),
+        // and no php/plp pair is needed anymore
         val loadhrIdx = lines.indexOfFirst { it.startsWith("; loadhr.b") }
         val flagLdaIdx = lines.indexOfFirst { it == "lda  #0" }
         loadhrIdx shouldBeGreaterThan -1
         flagLdaIdx shouldBeGreaterThan -1
-        (loadhrIdx < flagLdaIdx) shouldBe true
-        // protected by a php/plp pair around the register read
-        lines.count { it == "php" } shouldBe 1
-        lines.count { it == "plp" } shouldBe 1
+        (flagLdaIdx < loadhrIdx) shouldBe true
+        lines.count { it == "php" } shouldBe 0
+        lines.count { it == "plp" } shouldBe 0
     }
 
     test("legacy 6502 word @AX/@AY return saves A across status flag extraction") {
