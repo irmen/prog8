@@ -562,6 +562,21 @@ main {
             stmts2.size shouldBe 17
         }
 
+        test("string compared to numeric literal gives proper error") {
+            val src="""
+main {
+    sub start() {
+        str name = "name"
+        if name != 0 {
+            name = "other"
+        }
+    }
+}"""
+            val errors = ErrorReporterForTests()
+            compileText(C64Target(), optimize=false, src, outputDir, writeAssembly=false, errors=errors) shouldBe null
+            errors.errors.any { "left and right operands aren't the same type" in it } shouldBe true
+        }
+
         test("string concatenation and repeats") {
             val src="""
         main {

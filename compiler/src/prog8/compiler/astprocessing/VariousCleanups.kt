@@ -415,7 +415,7 @@ internal class VariousCleanups(val program: Program, val errors: IErrorReporter,
                 if (rightConstVal?.number == 1.0) {
                     if(rightDt!=leftDt && !(leftDt.isPointer && rightDt.base == options.compTarget.pointerBaseType)) {
                         val dt = if(leftDt.isPointer) options.compTarget.pointerBaseType else leftDt.base
-                        if(dt!=BaseDataType.UNDEFINED && (!dt.isLong || leftDt.isPointer)) {
+                        if(dt.isNumeric && dt!=BaseDataType.UNDEFINED && (!dt.isLong || leftDt.isPointer)) {
                             val right = NumericLiteral(dt, rightConstVal.number, rightConstVal.position)
                             return listOf(AstReplaceNode(expr.right, right, expr))
                         }
@@ -424,7 +424,7 @@ internal class VariousCleanups(val program: Program, val errors: IErrorReporter,
                 else if (rightConstVal?.number == 0.0) {
                     if(rightDt!=leftDt && !(leftDt.isPointer && rightDt.base == options.compTarget.pointerBaseType)) {
                         val dt = if(leftDt.isPointer) options.compTarget.pointerBaseType else leftDt.base
-                        if(dt!=BaseDataType.UNDEFINED && (!dt.isLong || leftDt.isPointer)) {
+                        if(dt.isNumeric && dt!=BaseDataType.UNDEFINED && (!dt.isLong || leftDt.isPointer)) {
                             val right = NumericLiteral(dt, rightConstVal.number, rightConstVal.position)
                             return listOf(AstReplaceNode(expr.right, right, expr))
                         }

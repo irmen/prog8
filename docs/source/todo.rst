@@ -1,18 +1,6 @@
 TODO
 ====
 
-Bugs
-^^^^
-- Compiler crashes (internal error / ``IllegalArgumentException``) instead of emitting a
-  proper diagnostic when comparing a ``str`` variable to a numeric literal, e.g.
-  ``if basename != 0`` where ``basename`` is ``str``. The ``VariousCleanups`` pass
-  tries to type the numeric literal as ``STR`` and throws
-  ``numeric literal type should be numeric or bool: STR``. Should produce a normal
-  "type mismatch" / "cannot compare str to integer" error (or allow the comparison
-  with an implicit pointer-to-integer conversion). Repro: ``examples/amiga/datatype.p8``
-  (fixed in the example by casting: ``if (basename as long) != 0``).
-
-
 Future Things and Ideas
 ^^^^^^^^^^^^^^^^^^^^^^^
 - extend the ``-gendoc`` command to generate user reference documentation from Markdown docstrings; see ``ideas/markdown-docstrings-and-reference-docs.md`` for the plan.
