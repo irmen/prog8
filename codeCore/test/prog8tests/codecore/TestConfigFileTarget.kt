@@ -12,6 +12,7 @@ class TestConfigFileTarget: FunSpec({
     fun loadTarget(extraProperties: String = ""): ConfigFileTarget {
         val directory = Files.createTempDirectory("prog8-config-target")
         val library = Files.createDirectories(directory.resolve("library"))
+        val libraryPath = library.toString().replace('\\', '/')
         val config = directory.resolve("target.properties")
         config.writeText(
             """
@@ -33,7 +34,7 @@ class TestConfigFileTarget: FunSpec({
             zp_kernalsafe = 34-239
             zp_basicsafe = 34-239
             io_regions =
-            """.trimIndent() + "\nlibrary = ${library.toString().replace("\\", "\\\\")}\n$extraProperties"
+            """.trimIndent() + "\nlibrary = $libraryPath\n$extraProperties"
         )
         return try {
             ConfigFileTarget.fromConfigFile(config)
