@@ -95,7 +95,7 @@ main {
     }
 }"""
         val errors = ErrorReporterForTests()
-        val result = compileText(Amiga500Target(), true, src, outputDir, errors)!!
+        val result = compileText(Amiga500Target(), true, src, outputDir, errors, writeAssembly = true, assemble = false)!!
         errors.errors shouldBe emptyList()
         val startSub = result.compilerAst.entrypoint
         withClue("call to wrapper should have been inlined away") {
@@ -121,7 +121,7 @@ main {
     }
 }"""
         val errors = ErrorReporterForTests()
-        val result = compileText(Amiga500Target(), true, src, outputDir, errors)!!
+        val result = compileText(Amiga500Target(), true, src, outputDir, errors, writeAssembly = true, assemble = false)!!
         errors.errors shouldBe emptyList()
         val startSub = result.compilerAst.entrypoint
         withClue("call with complex args should not have been inlined") {

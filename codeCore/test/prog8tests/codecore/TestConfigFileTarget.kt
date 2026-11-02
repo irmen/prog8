@@ -33,7 +33,7 @@ class TestConfigFileTarget: FunSpec({
             zp_kernalsafe = 34-239
             zp_basicsafe = 34-239
             io_regions =
-            """.trimIndent() + "\nlibrary = $library\n$extraProperties"
+            """.trimIndent() + "\nlibrary = ${library.toString().replace("\\", "\\\\")}\n$extraProperties"
         )
         return try {
             ConfigFileTarget.fromConfigFile(config)
