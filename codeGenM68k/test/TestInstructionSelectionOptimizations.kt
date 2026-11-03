@@ -89,12 +89,12 @@ class TestInstructionSelectionOptimizations : FunSpec({
             )
         )
 
-        // pointer setup plus offset folds into lea (small and large offsets alike)
-        lines.count { it.startsWith("lea  p8_regfile+") && it.endsWith(",a0") } shouldBe 2
-        lines.any { it == "lea  p8_regfile+1,a0" } shouldBe true
-        lines.any { it == "lea  p8_regfile+65535,a0" } shouldBe true
-        lines.none { it.startsWith("addq.l") } shouldBe true
-        lines.none { it.startsWith("adda.l") } shouldBe true
+
+        // the pointer value comes from memory: small offsets use addq, large ones
+        // adda, and neither may be folded into a lea of the regfile address
+        lines.any { it == "addq.l  #1,a0" } shouldBe true
+        lines.any { it == "adda.l  #65535,a0" } shouldBe true
+        lines.none { it.startsWith("lea  p8_regfile") } shouldBe true
     }
 
     test("uses moveq for zero extension and only representable immediate returns") {
@@ -1397,9 +1397,10 @@ class TestInstructionSelectionOptimizations : FunSpec({
         sub.any { it.startsWith("movea.l  ") && it.endsWith(",a0") } shouldBe true
         sub.any { it.startsWith("move.w  (a0),p8_regfile+") } shouldBe true
         sub.any { it.endsWith(",(6,a0)") } shouldBe true
-        // displacements beyond the signed 16-bit range fold into the pointer load as lea
-        sub.any { it == "lea  p8_regfile+40000,a0" } shouldBe true
-        sub.none { it.startsWith("adda.l") } shouldBe true
+        // the pointer is loaded from memory, so a large displacement needs an
+        // explicit adda; folding it into a lea would address the regfile itself
+        sub.any { it == "adda.l  #40000,a0" } shouldBe true
+        sub.none { it.startsWith("lea  p8_regfile") } shouldBe true
     }
 
     test("float indexed memory lowering uses full width d0.l indexing") {
@@ -1591,9 +1592,23 @@ class TestInstructionSelectionOptimizations : FunSpec({
         lines.none { it.trimStart().startsWith("addq") } shouldBe true
     }
 
-    test("folds move with symbol base plus arithmetic into lea with offset") {
+    test("does not fold a symbol memory load plus arithmetic into lea") {
+        // `move.l arr,a2` loads the value of arr, `lea arr+2,a2` would take its address.
         val lines = mutableListOf(
             "    move.l  arr,a2",
+            "    addq.l  #2,a2",
+            "    move.w  (a2),d0",
+            "    rts"
+        )
+        optimizeAssembly(lines)
+        lines.any { it.trim() == "move.l  arr,a2" } shouldBe true
+        lines.any { it.trim() == "addq.l  #2,a2" } shouldBe true
+        lines.none { it.trimStart().startsWith("lea") } shouldBe true
+    }
+
+    test("folds an immediate symbol base plus arithmetic into lea with offset") {
+        val lines = mutableListOf(
+            "    movea.l  #arr,a2",
             "    addq.l  #2,a2",
             "    move.w  (a2),d0",
             "    rts"
@@ -1604,13 +1619,13 @@ class TestInstructionSelectionOptimizations : FunSpec({
 
     test("does not fold move plus arithmetic over a flag consumer") {
         val lines = mutableListOf(
-            "    move.l  arr,a2",
+            "    move.l  #arr,a2",
             "    addq.l  #2,a2",
             "    beq  somewhere",
             "    rts"
         )
         optimizeAssembly(lines)
-        lines.any { it.trim() == "move.l  arr,a2" } shouldBe true
+        lines.any { it.trim() == "move.l  #arr,a2" } shouldBe true
         lines.any { it.trim() == "addq.l  #2,a2" } shouldBe true
     }
 
@@ -1626,7 +1641,9 @@ class TestInstructionSelectionOptimizations : FunSpec({
         lines.any { it.trimStart().startsWith("addq") } shouldBe true
     }
 
-    test("folds frame slot base plus arithmetic into lea") {
+    test("does not fold a frame slot load plus arithmetic into lea") {
+        // `movea.l (-8,a5),a2` loads a pointer from the slot; `lea (-6,a5),a2`
+        // would instead point into the stack frame. This broke circles.p8.
         val lines = mutableListOf(
             "    movea.l  (-8,a5),a2",
             "    addq.l  #2,a2",
@@ -1634,10 +1651,12 @@ class TestInstructionSelectionOptimizations : FunSpec({
             "    rts"
         )
         optimizeAssembly(lines)
-        lines.any { it.trim() == "lea  (-6,a5),a2" } shouldBe true
+        lines.any { it.trim() == "movea.l  (-8,a5),a2" } shouldBe true
+        lines.any { it.trim() == "addq.l  #2,a2" } shouldBe true
+        lines.none { it.trimStart().startsWith("lea") } shouldBe true
     }
 
-    test("folds unsigned frame slot base plus arithmetic into lea") {
+    test("does not fold an unsigned frame slot load plus arithmetic into lea") {
         // real codegen emits `8(a5)`, not `(8,a5)`, for positive offsets.
         val lines = mutableListOf(
             "    movea.l  8(a5),a2",
@@ -1646,7 +1665,9 @@ class TestInstructionSelectionOptimizations : FunSpec({
             "    rts"
         )
         optimizeAssembly(lines)
-        lines.any { it.trim() == "lea  (10,a5),a2" } shouldBe true
+        lines.any { it.trim() == "movea.l  8(a5),a2" } shouldBe true
+        lines.any { it.trim() == "addq.l  #2,a2" } shouldBe true
+        lines.none { it.trimStart().startsWith("lea") } shouldBe true
     }
 
     test("M5 forgets a0 across a label") {

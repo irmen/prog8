@@ -252,15 +252,13 @@ private fun optimizeAddSubQuick(lines: List<String>, allPretrimmed: List<String>
     return mods
 }
 
-/** Foldable lea base: registers and `#` immediates read no memory; frame slots and plain symbols read RAM (memvars render as `$hex`), always safe. */
+/** Foldable lea base: only registers and `#` immediates, since those read no memory. */
 private sealed interface LeaBase {
     /** address register: no memory read at all. */
     data class Register(val reg: String) : LeaBase
     /** numeric address: no memory read at all. */
     data class Absolute(val value: Long) : LeaBase
-    /** `(d,a5)` frame slot: RAM read, always safe. */
-    data class Frame(val disp: Long) : LeaBase
-    /** plain symbol with offset: RAM read, always safe. */
+    /** immediate `#symbol[+off]`: an address constant, no memory read. */
     data class Symbol(val name: String, val off: Long) : LeaBase
 }
 
@@ -288,8 +286,10 @@ private fun parseFrameSlot(text: String): Long? {
 
 /**
  * Split a `movea.l`/`move.l` source into a foldable lea base, or null when folding
- * is unsafe or impossible. `$hex` sources are rejected (may be hardware registers
- * whose read must not be dropped); anything unparseable is rejected too.
+ * is unsafe or impossible. Only registers and `#` immediates qualify: a memory
+ * source loads a value, whereas `lea` would compute the address of that operand.
+ * `$hex` sources are rejected (may be hardware registers whose read must not be
+ * dropped); anything unparseable is rejected too.
  */
 private fun parseLeaBase(src: String): LeaBase? {
     val text = src.trim()
@@ -314,17 +314,9 @@ private fun parseLeaBase(src: String): LeaBase? {
     }
     if (text.lowercase().matches(addressRegPattern))
         return LeaBase.Register(text.lowercase())
-    parseFrameSlot(text)?.let {
-        return LeaBase.Frame(it)
-    }
-    if (text.startsWith("$"))
-        return null
-    // Data registers and other CPU registers are not symbols; do not fold them
-    // into an address expression (e.g. `lea d0+imm,a2` is not a valid instruction).
-    if (text.lowercase() in setOf("d0","d1","d2","d3","d4","d5","d6","d7","a0","a1","a2","a3","a4","a5","a6","a7","sp","pc","sr","ccr","usp"))
-        return null
-    val m = symbolBasePattern.matchEntire(text) ?: return null
-    return LeaBase.Symbol(m.groupValues[1], m.groupValues[2].ifEmpty { "0" }.toLong())
+    // Anything else reads memory (frame slot, symbol, indexed operand), so its
+    // value cannot be reproduced by a `lea`.
+    return null
 }
 
 /**
@@ -395,12 +387,6 @@ private fun optimizeAddressArithmetic(lines: List<String>, allPretrimmed: List<S
                 if (total !in 0..0xffffffffL)
                     continue
                 "$" + total.toString(16)
-            }
-            is LeaBase.Frame -> {
-                val total = base.disp + delta
-                if (total !in -32768..32767)
-                    continue
-                "($total,a5)"
             }
             is LeaBase.Symbol -> {
                 val total = base.off + delta
