@@ -1436,7 +1436,8 @@ internal class AsmGen(val program: IRProgram, internal val target: ICompilationT
         suppressRegfileStore: Boolean = false
     ) {
         // No IR echo for zero-clear stores: prologue clear runs would drown in "; storezm" noise.
-        if (insn.opcode != Opcode.STOREZM)
+        // IR echo comments are opt-in via -ircomments (off by default); source-line comments are unaffected.
+        if (insn.opcode != Opcode.STOREZM && program.options.irComments)
             emitRaw("        ; $insn")
         when (insn.opcode) {
             Opcode.NOP -> {}

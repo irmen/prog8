@@ -231,7 +231,8 @@ internal class CompilerDaemon(private val socketPath: Path, private val quiet: B
             outputFile = resolvedOutputFile,
             cwd = clientCwd,
             errors = errors,
-            generateDocumentation = generateDocumentation
+            generateDocumentation = generateDocumentation,
+            irComments = irComments
         )
     }
 }

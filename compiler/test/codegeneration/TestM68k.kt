@@ -471,7 +471,7 @@ main {
     }
 }
 """
-        val result = compileText(Qemu68kTarget(), optimize = false, src, outputDir, writeAssembly = true, assemble = false)
+        val result = compileText(Qemu68kTarget(), optimize = false, src, outputDir, writeAssembly = true, assemble = false, irComments = true)
         result shouldNotBe null
         val asm = result!!.compilationOptions.outputDir.resolve("${result.compilerAst.name}.asm").toFile().readText()
         // scope to the start subroutine region

@@ -38,17 +38,20 @@ effort. Status: proposal.
 
 ## Tier 1 - Cosmetic / trivial (hours each)
 
-### 1.1 Strip IR debug comments from emitted asm
+### 1.1 Strip IR debug comments from emitted asm [DONE]
 - **Where**: `AsmGen.kt` emission + `Instr*.kt` lowering (full-line IR
   comments such as `; load.b r925.b,#1.b`, `; call ...`, `; storeim.b ...`,
   plus `; source:` lines).
 - **Benefit**: cleaner listings, smaller `.asm`, no functional change.
-- **Effort**: small. Strip by default (shipping behavior), keep behind an
-  opt-in flag following the existing `-printast1`/`-printast2` precedent
-  (e.g. `-printirasm`). The IR-op traces are the only mapping from emitted
-  asm back to the IR, so codegen debugging needs them available.
-- **Note**: keep the `; source:` lines unconditionally - they map to Prog8
-  source at one line per statement and don't bloat like the per-IR-op traces.
+- **Effort**: small.
+- **Done**: single choke point (`translateInstruction`) gated on new
+  `-ircomments` CLI flag, plumbed through `CompilationOptions.irComments`
+  (builder, `CompilerArguments`, daemon protocol + roundtrip test). Default
+  off: textelite `.asm` went 8013 -> 6180 lines with identical assembled
+  output. `; source:` lines stay unconditional. Docs entry added in
+  `docs/source/compiling.rst`.
+- **Note**: one existing test (`TestM68k` status-flag case) locates LOADHR via
+  its echo comment and now compiles that fixture with `irComments = true`.
 
 ### 1.2 Normalize whitespace / mnemonics [DONE]
 - **Where**: `AsmGen.kt`.

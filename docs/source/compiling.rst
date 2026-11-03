@@ -238,6 +238,12 @@ One or more .p8 module files
     for instance uncareful use of dirty variables, or reusing the R0-R15 registers for subroutine parameters.
     With this option you're basically saying: "Yes, I know I am treading on mighty thin ice here, but I don't want to be reminded about that".
 
+``-ircomments``
+    Keep IR instruction echo comments in the generated assembly code (m68k targets).
+    Off by default: normal builds omit the per-instruction ``; load...`` / ``; call...`` traces
+    to keep the ``.asm`` file small. Enable when debugging code generation issues to see
+    which IR instruction each assembly sequence was generated from.
+
 ``-libsearch pattern``
     Search in the embedded library files for occurrences of the given regex pattern.
     If no exact matches are found, the compiler automatically attempts a "fuzzy" search

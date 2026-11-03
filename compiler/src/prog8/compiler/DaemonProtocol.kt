@@ -32,7 +32,8 @@ internal data class DaemonRequest(
     val outputDir: String,
     val outputFile: String? = null,
     val cwd: String,
-    val generateDocumentation: Boolean = false
+    val generateDocumentation: Boolean = false,
+    val irComments: Boolean = false
 )
 
 internal data class DaemonResponse(
@@ -82,6 +83,7 @@ internal object DaemonProtocol {
         append(propOpt("outputFile", req.outputFile))
         append(prop("cwd", req.cwd))
         append(prop("generateDocumentation", req.generateDocumentation))
+        append(prop("irComments", req.irComments))
         append("null")  // placeholder, gets overwritten by trimEnd
         setLength(length - 5)
         append('}')
@@ -149,7 +151,8 @@ internal object DaemonProtocol {
             outputDir = map["outputDir"] as String,
             outputFile = map["outputFile"] as? String,
             cwd = map["cwd"] as String,
-            generateDocumentation = map["generateDocumentation"] as? Boolean ?: false
+            generateDocumentation = map["generateDocumentation"] as? Boolean ?: false,
+            irComments = map["irComments"] as? Boolean ?: false
         )
     }
 

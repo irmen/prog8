@@ -19,7 +19,7 @@ class TestInstructionSelectionOptimizations : FunSpec({
 
     val tempRoot = tempdir().toPath()
 
-    fun generateAsmChunks(outputDir: Path, chunks: List<IRCodeChunkBase>, target: ICompilationTarget = Qemu68kTarget()): List<String> {
+    fun generateAsmChunks(outputDir: Path, chunks: List<IRCodeChunkBase>, target: ICompilationTarget = Qemu68kTarget(), irComments: Boolean = false): List<String> {
         val options = CompilationOptions.builder(target)
             .output(OutputType.RAW)
             .zeropage(ZeropageType.FLOATSAFE)
@@ -27,6 +27,7 @@ class TestInstructionSelectionOptimizations : FunSpec({
             .compilerVersion("test")
             .memtopAddress(0xffffu)
             .optimize(true)
+            .irComments(irComments)
             .build()
         val program = IRProgram("test", IRSymbolTable(), options, DummyStringEncoder)
         program.options.outputDir = outputDir
@@ -45,10 +46,10 @@ class TestInstructionSelectionOptimizations : FunSpec({
         return asmFile.readText().lines().map { it.trim() }
     }
 
-    fun generateAsm(outputDir: Path, instructions: List<IRInstruction>, target: ICompilationTarget = Qemu68kTarget()): List<String> {
+    fun generateAsm(outputDir: Path, instructions: List<IRInstruction>, target: ICompilationTarget = Qemu68kTarget(), irComments: Boolean = false): List<String> {
         val chunk = IRCodeChunk(null, null)
         chunk.instructions.addAll(instructions)
-        return generateAsmChunks(outputDir, listOf(chunk), target)
+        return generateAsmChunks(outputDir, listOf(chunk), target, irComments)
     }
 
     fun hwArg(register: Int, type: IRDataType, slot: Int): CallArgument =
@@ -1750,8 +1751,17 @@ class TestInstructionSelectionOptimizations : FunSpec({
         lines.none { it.startsWith("clr") } shouldBe true
     }
 
-    // === instruction lines use lowercase mnemonics with two-space gaps ===
+    // === IR echo comments are opt-in via irComments (off by default) ===
 
+    test("IR echo comments are omitted by default and kept with irComments") {
+        val instructions = listOf(IRInstructions.load(IRDataType.WORD, 1, 42))
+        val quiet = generateAsm(tempRoot.resolve("test-m68k-no-ircomments"), instructions)
+        quiet.none { it.trimStart().startsWith("; load") } shouldBe true
+        val verbose = generateAsm(tempRoot.resolve("test-m68k-ircomments"), instructions, irComments = true)
+        verbose.any { it.trimStart().startsWith("; load.w") } shouldBe true
+    }
+
+    // === instruction lines use lowercase mnemonics with two-space gaps ===
     test("emitted instructions are normalized to lowercase with two-space gaps") {
         val lines = generateAsm(
             tempRoot.resolve("test-m68k-normalize"),

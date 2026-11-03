@@ -39,7 +39,9 @@ class TestDaemonProtocol : FunSpec({
             sourceDirs = listOf("/src1", "/src2"),
             outputDir = "/out",
             outputFile = "/out/custom.pgz",
-            cwd = "/home/user/project"
+            cwd = "/home/user/project",
+            generateDocumentation = false,
+            irComments = true
         )
 
         val encoded = DaemonProtocol.encodeRequest(request)
@@ -74,6 +76,7 @@ class TestDaemonProtocol : FunSpec({
         decoded.outputDir shouldBe request.outputDir
         decoded.outputFile shouldBe request.outputFile
         decoded.cwd shouldBe request.cwd
+        decoded.irComments shouldBe request.irComments
     }
 
     test("DaemonRequest roundtrip with null optional fields") {

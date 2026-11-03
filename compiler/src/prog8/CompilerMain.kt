@@ -84,6 +84,7 @@ private class CompilerCli : CliktCommand(name = "prog8c") {
     val newCodegen by option("-newcodegen", "--newcodegen", help = "use experimental/incomplete 6502 codegen based on IR instead of AST. Not for production code.").flag()
     val float2bytes by option("-float2bytes", "--float2bytes", help = "convert floating point number to a list of bytes for the target system")
     val ignoreFootguns by option("-ignorefootguns", "--ignorefootguns", help = "don't print warnings for 'footgun' issues").flag()
+    val irComments by option("-ircomments", "--ircomments", help = "keep IR instruction echo comments in generated assembly (off by default)").flag()
     val profilingInstrumentation by option("-profiling", "--profiling", help = "add subroutine profiling instrumentation (cx16 only)").flag()
     val dontWriteAssembly by option("-noasm", "--noasm", help = "don't create assembly code").flag()
     val dontOptimize by option("-noopt", "--noopt", help = "don't perform code optimizations").flag()
@@ -283,6 +284,7 @@ private fun compileMain(args: Array<String>): Boolean {
                     errors = ErrorReporter(txtcolors),
                     assemble = true,
                     generateDocumentation = generateDocumentation,
+                    irComments = irComments,
                 )
                 val compilationResult = compileProgram(compilerArgs)
 
@@ -373,6 +375,7 @@ private fun compileMain(args: Array<String>): Boolean {
                 errors = ErrorReporter(txtcolors),
                 assemble = true,
                 generateDocumentation = generateDocumentation,
+                irComments = irComments,
             )
             val response = compileViaDaemon(compilerArgs, plainText)
             if (response == null || !response.ok)
@@ -441,6 +444,7 @@ private fun compileMain(args: Array<String>): Boolean {
                     errors = ErrorReporter(txtcolors),
                     assemble = true,
                     generateDocumentation = generateDocumentation,
+                    irComments = irComments,
                 )
                 val result = compileProgram(compilerArgs)
 
@@ -926,6 +930,7 @@ private fun communicateWithDaemon(channel: SocketChannel, compilerArgs: Compiler
             printAst1 = compilerArgs.printAst1,
             printAst2 = compilerArgs.printAst2,
             ignoreFootguns = compilerArgs.ignoreFootguns,
+            irComments = compilerArgs.irComments,
             profilingInstrumentation = compilerArgs.profilingInstrumentation,
             traceImports = compilerArgs.traceImports,
             symbolDefs = compilerArgs.symbolDefs,

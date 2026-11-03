@@ -72,7 +72,8 @@ class CompilerArguments(val filepath: Path,
                         val cwd: Path = Path("").absolute(),
                         val errors: IErrorReporter = ErrorReporter(ErrorReporter.AnsiColors),
                         val assemble: Boolean = true,
-                        val generateDocumentation: Boolean = false)
+                        val generateDocumentation: Boolean = false,
+                        val irComments: Boolean = false)
 
 
 fun compileProgram(args: CompilerArguments): CompilationResult? {
@@ -137,6 +138,7 @@ fun compileProgram(args: CompilerArguments): CompilationResult? {
                 profilingInstrumentation = args.profilingInstrumentation
                 asmListfile = args.asmListfile
                 includeSourcelines = args.includeSourcelines
+                irComments = args.irComments
                 newCodegen = args.newCodegen
                 dumpVariables = args.dumpVariables
                 dumpSymbols = args.dumpSymbols
