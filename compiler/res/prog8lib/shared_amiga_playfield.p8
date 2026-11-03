@@ -15,7 +15,8 @@
 ; at it via show() after swapping playfield.bitmap.
 ;
 ; Allocation strategy: on Kickstart 3.0+ graphics.AllocBitMap allocates the
-; requested backing dimensions; older Kickstarts use InitBitMap + AllocRaster.
+; requested backing dimensions with BMF_CLEAR; older Kickstarts use
+; InitBitMap + AllocRaster followed by clear() to get the same zeroed planes.
 
 %import exec
 %import graphics
@@ -58,7 +59,7 @@ playfield {
             ; Kickstart 3.0+: one call allocates struct + displayable chip planes.
             ; BMF_CLEAR|BMF_DISPLAYABLE, no friend bitmap, no interleaving so
             ; Planes[] stays one pointer per plane like the AllocRaster path.
-            bitmap = graphics.AllocBitMap(bitmap_width as long, bitmap_height as long, depth as long, $0005, nofriend)
+            bitmap = graphics.AllocBitMap(bitmap_width as long, bitmap_height as long, depth as long, graphics.BMF_CLEAR | graphics.BMF_DISPLAYABLE, nofriend)
             if bitmap == 0 {
                 regs = 0
                 return false
@@ -82,6 +83,9 @@ playfield {
                 return false
             }
         }
+        ; AllocRaster leaves chip ram uncleared (unlike AllocBitMap with
+        ; BMF_CLEAR), so zero the planes to match the 3.0+ path.
+        clear()
         return true
     }
 
@@ -145,6 +149,7 @@ playfield {
             return
         custom.DIWSTRT = regs.diwstrt
         custom.DIWSTOP = regs.diwstop
+        custom.DIWHIGH = regs.diwhigh
         custom.DDFSTRT = regs.ddfstrt
         custom.DDFSTOP = regs.ddfstop
         custom.BPLCON0 = regs.bplcon0

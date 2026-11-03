@@ -39,14 +39,17 @@ custom {
                 break
             }
         }
-        if stable and denise_id==$f8
+        if stable and (denise_id & $0f)==$08
             return CHIPSET::AGA
         if stable and denise_id==$fc
             return CHIPSET::ECS
 
         ubyte agnus_id = ((VPOSR >> 8) as ubyte) & $7f
-        if (agnus_id & $70)>=$20
+        if (agnus_id & $70)>=$20 {
+            if (agnus_id & $0f)>=$02
+                return CHIPSET::AGA
             return CHIPSET::ECS
+        }
         return CHIPSET::OCS
     }
 
@@ -197,9 +200,10 @@ IRQ7 = $7C
     struct DisplayRegs {  ; total size: 18
         uword diwstrt     ; 0
         uword diwstop     ; 2
-        uword ddfstrt     ; 4
-        uword ddfstop     ; 6
-        uword bplcon0     ; 8
+        uword diwhigh     ; 4
+        uword ddfstrt     ; 6
+        uword ddfstop     ; 8
+        uword bplcon0     ; 10
         uword bpl1mod     ; 12
         uword bpl2mod     ; 14
         uword fmode       ; 16
@@ -281,13 +285,20 @@ IRQ7 = $7C
         word ddf_offset = centered_words * ddf_word_step
 
         if is_aga {
-            ; AGA longword fetches cover 32 pixels (16 DDF units lores, 8 hires).
+            ; AGA 32-bit fetch (FMODE=1): each fetch moves 4 bytes per plane,
+            ; covering 32 pixels. DDF increments double vs OCS (16 lores, 8 hires)
+            ; and the modulo subtracts the fetched bytes per line.
+            ; DDFSTRT must sit on the fetch grid ((DDFSTRT-$18) & fetchstart_mask == 0,
+            ; mask 15 lores / 7 hires): hires uses $0038, not the OCS $003c.
+            ; $003c is half a fetch unit off-grid, which delays Denise's shifter
+            ; (first BPL1DAT lands 4 slots late): the picture shifts right ~16 px
+            ; and crops at the right edge on real hardware and FS-UAE/WinUAE.
+            regs.fmode = $0001
             uword fetchLongwords = ((view_width as uword) + 31) >> 5
             uword fetchedBytes = fetchLongwords * 4
-            regs.fmode = $0001
             if hires {
-                regs.ddfstrt = $003c
-                regs.ddfstop = $003c + (fetchLongwords - 1) * 8
+                regs.ddfstrt = $0038
+                regs.ddfstop = $0038 + (fetchLongwords - 1) * 8
             } else {
                 regs.ddfstrt = $0038
                 regs.ddfstop = $0038 + (fetchLongwords - 1) * 16
@@ -296,14 +307,13 @@ IRQ7 = $7C
         } else {
             regs.fmode = $0000
             if hires {
-                regs.ddfstrt = $0038
-                regs.ddfstop = $00d8
-                regs.bpl1mod = ((rowBytes as word) - (((wpl + 2) as word) * 2)) as uword
+                regs.ddfstrt = $003c
+                regs.ddfstop = $003c + (wpl - 2) * 4
             } else {
                 regs.ddfstrt = $0038
-                regs.ddfstop = $0038 + wpl * 8
-                regs.bpl1mod = ((rowBytes as word) - (((wpl + 1) as word) * 2)) as uword
+                regs.ddfstop = $0038 + (wpl - 1) * 8
             }
+            regs.bpl1mod = ((rowBytes as word) - ((wpl as word) * 2)) as uword
         }
         ; DIW coordinates have twice the horizontal resolution of DDF.
         regs.ddfstrt = ((regs.ddfstrt as word) + ddf_offset) as uword
@@ -317,11 +327,18 @@ IRQ7 = $7C
         if hires
             lores_width = lores_width >> 1
         word hstart = ($81 as word) + diw_offset
-        word hstop = hstart + (lores_width as word) - 256
+        word hstop_unwrapped = hstart + (lores_width as word)
+        word hstop = hstop_unwrapped - 256
         uword vstart_field = (vstart as uword) & $ff
         uword vstop = (vstop_unwrapped as uword) & $ff
         regs.diwstrt = (vstart_field << 8) | ((hstart as uword) & $00ff)
         regs.diwstop = (vstop << 8) | ((hstop as uword) & $00ff)
+        regs.diwhigh = (((vstop_unwrapped as uword) >> 8) & 7) << 8
+        regs.diwhigh |= ((vstart as uword) >> 8) & 7
+        if ((hstop_unwrapped as uword) & $0100) != 0
+            regs.diwhigh |= $2000
+        if ((hstart as uword) & $0100) != 0
+            regs.diwhigh |= $0020
 
         ; Bitplane control. BPU holds the depth; BPU3 (bit 4, AGA) extends
         ; it past 6 planes. HIRES, EHB and HAM are bits 15, 7 and 11.

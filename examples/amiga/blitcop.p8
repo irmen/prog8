@@ -1,4 +1,5 @@
 %import custom
+%import playfield
 %import exec
 %import blitter
 %import math
@@ -8,8 +9,11 @@ main {
         ^^custom.DisplayRegs regs = custom.compute_display(320, 256, 320, 1, custom.DISPLAY_DEFAULT, 0)
         custom.grab_system(true)
 
-        ; Allocate bitplane in CHIP RAM (320x256 = 10240 bytes, NOT cleared)
-        pointer bitplane = exec.AllocMem(10240, exec.MEMF_CHIP)
+        ; Allocate bitplane via playfield helper (320x256 = 10240 bytes, NOT cleared)
+        if not playfield.create(320, 256, 320, 256, 1, custom.DISPLAY_DEFAULT, 0) {
+            return
+        }
+        pointer bitplane = playfield.bitmap.Planes[0]
 
         ; Enable blitter DMA before using it
         custom.DMACON = $83C0  ; SET | DMAEN | BLTEN | BPLEN | COPEN
@@ -81,7 +85,7 @@ main {
 
         custom.FMODE = $0000
         custom.restore_system()
-        exec.FreeMem(bitplane, 10240)
+        playfield.destroy()
     }
 }
 
