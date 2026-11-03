@@ -196,6 +196,15 @@ This works with typecasts and with function calls that return a pointer::
 
 The compiler evaluates the pointer expression exactly once and then stores the value through the computed address.
 
+.. note::
+    Taking the address of a field inside an array of struct instances with the ``&`` operator is not
+    supported directly: ``&commands[i].name`` does not compile. Use the explicit form instead::
+
+        p = &commands[i] + offsetof(command.name)
+
+    The same applies to arrays of typed pointers to structs (``&commandPtrs[i].name``).
+    The ``&`` address-of construct only accepts a variable or array element, not a trailing field access.
+
 
 .. note::
     Structs are primarily supported as a *reference type* accessed through a pointer.

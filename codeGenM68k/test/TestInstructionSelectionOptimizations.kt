@@ -933,6 +933,63 @@ class TestInstructionSelectionOptimizations : FunSpec({
         lines.any { it.contains("tst.l") } shouldBe true
     }
 
+    // === lsl #1 and redundant extension peepholes ===
+
+    test("rewrites lsl #1 on data registers to add dN,dN") {
+        val lines = mutableListOf(
+            "    lsl.b  #1,d0",
+            "    lsl.w  #1,d1",
+            "    lsl.l  #1,d2",
+            "    lsl.l  #2,d3",
+            "    lsl.l  d1,d3",
+            "    lsl.w  (a0)",
+            "    rts"
+        )
+        optimizeAssembly(lines)
+        lines.any { it == "    add.b  d0,d0" } shouldBe true
+        lines.any { it == "    add.w  d1,d1" } shouldBe true
+        lines.any { it == "    add.l  d2,d2" } shouldBe true
+        lines.count { it.trimStart().startsWith("lsl.") } shouldBe 3
+    }
+
+    test("rewrites labelled lsl #1 and keeps the label") {
+        val lines = mutableListOf(
+            "mylabel:",
+            "    lsl.w  #1,d3",
+            "    rts"
+        )
+        optimizeAssembly(lines)
+        lines.any { it == "mylabel:" } shouldBe true
+        lines.any { it == "    add.w  d3,d3" } shouldBe true
+        lines.none { it.trimStart().startsWith("lsl.") } shouldBe true
+    }
+
+    test("removes duplicate consecutive ext into the same data register") {
+        val lines = mutableListOf(
+            "    ext.w  d2",
+            "    ext.w  d2",
+            "    ext.l  d3",
+            "    ext.l  d3",
+            "    rts"
+        )
+        optimizeAssembly(lines)
+        lines.count { it == "    ext.w  d2" } shouldBe 1
+        lines.count { it == "    ext.l  d3" } shouldBe 1
+    }
+
+    test("does not collapse ext.w plus ext.l or move.w plus ext.l") {
+        val lines = mutableListOf(
+            "    ext.w  d0",
+            "    ext.l  d0",
+            "    move.w  d1,d0",
+            "    ext.l  d0",
+            "    rts"
+        )
+        optimizeAssembly(lines)
+        lines.count { it == "    ext.w  d0" } shouldBe 1
+        lines.count { it == "    ext.l  d0" } shouldBe 2
+    }
+
     // === Tests for status flag return handling fixes (commit 1286b6cc8 follow-up) ===
 
     test("single-return expression call with @A0 (slot 18) emits store instruction") {

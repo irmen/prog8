@@ -75,6 +75,14 @@ class ConstantFoldingOptimizer(private val program: Program, private val errors:
         return noModifications
     }
 
+    override fun after(ifExpr: IfExpression, parent: Node): Iterable<AstModification> {
+        // If the condition is a compile-time constant, fold the if-expression into
+        // the selected branch only, so the dead branch is not compiled at all.
+        val cond = ifExpr.condition.constValue(program) ?: return noModifications
+        val selected = if (cond.asBooleanValue) ifExpr.truevalue else ifExpr.falsevalue
+        return listOf(AstReplaceNode(ifExpr, selected.copy(), parent))
+    }
+
     override fun after(expr: PrefixExpression, parent: Node): Iterable<AstModification> {
         val constValue = expr.constValue(program) ?: return noModifications
         return listOf(AstReplaceNode(expr, constValue, parent))

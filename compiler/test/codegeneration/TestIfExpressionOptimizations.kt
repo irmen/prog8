@@ -2,6 +2,7 @@ package prog8tests.codegeneration
 
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.engine.spec.tempdir
+import io.kotest.matchers.shouldBe
 import prog8.code.target.Cx16Target
 import prog8tests.helpers.compileText
 import prog8tests.helpers.shouldContainInOrder
@@ -420,5 +421,29 @@ test("if-expression bitwise AND optimization (BIT instruction)") {
         // l1 != l2 should use optimized variable comparison with skip label pattern:
         // cmp p8v_l2, bne skip, ..., cmp p8v_l2+3, beq ifexpr_false, skip:
         asm.shouldContainInOrder("cmp  p8v_l2", "bne  +", "cmp  p8v_l2+3", "beq", "ifexpr_false")
+    }
+
+    test("if-expression with constant condition only compiles the selected branch") {
+        val text = """
+            main {
+                const bool FEATURE = true
+                uword @shared w
+                uword @shared result
+
+                sub f(uword x) -> uword { return x+1 }
+                sub g(uword x) -> uword { return x+2 }
+
+                sub start() {
+                    result = if FEATURE f(w) else g(w)
+                    cx16.r1 = result
+                }
+            }
+        """.trimIndent()
+        val result = compileText(Cx16Target(), false, text, outputDir, writeAssembly = true)!!
+        val asm = result.compilationOptions.outputDir.resolve(result.compilerAst.name + ".asm").readText()
+        val lines = asm.lines().map { it.trim() }
+        // the selected branch is called, the dead branch is not
+        lines.count { it.contains("jsr") && it.contains("p8s_f") } shouldBe 1
+        lines.count { it.contains("jsr") && it.contains("p8s_g") } shouldBe 0
     }
 })

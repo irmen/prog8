@@ -16,10 +16,10 @@ internal object ControlFlowOptimizers {
      * if true {A} else {B} -> A
      * if false {A} else {B} -> B
      */
-    fun optimizeConditionalExpressions(program: PtProgram, errors: IErrorReporter): Int {
+    fun optimizeConditionalExpressions(program: PtProgram): Int {
         val toOptimize = mutableListOf<Triple<PtIfElse, Boolean, PtNode>>()
 
-        walkAst(program) { node: PtNode, depth: Int ->
+        walkAst(program) { node: PtNode, _: Int ->
             if (node is PtIfElse) {
                 val condition = node.condition
                 val trueConst = condition.asConstValue()
@@ -29,7 +29,7 @@ internal object ControlFlowOptimizers {
                     toOptimize.add(Triple(node, true, node.parent))
                 }
                 // if false { A } else { B } -> B
-                else if (trueConst == 0.0 || (condition is PtBool && !condition.value)) {
+                else if (trueConst == 0.0 || (condition is PtBool)) {
                     toOptimize.add(Triple(node, false, node.parent))
                 }
             }
@@ -54,12 +54,42 @@ internal object ControlFlowOptimizers {
     }
 
     /**
+     * Optimizes if-expressions with constant conditions.
+     * if true then A else B -> A
+     * if false then A else B -> B
+     */
+    fun optimizeConstantIfExpressions(program: PtProgram): Int {
+        val toOptimize = mutableListOf<Pair<PtIfExpression, PtExpression>>()
+
+        walkAst(program) { node: PtNode, _: Int ->
+            if (node is PtIfExpression) {
+                val condition = node.condition.asConstValue()
+                if (condition != null) {
+                    val selected = if (condition != 0.0) node.truevalue else node.falsevalue
+                    toOptimize.add(node to selected)
+                }
+            }
+            true
+        }
+
+        var changes = 0
+        for ((node, selected) in toOptimize) {
+            val parent = node.parent
+            val index = parent.children.indexOf(node)
+            if (index == -1) continue
+            parent.setChild(index, selected)
+            changes++
+        }
+        return changes
+    }
+
+    /**
      * Optimizes dead conditional branches in when statements.
      */
     fun optimizeDeadConditionalBranches(program: PtProgram): Int {
         val toOptimize = mutableListOf<PtWhen>()
 
-        walkAst(program) { node: PtNode, depth: Int ->
+        walkAst(program) { node: PtNode, _: Int ->
             if (node is PtWhen) {
                 val choices = node.choices.children
                 // If we have a when with only an else choice, convert to if-else or just the else block
@@ -94,7 +124,7 @@ internal object ControlFlowOptimizers {
     fun optimizeSingleWhens(program: PtProgram, errors: IErrorReporter): Int {
         val toOptimize = mutableListOf<PtWhen>()
 
-        walkAst(program) { node: PtNode, depth: Int ->
+        walkAst(program) { node: PtNode, _: Int ->
             if(node is PtWhen && node.choices.children.size==2) {
                 val choice1 = node.choices.children[0] as PtWhenChoice
                 val choice2 = node.choices.children[1] as PtWhenChoice

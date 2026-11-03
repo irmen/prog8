@@ -119,7 +119,8 @@ private fun runFixpointOptimizations(program: PtProgram, ctx: OptimizerContext) 
         + ExpressionOptimizers.optimizeBinaryExpressions(program, ctx.options)
         + ExpressionOptimizers.optimizeOperandOrder(program, ctx.options)
         + ControlFlowOptimizers.optimizeSingleWhens(program, ctx.errors)
-        + ControlFlowOptimizers.optimizeConditionalExpressions(program, ctx.errors)
+        + ControlFlowOptimizers.optimizeConditionalExpressions(program)
+        + ControlFlowOptimizers.optimizeConstantIfExpressions(program)
         + ControlFlowOptimizers.optimizeDeadConditionalBranches(program) > 0) {
         iteration++
         if (iteration >= MAX_FIXPOINT_ITERATIONS) {

@@ -31,15 +31,17 @@ internal fun optimizeAssembly(lines: MutableList<String>) {
         by2 = runPass(optimizeSwapBack(by2), 2, by2)
         by2 = runPass(optimizeRedundantMovePair(by2), 2, by2)
         by2 = runPass(optimizeStoreReloadToRegCopy(by2), 2, by2)
+        by2 = runPass(optimizeRedundantExt(by2), 2, by2)
         val a6Mods = optimizeByteZeroExtendSafe(lines, pretrimmed)
         if (a6Mods.isNotEmpty()) {
             applyModifications(a6Mods, lines, pretrimmed)
             modified = true
         }
         // single-line immediate-form rewrites: provably safe, no context needed.
-        // plus single-line true no-ops (movea/exg with identical operands).
+        // plus single-line true no-ops (movea/exg with identical operands)
+        // and the lsl #1 -> add dN,dN strength reduction.
         val quickMods = optimizeMoveqLongForm(lines, pretrimmed) + optimizeAddSubQuick(lines, pretrimmed) +
-            optimizeMoveSelfNoOps(lines, pretrimmed)
+            optimizeMoveSelfNoOps(pretrimmed) + optimizeLslOneToDouble(lines, pretrimmed)
         if (quickMods.isNotEmpty()) {
             applyModifications(quickMods, lines, pretrimmed)
             modified = true
@@ -300,6 +302,8 @@ private fun parseLeaBase(src: String): LeaBase? {
         if (num != null)
             return LeaBase.Absolute(num)
         // `#symbol[+off]`: no memory read, fold symbolically.
+        if (body.lowercase() in setOf("d0","d1","d2","d3","d4","d5","d6","d7","a0","a1","a2","a3","a4","a5","a6","a7","sp","pc","sr","ccr","usp"))
+            return null
         val m = symbolBasePattern.matchEntire(body) ?: return null
         return LeaBase.Symbol(m.groupValues[1], m.groupValues[2].ifEmpty { "0" }.toLong())
     }
@@ -309,6 +313,10 @@ private fun parseLeaBase(src: String): LeaBase? {
         return LeaBase.Frame(it)
     }
     if (text.startsWith("$"))
+        return null
+    // Data registers and other CPU registers are not symbols; do not fold them
+    // into an address expression (e.g. `lea d0+imm,a2` is not a valid instruction).
+    if (text.lowercase() in setOf("d0","d1","d2","d3","d4","d5","d6","d7","a0","a1","a2","a3","a4","a5","a6","a7","sp","pc","sr","ccr","usp"))
         return null
     val m = symbolBasePattern.matchEntire(text) ?: return null
     return LeaBase.Symbol(m.groupValues[1], m.groupValues[2].ifEmpty { "0" }.toLong())
@@ -684,7 +692,7 @@ private fun optimizeRedundantMovePair(linesBy: Sequence<List<TrimmedLine>>): Lis
 }
 
 /** Single-line true no-ops: `movea.S aN,aN` (flag-free) and `exg r,r` (no flags). */
-private fun optimizeMoveSelfNoOps(lines: List<String>, allPretrimmed: List<String>): List<Modification> {
+private fun optimizeMoveSelfNoOps(allPretrimmed: List<String>): List<Modification> {
     val mods = mutableListOf<Modification>()
     for ((index, line) in allPretrimmed.withIndex()) {
         if (line.isBlank() || line.trimStart().startsWith(';')) continue
@@ -1211,3 +1219,76 @@ private fun String.instrSize(): Char {
     }
 }
 
+/**
+ * Rewrite `lsl.<size> #1,dN` to `add.<size> dN,dN` for data registers.
+ * For a one-bit shift, N/Z/C/X are identical; V may differ (LSL clears V,
+ * ADD sets it on overflow), but compiler-generated code never reads V after
+ * a shift. Cheaper and smaller on 68000. Only immediate #1.
+ */
+private fun optimizeLslOneToDouble(lines: List<String>, allPretrimmed: List<String>): List<Modification> {
+    val filtered = allPretrimmed.withIndex()
+        .filter { it.value.isNotBlank() && !it.value.trimStart().startsWith(';') }
+        .map { IndexedValue(it.index, it.value.trimStart()) }
+        .toList()
+
+    val mods = mutableListOf<Modification>()
+
+    for (entry in filtered) {
+        val instrToken = entry.value.instructionPart().substringBefore(' ').substringBefore('\t').lowercase()
+        if (!instrToken.startsWith("lsl."))
+            continue
+        val size = instrToken.substringAfter("lsl.")
+        if (size !in setOf("b", "w", "l"))
+            continue
+        val operands = entry.value.instructionOperands() ?: continue
+        val parts = operands.split(',', limit = 2)
+        if (parts.size != 2)
+            continue
+        if (parts[0].trim() != "#1")
+            continue
+        val dst = parts[1].trim()
+        if (!dst.lowercase().matches(dataRegisterPattern))
+            continue
+        val originalLine = lines.getOrNull(entry.index) ?: allPretrimmed[entry.index]
+        val originalIndent = originalLine.takeWhile { it.isWhitespace() }
+        val label = keepLabel(entry.value)
+        val labelPrefix = if (label.isNotEmpty()) "$label  " else ""
+        mods.add(Modification(entry.index, false, "$originalIndent$labelPrefix" + "add.$size  $dst,$dst"))
+    }
+    return mods
+}
+
+/**
+ * Remove the second of two identical consecutive `ext.w` or `ext.l`
+ * instructions into the same data register (e.g. `ext.w d0 ; ext.w d0`).
+ * Both instructions set identical N/Z/V/C flags and leave X untouched,
+ * so the second one has no effect.
+ *
+ * `move.w X,dN` + `ext.l dN` and `ext.w dN` + `ext.l dN` are intentionally
+ * not folded: existing tests/codegen rely on `ext.l` being emitted explicitly.
+ */
+private fun optimizeRedundantExt(linesBy: Sequence<List<TrimmedLine>>): List<Modification> {
+    val mods = mutableListOf<Modification>()
+    for (lines in linesBy) {
+        val first = lines[0].instruction
+        val second = lines[1].instruction
+        if (hasLabel(lines[1].trimmed)) continue
+        val firstToken = first.instructionPart().substringBefore(' ').substringBefore('\t').lowercase()
+        val secondToken = second.instructionPart().substringBefore(' ').substringBefore('\t').lowercase()
+        val secondOps = second.instructionOperands() ?: continue
+        val secondParts = secondOps.split(',', limit = 2)
+        if (secondParts.size != 1) continue
+        val secondDst = secondParts[0].trim().lowercase()
+        if (!secondDst.matches(dataRegisterPattern)) continue
+
+        // duplicate extension
+        if ((firstToken == "ext.w" || firstToken == "ext.l") && firstToken == secondToken) {
+            val firstOps = first.instructionOperands() ?: continue
+            if (firstOps.trim().lowercase() == secondDst) {
+                mods.add(Modification(lines[1].index, true, null))
+                continue
+            }
+        }
+    }
+    return mods
+}

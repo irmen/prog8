@@ -36,7 +36,7 @@ effort. Status: proposal.
 - `TestCompilerOnExamples` has no m68k expected-size table (classes cover
   C64 / Cx16 / Both / Virtual / PET32 only).
 
-## Tier 1 - Cosmetic / trivial (hours each)
+## Tier 1 - Cosmetic / trivial (hours each) [ALL DONE]
 
 ### 1.1 Strip IR debug comments from emitted asm [DONE]
 - **Where**: `AsmGen.kt` emission + `Instr*.kt` lowering (full-line IR
@@ -299,6 +299,16 @@ effort. Status: proposal.
   Covering those needs a CFG back-edge walk (medium work of its own), so the
   policy stays static cost-per-CPU instead.
 
+### 3.6 IR-level multiplication by power of two [OPEN]
+- **Where**: `simpleAst/src/prog8/code/optimize/ExpressionOptimizers.kt`
+  (`optimizeStrengthReduction`). Only `/` and `%` are reduced today; `*` by a
+  power of two is not.
+- Reduce `x * 2^n` -> `x << n` for integer types (signed and unsigned, since
+  the shift is exact for powers of two). Also `x * 0` -> `0`, `x * 1` -> `x`
+  (with side-effect guard on `x`).
+- **Benefit**: all targets (IR-level, so 6502, M68K, virtual), not just M68K.
+- **Effort**: small (mirrors the existing `/` and `%` reductions).
+
 ## Tier 4 - Register allocation & spilling (weeks)
 
 > Re-verify this tier's premise first: real output shows spills already go
@@ -376,6 +386,49 @@ effort. Status: proposal.
   shapes (load-const-then-operate, foldable to `ori.b #8,d2`) - candidate
   peephole/lowering item, not yet planned.
 
+### 4.7 Avoid fixed A5 frame slots for simple locals [OPEN]
+- **Problem**: named source-level locals (e.g. `ubyte ax` in `planet.distance()`)
+  currently receive dedicated A5 frame slots at compile time and are stored to
+  and reloaded from those slots around almost every operation, even inside a
+  single basic block with no calls. Example: in `textelite` `distance()` the
+  local `d` is stored to `-5(a5)` immediately after `sqrt` and then reloaded
+  two instructions later just to shift it left by 2, when it could have stayed
+  in the register that already held it.
+- **Where**: `M68kRegisterAllocator`, `StackFrameLayout`, `AsmGen`.
+- **Approach**:
+  - Full solution: treat named locals as virtual registers alongside temporary
+    vregs; run liveness analysis across the subroutine; allocate hot locals to
+    hardware registers and spill only when necessary (register pressure,
+    address-taken, live across calls, recursion/debugging requirements).
+    Reserve dedicated A5 slots only for locals that must have a stable address.
+  - Cheap fallback: add peephole passes for store-to-load forwarding within a
+    basic block and dead-local-store elimination, without changing the frame
+    model.
+- **Benefit**: removes the ~23% of prog8 `move` instructions that currently
+  hit A5 frame slots in `textelite` (392 of 1699 moves), reducing both code
+  size and execution time.
+- **Effort**: medium-high for the full register-allocation solution; small for
+  the peephole fallback.
+- **Trade-offs**: must preserve recursion, `&local`, `%option noframe`, and
+  hand-written `%asm` semantics.
+
+### 2.8 Remaining easy peephole gaps [PARTIAL]
+- `lsl.<size> #1,dN` -> `add.<size> dN,dN` for data registers. Done in
+  `AsmOptimizer.optimizeLslOneToDouble`. N/Z/C/X are identical; V may differ
+  (LSL clears V, ADD sets it on overflow), but generated code never reads V
+  after a shift.
+- Duplicate consecutive `ext.w`/`ext.l` into the same data register. Done in
+  `AsmOptimizer.optimizeRedundantExt`.
+- `move.w X,dN` + `ext.l dN` and `ext.w dN` + `ext.l dN` folding were
+  rejected: existing tests/codegen rely on `ext.l` being emitted explicitly.
+- `cmp.l #0,dN` -> `tst.l dN` for data registers where the preceding op
+  does not already set flags (likely already in `optimizeRedundantTst`, but
+  verify for data-reg destinations).
+- `moveq #0,dN` + `move.b X,dN` (full byte overwrite) -> drop the `moveq`
+  when the byte move provably writes all bits the consumer reads.
+- **Where**: `AsmOptimizer.kt`.
+- **Effort**: small-medium (each needs flag-safety scanning like 2.2/2.3).
+
 ## Tier 5 - Bigger structural work (months)
 
 ### 5.1 Better D0 reload cache
@@ -387,22 +440,7 @@ effort. Status: proposal.
 - Tighten `UnusedCodeRemover` / `VregRenumber` for m68k-specific spill patterns.
 - **Effort**: medium.
 
-### 5.3 Instruction scheduling / pairing (68020)
-- Reorder independent moves to hide latency; low value on 68000.
-- **Effort**: high; probably not worth it.
 
-### 5.4 Global register allocation across subroutines
-- Currently intraprocedural. Interprocedural coloring would be a major
-  undertaking; only consider if profiling shows call overhead dominates.
-- **Effort**: very high.
-
-## Suggested first sprint
-
-[DONE: 1.1, 1.2, 2.3, 3.2.] Remaining: 2.5, 3.4 (jmp PC-relative), then 2.2,
-and re-verify the Tier 4 regfile premise before touching 4.1/4.2. An m68k
-`TestCompilerOnExamples` size-regression harness (or an equivalent asm-size
-checklist, using `assemble=false` where no vasm) is still the prerequisite
-for measuring the rest.
 
 ## Measurement
 

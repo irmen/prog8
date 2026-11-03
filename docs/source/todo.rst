@@ -15,6 +15,7 @@ Future Things and Ideas
 Won't do's or deferred
 ^^^^^^^^^^^^^^^^^^^^^^
 - Deferred: support arrays-of-struct-instances as struct fields (e.g. ``struct Outer { Inner[4] inners }``). Currently rejected with an error.
+- Deferred: support ``&array[i].field`` syntax to take the address of a struct field in an array. Currently only ``&array[i] + offsetof(Struct.field)`` works; ``&array[i].field`` is parsed as a field access on the resulting pointer and rejected by the checker.
 - Deferred: support typed pointer arrays as struct fields, curretly requires untyped pointers arrays.
 - Deferred: support immediate struct instance variables (e.g. ``Enemy e``) instead of only ``^^Enemy`` pointers and ``Enemy[]`` arrays. Attempted Aug 2026 and rolled back — requires value-type IR (currently ``STRUCT_INSTANCE`` is pointer-only, see ``DataTypes.kt:22`` and ``IRCodeGen.kt:2332``; field access assumes ``^^Struct`` indirection). Far-off; use ``^^Enemy`` or ``Enemy[N]``.
 - Deferred: make a form of "manual generics" possible, see ``ideas/polymorphism.md`` (this is already done hardcoded for several of the builtin functions)
