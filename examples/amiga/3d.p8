@@ -1,5 +1,6 @@
 %import custom
-%import exec
+%import playfield
+%import copper
 %import blitter
 %import math
 
@@ -11,36 +12,32 @@ main {
     word[VERTEX_COUNT] py
 
     sub start() {
-        pointer bitplane1 = exec.AllocMem(10240, exec.MEMF_CHIP | exec.MEMF_CLEAR)
-        pointer bitplane2 = exec.AllocMem(10240, exec.MEMF_CHIP | exec.MEMF_CLEAR)
-
         ; Take over the Amiga hardware and configure a 320x256 one-bitplane display.
-        ^^custom.DisplayRegs regs = custom.compute_display(320, 256, 320, 1, custom.DISPLAY_DEFAULT, 0)
+        ; The front buffer comes from the playfield helper (which also computes
+        ; the display registers); the back buffer is the helper's second buffer.
+        if not playfield.create(320, 256, 320, 256, 1, custom.DISPLAY_DEFAULT, 0)
+            return
+        if not playfield.create_backplane() {
+            playfield.destroy()
+            return
+        }
+        ^^custom.DisplayRegs regs = playfield.regs
         custom.grab_system(true)
         custom.DMACON = $83C0
 
 
-        pointer current_bitplane = bitplane1
-        pointer back_bitplane = bitplane2
-
-        ; Patch the bitplane pointer into the copper list (words 3 and 5) and start it.
-        copperdata.copper_list[3] = msw(current_bitplane)
-        copperdata.copper_list[5] = lsw(current_bitplane)
-        copperdata.copper_list[7] = regs.fmode
-        copperdata.copper_list[9] = regs.bplcon0
-        copperdata.copper_list[11] = regs.diwstrt
-        copperdata.copper_list[13] = regs.diwstop
-        copperdata.copper_list[15] = regs.ddfstrt
-        copperdata.copper_list[17] = regs.ddfstop
-        copperdata.copper_list[19] = regs.bpl1mod
-        custom.COP1LC = &copperdata.copper_list
+        ; Build the copper list with the copper helper and point it at the
+        ; front buffer.
+        uword planeBase = build_copperlist(regs)
+        playfield.patch_copper(copper.list, planeBase)
+        custom.COP1LC = copper.list
         custom.DMACON = $8280    ; SET | DMAEN | COPEN
         custom.COPJMP1 = 0
 
         const ubyte TEXT_Y = 240
         ; Copy the generated monochrome message into the reserved bottom strip of BOTH bitplanes.
-        pointer text_screen1 = bitplane1 + (TEXT_Y * 40)
-        pointer text_screen2 = bitplane2 + (TEXT_Y * 40)
+        pointer text_screen1 = playfield.bitmap.Planes[0] + (TEXT_Y * 40)
+        pointer text_screen2 = playfield.back.Planes[0] + (TEXT_Y * 40)
         blitter.copy_rect(textdata.text_bitmap_words, text_screen1, textdata.TEXT_WIDTH_WORDS, textdata.TEXT_HEIGHT, 0, 26, $f0, 0)
         blitter.wait()
         blitter.copy_rect(textdata.text_bitmap_words, text_screen2, textdata.TEXT_WIDTH_WORDS, textdata.TEXT_HEIGHT, 0, 26, $f0, 0)
@@ -77,15 +74,13 @@ main {
             ; Wait for vertical blank, then ensure blitter is done before swapping.
             custom.waitvsync()
             blitter.wait()
-            ; Swap the bitplane pointer in the copper list (words 3 and 5).
-            copperdata.copper_list[3] = msw(back_bitplane)
-            copperdata.copper_list[5] = lsw(back_bitplane)
-            pointer temp = current_bitplane
-            current_bitplane = back_bitplane
-            back_bitplane = temp
+            ; Flip the buffers and point the copper list at the new front.
+            playfield.flip()
+            playfield.patch_copper(copper.list, planeBase)
+            pointer backplane = playfield.back.Planes[0]
 
             ; Clear the back buffer and prepare for drawing.
-            blitter.clear_plane(back_bitplane, 20, TEXT_Y)
+            blitter.clear_plane(backplane, 20, TEXT_Y)
 
             ; Build the fixed-point rotation matrix and rotate all vertices.
             word wcosa = cos8_fixed(angle_x)
@@ -137,7 +132,7 @@ main {
             for e in 0 to EDGE_COUNT - 1 {
                 ubyte v1 = edgesFrom[e]
                 ubyte v2 = edgesTo[e]
-                blitter.line_draw(px[v1] as uword, py[v1] as uword, px[v2] as uword, py[v2] as uword, 40, back_bitplane)
+                blitter.line_draw(px[v1] as uword, py[v1] as uword, px[v2] as uword, py[v2] as uword, 40, backplane)
             }
 
             angle_x += ROT_X_SPEED
@@ -147,8 +142,55 @@ main {
 
         custom.FMODE = $0000
         custom.restore_system()
-        exec.FreeMem(bitplane1, 10240)
-        exec.FreeMem(bitplane2, 10240)
+        playfield.destroy()
+    }
+
+    const ubyte BAR_TOP = $30
+    const ubyte BAR_STEP = 5
+    const ubyte BAR_LINES = 42
+
+    ; Static black-purple-green-red raster gradient, one COLOR00 per line,
+    ; plus the final line-255 reset to black.
+    uword[BAR_LINES+1] barcolors = [
+        $0000, $0101, $0202, $0303, $0404, $0505, $0606, $0707,
+        $0808, $0909, $0a0a, $0b0b, $0c0c, $0d0d, $0e0e, $0f0f,
+        $0e2e, $0d4d, $0c6c, $0a8a, $08a8, $06a6, $04c4, $02e2,
+        $00f0, $01e0, $02d0, $03c0, $04b0, $05a0, $0690, $0780,
+        $0870, $0960, $0a50, $0b40, $0c30, $0f00, $0d00, $0b00,
+        $0800, $0400, $0000
+    ]
+
+    ; Value-word slots of the gradient COLOR00 MOVEs, filled by build_copperlist().
+    uword[BAR_LINES+1] barslots
+
+    sub build_copperlist(^^custom.DisplayRegs display) -> uword {
+        ; Build the copper list with the copper helper. Returns the base
+        ; value-word index of the bitplane pointer slots: the main loop
+        ; rewrites them with copper.set() on every buffer swap.
+        copper.init(&copperdata.copper_list, len(copperdata.copper_list))
+        void copper.move($0096, $83c0)    ; DMACON: SET | DMAEN | BLTEN | BPLEN | COPEN
+        uword planeBase = copper.attach_planes(1)
+        void copper.move($01fc, display.fmode)
+        void copper.move($0100, display.bplcon0)
+        void copper.move($008e, display.diwstrt)
+        void copper.move($0090, display.diwstop)
+        void copper.move($0092, display.ddfstrt)
+        void copper.move($0094, display.ddfstop)
+        void copper.move($0108, display.bpl1mod)
+        void copper.move($0180, 0)        ; COLOR00 = black (background)
+        void copper.move($0182, $0fff)    ; COLOR01 = white (foreground)
+        ubyte line = BAR_TOP
+        for i in 0 to BAR_LINES-1 {
+            copper.wait(line, 0)
+            barslots[i] = copper.move($0180, 0)
+            line += BAR_STEP
+        }
+        copper.wait($ff, 0)
+        barslots[BAR_LINES] = copper.move($0180, 0)
+        for i in 0 to BAR_LINES
+            copper.set(barslots[i], barcolors[i])
+        copper.end()
+        return planeBase
     }
 
     sub sin8_fixed(uword angle) -> word {
@@ -170,70 +212,10 @@ main {
 copperdata {
     %option amiga_chipram
 
-    ; Raw copper list words, one MOVE/WAIT instruction per line.
-    ; MOVE = register offset, value (bit 0 of word 1 clear).
-    ; WAIT = (vpos<<8) | (hpos<<1) | 1, $fffe (bit 0 set, no blitter wait).
-    ; END = $ffff, $fffe.
-    ; Words 3 and 5 are the bitplane pointer, patched at startup and each frame.
-    ; The copper paints a static black-purple-green-red raster gradient.
-    uword[198] copper_list = [
-        $0096, $83c0,    ; MOVE DMACON: SET | DMAEN | BLTEN | BPLEN | COPEN
-        $00e0, $0000,    ; MOVE BPL1PTH (patched at runtime)
-        $00e2, $0000,    ; MOVE BPL1PTL (patched at runtime)
-        $01fc, $0000,    ; MOVE FMODE (patched from compute_display)
-        $0100, $1200,    ; MOVE BPLCON0: 1 bitplane, color burst on
-        $008e, $2c81,    ; MOVE DIWSTRT
-        $0090, $2cc1,    ; MOVE DIWSTOP
-        $0092, $0038,    ; MOVE DDFSTRT
-        $0094, $00d0,    ; MOVE DDFSTOP
-        $0108, $0000,    ; MOVE BPL1MOD
-        $0180, $0000,    ; MOVE COLOR00 = black (background)
-        $0182, $0fff,    ; MOVE COLOR01 = white (foreground)
-        $3001, $fffe, $0180, $0000,    ; WAIT 48
-        $3501, $fffe, $0180, $0101,    ; WAIT 53
-        $3a01, $fffe, $0180, $0202,    ; WAIT 58
-        $3f01, $fffe, $0180, $0303,    ; WAIT 63
-        $4401, $fffe, $0180, $0404,    ; WAIT 68
-        $4901, $fffe, $0180, $0505,    ; WAIT 73
-        $4e01, $fffe, $0180, $0606,    ; WAIT 78
-        $5301, $fffe, $0180, $0707,    ; WAIT 83
-        $5801, $fffe, $0180, $0808,    ; WAIT 88
-        $5d01, $fffe, $0180, $0909,    ; WAIT 93
-        $6201, $fffe, $0180, $0a0a,    ; WAIT 98
-        $6701, $fffe, $0180, $0b0b,    ; WAIT 103
-        $6c01, $fffe, $0180, $0c0c,    ; WAIT 108
-        $7101, $fffe, $0180, $0d0d,    ; WAIT 113
-        $7601, $fffe, $0180, $0e0e,    ; WAIT 118
-        $7b01, $fffe, $0180, $0f0f,    ; WAIT 123 magenta
-        $8001, $fffe, $0180, $0e2e,    ; WAIT 128
-        $8501, $fffe, $0180, $0d4d,    ; WAIT 133
-        $8a01, $fffe, $0180, $0c6c,    ; WAIT 138
-        $8f01, $fffe, $0180, $0a8a,    ; WAIT 143
-        $9401, $fffe, $0180, $08a8,    ; WAIT 148
-        $9901, $fffe, $0180, $06a6,    ; WAIT 153
-        $9e01, $fffe, $0180, $04c4,    ; WAIT 158
-        $a301, $fffe, $0180, $02e2,    ; WAIT 163
-        $a801, $fffe, $0180, $00f0,    ; WAIT 168 green
-        $ad01, $fffe, $0180, $01e0,    ; WAIT 173
-        $b201, $fffe, $0180, $02d0,    ; WAIT 178
-        $b701, $fffe, $0180, $03c0,    ; WAIT 183
-        $bc01, $fffe, $0180, $04b0,    ; WAIT 188
-        $c101, $fffe, $0180, $05a0,    ; WAIT 193
-        $c601, $fffe, $0180, $0690,    ; WAIT 198
-        $cb01, $fffe, $0180, $0780,    ; WAIT 203
-        $d001, $fffe, $0180, $0870,    ; WAIT 208
-        $d501, $fffe, $0180, $0960,    ; WAIT 213
-        $da01, $fffe, $0180, $0a50,    ; WAIT 218
-        $df01, $fffe, $0180, $0b40,    ; WAIT 223
-        $e401, $fffe, $0180, $0c30,    ; WAIT 228
-        $e901, $fffe, $0180, $0f00,    ; WAIT 233 red
-        $ee01, $fffe, $0180, $0d00,    ; WAIT 238
-        $f301, $fffe, $0180, $0b00,    ; WAIT 243
-        $f801, $fffe, $0180, $0800,    ; WAIT 248
-        $fd01, $fffe, $0180, $0400,    ; WAIT 253
-        $ff01, $fffe, $0180, $0000,    ; WAIT 255 back to black
-        $ffff, $fffe     ; END
-    ]
+    ; Word buffer owned by the copper builder (see main.build_copperlist()):
+    ; DMACON + 1 plane + 7 register MOVEs + 2 colors + 43 gradient
+    ; WAIT/MOVE pairs + END = 198 words.
+    uword[208] copper_list
 }
 
 textdata {

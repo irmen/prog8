@@ -1,12 +1,13 @@
 ; Bare-metal 320x256 lores display with concentric color rectangles.
-; The custom.compute_display helper computes shadow registers, which are
-; patched into a copper list (blitcop-style) that programs the display
+; The custom.compute_display helper computes shadow registers, which the
+; copper builder emits into a copper list that programs the display
 ; every frame. A small CPU palette is required, otherwise everything
 ; renders black (the color registers are never touched by the copper).
 
 %import graphics
 %import custom
 %import playfield
+%import copper
 %import textio
 
 main {
@@ -38,12 +39,13 @@ main {
             return
         bm = playfield.bitmap
         regs = playfield.regs
-        build_copperlist()
+        uword planeBase = build_copperlist()
+        playfield.patch_copper(copper.list, planeBase)
         custom.grab_system(true)
         custom.waitvsync()
         ; Activate the copper list: it programs the display registers and
         ; reloads the bitplane pointers every frame by itself.
-        custom.COP1LC = &copperdata.copper_list
+        custom.COP1LC = copper.list
         custom.DMACON = custom.DMAF_SETCLR | custom.DMAF_MASTER | custom.DMAF_COPPER
         custom.COPJMP1 = 0
         setup_palette()
@@ -56,18 +58,28 @@ main {
         playfield.destroy()
     }
 
-    sub build_copperlist() {
-        ; Patch the shadow register values into the copper list below.
-        copperdata.copper_list[35] = regs.bplcon0
-        copperdata.copper_list[37] = regs.diwstrt
-        copperdata.copper_list[39] = regs.diwstop
-        copperdata.copper_list[41] = regs.ddfstrt
-        copperdata.copper_list[43] = regs.ddfstop
-        copperdata.copper_list[45] = regs.fmode
-        copperdata.copper_list[47] = regs.bpl1mod
-        copperdata.copper_list[49] = regs.bpl2mod
-        copperdata.copper_list[53] = regs.diwhigh
-        playfield.patch_copper(&copperdata.copper_list, 3)
+    sub build_copperlist() -> uword {
+        ; Build the copper list with the copper helper. Returns the base
+        ; value-word index of the bitplane pointer slots, ready to pass to
+        ; playfield.patch_copper(). DMACON enables raster DMA; copper DMA
+        ; itself is enabled up front and the list ends with CEND so the
+        ; copper restarts from COP1LC each frame.
+        copper.init(&copperdata.copper_list, len(copperdata.copper_list))
+        void copper.move($0096, $8300)    ; DMACON: SET | DMAEN | BPLEN
+        uword planeBase = copper.attach_planes(DEPTH)
+        void copper.move($0100, regs.bplcon0)
+        void copper.move($008e, regs.diwstrt)
+        void copper.move($0090, regs.diwstop)
+        void copper.move($0092, regs.ddfstrt)
+        void copper.move($0094, regs.ddfstop)
+        void copper.move($01fc, regs.fmode)
+        void copper.move($0108, regs.bpl1mod)
+        void copper.move($010a, regs.bpl2mod)
+        void copper.move($0102, 0)        ; BPLCON1: reset fine scrolling
+        void copper.move($01e4, regs.diwhigh)
+        void copper.move($0104, 0)        ; BPLCON2: single-playfield priorities
+        copper.end()
+        return planeBase
     }
 
     sub setup_palette() {
@@ -120,32 +132,7 @@ main {
 copperdata {
     %option amiga_chipram
 
-    ; Raw copper list words: register offset, value per MOVE.
-    ; The BPLCON0/DIW/DDF/FMODE/MOD values and the bitplane pointers are
-    ; patched in by build_copperlist(); control registers are reset explicitly.
-    ; DMACON enables raster DMA; copper DMA itself is enabled up front and
-    ; the list ends with CEND so the copper restarts from COP1LC each frame.
-    uword[58] copper_list = [
-        $0096, $8300,    ; MOVE DMACON: SET | DMAEN | BPLEN
-        $00e0, 0, $00e2, 0,    ; MOVE BPL1PT (patched)
-        $00e4, 0, $00e6, 0,    ; MOVE BPL2PT (patched)
-        $00e8, 0, $00ea, 0,    ; MOVE BPL3PT (patched)
-        $00ec, 0, $00ee, 0,    ; MOVE BPL4PT (patched)
-        $00f0, 0, $00f2, 0,    ; MOVE BPL5PT (patched)
-        $00f4, 0, $00f6, 0,    ; MOVE BPL6PT (patched)
-        $00f8, 0, $00fa, 0,    ; MOVE BPL7PT (patched)
-        $00fc, 0, $00fe, 0,    ; MOVE BPL8PT (patched)
-        $0100, 0,    ; MOVE BPLCON0 (patched)
-        $008e, 0,    ; MOVE DIWSTRT (patched)
-        $0090, 0,    ; MOVE DIWSTOP (patched)
-        $0092, 0,    ; MOVE DDFSTRT (patched)
-        $0094, 0,    ; MOVE DDFSTOP (patched)
-        $01fc, 0,    ; MOVE FMODE (patched)
-        $0108, 0,    ; MOVE BPL1MOD (patched)
-        $010a, 0,    ; MOVE BPL2MOD (patched)
-        $0102, 0,    ; MOVE BPLCON1 (reset fine scrolling)
-        $01e4, 0,    ; MOVE DIWHIGH (reset extended window coordinates)
-        $0104, 0,    ; MOVE BPLCON2 (single-playfield priorities)
-        $ffff, $fffe     ; END
-    ]
+    ; Word buffer owned by the copper builder (see main.build_copperlist()):
+    ; DMACON + 4 planes + 11 register MOVEs + END = 42 words.
+    uword[48] copper_list
 }

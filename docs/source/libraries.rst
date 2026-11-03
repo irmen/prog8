@@ -595,14 +595,21 @@ modules. Import them the same way as any other library::
     ``create()`` accepts viewport and backing bitmap dimensions plus the same
     vertical offset, allocates chip-RAM bitplanes, and computes the shadow
     display registers. Larger bitmap dimensions provide scrolling room; callers
-    move plane pointers to select the viewport. ``clear()`` zeroes the planes,
+    move plane pointers to select the viewport.
     ``show()`` installs plane addresses into ``BPLxPT``,
     ``apply_registers()`` writes the rest of the shadow registers once per
     setup, ``patch_copper()`` patches plane addresses into a copper list, and
-    ``set_scroll()`` sets fine horizontal scroll. Kickstart 1.3 compatible
+    ``set_scroll()`` sets fine horizontal scroll. For hardware scrolling
+    within a larger backing bitmap, ``scroll_to()`` positions a
+    register-driven display (and returns the fine value), while
+    ``patch_copper_at()`` patches scrolled plane addresses into a copper
+    list. For double buffering,
+    ``create_backplane()`` allocates a matching second buffer, ``flip()`` swaps
+    the two, and ``clear_backplane()``/``destroy_backplane()`` manage it
+    (see ``examples/amiga/3d.p8``). Kickstart 1.3 compatible
     (the ``AllocBitMap`` fast path is only
-    used on 3.0+). See ``examples/amiga/viewdemo.p8`` for
-    the equivalent manual setup.
+    used on 3.0+). See ``examples/amiga/custominputs.p8`` for
+    the equivalent manual setup (raw copper words and ``AllocMem`` bitplanes).
 
 ``copper``
     Bare-metal copper list builder: emits raw copper words into a caller-owned

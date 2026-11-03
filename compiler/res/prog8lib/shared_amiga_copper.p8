@@ -154,10 +154,10 @@ copper {
         }
         uword reg = $0180 + ((index as uword) & $1f)*2
         uword base = cursor + 1
-        move($0106, 0)
-        move(reg, 0)
-        move($0106, 0)
-        move(reg, 0)
+        void move($0106, 0)
+        void move(reg, 0)
+        void move($0106, 0)
+        void move(reg, 0)
         return base
     }
 

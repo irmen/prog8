@@ -1,5 +1,6 @@
 %import custom
 %import playfield
+%import copper
 %import exec
 %import blitter
 %import math
@@ -63,19 +64,11 @@ main {
         }
         blitter.wait()
 
-        ; Patch the bitplane pointer into the copper list (words 3 and 5)
-        copperdata.copper_list[3] = msw(bitplane)    ; BPL1PTH value
-        copperdata.copper_list[5] = lsw(bitplane)    ; BPL1PTL value
-        copperdata.copper_list[7] = regs.fmode
-        copperdata.copper_list[9] = regs.bplcon0
-        copperdata.copper_list[11] = regs.diwstrt
-        copperdata.copper_list[13] = regs.diwstop
-        copperdata.copper_list[15] = regs.ddfstrt
-        copperdata.copper_list[17] = regs.ddfstop
-        copperdata.copper_list[19] = regs.bpl1mod
-
-        ; Activate the copper list
-        custom.COP1LC = &copperdata.copper_list
+        ; Build the copper list with the copper helper (bitplane slots,
+        ; display registers and the raster gradient) and start it.
+        uword planeBase = build_copperlist(regs)
+        playfield.patch_copper(copper.list, planeBase)
+        custom.COP1LC = copper.list
         custom.DMACON = $8280    ; SET | DMAEN | COPEN
         custom.COPJMP1 = 0
 
@@ -87,52 +80,46 @@ main {
         custom.restore_system()
         playfield.destroy()
     }
+
+    const ubyte BAR_TOP = 90
+    const ubyte BAR_LINES = 24
+
+    ; Static purple-to-magenta raster gradient, one COLOR00 per line.
+    uword[BAR_LINES] gradient = [
+        $0010, $0104, $0207, $0309, $050b, $070d, $090e, $0b0f,
+        $0d0f, $0e0f, $0f0f, $0f0f, $0f0f, $0f0f, $0e0f, $0d0f,
+        $0b0f, $090e, $070d, $050b, $0309, $0207, $0104, $0000
+    ]
+
+    sub build_copperlist(^^custom.DisplayRegs display) -> uword {
+        ; Build the copper list with the copper helper. Returns the base
+        ; value-word index of the bitplane pointer slots, ready to pass to
+        ; playfield.patch_copper().
+        copper.init(&copperdata.copper_list, len(copperdata.copper_list))
+        void copper.move($0096, $83c0)    ; DMACON: SET | DMAEN | BLTEN | BPLEN | COPEN
+        uword planeBase = copper.attach_planes(1)
+        void copper.move($01fc, display.fmode)
+        void copper.move($0100, display.bplcon0)
+        void copper.move($008e, display.diwstrt)
+        void copper.move($0090, display.diwstop)
+        void copper.move($0092, display.ddfstrt)
+        void copper.move($0094, display.ddfstop)
+        void copper.move($0108, display.bpl1mod)
+        void copper.move($0180, 0)        ; COLOR00 = black (background)
+        void copper.move($0182, $0fff)    ; COLOR01 = white (foreground)
+        uword bar = copper.rasterbar(BAR_TOP, BAR_LINES)
+        for i in 0 to BAR_LINES-1
+            copper.set(bar + (i as uword)*4, gradient[i])
+        copper.end()
+        return planeBase
+    }
 }
 
 copperdata {
     %option amiga_chipram
 
-    ; Raw copper list words, one MOVE/WAIT instruction per line.
-    ; MOVE = register offset, value (bit 0 of word 1 clear).
-    ; WAIT = (vpos<<8) | (hpos<<1) | 1, $fffe (bit 0 set, no blitter wait).
-    ; END = $ffff, $fffe.
-    uword[122] copper_list = [
-        $0096, $83c0,    ; MOVE DMACON: SET | DMAEN | BLTEN | BPLEN | COPEN
-        $00e0, $0000,    ; MOVE BPL1PTH (patched at startup)
-        $00e2, $0000,    ; MOVE BPL1PTL (patched at startup)
-        $01fc, $0000,    ; MOVE FMODE (patched from compute_display)
-        $0100, $1200,    ; MOVE BPLCON0: 1 bitplane, color burst on
-        $008e, $2c81,    ; MOVE DIWSTRT
-        $0090, $2cc1,    ; MOVE DIWSTOP
-        $0092, $0038,    ; MOVE DDFSTRT
-        $0094, $00d0,    ; MOVE DDFSTOP
-        $0108, $0000,    ; MOVE BPL1MOD
-        $0180, $0000,    ; MOVE COLOR00 = black (background)
-        $0182, $0fff,    ; MOVE COLOR01 = white (foreground)
-        $5a01, $fffe, $0180, $0010,    ; WAIT 90  + COLOR00 dark purple
-        $5b01, $fffe, $0180, $0104,    ; WAIT 91
-        $5c01, $fffe, $0180, $0207,    ; WAIT 92
-        $5d01, $fffe, $0180, $0309,    ; WAIT 93
-        $5e01, $fffe, $0180, $050b,    ; WAIT 94
-        $5f01, $fffe, $0180, $070d,    ; WAIT 95
-        $6001, $fffe, $0180, $090e,    ; WAIT 96
-        $6101, $fffe, $0180, $0b0f,    ; WAIT 97
-        $6201, $fffe, $0180, $0d0f,    ; WAIT 98
-        $6301, $fffe, $0180, $0e0f,    ; WAIT 99
-        $6401, $fffe, $0180, $0f0f,    ; WAIT 100 bright magenta
-        $6501, $fffe, $0180, $0f0f,    ; WAIT 101 peak
-        $6601, $fffe, $0180, $0f0f,    ; WAIT 102
-        $6701, $fffe, $0180, $0f0f,    ; WAIT 103
-        $6801, $fffe, $0180, $0e0f,    ; WAIT 104
-        $6901, $fffe, $0180, $0d0f,    ; WAIT 105
-        $6a01, $fffe, $0180, $0b0f,    ; WAIT 106
-        $6b01, $fffe, $0180, $090e,    ; WAIT 107
-        $6c01, $fffe, $0180, $070d,    ; WAIT 108
-        $6d01, $fffe, $0180, $050b,    ; WAIT 109
-        $6e01, $fffe, $0180, $0309,    ; WAIT 110
-        $6f01, $fffe, $0180, $0207,    ; WAIT 111
-        $7001, $fffe, $0180, $0104,    ; WAIT 112
-        $7101, $fffe, $0180, $0000,    ; WAIT 113 back to black
-        $ffff, $fffe     ; END
-    ]
+    ; Word buffer owned by the copper builder (see main.build_copperlist()):
+    ; DMACON + 1 plane + 7 register MOVEs + 2 colors + 24 rasterbar
+    ; lines + END = 122 words.
+    uword[128] copper_list
 }

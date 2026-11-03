@@ -4,7 +4,6 @@ TODO
 Future Things and Ideas
 ^^^^^^^^^^^^^^^^^^^^^^^
 - extend the ``-gendoc`` command to generate user reference documentation from Markdown docstrings; see ``ideas/markdown-docstrings-and-reference-docs.md`` for the plan.
-- update the amiga examples to use the new ``copper``/``playfield``/``palette`` helpers where possible (``viewdemo``, ``blitcop``, ``3d``, ``rasters`` still hand-roll bitmap allocation, raw copper words and palette loops).
 - add documentation for more library modules instead of just linking to the source code
 - add float support to the configurable compiler targets. Restrictions: just have "cbm-style floats" as an option (to that it can slot into the current float codegen), where "all" you have to specify is the addresses of AYINT and GIVAYF and FADDT and all their friends.
 - Change scoping rules for qualified symbols so that they don't always start from the root but behave like other programming languages (look in local scope first), maybe only when qualified symbol starts with '.' such as: .local.value = 33, or the other way around? i.e. require new syntax to explicitly look up from global scope. That would give a backwards compatible solution. See ideas/scoping-qualified-symbols.md for a brevity-focused exploration (opt-in `.a.b` local-first, `a.b` stays global; `::a.b` reserved for future flip).
