@@ -1362,6 +1362,26 @@ class TestInstructionSelectionOptimizations : FunSpec({
         lines.any { it.trimStart().startsWith("bsr") } shouldBe true
     }
 
+    test("lea removal inside the loop enables conditional-over-jump") {
+        // the redundant lea blocks the bne/bra/JOIN window; only a refiring
+        // loop can remove the lea first and invert the branch afterwards.
+        val lines = mutableListOf(
+            "    lea  arr,a0",
+            "    move.w  d1,(a0,d0.w)",
+            "    bne  THEN",
+            "    lea  arr,a0",
+            "    bra  JOIN",
+            "THEN:",
+            "    move.w  d2,d3",
+            "JOIN:",
+            "    rts"
+        )
+        optimizeAssembly(lines)
+        lines.any { it.trim() == "beq  JOIN" } shouldBe true
+        lines.none { it.trim() == "bra  JOIN" } shouldBe true
+        lines.count { it.trimStart().startsWith("lea  arr,a0") } shouldBe 1
+    }
+
     test("M5 forgets a0 across a label") {
         val lines = mutableListOf(
             "    lea  arr,a0",

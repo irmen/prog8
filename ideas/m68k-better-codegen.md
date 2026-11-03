@@ -115,7 +115,7 @@ effort. Status: proposal.
 - **Where**: `AsmOptimizer.kt`.
 - **Effort**: medium.
 
-### 2.5 Redundant lea reload (extend)
+### 2.5 Redundant lea reload (extend) [DONE]
 - Existing `optimizeRedundantLea` only tracks `a0`. Extend to `a1`-`a4` and
   across straight-line code; invalidate on calls/branches as today.
 - **Effort**: medium.
@@ -123,6 +123,18 @@ effort. Status: proposal.
   invalidation is correct); extend to a1 keeps scratch semantics, while
   a2-a4 are callee-saved so invalidation across `jsr` relaxes. Treat a1 and
   a2-a4 as two separate, differently-scoped passes.
+- **Done, with negative findings**: measured real output first - 100% of
+  compiler-emitted `lea` target `a0` (61 in textelite, 56 in maze); the only
+  `lea` to `a1` anywhere are two singleton hand-written library loads
+  (`math.crc16/crc32`), never redundant pairs. So the a1-a4 half was
+  deliberately NOT built (untestable dead code). What was built: the pass
+  moved inside the fixpoint loop so branch removals can join straight runs
+  and vice versa, with a regression test proving the cascade
+  (lea removal unblocking conditional-over-jump). Measured delta on
+  textelite/maze/amiga-gfxdemo: zero (identical .asm modulo build headers,
+  identical binaries). Binding constraint is calls killing scratch `a0`
+  between accesses (see maze `cells` case) - that needs callee analysis,
+  i.e. item 4.4, not this pass.
 
 ### 2.6 Store-reload to reg copy (extend)
 - Existing pass handles `move.S d0,(mem)` then `move.S (mem),d1` ->

@@ -43,6 +43,16 @@ internal fun optimizeAssembly(lines: MutableList<String>) {
         }
         var by3 = getLinesBy(pretrimmed, lines, 3)
         by3 = runPass(optimizeConditionalOverJump(by3), 3, by3)
+        // drop a `lea base,a0` when a0 already holds that same base.
+        // a0 is a real CPU register, so this pass is independent of the
+        // p8_regfile layout and of the register allocator. Runs inside the
+        // loop: branch removals above can join straight-line runs and reveal
+        // more, and lea removals can in turn enable further branch removals.
+        val leaMods = optimizeRedundantLea(pretrimmed)
+        if (leaMods.isNotEmpty()) {
+            applyModifications(leaMods, lines, pretrimmed)
+            modified = true
+        }
 
         // DBRA peephole for repeat loops is now obsolete: counted loops are emitted as IRLoopChunk and directly translated to dbra.
         // The old REGFILE-DEPENDENT pattern (move #N,p8_regfile+slot / label: body / subq #1,slot / bne label) no longer occurs.
@@ -50,14 +60,6 @@ internal fun optimizeAssembly(lines: MutableList<String>) {
         if (!modified)
             break
     }
-    // drop a `lea base,a0` when a0 already holds that same base.
-    // a0 is a real CPU register, so this pass is independent of the
-    // p8_regfile layout and of the register allocator.
-    val leaMods = optimizeRedundantLea(pretrimmed)
-    if (leaMods.isNotEmpty()) {
-        applyModifications(leaMods, lines, pretrimmed)
-    }
-
     // A5 .w form: rewrite move.w #N,dK to moveq #N,dK when safe (no longword read of dK
     // before a full write or block boundary in the same basic block).
     val moveqMods = optimizeMoveqWordForm(lines, pretrimmed)
