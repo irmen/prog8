@@ -166,7 +166,7 @@ effort. Status: proposal.
   between accesses (see maze `cells` case) - that needs callee analysis,
   i.e. item 4.4, not this pass.
 
-### 2.6 Store-reload to reg copy (extend)
+### 2.6 Store-reload to reg copy (extend) [DONE]
 - Existing pass handles `move.S d0,(mem)` then `move.S (mem),d1` ->
   `move.S d0,d1` for all sizes already (byte/word extension is done).
 - Extend to frame slots (`(off,a5)`), currently rejected by
@@ -174,6 +174,17 @@ effort. Status: proposal.
 - **Effort**: medium.
 - **Note**: keep excluding `(aN)+` / `-(aN)` post/decrement operands
   (dropping the read would break the pointer's advance).
+- **Done**: new `parseFrameSlot` helper accepts all emitted forms (`8(a5)`,
+  `-2(a5)`, `(-8,a5)`, `(a5)`) and backs both the widened store-reload guard
+  and `parseLeaBase` (whose old `frameSlotPattern` only matched `(-d,a5)`,
+  missing every real positive/unsigned slot). Store-reload parsing switched
+  from naive comma-split to paren-aware `splitOperands` (identical for plain
+  operands; previously frame operands misparsed and silently never matched).
+  `(aN)+`/`-(aN)`, `$hex` and mismatched offsets/sizes stay excluded.
+- **Measured** (frame half disabled vs enabled): 5 conversions, all in maze
+  (`move.w d4,-8(a5)` / `move.w -8(a5),d0` -> `move.w d4,d0`, etc.),
+  maze -12B; textelite/gfxdemo/tictactoe unchanged (zero consecutive
+  frame store-reload pairs there - stores and reloads never sit adjacent).
 
 ## Tier 3 - Instruction selection at lowering (days-weeks)
 
@@ -251,6 +262,30 @@ effort. Status: proposal.
 - Inline small callees' register usage to avoid full caller-saved kill sets at
   call boundaries (when callee is known and small).
 - **Effort**: high. Defer.
+
+### 4.5 Eliminate p8_regfile / p8_fregfile entirely
+- End state after 4.1/4.2 should be near-zero regfile traffic (today already 3
+  mentions each in textelite/maze: one variable plus the label itself). This
+  item removes the section, not just the traffic: stop emitting the
+  `p8_regfile` / `p8_fregfile` BSS labels (`AsmGen.kt` `emitBssVars` tail)
+  when nothing references them.
+- **Where**: `AsmGen.kt` (emission + `resolveRegFileAddress` fallback),
+  `M68kCodeGenerator.kt` (spill-slot path), `VregRenumber.kt` (bails when the
+  regfile layout is observed).
+- **Measure first**: enumerate remaining references after 4.1/4.2 by cause -
+  unallocated vregs (empty allocator map), `%option noframe` subs (cannot take
+  frame slots today), raw `%asm` textual refs (`inlineAsmMayReadRegisters`
+  can only see the regfile symbols textually), float spills.
+- **Plan**: route unallocated vregs to frame slots (or keep the noframe error
+  when no frame is possible); emit the BSS labels conditionally - only when
+  codegen fallback or a raw-`%asm` textual scan still references them, so
+  hand-written library code keeps assembling; apply the same conditional to
+  `p8_fregfile`; revisit the `VregRenumber` bail-out once the layout can be
+  empty.
+- **Benefit**: smaller BSS, no global mutable spill state (reentrant-safe),
+  cleaner listings; the assembler catches any missed reference as an
+  undefined symbol.
+- **Effort**: medium, depends on 4.1/4.2.
 
 ## Tier 5 - Bigger structural work (months)
 

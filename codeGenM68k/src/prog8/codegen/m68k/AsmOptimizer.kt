@@ -251,8 +251,25 @@ private sealed interface LeaBase {
 
 private val addressArithOpPattern = Regex("^(addq|subq|adda|suba|add|sub)\\.([wl])$")
 private val addressRegPattern = Regex("^a[0-7]$")
-private val frameSlotPattern = Regex("^\\((-?\\d+),a5\\)$")
 private val symbolBasePattern = Regex("^([^$():,\\s]+?)([+-]\\d+)?$")
+
+/**
+ * Displacement of an `(off,a5)` frame-slot operand in any emitted form
+ * (`8(a5)`, `-2(a5)`, `(-8,a5)`, `(a5)`), or null. Frame slots are RAM by
+ * construction, so access has no side effects.
+ */
+private fun parseFrameSlot(text: String): Long? {
+    val t = text.trim()
+    val lower = t.lowercase()
+    val inner = when {
+        lower.endsWith("(a5)") -> t.substring(0, t.length - 4)
+        lower.endsWith(",a5)") && t.startsWith("(") -> t.substring(1, t.length - 4)
+        else -> return null
+    }
+    if (inner.isEmpty())
+        return 0L
+    return inner.toLongOrNull()
+}
 
 /**
  * Split a `movea.l`/`move.l` source into a foldable lea base, or null when folding
@@ -280,8 +297,8 @@ private fun parseLeaBase(src: String): LeaBase? {
     }
     if (text.lowercase().matches(addressRegPattern))
         return LeaBase.Register(text.lowercase())
-    frameSlotPattern.matchEntire(text)?.let {
-        return LeaBase.Frame(it.groupValues[1].toLong())
+    parseFrameSlot(text)?.let {
+        return LeaBase.Frame(it)
     }
     if (text.startsWith("$"))
         return null
@@ -583,6 +600,10 @@ private fun optimizeSwapBack(linesBy: Sequence<List<TrimmedLine>>): List<Modific
     return mods
 }
 
+/** `(off,a5)` frame slot: RAM by construction, so the access has no read/write
+ *  side effects and hits the same slot while a5 is untouched (consecutive lines). */
+private fun String.isFrameSlotOperand(): Boolean = parseFrameSlot(this) != null
+
 private fun optimizeStoreReloadToRegCopy(linesBy: Sequence<List<TrimmedLine>>): List<Modification> {
     //  move.S  dN,M  /  move.S  M,dK  (K != N, same mem)  ->  keep store, replace reload with move.S dN,dK
     val mods = mutableListOf<Modification>()
@@ -591,19 +612,25 @@ private fun optimizeStoreReloadToRegCopy(linesBy: Sequence<List<TrimmedLine>>): 
         val second = lines[1].instruction
         if (hasLabel(lines[1].trimmed)) continue
         if (!first.isMove() || !second.isMove()) continue
-        val m1 = first.moveOperands() ?: continue
-        val m2 = second.moveOperands() ?: continue
-        val (src1, dst1) = m1
-        val (src2, dst2) = m2
+        // paren-aware split: frame-slot operands embed a comma (`(-8,a5),d1`).
+        val m1 = first.instructionOperands()?.let(::splitOperands) ?: continue
+        val m2 = second.instructionOperands()?.let(::splitOperands) ?: continue
+        if (m1.size != 2 || m2.size != 2) continue
+        val (src1, dst1) = m1[0].trim() to m1[1].trim()
+        val (src2, dst2) = m2[0].trim() to m2[1].trim()
         if (!src1.lowercase().matches(dataRegisterPattern)) continue
         if (dst1.lowercase().matches(dataRegisterPattern)) continue
         if (!dst2.lowercase().matches(dataRegisterPattern)) continue
         if (src2.lowercase() != dst1.lowercase()) continue
         if (dst2.lowercase() == src1.lowercase()) continue
         if (first.moveSize() != second.moveSize()) continue
-        // memory safety: only plain memory operands, no indirect/indexing whose address or
-        // side effects (e.g. an (aX)+ increment) would differ between read and no-read
-        if (!dst1.isSafeMemoryOperand()) continue
+        // memory safety: plain memory operands or (off,a5) frame slots; anything
+        // else parenthesised (e.g. an (aX)+ increment) stays excluded since its
+        // address or side effects would differ between read and no-read.
+        // memory safety: plain memory operands or (off,a5) frame slots; anything
+        // else parenthesised (e.g. an (aX)+ increment) stays excluded since its
+        // address or side effects would differ between read and no-read.
+        if (!dst1.isSafeMemoryOperand() && !dst1.isFrameSlotOperand()) continue
         val sz = first.moveSize()
         val indent = lines[1].value.takeWhile { it.isWhitespace() }
         val label = keepLabel(lines[1].trimmed)

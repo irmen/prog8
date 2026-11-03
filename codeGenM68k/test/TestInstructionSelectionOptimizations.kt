@@ -1497,8 +1497,19 @@ class TestInstructionSelectionOptimizations : FunSpec({
             "    rts"
         )
         optimizeAssembly(lines)
-        println("FRAME-LINES:" + lines)
         lines.any { it.trim() == "lea  (-6,a5),a2" } shouldBe true
+    }
+
+    test("folds unsigned frame slot base plus arithmetic into lea") {
+        // real codegen emits `8(a5)`, not `(8,a5)`, for positive offsets.
+        val lines = mutableListOf(
+            "    movea.l  8(a5),a2",
+            "    addq.l  #2,a2",
+            "    move.w  (a2),d0",
+            "    rts"
+        )
+        optimizeAssembly(lines)
+        lines.any { it.trim() == "lea  (10,a5),a2" } shouldBe true
     }
 
     test("M5 forgets a0 across a label") {
@@ -1716,14 +1727,50 @@ class TestInstructionSelectionOptimizations : FunSpec({
         lines.count { it.contains("p8b_test.p8v_x,d1") } shouldBe 0
     }
 
-    test("A2 keeps frame-slot reloads untouched") {
+    test("A2 replaces a frame-slot store-reload with a register copy") {
         val lines = mutableListOf(
             "    move.l  d0,8(a5)",
             "    move.l  8(a5),d1",
             "    rts"
         )
         optimizeAssembly(lines)
-        lines.count { it == "    move.l  8(a5),d1" } shouldBe 1
+        lines.count { it == "    move.l  d0,8(a5)" } shouldBe 1
+        lines.count { it == "    move.l  d0,d1" } shouldBe 1
+        lines.count { it == "    move.l  8(a5),d1" } shouldBe 0
+    }
+
+    test("A2 replaces a negative-offset frame-slot store-reload") {
+        val lines = mutableListOf(
+            "    move.b  d2,(-5,a5)",
+            "    move.b  (-5,a5),d3",
+            "    rts"
+        )
+        optimizeAssembly(lines)
+        lines.count { it == "    move.b  d2,(-5,a5)" } shouldBe 1
+        lines.count { it == "    move.b  d2,d3" } shouldBe 1
+    }
+
+    test("A2 keeps mismatched frame-slot offsets untouched") {
+        val lines = mutableListOf(
+            "    move.l  d0,8(a5)",
+            "    move.l  4(a5),d1",
+            "    rts"
+        )
+        optimizeAssembly(lines)
+        lines.count { it == "    move.l  8(a5),d0" } shouldBe 0
+        lines.count { it == "    move.l  4(a5),d1" } shouldBe 1
+    }
+
+    test("A2 keeps post-increment store-reloads untouched") {
+        val lines = mutableListOf(
+            "    move.l  d0,(a0)+",
+            "    move.l  (a0)+,d1",
+            "    rts"
+        )
+        optimizeAssembly(lines)
+        lines.count { it == "    move.l  d0,(a0)+" } shouldBe 1
+        lines.count { it == "    move.l  (a0)+,d1" } shouldBe 1
+        lines.count { it == "    move.l  d0,d1" } shouldBe 0
     }
 
     test("A2 drops a store-reload-into-source pair as a mirror") {
