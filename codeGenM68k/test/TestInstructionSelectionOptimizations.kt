@@ -1749,4 +1749,20 @@ class TestInstructionSelectionOptimizations : FunSpec({
         lines.any { it == "moveq  #0,d0" } shouldBe true
         lines.none { it.startsWith("clr") } shouldBe true
     }
+
+    // === instruction lines use lowercase mnemonics with two-space gaps ===
+
+    test("emitted instructions are normalized to lowercase with two-space gaps") {
+        val lines = generateAsm(
+            tempRoot.resolve("test-m68k-normalize"),
+            listOf(
+                IRInstructions.loadMemory(Opcode.LOADMZ, IRDataType.BYTE, 1, IRMemory.direct("p8b_test.p8v_value"))
+            )
+        )
+
+        // the zero-extending and.w was emitted with three spaces before normalization
+        lines.any { it == "and.w  #\$ff,d0" } shouldBe true
+        // every indented line the codegen emits starts with a lowercase mnemonic
+        lines.filter { it.startsWith("    ") }.none { it[4].isUpperCase() } shouldBe true
+    }
 })

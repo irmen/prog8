@@ -50,10 +50,18 @@ effort. Status: proposal.
 - **Note**: keep the `; source:` lines unconditionally - they map to Prog8
   source at one line per statement and don't bloat like the per-IR-op traces.
 
-### 1.2 Normalize whitespace / mnemonics
+### 1.2 Normalize whitespace / mnemonics [DONE]
 - **Where**: `AsmGen.kt`.
 - **Benefit**: consistency with vasm idioms; easier diffing.
 - **Effort**: small.
+- **Done**: `emitLine` normalizes every generated line to lowercase mnemonic +
+  exactly two spaces before operands (operands untouched: string literals stay
+  case-sensitive, `d1:d0` pairs intact). All `SECTION`/`ALIGN` literals
+  lowercased to `section`/`align`. Verified on textelite/maze: zero
+  uppercase-led code lines, zero 3-space gaps, both still assemble.
+- **Note**: hand-written `%asm` in library sources (`syslib.p8`,
+  `shared_m68k_math.p8`) passes through verbatim and keeps its own style
+  (e.g. padded `lea     x,a0`, uppercase `ALIGN`); deliberately not touched.
 
 ## Tier 2 - Peephole expansion (days)
 
