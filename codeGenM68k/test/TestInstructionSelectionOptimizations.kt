@@ -1826,6 +1826,82 @@ class TestInstructionSelectionOptimizations : FunSpec({
         lines.count { it == "    move.w  d0,d1" } shouldBe 0
     }
 
+    // === const-operate folding peephole ===
+
+    test("folds move-const plus or into immediate form") {
+        val lines = mutableListOf(
+            "    move.b  #8,d5",
+            "    or.b  d5,d4",
+            "    move.l  d0,d5",
+            "    rts"
+        )
+        optimizeAssembly(lines)
+        lines.any { it.trim() == "ori.b  #8,d4" } shouldBe true
+        lines.none { it.contains("move.b  #8,d5") } shouldBe true
+    }
+
+    test("folds move-const plus push into immediate push") {
+        val lines = mutableListOf(
+            "    move.l  #sym,d2",
+            "    move.l  d2,-(sp)",
+            "    move.l  d7,d2",
+            "    rts"
+        )
+        optimizeAssembly(lines)
+        lines.any { it.trim() == "move.l  #sym,-(sp)" } shouldBe true
+        lines.none { it.contains("move.l  #sym,d2") } shouldBe true
+    }
+
+    test("folds moveq plus narrow op") {
+        val lines = mutableListOf(
+            "    moveq  #-1,d2",
+            "    move.w  d2,d1",
+            "    moveq  #0,d2",
+            "    rts"
+        )
+        optimizeAssembly(lines)
+        lines.none { it.trim() == "moveq  #-1,d2" } shouldBe true
+        lines.any { it.contains("d1") && it.contains("#-1") } shouldBe true
+    }
+
+    test("keeps the pair when the temp is read afterwards") {
+        val lines = mutableListOf(
+            "    move.l  #sym,d2",
+            "    move.l  d2,-(sp)",
+            "    move.l  d2,d0",
+            "    rts"
+        )
+        optimizeAssembly(lines)
+        lines.any { it.trim() == "move.l  #sym,d2" } shouldBe true
+        lines.any { it.trim() == "move.l  d2,-(sp)" } shouldBe true
+    }
+
+    test("keeps addi-form targets that cannot address An") {
+        // `add.l d0,a2` is legal but `addi.l #4,a2` is not: keep the pair
+        // (the `move.l #4` itself may still become `moveq` via 2.3).
+        val lines = mutableListOf(
+            "    move.l  #4,d0",
+            "    add.l  d0,a2",
+            "    move.l  d7,d0",
+            "    rts"
+        )
+        optimizeAssembly(lines)
+        lines.none { it.trimStart().startsWith("addi.") } shouldBe true
+        lines.any { it.trim() == "add.l  d0,a2" } shouldBe true
+    }
+
+    test("keeps the pair across a label") {
+        val lines = mutableListOf(
+            "    move.b  #8,d5",
+            "    or.b  d5,d4",
+            "somelabel:",
+            "    rts"
+        )
+        optimizeAssembly(lines)
+        lines.any { it.trim() == "move.b  #8,d5" } shouldBe true
+        lines.any { it.trim() == "or.b  d5,d4" } shouldBe true
+    }
+
     // === A6 zero-extend peephole ===
 
     test("A6 rewrites move.b+and.l zero-extension to moveq+move.b") {

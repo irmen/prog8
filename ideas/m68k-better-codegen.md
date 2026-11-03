@@ -68,7 +68,7 @@ effort. Status: proposal.
 
 ## Tier 2 - Peephole expansion (days)
 
-### 2.1 Redundant move elimination
+### 2.1 Redundant move elimination [DONE]
 - `move.l dK,dK`, `move.l aK,aK` no-ops; `move.l d0,d0` after a computation.
 - **Where**: `AsmOptimizer.kt`.
 - **Effort**: small.
@@ -186,6 +186,26 @@ effort. Status: proposal.
   maze -12B; textelite/gfxdemo/tictactoe unchanged (zero consecutive
   frame store-reload pairs there - stores and reloads never sit adjacent).
 
+### 2.7 Fold load-const-then-operate [DONE]
+- `move.#N,dX` / `op dX,dY` -> `op.#N,dY` where the op supports immediates
+  (spotted: `move.b #8,d3` / `or.b d3,d2` -> `ori.b #8,d2` in inlined maze
+  bodies). Same value, identical flags (both set N/Z from the result, clear
+  V/C); the move is dead if `dX` is otherwise unused between the two lines.
+- **Where**: `AsmOptimizer.kt` (new pass) or lowering.
+- **Note**: needs a use-scan for `dX` between the pair (or restrict to pairs
+  where `dX` is a scratch/allocated temp); without it the move must stay.
+- **Effort**: small-medium.
+- **Done**: new `optimizeConstOperateFold` for `add`/`sub`/`and`/`or`/`eor`/
+  `cmp`/`move` (second-line sizes, `moveq` first lines included). `btst`-style
+  ops excluded (they preserve incoming flags); `addi`-family to `An`
+  excluded (register form legal, immediate form not); `sr`/`ccr` excluded.
+  dX-dead scan reuses the file's label/control-transfer conventions, safe only
+  on a covering overwrite (`move.l`/`moveq`/same-size `move`/`clr`).
+- **Measured** (pass disabled vs enabled): maze -12B, gfxdemo -4B,
+  tictactoe -4B, textelite 0 (conversions fire but alignment absorbs them -
+  e.g. `move.l #sym,d2` / `move.l d2,-4(a5)` -> `move.l #sym,-4(a5)`).
+  Conversions individually verified sound by inspection.
+
 ## Tier 3 - Instruction selection at lowering (days-weeks)
 
 ### 3.1 Use 68020 scaled indexing directly [DONE]
@@ -222,11 +242,22 @@ effort. Status: proposal.
   now route through it. Verified live: `move.b`+`extb.l` on qemu68k,
   `ext.w`+`ext.l` preserved on amiga500, both assemble.
 
-### 3.3 Better addressing modes
+### 3.3 Better addressing modes [DONE, mostly verify-first]
 - Use post-increment `(a0)+` / pre-decrement `-(a0)` where the IR expresses
   sequential access; use displacement with base where offsets are small.
 - **Where**: `resolveMemory()` + `InstrLoadStore.kt`.
 - **Effort**: medium.
+- **Done, rescoped by measurement**: displacement is already complete
+  (`(off,An)` indirect, `sym+off` direct) and post-increment exists everywhere
+  the IR expresses sequential access (45 uses in textelite, 34 in maze -
+  memcopy/memset inline paths). The remaining shapes need other tiers, not
+  addressing selection: load-bump-writeback triples (`move.l 8(a5),a0` /
+  `move.b d2,(a0)+` / `move.l a0,8(a5)`, 18 in textelite) need liveness for
+  the writeback plus regalloc to keep the pointer in `An` (Tier 4/5.2);
+  `lea base,a0` + `(a0,dN)` pairs (42/33) cannot fuse displacement for any
+  saving (`lea` is absolute-long either way; dropping it needs CSE/liveness,
+  Tier 5). Zero foldable zero-displacement indexed forms occur. Leftovers
+  re-homed, nothing buildable left in this item's stated scope.
 
 ### 3.4 Tail-call and branch optimization [DONE]
 - Conditional-branch-over-`bra` inversion already exists

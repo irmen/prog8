@@ -66,6 +66,14 @@ internal fun optimizeAssembly(lines: MutableList<String>) {
         // DBRA peephole for repeat loops is now obsolete: counted loops are emitted as IRLoopChunk and directly translated to dbra.
         // The old REGFILE-DEPENDENT pattern (move #N,p8_regfile+slot / label: body / subq #1,slot / bne label) no longer occurs.
 
+        // fold move-#N plus operate into the immediate form; creates addi/andi/ori
+        // lines other passes (tst removal, moveq forms) consume next round.
+        val constMods = optimizeConstOperateFold(lines, pretrimmed)
+        if (constMods.isNotEmpty()) {
+            applyModifications(constMods, lines, pretrimmed)
+            modified = true
+        }
+
         if (!modified)
             break
     }
@@ -490,6 +498,124 @@ private fun optimizeAddressArithmetic(lines: List<String>, allPretrimmed: List<S
             val labelPrefix = if (label.isNotEmpty()) "$label  " else ""
             mods.add(Modification(filtered[i].index, false, "$originalIndent$labelPrefix" + "moveq  #${signedValue},$dst"))
         }
+    }
+
+    return mods
+}
+
+/** Immediate-form counterpart of a two-operand op, or null when folding would be illegal or flag-unsound. */
+private fun constFoldMnemonic(op: String, size: Char, dst: String): String? {
+    val dstLower = dst.lowercase()
+    if (dstLower == "sr" || dstLower == "ccr")
+        return null
+    if (dstLower.matches(addressRegPattern) && op != "move")
+        return null
+    return when (op) {
+        "add" -> "addi.$size"
+        "sub" -> "subi.$size"
+        "and" -> "andi.$size"
+        "or" -> "ori.$size"
+        "eor" -> "eori.$size"
+        "cmp" -> "cmpi.$size"
+        "move" -> "move.$size"
+        else -> null
+    }
+}
+
+/**
+ * Fold `move.S #N,dX` (or `moveq #N,dX`) + `op.S dX,dY` into `opi.S #N,dY`.
+ * Sound: the pair's end state (dY, flags) is a pure function of (dY, N), which
+ * the replacement recomputes identically; the dropped `move` only survives in
+ * dX, so dX must be dead after the pair (forward scan below). `btst`-style ops
+ * are excluded (they preserve incoming flags, so dropping the move would leak
+ * its flag state); `addi`-family destinations exclude address registers (the
+ * immediate form cannot target `An`, unlike the register form).
+ */
+private fun optimizeConstOperateFold(lines: List<String>, allPretrimmed: List<String>): List<Modification> {
+    val controlTransfers = setOf(
+        "bra", "bsr", "jmp", "jsr", "rts", "rtr", "rte", "trap",
+        "bcc", "bcs", "beq", "bne", "bmi", "bpl", "bvc", "bvs",
+        "bhi", "bls", "bhs", "blo", "bgt", "ble", "bge", "blt",
+        "dbcc", "dbcs", "dbhi", "dbhs", "dblo", "dbls", "dbne", "dbnz", "dbeq", "dbz",
+        "dbmi", "dbpl", "dbge", "dblt", "dbgt", "dble", "dbvc", "dbvs", "dbtst", "dbset",
+        "dbclr", "dbchg", "dbf", "dbra"
+    )
+    val filtered = allPretrimmed.withIndex()
+        .filter { it.value.isNotBlank() && !it.value.trimStart().startsWith(';') }
+        .map { IndexedValue(it.index, it.value.trimStart()) }
+        .toList()
+
+    val mods = mutableListOf<Modification>()
+
+    for (i in 0 until filtered.size - 1) {
+        val first = filtered[i].value
+        val second = filtered[i + 1].value
+        if (hasLabel(second))
+            continue
+        val firstLower = first.instructionPart().trim().lowercase()
+        val secondLower = second.instructionPart().trim().lowercase()
+        val firstMnemonic = firstLower.substringBefore(' ').substringBefore('\t')
+        val opBase = secondLower.substringBefore(' ').substringBefore('\t').substringBefore('.')
+        if (opBase !in setOf("add", "sub", "and", "or", "eor", "cmp", "move"))
+            continue
+        val secondSize = secondLower.substringBefore(' ').substringBefore('\t').substringAfter('.', "")
+        if (secondSize.length != 1 || secondSize[0] !in "bwl")
+            continue
+        val m1 = first.instructionOperands()?.let(::splitOperands) ?: continue
+        val m2 = second.instructionOperands()?.let(::splitOperands) ?: continue
+        if (m1.size != 2 || m2.size != 2)
+            continue
+        val imm = m1[0].trim()
+        val reg = m1[1].trim()
+        if (!imm.startsWith("#") || !reg.isDataReg())
+            continue
+        if (firstMnemonic.startsWith("moveq")) {
+            // full-long write: any second size reads the same low part.
+        } else if (firstMnemonic == "move.$secondSize") {
+            // same-size partial write: low part matches.
+        } else {
+            continue
+        }
+        if (!sameOperand(m2[0].trim(), reg))
+            continue
+        val dst = m2[1].trim()
+        if (dst.startsWith("#"))
+            continue
+        val foldedMnemonic = constFoldMnemonic(opBase, secondSize[0], dst) ?: continue
+        // dX must be dead after the pair: scan forward; safe only when the first
+        // subsequent mention is an overwrite covering the written bytes. Labels and
+        // control transfers end the scan as unsafe (another path may read dX).
+        val writtenLong = firstMnemonic.startsWith("moveq") || firstMnemonic == "move.l"
+        var dead = false
+        scan@ for (j in i + 2 until filtered.size) {
+            val text = filtered[j].value
+            if (hasLabel(text))
+                break@scan
+            val low = text.instructionPart().trim().lowercase()
+            val mn = low.substringBefore(' ').substringBefore('\t')
+            if (mn in controlTransfers)
+                break@scan
+            if (!Regex("""\b${Regex.escape(reg.lowercase())}\b""").containsMatchIn(low))
+                continue
+            val ops = text.instructionOperands()?.let(::splitOperands) ?: break@scan
+            val kill = when {
+                mn.startsWith("moveq") && ops.size == 2 && sameOperand(ops[1].trim(), reg) -> true
+                (mn == "move.l" || (!writtenLong && mn == "move.$secondSize")) && ops.size == 2 && sameOperand(ops[1].trim(), reg) -> true
+                mn == "clr.$secondSize" && ops.size == 1 && sameOperand(ops[0].trim(), reg) -> true
+                else -> false
+            }
+            if (kill) {
+                dead = true
+                break@scan
+            }
+            break@scan
+        }
+        if (!dead)
+            continue
+        val originalLine = lines.getOrNull(filtered[i + 1].index) ?: allPretrimmed[filtered[i + 1].index]
+        val originalIndent = originalLine.takeWhile { it.isWhitespace() }
+        mods.add(Modification(filtered[i].index, true, null))
+        mods.add(Modification(filtered[i + 1].index, false, "$originalIndent$foldedMnemonic  $imm,$dst"))
     }
 
     return mods
