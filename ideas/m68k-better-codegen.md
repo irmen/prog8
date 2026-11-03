@@ -386,7 +386,7 @@ effort. Status: proposal.
   shapes (load-const-then-operate, foldable to `ori.b #8,d2`) - candidate
   peephole/lowering item, not yet planned.
 
-### 4.7 Avoid fixed A5 frame slots for simple locals [OPEN]
+### 4.7 Avoid fixed A5 frame slots for simple locals [PARTIAL]
 - **Problem**: named source-level locals (e.g. `ubyte ax` in `planet.distance()`)
   currently receive dedicated A5 frame slots at compile time and are stored to
   and reloaded from those slots around almost every operation, even inside a
@@ -395,20 +395,34 @@ effort. Status: proposal.
   two instructions later just to shift it left by 2, when it could have stayed
   in the register that already held it.
 - **Where**: `M68kRegisterAllocator`, `StackFrameLayout`, `AsmGen`.
+- **Status**:
+  - Peephole fallback implemented in `AsmOptimizer.optimizeFrameSlotRoundTrips`
+    (2026-11-03). It removes redundant A5 frame-slot round-trips and dead
+    stores within a single basic block, and it is registered in the main
+    `optimizeAssembly()` loop. Tests added to
+    `TestInstructionSelectionOptimizations` cover the matching patterns and the
+    conservative non-matching cases (register clobber, branch boundary, label
+    preservation).
+  - Full solution (locals as vregs) remains open.
+- **Measured effect of the peephole fallback on `textelite`**: 2 `move`
+  instructions removed, binary size 16 101 B -> 16 085 B (-16 B). The pass is
+  intentionally conservative (basic-block only, no cross-block liveness), so
+  the gain is small. The remaining A5-frame moves are mostly separated by
+  branches or calls, or live across call boundaries, which requires the full
+  solution.
 - **Approach**:
   - Full solution: treat named locals as virtual registers alongside temporary
     vregs; run liveness analysis across the subroutine; allocate hot locals to
     hardware registers and spill only when necessary (register pressure,
     address-taken, live across calls, recursion/debugging requirements).
     Reserve dedicated A5 slots only for locals that must have a stable address.
-  - Cheap fallback: add peephole passes for store-to-load forwarding within a
-    basic block and dead-local-store elimination, without changing the frame
-    model.
-- **Benefit**: removes the ~23% of prog8 `move` instructions that currently
-  hit A5 frame slots in `textelite` (392 of 1699 moves), reducing both code
-  size and execution time.
+  - The peephole fallback already covers the easy intra-basic-block cases.
+- **Benefit**: the full solution removes the ~23% of prog8 `move` instructions
+  that currently hit A5 frame slots in `textelite` (392 of 1699 moves),
+  reducing both code size and execution time. The peephole fallback captures
+  only a small subset but does so safely.
 - **Effort**: medium-high for the full register-allocation solution; small for
-  the peephole fallback.
+  the peephole fallback (done).
 - **Trade-offs**: must preserve recursion, `&local`, `%option noframe`, and
   hand-written `%asm` semantics.
 
