@@ -41,7 +41,8 @@ internal fun optimizeAssembly(lines: MutableList<String>) {
         // plus single-line true no-ops (movea/exg with identical operands)
         // and the lsl #1 -> add dN,dN strength reduction.
         val quickMods = optimizeMoveqLongForm(lines, pretrimmed) + optimizeAddSubQuick(lines, pretrimmed) +
-            optimizeMoveSelfNoOps(pretrimmed) + optimizeLslOneToDouble(lines, pretrimmed)
+            optimizeMoveSelfNoOps(pretrimmed) + optimizeLslOneToDouble(lines, pretrimmed) +
+            optimizeCmpZeroToTst(lines, pretrimmed)
         if (quickMods.isNotEmpty()) {
             applyModifications(quickMods, lines, pretrimmed)
             modified = true
@@ -879,6 +880,53 @@ private fun optimizeByteZeroExtendSafe(lines: List<String>, allPretrimmed: List<
     }
 
     return mods
+}
+
+/**
+ * Rewrite `cmp.<size> #0,dN` and `cmpi.<size> #0,dN` to `tst.<size> dN`.
+ * For a comparison against zero the flags are identical (N/Z reflect the
+ * register, V and C are cleared), and `tst` is smaller than `cmpi`.
+ */
+private fun optimizeCmpZeroToTst(lines: List<String>, allPretrimmed: List<String>): List<Modification> {
+    val mods = mutableListOf<Modification>()
+    val filtered = allPretrimmed.withIndex()
+        .filter { it.value.isNotBlank() && !it.value.trimStart().startsWith(';') }
+        .map { IndexedValue(it.index, it.value.trimStart()) }
+        .toList()
+
+    for (entry in filtered) {
+        val line = entry.value
+        val token = line.instructionPart().substringBefore(' ').substringBefore('\t').lowercase()
+        val base = token.substringBefore('.')
+        if (base !in setOf("cmp", "cmpi"))
+            continue
+        val size = token.substringAfter('.', "")
+        if (size !in setOf("b", "w", "l"))
+            continue
+        val ops = line.instructionOperands() ?: continue
+        val parts = splitOperands(ops)
+        if (parts.size != 2)
+            continue
+        if (!isImmediateZero(parts[0].trim()))
+            continue
+        val dst = parts[1].trim().lowercase()
+        if (!dst.matches(dataRegisterPattern))
+            continue
+        val originalLine = lines.getOrNull(entry.index) ?: allPretrimmed[entry.index]
+        val indent = originalLine.takeWhile { it.isWhitespace() }
+        val label = keepLabel(originalLine)
+        val labelPrefix = if (label.isNotEmpty()) "$label  " else ""
+        mods.add(Modification(entry.index, false, "${indent}${labelPrefix}tst.$size  $dst"))
+    }
+    return mods
+}
+
+private fun isImmediateZero(s: String): Boolean {
+    val value = s.trim().lowercase()
+    if (!value.startsWith('#'))
+        return false
+    val num = value.substring(1).trim()
+    return num == "0" || num == "$0" || num == "0x0" || num == "00"
 }
 
 /** Matches a parenthesised group, for stripping addressing modes. */

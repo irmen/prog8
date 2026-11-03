@@ -977,6 +977,64 @@ class TestInstructionSelectionOptimizations : FunSpec({
         lines.count { it == "    ext.l  d3" } shouldBe 1
     }
 
+    test("rewrites cmpi #0 on data registers to tst") {
+        val lines = mutableListOf(
+            "    cmpi.b  #0,d0",
+            "    cmpi.w  #0,d1",
+            "    cmpi.l  #0,d2",
+            "    beq     somewhere"
+        )
+        optimizeAssembly(lines)
+        lines.any { it == "    tst.b  d0" } shouldBe true
+        lines.any { it == "    tst.w  d1" } shouldBe true
+        lines.any { it == "    tst.l  d2" } shouldBe true
+        lines.none { it.trimStart().startsWith("cmpi.") } shouldBe true
+    }
+
+    test("rewrites cmp #0 alias on data registers to tst") {
+        val lines = mutableListOf(
+            "    cmp.b  #0,d3",
+            "    bne     somewhere"
+        )
+        optimizeAssembly(lines)
+        lines.any { it == "    tst.b  d3" } shouldBe true
+        lines.none { it.trimStart().startsWith("cmp.") } shouldBe true
+    }
+
+    test("keeps label when rewriting cmpi #0") {
+        val lines = mutableListOf(
+            "mylabel:",
+            "    cmpi.w  #0,d4",
+            "    beq     somewhere"
+        )
+        optimizeAssembly(lines)
+        lines.any { it == "mylabel:" } shouldBe true
+        lines.any { it == "    tst.w  d4" } shouldBe true
+        lines.none { it.trimStart().startsWith("cmpi.") } shouldBe true
+    }
+
+    test("does not rewrite cmp with non-zero immediate") {
+        val lines = mutableListOf(
+            "    cmpi.b  #1,d0",
+            "    cmp.w  #42,d1",
+            "    rts"
+        )
+        optimizeAssembly(lines)
+        lines.count { it.trimStart().startsWith("cmpi.") } shouldBe 1
+        lines.count { it.trimStart().startsWith("cmp.") } shouldBe 1
+    }
+
+    test("does not rewrite cmp register-register") {
+        val lines = mutableListOf(
+            "    cmp.b  d0,d1",
+            "    cmpi.w  #0,d2",
+            "    rts"
+        )
+        optimizeAssembly(lines)
+        lines.any { it == "    cmp.b  d0,d1" } shouldBe true
+        lines.any { it == "    tst.w  d2" } shouldBe true
+    }
+
     test("does not collapse ext.w plus ext.l or move.w plus ext.l") {
         val lines = mutableListOf(
             "    ext.w  d0",

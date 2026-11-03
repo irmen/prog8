@@ -274,8 +274,14 @@ effort. Status: proposal.
   tail-call, not generated code.
 
 ### 3.5 Multiply-by-constant strength reduction
-- Replace `mulu.w #N` / `muls.w #N` with shift-add-sub recipes where cheaper:
-  few-bit constants (`10x = (x<<3)+(x<<1)`), subtraction forms
+- Replace `mulu.w #N` / `muls.w #N` (and `.l` forms on 68020) with
+  shift-add-sub recipes where cheaper. The recipes work for both signed and
+  unsigned multiplication by a positive constant: left-shift and add are
+  linear over two's complement, so the same `x << a + x << b + ...` chain
+  produces the correct low bits for `muls` as well as `mulu`. Negative
+  constants (`x * -N`) can be handled by computing the positive recipe and
+  negating the result.
+- Examples: few-bit constants (`10x = (x<<3)+(x<<1)`), subtraction forms
   (`29x = (x<<5)-(x<<2)-x`, `31x = (x<<5)-x`), factored forms (`45x` via
   `9x` then `5x`). Classic minimal-chain recipes (Bernstein); a small table
   of common strides (array widths, screen rows, struct sizes) covers nearly
@@ -283,10 +289,14 @@ effort. Status: proposal.
 - **Where**: lowering where `mulu.w #N` is emitted (`InstrArithmetic.kt`,
   index scaling in `resolveMemory()`), possibly plus a peephole for
   already-emitted forms.
-- **Gate by CPU**: aggressive table on 68000 (`mulu.w` is ~70 cycles, nearly
-  every 2-3 term recipe wins); short recipes only on 68020 (`muls.l` is
-  ~28-30 cycles, chains run ~8-16); off on 030+ (multiply caught up, only
-  size would benefit and prog8 targets stop at 020 anyway).
+- **Gate by CPU and term count**: aggressive table on 68000 (`mulu.w` is ~70
+  cycles, nearly every 2-3 term recipe wins; allow up to ~3-4 terms);
+  short recipes only on 68020 (`muls.l` is ~28-30 cycles, chains run ~8-16;
+  limit to ~2 terms). Off on 68030/68040/68060 because the hardware
+  multiplier is fast enough that shift-add chains are unlikely to help and
+  can be slower. Prog8 currently has no 030/040/060 targets, so the practical
+  cutoff is 68000 vs 68020, but the implementation must check
+  `compTarget.cpu` and disable the optimization for anything newer than 68020.
 - **Benefit**: speed first, size second. Real occurrences exist: `mulu.w #29`
   in `cellidx` and float-index paths. Baseline: vbcc `-O2` also emits
   `mulu.w #29` here, so this is a spot to beat vbcc, not just match it -
@@ -299,15 +309,19 @@ effort. Status: proposal.
   Covering those needs a CFG back-edge walk (medium work of its own), so the
   policy stays static cost-per-CPU instead.
 
-### 3.6 IR-level multiplication by power of two [OPEN]
+### 3.6 IR-level multiplication by power of two [DONE]
 - **Where**: `simpleAst/src/prog8/code/optimize/ExpressionOptimizers.kt`
-  (`optimizeStrengthReduction`). Only `/` and `%` are reduced today; `*` by a
-  power of two is not.
-- Reduce `x * 2^n` -> `x << n` for integer types (signed and unsigned, since
-  the shift is exact for powers of two). Also `x * 0` -> `0`, `x * 1` -> `x`
-  (with side-effect guard on `x`).
+  (`optimizeAlgebraicIdentities`). `x * 2^n` is rewritten to `x << n` for
+  integer types (signed and unsigned, since a left shift fills with zeros and
+  is exact for powers of two). `x * 0` -> `0` and `x * 1` -> `x` are also
+  handled, with the side-effect guard on the zero case. Negative powers of
+  two (`x * -2^n`) become `-(x << n)`.
 - **Benefit**: all targets (IR-level, so 6502, M68K, virtual), not just M68K.
-- **Effort**: small (mirrors the existing `/` and `%` reductions).
+- **Effort**: small.
+- **Test coverage**: `compiler/test/TestOptimization2.kt` "multiplication by
+  negative power of two (simpleAst)" already exercises the rewrite; positive
+  powers and the `0`/`1` identities are covered by the same code path in
+  `optimizeAlgebraicIdentities`.
 
 ## Tier 4 - Register allocation & spilling (weeks)
 
@@ -331,6 +345,10 @@ effort. Status: proposal.
 - Make the regfile a last resort (globals / non-reentrant state) rather than
   the default fallback for uncolored vregs.
 - **Effort**: medium, depends on 4.1.
+- **Does NOT remove the regfile**: this only reduces traffic. Some cases still
+  legitimately need the regfile fallback (unallocated vregs, `%option noframe`
+  subs, raw `%asm` textual references, float spills). Actual removal of the
+  `p8_regfile` / `p8_fregfile` BSS labels is 4.5 and must remain conditional.
 
 ### 4.3 Improve coloring heuristic
 - Current greedy by liveness. Add cost model: prefer keeping pointer-typed
@@ -386,7 +404,7 @@ effort. Status: proposal.
   shapes (load-const-then-operate, foldable to `ori.b #8,d2`) - candidate
   peephole/lowering item, not yet planned.
 
-### 4.7 Avoid fixed A5 frame slots for simple locals [NOT WORTH IT]
+### 4.7 Avoid fixed A5 frame slots for simple locals [WON'T DO - NOT WORTH IT]
 - **Problem**: named source-level locals (e.g. `ubyte ax` in `planet.distance()`)
   currently receive dedicated A5 frame slots at compile time and are stored to
   and reloaded from those slots around almost every operation, even inside a
@@ -480,29 +498,34 @@ all.
 - Given the measured upside of tens of bytes, prefer the full vreg-based
   solution over another peephole.
 
-### 2.8 Remaining easy peephole gaps [PARTIAL]
+### 2.8 Remaining easy peephole gaps [DONE]
 - **Done**: `lsl.<size> #1,dN` -> `add.<size> dN,dN` for data registers. Done in
   `AsmOptimizer.optimizeLslOneToDouble`. N/Z/C/X are identical; V may differ
   (LSL clears V, ADD sets it on overflow), but generated code never reads V
   after a shift.
 - **Done**: duplicate consecutive `ext.w`/`ext.l` into the same data register.
   Done in `AsmOptimizer.optimizeRedundantExt`.
+- **Done**: `cmpi.<size> #0,dN` -> `tst.<size> dN` for data registers. Done in
+  `AsmOptimizer.optimizeCmpZeroToTst`. `cmpi.<size> #0,Dn` is 4-6 bytes;
+  `tst.<size> Dn` is 2 bytes, and the flags are identical for a zero
+  comparison (N/Z reflect the register, V/C cleared). The current lowering
+  does not emit zero-immediate comparisons in `textelite` or `maze`, so the
+  pass is mainly defensive, but it is safe for any compiler-emitted or
+  hand-written `cmp`/`cmpi` immediate-zero form.
 - **Rejected**: `move.w X,dN` + `ext.l dN` and `ext.w dN` + `ext.l dN` folding.
   Existing tests/codegen rely on `ext.l` being emitted explicitly.
-- **Remaining (NOT IMPLEMENTED)**: `cmp.l #0,dN` / `cmp.w #0,dN` /
-  `cmp.b #0,dN` -> `tst.l dN` / `tst.w dN` / `tst.b dN` for data registers
-  where the preceding op does not already set flags. `optimizeRedundantTst`
-  only removes a redundant `tst` after an instruction that already set N/Z
-  like `tst`; it does not rewrite `cmp #0` into `tst`. `cmpi.<size> #0,Dn`
-  is 4-6 bytes; `tst.<size> Dn` is 2 bytes, so this would save a few bytes
-  wherever the lowering emits a zero comparison against a data register.
-- **Remaining (NOT IMPLEMENTED)**: `moveq #0,dN` + `move.b X,dN` -> drop the
-  `moveq` when the byte move provably writes all bits the consumer reads.
-  Note that `move.b` leaves bits 8..31 of `dN` untouched, so this is only
-  sound when the consumer is known to read just the low byte. The pair is
-  created by `optimizeByteZeroExtendSafe` (it replaces `move.b M,dN` /
-  `and.l #$ff,dN` with `moveq #0,dN` / `move.b M,dN`), but no subsequent pass
-  removes the now-redundant `moveq` when safe.
+- **Rejected**: `moveq #0,dN` + `move.b X,dN` -> drop the `moveq`. This pair
+  is the canonical M68K zero-extension idiom: `move.b` only writes bits 0..7,
+  and `moveq #0` clears bits 8..31 so subsequent `.w` or `.l` operations see
+  a correctly zero-extended value. It is emitted either directly by the
+  lowering (`InstrArithmetic.kt`, `InstrLoadStore.kt`, `InstrControl.kt`,
+  `AsmGen.kt`) or produced by `optimizeByteZeroExtendSafe` from
+  `move.b M,dN` / `and.l #$ff,dN`. The `moveq` is load-bearing in all the
+  real-program cases that look like candidates (e.g. `moveq #0,d2` /
+  `move.b d3,d2` / `move.b (a0,d2.w),d3` needs the upper bits cleared for the
+  word index). Removing it safely would require proving the consumer reads
+  only the low byte and that no wider read intervenes before the next
+  overwrite; that case is not worth a dedicated pass.
 - **Where**: `AsmOptimizer.kt`.
 - **Effort**: small-medium (each needs flag-safety scanning like 2.2/2.3).
 
