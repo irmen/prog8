@@ -1564,7 +1564,7 @@ main {
         )
         // and in the assembly, the or/and/eor destination must be the register holding state
         val asmSlice = asmSubByName(lines, "joy")
-        val stateAsmReg = Regex("""clr\.b\s+(d\d)""").find(asmSlice.joinToString("\n"))!!.groupValues[1]
+        val stateAsmReg = Regex("""moveq\s+#0,(d\d)""").find(asmSlice.joinToString("\n"))!!.groupValues[1]
         for (op in listOf("or", "and", "eor")) {
             val opLines = asmSlice.filter { Regex("""^$op\.b\s+d\d,d\d$""").matches(it) }
             opLines.any() shouldBe true
@@ -1600,7 +1600,7 @@ main {
             Regex("""subr\.b (r\d+)\.b,(r\d+)\.b"""),
         )
         val asmSlice = asmSubByName(lines, "bump")
-        val stateAsmReg = Regex("""clr\.b\s+(d\d)""").find(asmSlice.joinToString("\n"))!!.groupValues[1]
+        val stateAsmReg = Regex("""moveq\s+#0,(d\d)""").find(asmSlice.joinToString("\n"))!!.groupValues[1]
         // addq #2 (or addi) form for the constant increment: destination is the local's register
         val constAdds = asmSlice.filter { Regex("""^add(?:i|q)\.b\s+#2,d\d$""").matches(it) }
         constAdds.any() shouldBe true

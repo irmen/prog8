@@ -1009,8 +1009,10 @@ private fun AsmGen.translateArgument(
                         else -> emitLine("movea.l  #$value, $hwReg")
                     }
                 } else {
+                    // moveq is faster than clr on a data register with identical flags;
+                    // the full-long clear is a safe superset for byte/word arguments.
                     if (value == 0)
-                        emitLine("clr$s  $hwReg")
+                        emitLine("moveq  #0, $hwReg")
                     else {
                         // use moveq (2 bytes, 4 cycles) when the value fits its signed 8-bit range; bytes 128-255 map to -128..-1
                         val moveqValue = if (argReg.type == IRDataType.BYTE && value in 128..255) value - 256 else value

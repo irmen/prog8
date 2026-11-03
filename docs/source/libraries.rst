@@ -603,7 +603,7 @@ modules. Import them the same way as any other library::
     within a larger backing bitmap, ``scroll_to()`` positions a
     register-driven display (and returns the fine value), while
     ``patch_copper_at()`` patches scrolled plane addresses into a copper
-    list. For double buffering,
+    list. ``waitvsync()`` aliases the frame pacer. For double buffering,
     ``create_backplane()`` allocates a matching second buffer, ``flip()`` swaps
     the two, and ``clear_backplane()``/``destroy_backplane()`` manage it
     (see ``examples/amiga/3d.p8``). Kickstart 1.3 compatible

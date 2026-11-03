@@ -56,6 +56,21 @@ defaults to `.x` (12 bytes). Register-to-register operations need no suffix.
   upper bits is a common bug that corrupts values.
 - `movea` does not set condition codes; `move` does. Keep the stack word-aligned.
 
+## Clearing and clr Hazards
+
+- Zero a data register with `moveq #0,dN`, not `clr.l dN`: same size
+  (2 bytes) and same flags, but faster on 68000 (4 vs 6 cycles). Note
+  `clr.b` / `clr.w dN` only clear the low byte/word and preserve the upper
+  bits, while `moveq` clears all 32 bits, so use `clr.b/w` only for
+  deliberate partial clears.
+- Never `clr` a memory-mapped hardware register (for example Amiga custom
+  chips at `$dffxxx`): `clr` performs a dummy read before the write on the
+  68000, which can trigger read side effects. Use `move.b/w/l #0,addr`
+  instead. This applies to `clr` on any fixed absolute address that may be
+  hardware, including strobe registers such as `COPJMP1`.
+- `clr` cannot target an address register (`clr.l a0` is illegal). Zero an
+  address register with `suba.l aN,aN` (preserves CCR) or `movea.l #0,aN`.
+
 ## Registers and Calls
 
 - Return values use `D0` (primary), `D1` and `D2` (additional), or `A0` for a

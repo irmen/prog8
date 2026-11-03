@@ -270,6 +270,7 @@ playfield {
         custom.DDFSTOP = regs.ddfstop
         custom.BPLCON0 = regs.bplcon0
         custom.BPLCON1 = 0
+        custom.BPLCON2 = 0    ; single-playfield priorities, like the copper lists
         custom.BPL1MOD = regs.bpl1mod
         custom.BPL2MOD = regs.bpl2mod
         custom.FMODE = regs.fmode
@@ -319,4 +320,8 @@ playfield {
         ubyte s = fine & 15
         custom.BPLCON1 = ((s as uword) << 4) | s
     }
+
+    ; Busy-waits on the beam; a vertical-blank (VERTB) IRQ handler that
+    ; paces the loop without spin-waiting is usually better.
+    alias waitvsync = custom.waitvsync    ; frame pacer: block until the beam passes line 300
 }

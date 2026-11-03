@@ -693,14 +693,14 @@ internal class AsmGen(val program: IRProgram, internal val target: ICompilationT
         return when (val node = program.st.lookup(name)) {
             is IRStMemVar -> {
                 val addr = node.address.toInt()
-                $$"$${addr.toUInt().toString(16).padStart(8, '0')}"
+                $$"$$${addr.toUInt().toString(16).padStart(8, '0')}"
             }
             is IRStConstant -> {
                 if (node.memorySlabName != null)
                     constLabel(name)
                 else {
                     val addr = node.value!!.toInt()
-                    $$"$${addr.toUInt().toString(16).padStart(8, '0')}"
+                    $$"$$${addr.toUInt().toString(16).padStart(8, '0')}"
                 }
             }
             is IRStStructInstance, is IRStStaticVariable, is IRStMemorySlab -> fixNameSymbols(name)
@@ -745,6 +745,35 @@ internal class AsmGen(val program: IRProgram, internal val target: ICompilationT
             is AddressBase.Absolute -> base.address.value.toHex()
         }
         return if (displacement != 0) "$resolved+$displacement" else resolved
+    }
+
+    /**
+     * True when a store-zero to [memory] must not use `clr`: the target is an
+     * I/O address, which may be a hardware register with read side effects
+     * (e.g. Amiga custom-chip registers at $dffxxx). `clr` performs a dummy read
+     * before the write on the 68000, so these targets get `move #0` instead.
+     * Delegates to the compilation target's [ICompilationTarget.isIOAddress];
+     * frame slots, the regfile, plain RAM and unknown symbols keep `clr`.
+     */
+    fun memoryIsIOAddress(memory: MemoryReference): Boolean {
+        val base: AddressBase = when (memory) {
+            is MemoryReference.Direct -> memory.base
+            is MemoryReference.Indexed -> memory.base
+            is MemoryReference.Indirect -> return false
+        }
+        return when (base) {
+            is AddressBase.Absolute -> target.isIOAddress(base.address.value)
+            is AddressBase.FrameSlot -> false
+            is AddressBase.Symbol -> when (val node = program.st.lookup(base.name)) {
+                is IRStMemVar -> target.isIOAddress(node.address)
+                is IRStConstant -> {
+                    val value = node.value
+                    node.memorySlabName == null && value != null &&
+                        target.isIOAddress(value.toInt().toUInt())
+                }
+                else -> false
+            }
+        }
     }
 
     /**

@@ -1656,4 +1656,97 @@ class TestInstructionSelectionOptimizations : FunSpec({
         lines.count { it.contains("label:") } shouldBe 1
         lines.any { it.contains("moveq  #42,d0") } shouldBe true
     }
+
+    // === zero stores avoid clr on I/O addresses (68000 dummy-read hazard) ===
+
+    test("zero store to Amiga custom-chip address uses move instead of clr") {
+        val lines = generateAsm(
+            tempRoot.resolve("test-m68k-zero-io-amiga"),
+            listOf(
+                IRInstructions.storeImmediate(IRDataType.WORD, 0, IRMemory.direct(0xdff096u)),
+                IRInstructions.storeZero(Opcode.STOREZM, IRDataType.WORD, IRMemory.direct(0xdff180u))
+            ),
+            Amiga500Target()
+        )
+
+        lines.any { it == "move.w  #0,$00dff096" } shouldBe true
+        lines.any { it == "move.w  #0,$00dff180" } shouldBe true
+        lines.none { it.startsWith("clr") } shouldBe true
+    }
+
+    test("zero store to the same addresses keeps clr on qemu68k (not I/O there)") {
+        val lines = generateAsm(
+            tempRoot.resolve("test-m68k-zero-io-qemu68k"),
+            listOf(
+                IRInstructions.storeImmediate(IRDataType.WORD, 0, IRMemory.direct(0xdff096u)),
+                IRInstructions.storeZero(Opcode.STOREZM, IRDataType.WORD, IRMemory.direct(0xdff180u))
+            )
+        )
+
+        lines.any { it == "clr.w  $00dff096" } shouldBe true
+        lines.any { it == "clr.w  $00dff180" } shouldBe true
+    }
+
+    test("zero store to plain RAM keeps clr even on Amiga") {
+        val lines = generateAsm(
+            tempRoot.resolve("test-m68k-zero-ram-amiga"),
+            listOf(
+                IRInstructions.storeImmediate(IRDataType.WORD, 0, IRMemory.direct(0x1000u)),
+                IRInstructions.storeZero(Opcode.STOREZM, IRDataType.WORD, IRMemory.direct(0x2000u))
+            ),
+            Amiga500Target()
+        )
+
+        lines.any { it == "clr.w  $1000" } shouldBe true
+        lines.any { it == "clr.w  $2000" } shouldBe true
+    }
+
+    test("zero store to a memvar symbol on an I/O address uses move instead of clr") {
+        val target = Amiga500Target()
+        val options = CompilationOptions.builder(target)
+            .output(OutputType.RAW)
+            .zeropage(ZeropageType.FLOATSAFE)
+            .floats(false)
+            .compilerVersion("test")
+            .memtopAddress(0xffffu)
+            .optimize(true)
+            .build()
+        val program = IRProgram("test", IRSymbolTable(), options, DummyStringEncoder)
+        program.options.outputDir = tempRoot.resolve("test-m68k-zero-io-memvar")
+        program.st.add(IRStMemVar("custom.DMACON", DataType.UWORD, 0xdff096u, null))
+        val sub = IRSubroutine("test.start", emptyList(), emptyList(), Position.DUMMY)
+        val chunk = IRCodeChunk(null, null)
+        chunk.instructions.add(IRInstructions.storeImmediate(IRDataType.WORD, 0, IRMemory.direct("custom.DMACON")))
+        sub.chunks.add(chunk)
+        val block = IRBlock("test", false, IRBlock.Options(), Position.DUMMY)
+        block.children.add(sub)
+        program.blocks.add(block)
+
+        val output = program.options.outputDir.toFile()
+        output.deleteRecursively()
+        output.mkdirs()
+        AsmGen(program, target).generate()
+        val asmFile = program.options.outputDir.resolve("test.asm")
+        check(asmFile.exists()) { "Assembly file not written: $asmFile" }
+        val lines = asmFile.readText().lines().map { it.trim() }
+
+        lines.any { it == "move.w  #0,$00dff096" } shouldBe true
+        lines.none { it.startsWith("clr") } shouldBe true
+    }
+
+    // === data-register zeroing uses moveq instead of clr ===
+
+    test("forwarded zero call argument uses moveq instead of clr") {
+        val site = callSite("copper.wait", arguments = listOf(hwArg(1, IRDataType.WORD, 10)))
+        val lines = generateAsm(
+            tempRoot.resolve("test-m68k-call-forward-zero-moveq"),
+            listOf(
+                IRInstructions.load(IRDataType.WORD, 1, 0),
+                IRInstructions.call(site)
+            )
+        )
+
+        lines.any { it == "moveq  #0,d0" } shouldBe true
+        lines.none { it.startsWith("clr") } shouldBe true
+    }
 })
