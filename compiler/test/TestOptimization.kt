@@ -106,7 +106,8 @@ main {
         }
     }
 
-    test("do not inline void multi-parameter call with complex args on m68k") {
+    test("inline void multi-parameter call with pure complex args on m68k") {
+        // Pure arithmetic arguments are safe to substitute, so they inline now.
         val src="""
 main {
     ubyte counter
@@ -124,7 +125,36 @@ main {
         val result = compileText(Amiga500Target(), true, src, outputDir, errors, writeAssembly = true, assemble = false)!!
         errors.errors shouldBe emptyList()
         val startSub = result.compilerAst.entrypoint
-        withClue("call with complex args should not have been inlined") {
+        withClue("call with pure complex args should have been inlined") {
+            startSub.statements.any { it is FunctionCallStatement && it.target.nameInSource.last() == "wrap" } shouldBe false
+        }
+    }
+
+    test("do not inline void multi-parameter call with effectful args on m68k") {
+        // A call argument may return something different on each evaluation,
+        // so duplicating it into the body would change semantics.
+        val src="""
+main {
+    ubyte counter
+    inline sub wrap(ubyte a, ubyte b) {
+        target(a, b)
+    }
+    sub target(ubyte x, ubyte y) {
+        counter = x
+    }
+    sub get() -> ubyte {
+        counter++
+        return counter
+    }
+    sub start() {
+        wrap(get(), 2)
+    }
+}"""
+        val errors = ErrorReporterForTests()
+        val result = compileText(Amiga500Target(), true, src, outputDir, errors, writeAssembly = true, assemble = false)!!
+        errors.errors shouldBe emptyList()
+        val startSub = result.compilerAst.entrypoint
+        withClue("call with effectful args should not have been inlined") {
             startSub.statements.any { it is FunctionCallStatement && it.target.nameInSource.last() == "wrap" } shouldBe true
         }
     }

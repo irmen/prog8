@@ -564,7 +564,8 @@ main {
         hasCall shouldBe true
     }
 
-    test("inline two-param call with complex arg is NOT inlined on m68k") {
+    test("inline two-param call with pure complex arg IS inlined on m68k") {
+        // Pure arithmetic arguments substitute safely, so this inlines now.
         val src = """
 main {
     uword @shared result
@@ -583,7 +584,7 @@ main {
         val hasCall = startSub.statements.any { stmt ->
             (stmt as? Assignment)?.value.let { it is FunctionCallExpression && it.target.nameInSource.last() == "cellidx" }
         }
-        hasCall shouldBe true
+        hasCall shouldBe false
     }
 
     test("inline two-param call with too-complex body is NOT inlined on m68k") {

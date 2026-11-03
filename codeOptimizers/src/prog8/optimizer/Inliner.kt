@@ -36,6 +36,20 @@ class Inliner(private val program: Program, private val options: CompilationOpti
 
     private val suggestInlineReported = mutableSetOf<Subroutine>()
 
+    /**
+     * Call arguments that can be textually substituted for a by-value parameter:
+     * everything historically accepted (isSimple), plus any expression free of
+     * side effects and I/O reads (e.g. `cx-1`). Substituting a pure expression
+     * cannot change semantics; only truly effectful arguments (calls, hardware
+     * reads) still block inlining.
+     */
+    private fun isInlineableArgument(arg: Expression): Boolean {
+        if (arg.isSimple)
+            return true
+        val target = options.compTarget
+        return !arg.hasSideEffects(target) && !arg.isIORead(target)
+    }
+
     inner class DetermineInlineSubs(val program: Program): IAstVisitor {
         private val modifications = mutableListOf<AstModification>()
         private val visitedSubroutines = mutableSetOf<Subroutine>()
@@ -276,7 +290,7 @@ class Inliner(private val program: Program, private val options: CompilationOpti
             if (fcall.args.size != sub.parameters.size) {
                 return false to "argument count does not match parameter count"
             }
-            if (!fcall.args.all { it.isSimple }) {
+            if (!fcall.args.all { isInlineableArgument(it) }) {
                 return false to "argument is too complex to inline (might have side effects)"
             }
             // Refuse to inline a sub that assigns directly to any of its parameters.
@@ -305,7 +319,7 @@ class Inliner(private val program: Program, private val options: CompilationOpti
             // fall through to the 6502-independent checks below (none apply to m68k)
         } else if (sub.parameters.size == 1) {
             val arg = fcall.args.first()
-            if (!arg.isSimple) {
+            if (!isInlineableArgument(arg)) {
                 return false to "argument is too complex to inline (might have side effects)"
             }
             // Refuse to inline a sub that assigns directly to its parameter.

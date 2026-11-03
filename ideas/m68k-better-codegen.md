@@ -242,6 +242,32 @@ effort. Status: proposal.
   textelite: the sole remaining `jmp label` is a hand-written library
   tail-call, not generated code.
 
+### 3.5 Multiply-by-constant strength reduction
+- Replace `mulu.w #N` / `muls.w #N` with shift-add-sub recipes where cheaper:
+  few-bit constants (`10x = (x<<3)+(x<<1)`), subtraction forms
+  (`29x = (x<<5)-(x<<2)-x`, `31x = (x<<5)-x`), factored forms (`45x` via
+  `9x` then `5x`). Classic minimal-chain recipes (Bernstein); a small table
+  of common strides (array widths, screen rows, struct sizes) covers nearly
+  all real occurrences.
+- **Where**: lowering where `mulu.w #N` is emitted (`InstrArithmetic.kt`,
+  index scaling in `resolveMemory()`), possibly plus a peephole for
+  already-emitted forms.
+- **Gate by CPU**: aggressive table on 68000 (`mulu.w` is ~70 cycles, nearly
+  every 2-3 term recipe wins); short recipes only on 68020 (`muls.l` is
+  ~28-30 cycles, chains run ~8-16); off on 030+ (multiply caught up, only
+  size would benefit and prog8 targets stop at 020 anyway).
+- **Benefit**: speed first, size second. Real occurrences exist: `mulu.w #29`
+  in `cellidx` and float-index paths. Baseline: vbcc `-O2` also emits
+  `mulu.w #29` here, so this is a spot to beat vbcc, not just match it -
+  measure against the `available_uncarved` comparison setup.
+- **Effort**: medium.
+- **Loop-gating rejected**: the easy signal (`loopNestingDepth > 0` in `AsmGen`)
+  only covers counted `IRLoopChunk` (dbra) loops, and real hot loops never
+  arrive as those - maze's `.p8ir` contains zero `IRLoopChunk`s (`repeat`,
+  `while`, even `for` all lower to plain chunks with back-edge branches).
+  Covering those needs a CFG back-edge walk (medium work of its own), so the
+  policy stays static cost-per-CPU instead.
+
 ## Tier 4 - Register allocation & spilling (weeks)
 
 > Re-verify this tier's premise first: real output shows spills already go
@@ -299,6 +325,25 @@ effort. Status: proposal.
   cleaner listings; the assembler catches any missed reference as an
   undefined symbol.
 - **Effort**: medium, depends on 4.1/4.2.
+
+### 4.6 Inliner purity gate [DONE]
+- `inline sub` with parameters refused any non-`isSimple` argument, and
+  `BinaryExpression.isSimple` is unconditionally false - so `cellidx(cx-1, cy)`
+  never inlined (14 dead call sites in maze, each paying stack marshalling +
+  `link/movem/unlk`).
+- **Done**: new `isInlineableArgument` in `codeOptimizers/.../Inliner.kt`:
+  everything historically accepted (`isSimple`, keeping pure builtins callable)
+  plus any expression free of side effects and I/O reads. Applies on all
+  targets and both single/multi-param paths. Two old-policy tests updated
+  (`wrap(counter+1, 2)`, `cellidx(a+b, 20)` now inline); new test pins that
+  truly effectful args (call results) still block. One C64 size table entry
+  re-attributed (`wizzine` 1063 -> 1055: `sin8u(angle-spri*16)` inlined,
+  subroutine gone).
+- **Measured**: maze -61B (19576 -> 19515), all 14 `cellidx` calls gone with
+  the subroutine dead-stripped; full `gradle build` green (2527 tests).
+- **Follow-up spotted**: inlined bodies expose `move.b #8,d3` / `or.b d3,d2`
+  shapes (load-const-then-operate, foldable to `ori.b #8,d2`) - candidate
+  peephole/lowering item, not yet planned.
 
 ## Tier 5 - Bigger structural work (months)
 

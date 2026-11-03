@@ -161,7 +161,7 @@ class TestCompilerOnExamplesC64: FunSpec({
             ExampleSizes("sprites", c64SizeOptimized=959, c64SizeUnoptimized=2826),
             ExampleSizes("starfield", c64SizeOptimized=737, c64SizeUnoptimized=758),
             ExampleSizes("turtle-gfx", c64SizeOptimized=2701, c64SizeUnoptimized=2812),
-            ExampleSizes("wizzine", c64SizeOptimized=1063, c64SizeUnoptimized=2653),
+            ExampleSizes("wizzine", c64SizeOptimized=1055, c64SizeUnoptimized=2653),
             // boingball, cube3d, tehtriz are in BothC64andCx16
         ),
         listOf(false, true)
