@@ -730,6 +730,9 @@ private fun String.moveSize(): Char = substringAfter('.').firstOrNull() ?: ' '
 /** Matches exactly a data register d0-d7, in either case. */
 private val dataRegisterPattern = Regex("^d[0-7]$")
 
+/** A data register d0-d7 (registers are case-insensitive, unlike symbols). */
+private fun String.isDataReg(): Boolean = lowercase().matches(dataRegisterPattern)
+
 /** Split an operand pair on commas at parenthesis depth 0 (m68k addressing modes embed commas, e.g. `(-8,a5),a2`). */
 private fun splitOperands(operands: String): List<String> {
     val parts = mutableListOf<String>()
@@ -896,7 +899,8 @@ private fun optimizeTailCall(linesBy: Sequence<List<TrimmedLine>>): List<Modific
 }
 
 private fun optimizeRedundantTst(linesBy: Sequence<List<TrimmedLine>>): List<Modification> {
-    //  move.S / andi.S / ori.S  X, DST followed by  tst.S  DST  ->  remove the tst: they set N/Z.
+    //  An instruction below that sets N/Z exactly like tst (clearing V/C, preserving X),
+    //  followed by  tst.S  DST on the same operand at the same size  ->  remove the tst.
     val mods = mutableListOf<Modification>()
     for (lines in linesBy) {
         val first = lines[0].instruction
@@ -907,11 +911,12 @@ private fun optimizeRedundantTst(linesBy: Sequence<List<TrimmedLine>>): List<Mod
         if (!second.startsWith("tst."))
             continue
         val dst0 = first.flagSettingDest() ?: continue
-        if (first.moveSize() != second.moveSize())
+        if (first.instrSize() != second.instrSize())
             continue
         val tstRaw = second.substringAfter('.').substringAfter(' ').trim()
         val tstOperand = if (';' in tstRaw) tstRaw.substringBefore(';').trim() else tstRaw
-        if (dst0 == tstOperand && dst0.isSafeMemoryOperand()) {
+        val same = dst0 == tstOperand || (dst0.isDataReg() && dst0.equals(tstOperand, ignoreCase = true))
+        if (same && (dst0.isSafeMemoryOperand() || dst0.isDataReg())) {
             mods.add(Modification(lines[1].index, true, null))
         }
     }
@@ -919,22 +924,52 @@ private fun optimizeRedundantTst(linesBy: Sequence<List<TrimmedLine>>): List<Mod
 }
 
 /**
- * If this instruction sets N/Z flags and writes to a single destination, return that destination.
- * Covers move, andi, ori, eori (the ones the codegen emits before tst); add/sub also set condition
- * codes but the codegen always inserts a move before branching, so they are never followed by a tst.
+ * If this instruction sets N/Z exactly like a tst would (result in N/Z, V and C
+ * cleared, X preserved) and writes to a single destination, return that destination.
+ * Covers move, moveq, and, or, eor (all forms), clr, not, ext, extb, swap and tst
+ * itself. Deliberately NOT covered: add/sub/cmp and friends set V/C/X from the
+ * computation, so a following tst is only redundant when no V/C/X reader follows -
+ * that needs liveness proof this pass does not attempt (and no such case occurs in
+ * real output); movea/lea/adda set no flags at all.
  */
 private fun String.flagSettingDest(): String? {
     val stripped = if (';' in this) substring(0, indexOf(';')).trim() else this
-    return when {
-        isMove() -> moveOperands()?.second
-        startsWith("andi.") || startsWith("ori.") || startsWith("eori.") -> {
-            val sp = stripped.indexOf(' ')
-            if (sp < 0) return null
-            val ops = stripped.substring(sp + 1).split(',', limit = 2)
-            if (ops.size != 2) return null
-            ops[1].trim()
+    val cut = stripped.indexOfFirst { it.isWhitespace() }
+    if (cut < 0)
+        return null
+    val base = stripped.substring(0, cut).lowercase().substringBefore('.')
+    val operands = stripped.substring(cut).trim()
+    return when (base) {
+        "move", "moveq", "and", "or", "eor", "andi", "ori", "eori" -> {
+            val parts = splitOperands(operands)
+            if (parts.size != 2)
+                return null
+            val dst = parts[1].trim()
+            if (dst.lowercase() in setOf("ccr", "sr"))
+                return null
+            if (base == "moveq" && !dst.isDataReg())
+                return null
+            dst
+        }
+        "clr", "not", "ext", "extb", "swap", "tst" -> {
+            val parts = splitOperands(operands)
+            if (parts.size != 1)
+                return null
+            parts[0].trim()
         }
         else -> null
+    }
+}
+
+/** Size letter of an instruction, mapping the sizeless flag-setting mnemonics to their width. */
+private fun String.instrSize(): Char {
+    val token = substringBefore(' ').substringBefore('\t').lowercase()
+    val dot = token.indexOf('.')
+    if (dot >= 0)
+        return token.substring(dot + 1).firstOrNull() ?: ' '
+    return when (token) {
+        "swap", "moveq" -> 'l'
+        else -> ' '
     }
 }
 

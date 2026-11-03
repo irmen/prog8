@@ -879,6 +879,60 @@ class TestInstructionSelectionOptimizations : FunSpec({
         lines.any { it.contains("tst.w") } shouldBe true
     }
 
+    test("removes redundant tst after move to a data register") {
+        val lines = mutableListOf(
+            "    move.b  d0,d3",
+            "    tst.b   d3",
+            "    beq     somewhere"
+        )
+        optimizeAssembly(lines)
+        lines.any { it.contains("tst.b") } shouldBe false
+        lines.any { it.contains("move.b") } shouldBe true
+    }
+
+    test("removes redundant tst after swap, clr and ext") {
+        val lines = mutableListOf(
+            "    swap    d0",
+            "    tst.l   d0",
+            "    clr.l   d1",
+            "    tst.l   d1",
+            "    ext.w   d2",
+            "    tst.w   d2",
+            "    beq     somewhere"
+        )
+        optimizeAssembly(lines)
+        lines.none { it.contains("tst.") } shouldBe true
+    }
+
+    test("does not remove tst after add, sub or cmp") {
+        // add/sub/cmp set V/C/X from the computation while tst clears them:
+        // only a liveness proof could show no V/C/X reader follows, which this
+        // pass does not attempt.
+        val lines = mutableListOf(
+            "    add.b   d0,d1",
+            "    tst.b   d1",
+            "    sub.w   d2,d3",
+            "    tst.w   d3",
+            "    cmp.l   d4,d5",
+            "    tst.l   d5",
+            "    beq     somewhere"
+        )
+        optimizeAssembly(lines)
+        lines.count { it.contains("tst.") } shouldBe 3
+    }
+
+    test("does not remove tst after movea which sets no flags") {
+        val lines = mutableListOf(
+            "    movea.l  d0,a0",
+            "    tst.l   d0",
+            "    beq     somewhere"
+        )
+        optimizeAssembly(lines)
+        // the tst here tests d0 (movea wrote a0 and set no flags): keep it.
+        // (tst on an address register would be invalid input and is never produced.)
+        lines.any { it.contains("tst.l") } shouldBe true
+    }
+
     // === Tests for status flag return handling fixes (commit 1286b6cc8 follow-up) ===
 
     test("single-return expression call with @A0 (slot 18) emits store instruction") {

@@ -76,7 +76,7 @@ effort. Status: proposal.
   common duplicate-move pair and the literal same-register form did not occur
   once in the textelite or maze samples. Keep but never schedule it ahead of 2.3.
 
-### 2.2 Flag-aware tst removal
+### 2.2 Flag-aware tst removal [DONE]
 - If a preceding `add`/`sub`/`lsl`/etc. that sets N/Z already covers the
   following `tst`.
 - **Where**: `AsmOptimizer.kt` (extend `optimizeRedundantTst`).
@@ -84,6 +84,21 @@ effort. Status: proposal.
 - **Note**: reuse the existing `nFlagOverwriters` / `nFlagOpaque` tables
   (already encode a per-mnemonic flag model in `zeroExtendFlagDecision`)
   instead of building a second parallel table.
+- **Done, rescoped by flag analysis**: `tst` clears V/C, so removing it after
+  `add`/`sub`/`cmp` (which set V/C/X) is only sound with a liveness proof -
+  deliberately NOT built (and zero such cases occur in real output anyway).
+  Built instead: data-register destinations (the old pass only handled
+  memory, missing all 15 real cases) plus first-op coverage for the
+  flag-identical set (`moveq`, `and`/`or`/`eor` all forms, `clr`, `not`,
+  `ext`/`extb`, `swap`, `tst` itself) - all clear V/C and preserve X exactly
+  like `tst`, so no branch analysis is needed. `movea`/`lea` (no flags) and
+  the V/C setters stay excluded.
+- **Measured** (pass disabled vs enabled): 20 redundant `tst` removed, all
+  `move`-to-`Dn` cases - textelite -16B (6), gfxdemo -28B (8), tictactoe -12B
+  (4), maze unchanged. First real binary shrinkage of the campaign
+  (-56 bytes total; deltas exceed the 2B/instr from branch-shortening
+  cascades). Remaining `tst`s verified load-bearing (after labels/branches,
+  `movea`, `movem`).
 
 ### 2.3 Immediate form selection [DONE]
 - `move.l #N,dK` -> `moveq #N,dK` when -128..127 (extend the existing
