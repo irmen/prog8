@@ -1280,6 +1280,40 @@ class TestInstructionSelectionOptimizations : FunSpec({
         lines.count { it == "ext.l  d0" } shouldBe 1
     }
 
+    test("LOADMSL sign-extends byte to long with extb.l on M68020") {
+        val lines = generateAsm(
+            tempRoot.resolve("test-m68k-loadmsl-68020"),
+            listOf(IRInstructions.loadMemory(Opcode.LOADMSL, IRDataType.BYTE, 1, IRMemory.direct("p8b_test.p8v_value")))
+        )
+
+        lines.count { it == "extb.l  d0" } shouldBe 1
+        lines.count { it == "ext.w  d0" } shouldBe 0
+        lines.count { it == "ext.l  d0" } shouldBe 0
+    }
+
+    test("LOADMSL sign-extends byte to long with ext.w plus ext.l on M68000") {
+        val lines = generateAsm(
+            tempRoot.resolve("test-m68k-loadmsl-68000"),
+            listOf(IRInstructions.loadMemory(Opcode.LOADMSL, IRDataType.BYTE, 1, IRMemory.direct("p8b_test.p8v_value"))),
+            target = Amiga500Target()
+        )
+
+        lines.count { it == "extb.l  d0" } shouldBe 0
+        lines.count { it == "ext.w  d0" } shouldBe 1
+        lines.count { it == "ext.l  d0" } shouldBe 1
+    }
+
+    test("LOADISL sign-extends byte to long with extb.l on M68020") {
+        val lines = generateAsm(
+            tempRoot.resolve("test-m68k-loadisl-68020"),
+            listOf(IRInstructions.loadMemory(Opcode.LOADISL, IRDataType.BYTE, 1, IRMemory.indirect(2)))
+        )
+
+        lines.count { it == "extb.l  d0" } shouldBe 1
+        lines.count { it == "ext.w  d0" } shouldBe 0
+        lines.count { it == "ext.l  d0" } shouldBe 0
+    }
+
     test("M5 drops a lea when a0 already holds the same base") {
         val lines = mutableListOf(
             "    lea  arr,a0",
@@ -1751,8 +1785,44 @@ class TestInstructionSelectionOptimizations : FunSpec({
         lines.none { it.startsWith("clr") } shouldBe true
     }
 
-    // === IR echo comments are opt-in via irComments (off by default) ===
+    // === immediate form selection (2.3): moveq for longs, addq/subq for small immediates ===
 
+    test("rewrites move.l with a small immediate to moveq") {
+        val lines = mutableListOf(
+            "    move.l  #100,d3",
+            "    move.l  #\$ffffff9c,d4",
+            "    move.l  #1000,d5",
+            "    move.l  #somelabel,d6",
+            "    rts"
+        )
+        optimizeAssembly(lines)
+        lines.any { it.trim() == "moveq  #100,d3" } shouldBe true
+        lines.any { it.trim() == "moveq  #-100,d4" } shouldBe true
+        lines.any { it.trim() == "move.l  #1000,d5" } shouldBe true
+        lines.any { it.trim() == "move.l  #somelabel,d6" } shouldBe true
+    }
+
+    test("rewrites small add/sub immediates to addq/subq with sign flip") {
+        val lines = mutableListOf(
+            "    add.b  #5,d0",
+            "    sub.w  #8,d1",
+            "    add.l  #-3,d2",
+            "    sub.l  #-8,d3",
+            "    add.w  #300,d4",
+            "    add.b  #0,d5",
+            "    add.b  #1,ccr"
+        )
+        optimizeAssembly(lines)
+        lines.any { it.trim() == "addq.b  #5,d0" } shouldBe true
+        lines.any { it.trim() == "subq.w  #8,d1" } shouldBe true
+        lines.any { it.trim() == "subq.l  #3,d2" } shouldBe true
+        lines.any { it.trim() == "addq.l  #8,d3" } shouldBe true
+        lines.any { it.trim() == "add.w  #300,d4" } shouldBe true
+        lines.any { it.trim() == "add.b  #0,d5" } shouldBe true
+        lines.any { it.trim() == "add.b  #1,ccr" } shouldBe true
+    }
+
+    // === IR echo comments are opt-in via irComments (off by default) ===
     test("IR echo comments are omitted by default and kept with irComments") {
         val instructions = listOf(IRInstructions.load(IRDataType.WORD, 1, 42))
         val quiet = generateAsm(tempRoot.resolve("test-m68k-no-ircomments"), instructions)

@@ -85,7 +85,7 @@ effort. Status: proposal.
   (already encode a per-mnemonic flag model in `zeroExtendFlagDecision`)
   instead of building a second parallel table.
 
-### 2.3 Immediate form selection
+### 2.3 Immediate form selection [DONE]
 - `move.l #N,dK` -> `moveq #N,dK` when -128..127 (extend the existing
   `optimizeMoveqWordForm` to long immediates and to `add`/`sub`/`cmp`/`and`/
   `or`/`eor`).
@@ -98,6 +98,16 @@ effort. Status: proposal.
 - **Note**: the `.l` moveq case is much easier than the existing `.w` one
   (full register write, sign-extends identically to `move.l #N`, so no
   flag/liveness forward scan needed).
+- **Done**: new `optimizeMoveqLongForm` (unconditional: full write, identical
+  flags; normalizes unsigned `$FFFFFF80..$FFFFFFFF` to signed) and
+  `optimizeAddSubQuick` (matches the plain `add.`/`sub.` forms the lowering
+  actually emits, 1..8 plus add<->sub flip for -8..-1; skips ccr/sr).
+  Verified on textelite/maze: zero narrowable immediates left, both assemble.
+- **Note**: `cmp`/`and`/`or`/`eor` have no quick forms on m68k (only
+  `addq`/`subq`/`moveq` exist), so that part of the item was dropped after
+  investigation. (The old "118 addi/subi" count turned out to be IR echo
+  comment lines, not instructions; the real targets were the plain
+  `add.`/`sub.` forms.)
 
 ### 2.4 Address-arithmetic combining
 - `move.l a0,d0; add.l #off,d0` -> `lea (off,a0),a1` where legal; combine
@@ -131,13 +141,20 @@ effort. Status: proposal.
 - Gate on `cpu.is68020`.
 - **Effort**: medium.
 
-### 3.2 Cheaper zero-extension
+### 3.2 Cheaper zero-extension [DONE]
 - `move.b x,d0; and.l #$ff,d0` -> `moveq #0,d0; move.b x,d0` (or `move.b` +
   `extb.l` on 68020).
 - **Effort**: small.
 - **Note**: the peephole half already exists (`optimizeByteZeroExtendSafe`,
   with full flag-safety scanning). What remains is emitting `extb.l` at
   lowering on `cpu.is68020`.
+- **Done, with correction**: `extb.l` sign-extends, so it is NOT valid for the
+  zero-extension case above (that half stays `moveq`+`move.b`). What it does
+  replace is the *sign*-extension pair `ext.w`+`ext.l` (byte->long). The
+  `emitSignExtendByteToLong` helper already existed and was used on arithmetic
+  paths; the two remaining manual pair sites (`LOADMSL`, `LOADIS`/`LOADISL`)
+  now route through it. Verified live: `move.b`+`extb.l` on qemu68k,
+  `ext.w`+`ext.l` preserved on amiga500, both assemble.
 
 ### 3.3 Better addressing modes
 - Use post-increment `(a0)+` / pre-decrement `-(a0)` where the IR expresses
@@ -207,12 +224,11 @@ effort. Status: proposal.
 
 ## Suggested first sprint
 
-Items 1.1, 2.3, 2.5, 3.2 (extb.l at lowering), and 3.4 (jmp PC-relative) -
-all localized to `AsmOptimizer.kt` and `Instr*.kt`, no allocator changes,
-measurable via asm code-line counts and section sizes. Add an m68k
-`TestCompilerOnExamples` size-regression harness first (or an equivalent
-asm-size checklist, using `assemble=false` where no vasm). Then 2.2, and
-re-verify the Tier 4 regfile premise before touching 4.1/4.2.
+[DONE: 1.1, 1.2, 2.3, 3.2.] Remaining: 2.5, 3.4 (jmp PC-relative), then 2.2,
+and re-verify the Tier 4 regfile premise before touching 4.1/4.2. An m68k
+`TestCompilerOnExamples` size-regression harness (or an equivalent asm-size
+checklist, using `assemble=false` where no vasm) is still the prerequisite
+for measuring the rest.
 
 ## Measurement
 

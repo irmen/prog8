@@ -177,6 +177,9 @@ When the task involves writing or understanding `.p8` (Prog8 source) or `.p8ir` 
 ## Key Information
 - never read the files and directories that are ignored via the .aiignore and .gitignore files (EXCEPT when it is a folder for agent config such as .junie, .opencode, .qwen or .agent)
 - never perform any git source control write/update/commit/branch operations. Read and status operations are allowed. Staging new files that need to be under source control (`git add` of new, untracked files) is allowed; committing and branching are not.
+- Exception: comparing code or build output between branches (or between a branch and the working tree) via a temporary *detached* git worktree (`git worktree add --detach <path> <ref>`) is allowed. Remove the worktree when done (`git worktree remove <path>`), and never create branches or commits in the process.
+- Exception: using `git bisect` to find the commit that introduced a bug is allowed. Prefer running it inside a temporary detached worktree (see above) so the working tree stays untouched; run `git bisect reset` when done, and never commit in the process.
+- `git stash` stays off-limits - use a detached worktree instead when you need a clean tree.
 - **git log/history queries can be useful** for understanding when/why a feature was added or tracking down when a bug was introduced, but for locating code use grep_search or glob instead.
 - Architecture decisions: separation of frontend/parser, IR intermediate representation, multiple backends
 

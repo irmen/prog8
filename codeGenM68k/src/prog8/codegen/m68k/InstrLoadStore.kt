@@ -114,8 +114,7 @@ internal fun AsmGen.translateLoadStore(insn: IRInstruction, suppressRegfileStore
             val dst = insn.requireIntDest().intNumber
             val target = resolveMemory(insn.requireMemory())
             emitLoadD0FromAddress(target, IRDataType.BYTE)
-            emitLine("ext.w   d0")
-            emitLine("ext.l   d0")
+            emitSignExtendByteToLong(SCRATCH_D0)
             emitStoreD0(dst, IRDataType.LONG)
         }
 
@@ -128,8 +127,12 @@ internal fun AsmGen.translateLoadStore(insn: IRInstruction, suppressRegfileStore
             val destType = if (isLong) IRDataType.LONG else if (srcType == IRDataType.BYTE) IRDataType.WORD else IRDataType.LONG
             emitLoadD0FromAddress(source, srcType)
             if (isSign) {
-                if (srcType == IRDataType.BYTE) emitLine("ext.w   d0")
-                if (destType == IRDataType.LONG) emitLine("ext.l   d0")
+                if (srcType == IRDataType.BYTE && destType == IRDataType.LONG)
+                    emitSignExtendByteToLong(SCRATCH_D0)
+                else {
+                    if (srcType == IRDataType.BYTE) emitLine("ext.w   d0")
+                    if (destType == IRDataType.LONG) emitLine("ext.l   d0")
+                }
             } else {
                 val mask = if (srcType == IRDataType.BYTE) "#\$ff" else "#\$ffff"
                 if (destType == IRDataType.WORD) emitLine("and.w   $mask, d0")

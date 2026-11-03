@@ -35,6 +35,12 @@ internal fun optimizeAssembly(lines: MutableList<String>) {
             applyModifications(a6Mods, lines, pretrimmed)
             modified = true
         }
+        // single-line immediate-form rewrites: provably safe, no context needed.
+        val quickMods = optimizeMoveqLongForm(lines, pretrimmed) + optimizeAddSubQuick(lines, pretrimmed)
+        if (quickMods.isNotEmpty()) {
+            applyModifications(quickMods, lines, pretrimmed)
+            modified = true
+        }
         var by3 = getLinesBy(pretrimmed, lines, 3)
         by3 = runPass(optimizeConditionalOverJump(by3), 3, by3)
 
@@ -117,12 +123,114 @@ private fun optimizeRedundantLea(allPretrimmed: List<String>): List<Modification
     return mods
 }
 
+/** Parse an m68k `#` immediate (decimal or `$`/`0x` hex) to a signed Long, or null if not numeric. */
+private fun parseImmediate(imm: String): Long? {
+    val text = imm.trim()
+    if (!text.startsWith("#"))
+        return null
+    val body = text.substring(1).trim()
+    return try {
+        when {
+            body.startsWith("$") -> body.substring(1).toLong(16)
+            body.startsWith("0x", ignoreCase = true) -> body.substring(2).toLong(16)
+            else -> body.toLong()
+        }
+    } catch (_: NumberFormatException) {
+        null
+    }
+}
+
+/**
+ * Rewrite `move.l #N,dK` to `moveq #N,dK` when N fits in -128..127 (normalizing
+ * unsigned 32-bit forms like $FFFFFF80 to their signed value). Always safe with no
+ * forward scan: both are full 32-bit writes with identical flags. Symbol immediates
+ * (`#label`) fail parsing and are skipped.
+ */
+private fun optimizeMoveqLongForm(lines: List<String>, allPretrimmed: List<String>): List<Modification> {
+    val filtered = allPretrimmed.withIndex()
+        .filter { it.value.isNotBlank() && !it.value.trimStart().startsWith(';') }
+        .map { IndexedValue(it.index, it.value.trimStart()) }
+        .toList()
+
+    val mods = mutableListOf<Modification>()
+
+    for (entry in filtered) {
+        val instr = entry.value.instructionPart().lowercase()
+        if (!instr.startsWith("move.l"))
+            continue
+        val operands = entry.value.instructionOperands() ?: continue
+        val parts = operands.split(',', limit = 2)
+        if (parts.size != 2)
+            continue
+        val dst = parts[1].trim().lowercase()
+        if (!dst.matches(dataRegisterPattern))
+            continue
+        val value = parseImmediate(parts[0]) ?: continue
+        val signed = if (value > 0x7fffffffL) value - 0x100000000L else value
+        if (signed !in -128..127)
+            continue
+        val originalLine = lines.getOrNull(entry.index) ?: allPretrimmed[entry.index]
+        val originalIndent = originalLine.takeWhile { it.isWhitespace() }
+        val label = keepLabel(entry.value)
+        val labelPrefix = if (label.isNotEmpty()) "$label  " else ""
+        mods.add(Modification(entry.index, false, "$originalIndent$labelPrefix" + "moveq  #$signed,$dst"))
+    }
+
+    return mods
+}
+
+/**
+ * Rewrite `add.S #N,dst` / `sub.S #N,dst` to `addq`/`subq` for N in 1..8, flipping
+ * the operation for N in -8..-1 (`add #-3` -> `subq #3`). Identical flags, shorter
+ * encoding. Skips ccr/sr destinations (quick forms cannot target them) and
+ * non-numeric immediates. Validity of everything else is preserved: the rewrite keeps
+ * the size, and addq/subq accept every destination the plain forms accept.
+ */
+private fun optimizeAddSubQuick(lines: List<String>, allPretrimmed: List<String>): List<Modification> {
+    val filtered = allPretrimmed.withIndex()
+        .filter { it.value.isNotBlank() && !it.value.trimStart().startsWith(';') }
+        .map { IndexedValue(it.index, it.value.trimStart()) }
+        .toList()
+
+    val mods = mutableListOf<Modification>()
+
+    for (entry in filtered) {
+        val instr = entry.value.instructionPart()
+        val token = instr.substringBefore(' ').substringBefore('\t').lowercase()
+        if (token !in setOf("add.b", "add.w", "add.l", "sub.b", "sub.w", "sub.l"))
+            continue
+        val size = token.substringAfter('.')
+        val operands = entry.value.instructionOperands() ?: continue
+        val parts = operands.split(',', limit = 2)
+        if (parts.size != 2)
+            continue
+        val dst = parts[1].trim()
+        if (dst.lowercase() in setOf("ccr", "sr"))
+            continue
+        val value = parseImmediate(parts[0]) ?: continue
+        val replacement = when {
+            value in 1..8 -> "${token.substringBefore('.')}q.$size  #$value,$dst"
+            value in -8..-1 -> {
+                val flipped = if (token.startsWith("add")) "subq" else "addq"
+                "$flipped.$size  #${-value},$dst"
+            }
+            else -> continue
+        }
+        val originalLine = lines.getOrNull(entry.index) ?: allPretrimmed[entry.index]
+        val originalIndent = originalLine.takeWhile { it.isWhitespace() }
+        val label = keepLabel(entry.value)
+        val labelPrefix = if (label.isNotEmpty()) "$label  " else ""
+        mods.add(Modification(entry.index, false, "$originalIndent$labelPrefix$replacement"))
+    }
+
+    return mods
+}
+
 /**
  * A5 .w form: rewrite `move.w #N,dK` to `moveq #N,dK` when N fits in -128..127
  * (or $FF80..$FFFF unsigned), provided no subsequent longword read of dK occurs
  * before a full write or block boundary in the same basic block.
- */
-private fun optimizeMoveqWordForm(lines: MutableList<String>, allPretrimmed: List<String>): List<Modification> {
+ */private fun optimizeMoveqWordForm(lines: MutableList<String>, allPretrimmed: List<String>): List<Modification> {
     val controlTransfers = setOf(
         "bra", "bsr", "jmp", "jsr", "rts", "rtr", "rte", "trap",
         "bcc", "bcs", "beq", "bne", "bmi", "bpl", "bvc", "bvs",
