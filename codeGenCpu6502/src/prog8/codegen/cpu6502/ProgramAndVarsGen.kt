@@ -115,7 +115,6 @@ internal class ProgramAndVarsGen(
         } else {
 
             when (options.output) {
-                OutputType.LIBRARY -> { }
                 OutputType.RAW -> {
                     asmgen.out("; ---- raw assembler program ----")
                     asmgen.out("* = ${options.loadAddress.toHex()}")
@@ -361,6 +360,12 @@ internal class ProgramAndVarsGen(
         }
     }
 
+    private fun addressOfAsmSymbol(name: String): String {
+        val symbol = symboltable.lookup(name)!!
+        val actualName = if(symbol is StStaticVariable && symbol.dt.isSplitWordArray(compTarget)) name+"_lsb" else name
+        return asmgen.asmSymbolName(actualName)
+    }
+
     private fun structInstances2asm() {
 
         fun formatValue(value: StArrayElement, dt: DataType): String {
@@ -378,7 +383,7 @@ internal class ProgramAndVarsGen(
                     else
                         value.value.toString()
                 }
-                is StArrayElement.AddressOf -> value.symbol
+                is StArrayElement.AddressOf -> addressOfAsmSymbol(value.symbol)
                 is StArrayElement.MemorySlab -> "$StMemorySlabBlockName.${value.name}"
                 is StArrayElement.BoolValue -> if(value.value) "1" else "0"
                 is StArrayElement.StructInstance -> throw AssemblyError("struct instance in struct initializer")
@@ -980,21 +985,52 @@ internal class ProgramAndVarsGen(
                         val fieldValues = instance.initialValues
                         require(fieldValues.size==expandedFieldTypes.size) { "field count mismatch for $instanceName" }
                         for((fieldType, fieldVal) in expandedFieldTypes.zip(fieldValues)) {
-                            val num = when(fieldVal) {
-                                is StArrayElement.Number -> fieldVal.value
-                                is StArrayElement.BoolValue -> if(fieldVal.value) 1.0 else 0.0
-                                else -> throw AssemblyError("struct field value must be number for $varname (got $fieldVal)")
-                            }
-                            when {
-                                fieldType.isByteOrBool -> asmgen.out("  .byte  ${num.toInt()}")
-                                fieldType.isWord -> asmgen.out("  .word  ${num.toInt()}")
-                                fieldType.isLong -> asmgen.out("  .dword  ${num.toInt()}")
-                                fieldType.isFloat -> {
-                                    val bytes = compTarget.getFloatAsmBytes(num)
-                                    asmgen.out("  .byte  $bytes  ; float $num")
+                            when (fieldVal) {
+                                is StArrayElement.Number, is StArrayElement.BoolValue -> {
+                                    val num = when (fieldVal) {
+                                        is StArrayElement.Number -> fieldVal.value
+                                        is StArrayElement.BoolValue -> if (fieldVal.value) 1.0 else 0.0
+                                    }
+                                    when {
+                                        fieldType.isByteOrBool -> asmgen.out("  .byte  ${num.toInt()}")
+                                        fieldType.isWord -> asmgen.out("  .word  ${num.toInt()}")
+                                        fieldType.isLong -> asmgen.out("  .dword  ${num.toInt()}")
+                                        fieldType.isFloat -> {
+                                            val bytes = compTarget.getFloatAsmBytes(num)
+                                            asmgen.out("  .byte  $bytes  ; float $num")
+                                        }
+                                        fieldType.isPointer -> asmgen.out("  .word  ${num.toInt()}  ; pointer")
+                                        else -> throw AssemblyError("unsupported struct field type $fieldType")
+                                    }
                                 }
-                                fieldType.isPointer -> asmgen.out("  .word  ${num.toInt()}  ; pointer")
-                                else -> throw AssemblyError("unsupported struct field type $fieldType")
+                                is StArrayElement.AddressOf -> {
+                                    val token = addressOfAsmSymbol(fieldVal.symbol)
+                                    when {
+                                        fieldType.isByteOrBool -> asmgen.out("  .byte  $token")
+                                        fieldType.isWord || fieldType.isPointer -> asmgen.out("  .word  $token  ; pointer")
+                                        fieldType.isLong -> asmgen.out("  .dword  $token")
+                                        else -> throw AssemblyError("unsupported struct field type $fieldType")
+                                    }
+                                }
+                                is StArrayElement.MemorySlab -> {
+                                    val token = asmgen.asmSymbolName("$StMemorySlabBlockName.${fieldVal.name}")
+                                    when {
+                                        fieldType.isByteOrBool -> asmgen.out("  .byte  $token")
+                                        fieldType.isWord || fieldType.isPointer -> asmgen.out("  .word  $token  ; pointer")
+                                        fieldType.isLong -> asmgen.out("  .dword  $token")
+                                        else -> throw AssemblyError("unsupported struct field type $fieldType")
+                                    }
+                                }
+                                is StArrayElement.StructInstance -> {
+                                    val prefix = if (fieldVal.uninitialized) "${StStructInstanceBlockName}_bss" else StStructInstanceBlockName
+                                    val token = asmgen.asmSymbolName("$prefix.${fieldVal.name}")
+                                    when {
+                                        fieldType.isByteOrBool -> asmgen.out("  .byte  $token")
+                                        fieldType.isWord || fieldType.isPointer -> asmgen.out("  .word  $token  ; pointer")
+                                        fieldType.isLong -> asmgen.out("  .dword  $token")
+                                        else -> throw AssemblyError("unsupported struct field type $fieldType")
+                                    }
+                                }
                             }
                         }
                     }

@@ -115,6 +115,23 @@ class TestArraysOfStructs: FunSpec({
         ir shouldContain "arr"
     }
 
+    test("initialized struct array can point to a split word array") {
+        val out = tempdir().toPath()
+        val src = """
+            main {
+                struct Item { pointer data }
+                uword[2] values = [1,2]
+                Item[1] items = [Item : [&values]]
+                sub start() {
+                    pointer p = items[0].data
+                }
+            }
+        """
+        compileText(C64Target(), true, src, out, writeAssembly = true, assemble = true)!!
+        val asm = out.toFile().listFiles()!!.single { it.name.endsWith(".asm") }.readText()
+        asm shouldContain "p8v_values_lsb"
+    }
+
     test("struct instance array with pointer initializer should be error") {
         val out = tempdir().toPath()
         val src = """

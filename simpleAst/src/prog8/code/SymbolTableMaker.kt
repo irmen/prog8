@@ -194,6 +194,25 @@ class SymbolTableMaker(private val program: PtProgram, private val options: Comp
                     if(it.builtin && it.name=="memory") throw InternalCompilerException("memory() call should have been desugared into dedicated nodes at ${it.position}")
                     throw InternalCompilerException("Invalid argument type '${it::class.simpleName}' for prog8_lib_structalloc() at ${it.position}")
                 }
+                is PtTypeCast -> {
+                    // string literals (and other casts) are wrapped in a type cast to the field's pointer/word type;
+                    // unwrap and handle the underlying expression
+                    when (val v = it.value) {
+                        is PtAddressOf -> StArrayElement.AddressOf(v.identifier!!.name)
+                        is PtNumber -> StArrayElement.Number(v.number)
+                        is PtBool -> StArrayElement.BoolValue(v.value)
+                        is PtConstant -> {
+                            val slab = v.memorySlab
+                                ?: throw InternalCompilerException(
+                                    "prog8_lib_structalloc() argument must be memory() call at ${v.position}"
+                                )
+                            StArrayElement.MemorySlab(slab.name)
+                        }
+                        else -> throw InternalCompilerException(
+                            "Invalid argument type '${v::class.simpleName}' for prog8_lib_structalloc() at ${v.position}"
+                        )
+                    }
+                }
                 else -> throw InternalCompilerException(
                     "Invalid argument type '${it::class.simpleName}' for prog8_lib_structalloc() at ${it.position}"
                 )
