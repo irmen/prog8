@@ -1612,14 +1612,94 @@ class TestInstructionSelectionOptimizations : FunSpec({
         lines.count { it.startsWith("    move.w") } shouldBe 2
     }
 
-    test("A3 does not treat symbols starting with d as data registers") {
+    test("A3 drops a mirrored move pair through a symbol") {
+        // `dmask` merely starts with d: not a register, but the mirror itself
+        // is still redundant (second writes back what the first just stored).
         val lines = mutableListOf(
             "    move.w  d0,dmask",
             "    move.w  dmask,d0",
             "    rts"
         )
         optimizeAssembly(lines)
-        lines.count { it.startsWith("    move.w") } shouldBe 2
+        lines.count { it.startsWith("    move.w") } shouldBe 1
+        lines.count { it.startsWith("    move.w  d0,dmask") } shouldBe 1
+    }
+
+    test("drops a mirrored move pair across address registers") {
+        // real bootinfo_ptr shape: a2 is unused between the two moves.
+        val lines = mutableListOf(
+            "    move.l  d0,a2",
+            "    move.l  a2,d0",
+            "    rts"
+        )
+        optimizeAssembly(lines)
+        lines.count { it.startsWith("    move.l") } shouldBe 1
+        lines.count { it.startsWith("    move.l  d0,a2") } shouldBe 1
+    }
+
+    test("drops a duplicated consecutive move") {
+        val lines = mutableListOf(
+            "    move.l  p8b_test.p8v_x,d0",
+            "    move.l  p8b_test.p8v_x,d0",
+            "    rts"
+        )
+        optimizeAssembly(lines)
+        lines.count { it.startsWith("    move.l") } shouldBe 1
+    }
+
+    test("drops movea and exg self-moves") {
+        val lines = mutableListOf(
+            "    movea.l  a0,a0",
+            "    exg     d2,d2",
+            "    move.l  d0,d1",
+            "    rts"
+        )
+        optimizeAssembly(lines)
+        lines.any { it.contains("movea.l  a0,a0") } shouldBe false
+        lines.any { it.contains("exg") } shouldBe false
+        lines.count { it.startsWith("    move.l  d0,d1") } shouldBe 1
+    }
+
+    test("keeps a flag-setting self-move") {
+        // `move.l d0,d0` sets flags like `tst.l d0`: removing it needs a
+        // liveness proof this pass does not attempt.
+        val lines = mutableListOf(
+            "    move.l  d0,d0",
+            "    beq     somewhere"
+        )
+        optimizeAssembly(lines)
+        lines.any { it.contains("move.l  d0,d0") } shouldBe true
+    }
+
+    test("keeps mirrors with pointer-advancing operands") {
+        val lines = mutableListOf(
+            "    move.l  (a0)+,d0",
+            "    move.l  d0,(a0)+",
+            "    rts"
+        )
+        optimizeAssembly(lines)
+        lines.count { it.startsWith("    move.l") } shouldBe 2
+    }
+
+    test("keeps mixed move and movea mirrors") {
+        // movea sets no flags while move does: flag states would differ.
+        val lines = mutableListOf(
+            "    movea.l  a0,a1",
+            "    move.l  a1,d0",
+            "    rts"
+        )
+        optimizeAssembly(lines)
+        lines.count { it.trimStart().startsWith("move") } shouldBe 2
+    }
+
+    test("does not merge moves through case-differing symbols") {
+        val lines = mutableListOf(
+            "    move.l  Foo,d0",
+            "    move.l  foo,d0",
+            "    rts"
+        )
+        optimizeAssembly(lines)
+        lines.count { it.startsWith("    move.l") } shouldBe 2
     }
 
     // === A2 store-reload peephole ===
@@ -1646,14 +1726,17 @@ class TestInstructionSelectionOptimizations : FunSpec({
         lines.count { it == "    move.l  8(a5),d1" } shouldBe 1
     }
 
-    test("A2 leaves a store-reload-into-source pair alone") {
+    test("A2 drops a store-reload-into-source pair as a mirror") {
+        // The old store-reload pass deliberately skipped these; the mirror
+        // pass now removes the reload (it writes back what was just stored).
         val lines = mutableListOf(
             "    move.l  d0,p8b_test.p8v_x",
             "    move.l  p8b_test.p8v_x,d0",
             "    rts"
         )
         optimizeAssembly(lines)
-        lines.count { it == "    move.l  p8b_test.p8v_x,d0" } shouldBe 1
+        lines.count { it == "    move.l  d0,p8b_test.p8v_x" } shouldBe 1
+        lines.count { it == "    move.l  p8b_test.p8v_x,d0" } shouldBe 0
     }
 
     test("A2 does not treat symbols starting with d as data registers") {

@@ -29,6 +29,7 @@ internal fun optimizeAssembly(lines: MutableList<String>) {
         by2 = runPass(optimizeTailCall(by2), 2, by2)
         by2 = runPass(optimizeRedundantTst(by2), 2, by2)
         by2 = runPass(optimizeSwapBack(by2), 2, by2)
+        by2 = runPass(optimizeRedundantMovePair(by2), 2, by2)
         by2 = runPass(optimizeStoreReloadToRegCopy(by2), 2, by2)
         val a6Mods = optimizeByteZeroExtendSafe(lines, pretrimmed)
         if (a6Mods.isNotEmpty()) {
@@ -36,7 +37,9 @@ internal fun optimizeAssembly(lines: MutableList<String>) {
             modified = true
         }
         // single-line immediate-form rewrites: provably safe, no context needed.
-        val quickMods = optimizeMoveqLongForm(lines, pretrimmed) + optimizeAddSubQuick(lines, pretrimmed)
+        // plus single-line true no-ops (movea/exg with identical operands).
+        val quickMods = optimizeMoveqLongForm(lines, pretrimmed) + optimizeAddSubQuick(lines, pretrimmed) +
+            optimizeMoveSelfNoOps(lines, pretrimmed)
         if (quickMods.isNotEmpty()) {
             applyModifications(quickMods, lines, pretrimmed)
             modified = true
@@ -472,6 +475,90 @@ private fun optimizeAddressArithmetic(lines: List<String>, allPretrimmed: List<S
         }
     }
 
+    return mods
+}
+
+/** A move operand with no read/write side effects: plain register, safe memory, or immediate. */
+private fun String.isSwizzleSafeOperand(): Boolean {
+    val t = trim()
+    if (t.isEmpty()) return false
+    val l = t.lowercase()
+    if (l in setOf("ccr", "sr", "usp", "sp", "pc")) return false
+    if (l.matches(Regex("^(d[0-7]|a[0-7]|fp[0-9]+)$"))) return true
+    return t.isSafeMemoryOperand()
+}
+
+/** Same operand: exact match, or case-insensitive for registers (symbols stay case-sensitive). */
+private fun sameOperand(a: String, b: String): Boolean {
+    if (a == b) return true
+    val al = a.lowercase()
+    return al == b.lowercase() && al.matches(Regex("^(d[0-7]|a[0-7]|fp[0-9]+)$"))
+}
+
+private fun optimizeRedundantMovePair(linesBy: Sequence<List<TrimmedLine>>): List<Modification> {
+    //  Drops the second of two consecutive moves when it provably does nothing:
+    //  - duplicate `move.S X,Y` twice: same value, identical flags.
+    //  - mirrored `move.S X,Y` / `move.S Y,X` (both plain `move.`, or both
+    //    `movea.`, same size): after the first both hold the same value, so the
+    //    second writes back what is already there with identical flags.
+    //    Generalizes swap-back beyond data registers: real output contains
+    //    `move.l d0,a2` / `move.l a2,d0` with no use of a2 between.
+    //  Both operands must be side-effect-free (rules out `(aN)+`/`-(aN)` whose
+    //  read/write advances a pointer, and `$hex` MMIO), and `#` immediates are
+    //  never valid destinations. Mixed move./movea. mirrors are excluded: movea
+    //  sets no flags, so the second line's flag state would differ. Flag-setting
+    //  self-moves (`move.S X,X`) are excluded too: value no-op but flag-setter,
+    //  needs a liveness proof this pass does not attempt.
+    val mods = mutableListOf<Modification>()
+    for (lines in linesBy) {
+        // Mnemonic checks on a lowered copy; operands keep their original case
+        // (symbols are case-sensitive, unlike registers).
+        val firstLower = lines[0].instruction.lowercase()
+        val secondLower = lines[1].instruction.lowercase()
+        if (hasLabel(lines[1].trimmed)) continue
+        val bothMove = firstLower.isMove() && secondLower.isMove()
+        val bothMovea = firstLower.startsWith("movea.") && secondLower.startsWith("movea.")
+        if (!bothMove && !bothMovea) continue
+        if (firstLower.moveSize() != secondLower.moveSize()) continue
+        val m1 = lines[0].instruction.instructionOperands()?.let(::splitOperands) ?: continue
+        val m2 = lines[1].instruction.instructionOperands()?.let(::splitOperands) ?: continue
+        if (m1.size != 2 || m2.size != 2) continue
+        val src1 = m1[0].trim()
+        val dst1 = m1[1].trim()
+        val src2 = m2[0].trim()
+        val dst2 = m2[1].trim()
+        if (dst1.startsWith("#") || dst2.startsWith("#")) continue
+        if (!src1.isSwizzleSafeOperand() || !dst1.isSwizzleSafeOperand()) continue
+        if (!src2.isSwizzleSafeOperand() || !dst2.isSwizzleSafeOperand()) continue
+        if (sameOperand(src1, dst1)) continue
+        val dup = sameOperand(src1, src2) && sameOperand(dst1, dst2)
+        val mirror = sameOperand(src1, dst2) && sameOperand(dst1, src2)
+        if (!dup && !mirror) continue
+        mods.add(Modification(lines[1].index, true, null))
+    }
+    return mods
+}
+
+/** Single-line true no-ops: `movea.S aN,aN` (flag-free) and `exg r,r` (no flags). */
+private fun optimizeMoveSelfNoOps(lines: List<String>, allPretrimmed: List<String>): List<Modification> {
+    val mods = mutableListOf<Modification>()
+    for ((index, line) in allPretrimmed.withIndex()) {
+        if (line.isBlank() || line.trimStart().startsWith(';')) continue
+        val instr = line.instructionPart().trim().lowercase()
+        if (instr.startsWith("movea.")) {
+            val ops = instr.instructionOperands()?.let(::splitOperands) ?: continue
+            if (ops.size != 2) continue
+            val src = ops[0].trim()
+            val dst = ops[1].trim()
+            if (src.matches(Regex("^a[0-7]$")) && src == dst)
+                mods.add(Modification(index, true, null))
+        } else if (instr.startsWith("exg")) {
+            val ops = instr.instructionOperands()?.let(::splitOperands) ?: continue
+            if (ops.size != 2) continue
+            if (sameOperand(ops[0].trim(), ops[1].trim()))
+                mods.add(Modification(index, true, null))
+        }
+    }
     return mods
 }
 
