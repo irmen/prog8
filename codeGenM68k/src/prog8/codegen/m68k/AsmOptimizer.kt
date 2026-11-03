@@ -53,6 +53,12 @@ internal fun optimizeAssembly(lines: MutableList<String>) {
             applyModifications(leaMods, lines, pretrimmed)
             modified = true
         }
+        // fold move+address-arithmetic into lea; creates lea lines the pass above may trim next round.
+        val addrMods = optimizeAddressArithmetic(lines, pretrimmed)
+        if (addrMods.isNotEmpty()) {
+            applyModifications(addrMods, lines, pretrimmed)
+            modified = true
+        }
 
         // DBRA peephole for repeat loops is now obsolete: counted loops are emitted as IRLoopChunk and directly translated to dbra.
         // The old REGFILE-DEPENDENT pattern (move #N,p8_regfile+slot / label: body / subq #1,slot / bne label) no longer occurs.
@@ -223,6 +229,153 @@ private fun optimizeAddSubQuick(lines: List<String>, allPretrimmed: List<String>
         val label = keepLabel(entry.value)
         val labelPrefix = if (label.isNotEmpty()) "$label  " else ""
         mods.add(Modification(entry.index, false, "$originalIndent$labelPrefix$replacement"))
+    }
+
+    return mods
+}
+
+/** Foldable lea base: registers and `#` immediates read no memory; frame slots and plain symbols read RAM (memvars render as `$hex`), always safe. */
+private sealed interface LeaBase {
+    /** address register: no memory read at all. */
+    data class Register(val reg: String) : LeaBase
+    /** numeric address: no memory read at all. */
+    data class Absolute(val value: Long) : LeaBase
+    /** `(d,a5)` frame slot: RAM read, always safe. */
+    data class Frame(val disp: Long) : LeaBase
+    /** plain symbol with offset: RAM read, always safe. */
+    data class Symbol(val name: String, val off: Long) : LeaBase
+}
+
+private val addressArithOpPattern = Regex("^(addq|subq|adda|suba|add|sub)\\.([wl])$")
+private val addressRegPattern = Regex("^a[0-7]$")
+private val frameSlotPattern = Regex("^\\((-?\\d+),a5\\)$")
+private val symbolBasePattern = Regex("^([^$():,\\s]+?)([+-]\\d+)?$")
+
+/**
+ * Split a `movea.l`/`move.l` source into a foldable lea base, or null when folding
+ * is unsafe or impossible. `$hex` sources are rejected (may be hardware registers
+ * whose read must not be dropped); anything unparseable is rejected too.
+ */
+private fun parseLeaBase(src: String): LeaBase? {
+    val text = src.trim()
+    if (text.startsWith("#")) {
+        val body = text.substring(1).trim()
+        val num = try {
+            when {
+                body.startsWith("$") -> body.substring(1).toLong(16)
+                body.startsWith("0x", ignoreCase = true) -> body.substring(2).toLong(16)
+                else -> body.toLong()
+            }
+        } catch (_: NumberFormatException) {
+            null
+        }
+        if (num != null)
+            return LeaBase.Absolute(num)
+        // `#symbol[+off]`: no memory read, fold symbolically.
+        val m = symbolBasePattern.matchEntire(body) ?: return null
+        return LeaBase.Symbol(m.groupValues[1], m.groupValues[2].ifEmpty { "0" }.toLong())
+    }
+    if (text.lowercase().matches(addressRegPattern))
+        return LeaBase.Register(text.lowercase())
+    frameSlotPattern.matchEntire(text)?.let {
+        return LeaBase.Frame(it.groupValues[1].toLong())
+    }
+    if (text.startsWith("$"))
+        return null
+    val m = symbolBasePattern.matchEntire(text) ?: return null
+    return LeaBase.Symbol(m.groupValues[1], m.groupValues[2].ifEmpty { "0" }.toLong())
+}
+
+/**
+ * Fold `movea.l`/`move.l X,aY` + address-size `add`/`sub #N,aY` into a single
+ * `lea (N+X),aY`. Only address-register destinations (all such ops are flag-free
+ * there); data-register destinations are never folded. `movea` sources fold freely
+ * (`movea` sets no flags); `move.l` sources additionally need the flag scan, since
+ * the move sets N/Z that the folded `lea` would not.
+ */
+private fun optimizeAddressArithmetic(lines: List<String>, allPretrimmed: List<String>): List<Modification> {
+    val filtered = allPretrimmed.withIndex()
+        .filter { it.value.isNotBlank() && !it.value.trimStart().startsWith(';') }
+        .map { IndexedValue(it.index, it.value.trimStart()) }
+        .toList()
+
+    val mods = mutableListOf<Modification>()
+
+    for (i in 0 until filtered.size - 1) {
+        val first = filtered[i].value
+        val second = filtered[i + 1].value
+        if (hasLabel(second))
+            continue
+        val moveToken = first.instructionPart().substringBefore(' ').substringBefore('\t').lowercase()
+        if (moveToken != "movea.l" && moveToken != "move.l")
+            continue
+        val moveOps = first.instructionOperands()?.let(::splitOperands) ?: continue
+        if (moveOps.size != 2)
+            continue
+        val dst = moveOps[1].trim().lowercase()
+        if (!dst.matches(addressRegPattern))
+            continue
+        val arithToken = second.instructionPart().substringBefore(' ').substringBefore('\t').lowercase()
+        val arith = addressArithOpPattern.matchEntire(arithToken) ?: continue
+        val arithOps = second.instructionOperands()?.let(::splitOperands) ?: continue
+        if (arithOps.size != 2 || arithOps[1].trim().lowercase() != dst)
+            continue
+        val imm = parseImmediate(arithOps[0]) ?: continue
+        val delta = if (arith.groupValues[1].startsWith("add")) imm else -imm
+        val base = parseLeaBase(moveOps[0]) ?: continue
+        // `move.l` sets N/Z; only fold when no later reader can observe them.
+        if (moveToken == "move.l") {
+            var flagSafe = false
+            scan@ for (j in i + 2 until filtered.size) {
+                val text = filtered[j].value
+                if (hasLabel(text))
+                    break@scan
+                when (text.zeroExtendFlagDecision()) {
+                    FlagDecision.Overwritten -> {
+                        flagSafe = true
+                        break@scan
+                    }
+                    FlagDecision.Unsafe -> break@scan
+                    FlagDecision.Continue -> {}
+                }
+            }
+            if (!flagSafe)
+                continue
+        }
+        val folded = when (base) {
+            is LeaBase.Register -> {
+                val total = delta
+                if (total !in -32768..32767)
+                    continue
+                "($total,${base.reg})"
+            }
+            is LeaBase.Absolute -> {
+                val total = base.value + delta
+                if (total !in 0..0xffffffffL)
+                    continue
+                "$" + total.toString(16)
+            }
+            is LeaBase.Frame -> {
+                val total = base.disp + delta
+                if (total !in -32768..32767)
+                    continue
+                "($total,a5)"
+            }
+            is LeaBase.Symbol -> {
+                val total = base.off + delta
+                base.name + when {
+                    total > 0 -> "+$total"
+                    total < 0 -> "$total"
+                    else -> ""
+                }
+            }
+        }
+        val originalLine = lines.getOrNull(filtered[i].index) ?: allPretrimmed[filtered[i].index]
+        val originalIndent = originalLine.takeWhile { it.isWhitespace() }
+        val label = keepLabel(filtered[i].value)
+        val labelPrefix = if (label.isNotEmpty()) "$label  " else ""
+        mods.add(Modification(filtered[i].index, false, "$originalIndent$labelPrefix" + "lea  $folded,$dst"))
+        mods.add(Modification(filtered[i + 1].index, true, null))
     }
 
     return mods
@@ -576,6 +729,25 @@ private fun String.moveSize(): Char = substringAfter('.').firstOrNull() ?: ' '
 
 /** Matches exactly a data register d0-d7, in either case. */
 private val dataRegisterPattern = Regex("^d[0-7]$")
+
+/** Split an operand pair on commas at parenthesis depth 0 (m68k addressing modes embed commas, e.g. `(-8,a5),a2`). */
+private fun splitOperands(operands: String): List<String> {
+    val parts = mutableListOf<String>()
+    var depth = 0
+    var start = 0
+    for (i in operands.indices) {
+        when (operands[i]) {
+            '(', '[' -> depth++
+            ')', ']' -> if (depth > 0) depth--
+            ',' -> if (depth == 0) {
+                parts.add(operands.substring(start, i))
+                start = i + 1
+            }
+        }
+    }
+    parts.add(operands.substring(start))
+    return parts
+}
 
 /** Splits a move instruction "move.S  src, dst" into (src, dst), or null if it isn't a move. */
 private fun String.moveOperands(): Pair<String, String>? {

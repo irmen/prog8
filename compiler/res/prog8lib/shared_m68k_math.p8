@@ -722,7 +722,7 @@ math.crc32_table:
         %asm {{
             move.l  d2,-(sp)
             lea     math.crc32_table,a1
-            move.l  #$ffffffff,d1   ; running crc
+            moveq   #-1,d1          ; running crc
 .loop:
             subq.w  #1,d0
             bcs     .done

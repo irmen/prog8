@@ -89,8 +89,12 @@ class TestInstructionSelectionOptimizations : FunSpec({
             )
         )
 
-        lines.count { it == "addq.l  #1,a0" } shouldBe 1
-        lines.count { it == "adda.l  #65535,a0" } shouldBe 1
+        // pointer setup plus offset folds into lea (small and large offsets alike)
+        lines.count { it.startsWith("lea  p8_regfile+") && it.endsWith(",a0") } shouldBe 2
+        lines.any { it == "lea  p8_regfile+1,a0" } shouldBe true
+        lines.any { it == "lea  p8_regfile+65535,a0" } shouldBe true
+        lines.none { it.startsWith("addq.l") } shouldBe true
+        lines.none { it.startsWith("adda.l") } shouldBe true
     }
 
     test("uses moveq for zero extension and only representable immediate returns") {
@@ -1219,8 +1223,9 @@ class TestInstructionSelectionOptimizations : FunSpec({
         sub.any { it.startsWith("movea.l  ") && it.endsWith(",a0") } shouldBe true
         sub.any { it.startsWith("move.w  (a0),p8_regfile+") } shouldBe true
         sub.any { it.endsWith(",(6,a0)") } shouldBe true
-        // displacements beyond the signed 16-bit range need an explicit adda
-        sub.any { it == "adda.l  #40000,a0" } shouldBe true
+        // displacements beyond the signed 16-bit range fold into the pointer load as lea
+        sub.any { it == "lea  p8_regfile+40000,a0" } shouldBe true
+        sub.none { it.startsWith("adda.l") } shouldBe true
     }
 
     test("float indexed memory lowering uses full width d0.l indexing") {
@@ -1380,6 +1385,66 @@ class TestInstructionSelectionOptimizations : FunSpec({
         lines.any { it.trim() == "beq  JOIN" } shouldBe true
         lines.none { it.trim() == "bra  JOIN" } shouldBe true
         lines.count { it.trimStart().startsWith("lea  arr,a0") } shouldBe 1
+    }
+
+    test("folds movea plus address arithmetic into lea") {
+        val lines = mutableListOf(
+            "    movea.l  a0,a2",
+            "    addq.l  #1,a2",
+            "    move.w  (a2),d0",
+            "    rts"
+        )
+        optimizeAssembly(lines)
+        lines.any { it.trim() == "lea  (1,a0),a2" } shouldBe true
+        lines.none { it.trimStart().startsWith("movea") } shouldBe true
+        lines.none { it.trimStart().startsWith("addq") } shouldBe true
+    }
+
+    test("folds move with symbol base plus arithmetic into lea with offset") {
+        val lines = mutableListOf(
+            "    move.l  arr,a2",
+            "    addq.l  #2,a2",
+            "    move.w  (a2),d0",
+            "    rts"
+        )
+        optimizeAssembly(lines)
+        lines.any { it.trim() == "lea  arr+2,a2" } shouldBe true
+    }
+
+    test("does not fold move plus arithmetic over a flag consumer") {
+        val lines = mutableListOf(
+            "    move.l  arr,a2",
+            "    addq.l  #2,a2",
+            "    beq  somewhere",
+            "    rts"
+        )
+        optimizeAssembly(lines)
+        lines.any { it.trim() == "move.l  arr,a2" } shouldBe true
+        lines.any { it.trim() == "addq.l  #2,a2" } shouldBe true
+    }
+
+    test("does not fold absolute address sources that may be hardware") {
+        val lines = mutableListOf(
+            "    movea.l  \$00dff096,a2",
+            "    addq.l  #2,a2",
+            "    move.w  (a2),d0",
+            "    rts"
+        )
+        optimizeAssembly(lines)
+        lines.any { it.trimStart().startsWith("movea") } shouldBe true
+        lines.any { it.trimStart().startsWith("addq") } shouldBe true
+    }
+
+    test("folds frame slot base plus arithmetic into lea") {
+        val lines = mutableListOf(
+            "    movea.l  (-8,a5),a2",
+            "    addq.l  #2,a2",
+            "    move.w  (a2),d0",
+            "    rts"
+        )
+        optimizeAssembly(lines)
+        println("FRAME-LINES:" + lines)
+        lines.any { it.trim() == "lea  (-6,a5),a2" } shouldBe true
     }
 
     test("M5 forgets a0 across a label") {

@@ -109,11 +109,26 @@ effort. Status: proposal.
   comment lines, not instructions; the real targets were the plain
   `add.`/`sub.` forms.)
 
-### 2.4 Address-arithmetic combining
+### 2.4 Address-arithmetic combining [DONE]
 - `move.l a0,d0; add.l #off,d0` -> `lea (off,a0),a1` where legal; combine
   consecutive `add`/`sub` on the same register.
 - **Where**: `AsmOptimizer.kt`.
 - **Effort**: medium.
+- **Done, rescoped by measurement**: only 3 foldable pairs exist in all of
+  textelite/maze (all in shared lib code), and data-register merging was
+  dropped (flag-unsafe: `(x+a)+b` vs `x+(a+b)` can differ in V; zero
+  consecutive data-reg pairs occur anyway). Built `optimizeAddressArithmetic`:
+  `movea.l`/`move.l X,aY` + `.w`/`.l` add/sub/addq/subq/adda/suba `#N` to the
+  same `aY` folds to `lea`. Soundness: An-destination ops never touch flags;
+  `movea` sources fold freely; `move.l` sources need the existing
+  flag-scan (stricter: bare labels stop it); `$hex` sources are skipped (may
+  be MMIO reads); data-reg destinations never fold. The doc's `d0`->`a1`
+  example as stated is unsound (renames the destination) and was not built.
+- **Measured**: 3 sites/program (`lea (1,a0),a2`, `lea (4,a3),a0`,
+  `lea ptr+2,a2`); binaries byte-identical (link alignment absorbs it).
+  Encoding check showed the brief-form folds are size-neutral (4B->4B) but
+  save ~8 cycles each on the `adda`/`move.l`-abs cases; only the symbol case
+  saves bytes (2B).
 
 ### 2.5 Redundant lea reload (extend) [DONE]
 - Existing `optimizeRedundantLea` only tracks `a0`. Extend to `a1`-`a4` and
