@@ -413,7 +413,8 @@ private fun optimizeAddressArithmetic(lines: List<String>, allPretrimmed: List<S
  * A5 .w form: rewrite `move.w #N,dK` to `moveq #N,dK` when N fits in -128..127
  * (or $FF80..$FFFF unsigned), provided no subsequent longword read of dK occurs
  * before a full write or block boundary in the same basic block.
- */private fun optimizeMoveqWordForm(lines: MutableList<String>, allPretrimmed: List<String>): List<Modification> {
+ */
+private fun optimizeMoveqWordForm(lines: MutableList<String>, allPretrimmed: List<String>): List<Modification> {
     val controlTransfers = setOf(
         "bra", "bsr", "jmp", "jsr", "rts", "rtr", "rte", "trap",
         "bcc", "bcs", "beq", "bne", "bmi", "bpl", "bvc", "bvs",
@@ -750,9 +751,6 @@ private fun optimizeStoreReloadToRegCopy(linesBy: Sequence<List<TrimmedLine>>): 
         if (src2.lowercase() != dst1.lowercase()) continue
         if (dst2.lowercase() == src1.lowercase()) continue
         if (first.moveSize() != second.moveSize()) continue
-        // memory safety: plain memory operands or (off,a5) frame slots; anything
-        // else parenthesised (e.g. an (aX)+ increment) stays excluded since its
-        // address or side effects would differ between read and no-read.
         // memory safety: plain memory operands or (off,a5) frame slots; anything
         // else parenthesised (e.g. an (aX)+ increment) stays excluded since its
         // address or side effects would differ between read and no-read.
