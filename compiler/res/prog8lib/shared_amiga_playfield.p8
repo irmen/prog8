@@ -265,7 +265,10 @@ playfield {
             return
         custom.DIWSTRT = regs.diwstrt
         custom.DIWSTOP = regs.diwstop
-        custom.DIWHIGH = regs.diwhigh
+        ; DIWHIGH is an ECS/AGA register; on OCS it does not exist and writing
+        ; to it corrupts the display. Only touch it on ECS or AGA chipsets.
+        if custom.detect_chipset() != custom.CHIPSET::OCS
+            custom.DIWHIGH = regs.diwhigh
         custom.DDFSTRT = regs.ddfstrt
         custom.DDFSTOP = regs.ddfstop
         custom.BPLCON0 = regs.bplcon0
