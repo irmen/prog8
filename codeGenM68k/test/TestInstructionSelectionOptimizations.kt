@@ -990,69 +990,6 @@ class TestInstructionSelectionOptimizations : FunSpec({
         lines.count { it == "    ext.l  d0" } shouldBe 2
     }
 
-    // === frame-slot round-trip peephole ===
-
-    test("removes redundant A5 frame-slot round-trip with same register") {
-        val lines = mutableListOf(
-            "    move.b  d3,-5(a5)",
-            "    move.b  d3,d2",
-            "    cmpi.b  #64,d2",
-            "    move.b  -5(a5),d3",
-            "    lsl.b   #2,d3",
-            "    rts"
-        )
-        optimizeAssembly(lines)
-        lines.none { it.contains("-5(a5)") } shouldBe true
-        lines.count { it.trimStart().startsWith("move.b") } shouldBe 1
-    }
-
-    test("removes dead A5 frame-slot store overwritten before read") {
-        val lines = mutableListOf(
-            "    move.b  d3,-3(a5)",
-            "    move.b  d2,-3(a5)",
-            "    rts"
-        )
-        optimizeAssembly(lines)
-        lines.count { it.contains("-3(a5)") } shouldBe 1
-        val storeLines = lines.filter { it.trimStart().startsWith("move.b") && it.contains("-3(a5)") }
-        storeLines.single() shouldBe "    move.b  d2,-3(a5)"
-    }
-
-    test("does not remove frame-slot round-trip when register is clobbered") {
-        val lines = mutableListOf(
-            "    move.w  d2,-2(a5)",
-            "    addq.w  #1,d2",
-            "    move.w  -2(a5),d2",
-            "    rts"
-        )
-        optimizeAssembly(lines)
-        lines.count { it.contains("-2(a5)") } shouldBe 2
-    }
-
-    test("does not remove frame-slot round-trip across a branch") {
-        val lines = mutableListOf(
-            "    move.b  d2,-1(a5)",
-            "    bra     somewhere",
-            "    move.b  -1(a5),d2",
-            "somewhere:",
-            "    rts"
-        )
-        optimizeAssembly(lines)
-        lines.count { it.contains("-1(a5)") } shouldBe 2
-    }
-
-    test("keeps label when removing a labelled frame-slot store") {
-        val lines = mutableListOf(
-            "mystore:",
-            "    move.w  d2,-4(a5)",
-            "    move.w  -4(a5),d2",
-            "    rts"
-        )
-        optimizeAssembly(lines)
-        lines.none { it.contains("-4(a5)") } shouldBe true
-        lines.any { it == "mystore:" } shouldBe true
-    }
-
     // === Tests for status flag return handling fixes (commit 1286b6cc8 follow-up) ===
 
     test("single-return expression call with @A0 (slot 18) emits store instruction") {

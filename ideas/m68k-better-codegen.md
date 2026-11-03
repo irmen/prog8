@@ -386,7 +386,7 @@ effort. Status: proposal.
   shapes (load-const-then-operate, foldable to `ori.b #8,d2`) - candidate
   peephole/lowering item, not yet planned.
 
-### 4.7 Avoid fixed A5 frame slots for simple locals [PARTIAL]
+### 4.7 Avoid fixed A5 frame slots for simple locals [NOT WORTH IT]
 - **Problem**: named source-level locals (e.g. `ubyte ax` in `planet.distance()`)
   currently receive dedicated A5 frame slots at compile time and are stored to
   and reloaded from those slots around almost every operation, even inside a
@@ -395,51 +395,114 @@ effort. Status: proposal.
   two instructions later just to shift it left by 2, when it could have stayed
   in the register that already held it.
 - **Where**: `M68kRegisterAllocator`, `StackFrameLayout`, `AsmGen`.
-- **Status**:
-  - Peephole fallback implemented in `AsmOptimizer.optimizeFrameSlotRoundTrips`
-    (2026-11-03). It removes redundant A5 frame-slot round-trips and dead
-    stores within a single basic block, and it is registered in the main
-    `optimizeAssembly()` loop. Tests added to
-    `TestInstructionSelectionOptimizations` cover the matching patterns and the
-    conservative non-matching cases (register clobber, branch boundary, label
-    preservation).
-  - Full solution (locals as vregs) remains open.
-- **Measured effect of the peephole fallback on `textelite`**: 2 `move`
-  instructions removed, binary size 16 101 B -> 16 085 B (-16 B). The pass is
-  intentionally conservative (basic-block only, no cross-block liveness), so
-  the gain is small. The remaining A5-frame moves are mostly separated by
-  branches or calls, or live across call boundaries, which requires the full
-  solution.
 - **Approach**:
   - Full solution: treat named locals as virtual registers alongside temporary
     vregs; run liveness analysis across the subroutine; allocate hot locals to
     hardware registers and spill only when necessary (register pressure,
     address-taken, live across calls, recursion/debugging requirements).
     Reserve dedicated A5 slots only for locals that must have a stable address.
-  - The peephole fallback already covers the easy intra-basic-block cases.
-- **Benefit**: the full solution removes the ~23% of prog8 `move` instructions
-  that currently hit A5 frame slots in `textelite` (392 of 1699 moves),
-  reducing both code size and execution time. The peephole fallback captures
-  only a small subset but does so safely.
+  - Cheap fallback (attempted, then reverted - see below): add peephole passes
+    for store-to-load forwarding within a basic block and dead-local-store
+    elimination, without changing the frame model.
+- **Benefit**: removes the ~23% of prog8 `move` instructions that currently
+  hit A5 frame slots in `textelite` (392 of 1699 moves), reducing both code
+  size and execution time.
 - **Effort**: medium-high for the full register-allocation solution; small for
-  the peephole fallback (done).
+  the peephole fallback.
 - **Trade-offs**: must preserve recursion, `&local`, `%option noframe`, and
   hand-written `%asm` semantics.
 
+#### 4.7.1 Reverted peephole fallback - what went wrong (2026-11-03)
+
+Do not resurrect the basic-block frame-slot pass as it was written; it produces
+wrong code and its payoff is negligible (see the verdict below). Reference
+implementation: commit `d6f512c` (removed again in `05200b4`, which is the
+revert that was required to fix the miscompile). Because the pass was fully
+reverted, `codeGenM68k` currently has no frame-slot round-trip optimization at
+all.
+
+- **What it did**: `AsmOptimizer.optimizeFrameSlotRoundTrips`, a linear scan over
+  `pretrimmed`. It tracked the last store to each A5 displacement and removed
+  (a) a store plus a later reload into the same data register when nothing
+  clobbered that register in between, and (b) a store that a later store to the
+  same slot overwrote before any read. Labels, branches, calls, and returns
+  reset the tracked state.
+- **The bug**: the tracked-register clobber test only ran on the non-move path.
+  A frame-slot load (`move.b -4(a5),d2`) rewrites a data register but was
+  handled by the "load from slot" branch, which only looked at
+  `pending[srcSlot]` and never dropped pending stores whose `srcReg` was the
+  load's destination. The pass therefore believed the register still held the
+  stored value and deleted both the store and the reload.
+- **Concrete miscompile**: `textelite` `goatsoup_rnd_number()` (`xx` in
+  `-4(a5)`, `ac` in `-3(a5)`). The emitted code stores `ac`,
+  reloads `xx` into the same D2, then returns `ac` from its slot. The pass saw
+  `move.b d2,-3(a5)` ... `move.b -4(a5),d2` ... `move.b -3(a5),d2`, dropped the
+  store and the reload, so the routine returned `xx` instead of `ac` - a silent
+  wrong-result bug in galaxy generation, not a crash.
+- **Why the tests missed it**: `TestInstructionSelectionOptimizations` only
+  covered a clobber by a non-move (`addq.w #1,d2`), a branch boundary, a dead
+  store, and label preservation. Nothing covered "the tracked register is
+  rewritten by another frame-slot load", which is the shape the allocator
+  actually emits. Only real output exposes it: textelite miscompiles, while
+  maze's single removal (where the intervening load targeted a different
+  register) happened to be correct.
+- **Measured upside (why the revert cost nothing)**: compiling
+  `examples/qemu68k/textelite.p8` and `maze.p8` at `d6f512c` vs `05200b4`
+  removes exactly three 8-byte `move` pairs: two in textelite (one of them the
+  miscompile above) and one correct pair in maze. That is -16 B on textelite,
+  not the ~23% frame-slot traffic the full solution targets.
+- **Verdict: NOT WORTH IT.** The actual measured improvement of this whole
+  optimization is just 3 `move` pairs across both benchmark programs (and one
+  of them was the bug). There is no reason to accept any correctness risk for
+  that payoff; don't implement this peephole again.
+
+#### 4.7.2 If a frame-slot peephole is ever attempted anyway
+
+- Invert the clobber default: treat an instruction as clobbering every tracked
+  register unless it is provably read-only for them. The deleted
+  `instructionDestinationDataRegisters` was an incomplete allowlist missing
+  `exg`, `bset`/`bclr`/`bchg` with a data-register destination,
+  `abcd`/`sbcd`, `negx`/`nbcd`, `movem` reloads into D registers, `chk`, and
+  the three-operand 68020 divide forms (`divsl`/`divul`, which fall through the
+  two-operand check). Missing one entry silently miscompiles; being
+  over-conservative only loses an optimization.
+- Handle slot aliasing before trusting any slot state: an A5 value copied or
+  offset into an address register (`move.l a5,a0`, `lea n(a5),a0`), overlapping
+  slot widths that share a displacement, and address-taken locals read through
+  a pointer.
+- Keep the label/comment preservation and the basic-block barrier rules; they
+  were the parts that worked.
+- Verify with a real program, not only `gradle :codeGenM68k:test`: those tests
+  assemble but never execute, so a wrong-value bug passes. Compile and diff
+  `examples/qemu68k/{textelite,maze}.p8` (and an `amiga500` example) before and
+  after, and run at least one of them (`qemu-system-m68k` or `-emu2`/vamos), or
+  reason instruction by instruction about every removed store.
+- Given the measured upside of tens of bytes, prefer the full vreg-based
+  solution over another peephole.
+
 ### 2.8 Remaining easy peephole gaps [PARTIAL]
-- `lsl.<size> #1,dN` -> `add.<size> dN,dN` for data registers. Done in
+- **Done**: `lsl.<size> #1,dN` -> `add.<size> dN,dN` for data registers. Done in
   `AsmOptimizer.optimizeLslOneToDouble`. N/Z/C/X are identical; V may differ
   (LSL clears V, ADD sets it on overflow), but generated code never reads V
   after a shift.
-- Duplicate consecutive `ext.w`/`ext.l` into the same data register. Done in
-  `AsmOptimizer.optimizeRedundantExt`.
-- `move.w X,dN` + `ext.l dN` and `ext.w dN` + `ext.l dN` folding were
-  rejected: existing tests/codegen rely on `ext.l` being emitted explicitly.
-- `cmp.l #0,dN` -> `tst.l dN` for data registers where the preceding op
-  does not already set flags (likely already in `optimizeRedundantTst`, but
-  verify for data-reg destinations).
-- `moveq #0,dN` + `move.b X,dN` (full byte overwrite) -> drop the `moveq`
-  when the byte move provably writes all bits the consumer reads.
+- **Done**: duplicate consecutive `ext.w`/`ext.l` into the same data register.
+  Done in `AsmOptimizer.optimizeRedundantExt`.
+- **Rejected**: `move.w X,dN` + `ext.l dN` and `ext.w dN` + `ext.l dN` folding.
+  Existing tests/codegen rely on `ext.l` being emitted explicitly.
+- **Remaining (NOT IMPLEMENTED)**: `cmp.l #0,dN` / `cmp.w #0,dN` /
+  `cmp.b #0,dN` -> `tst.l dN` / `tst.w dN` / `tst.b dN` for data registers
+  where the preceding op does not already set flags. `optimizeRedundantTst`
+  only removes a redundant `tst` after an instruction that already set N/Z
+  like `tst`; it does not rewrite `cmp #0` into `tst`. `cmpi.<size> #0,Dn`
+  is 4-6 bytes; `tst.<size> Dn` is 2 bytes, so this would save a few bytes
+  wherever the lowering emits a zero comparison against a data register.
+- **Remaining (NOT IMPLEMENTED)**: `moveq #0,dN` + `move.b X,dN` -> drop the
+  `moveq` when the byte move provably writes all bits the consumer reads.
+  Note that `move.b` leaves bits 8..31 of `dN` untouched, so this is only
+  sound when the consumer is known to read just the low byte. The pair is
+  created by `optimizeByteZeroExtendSafe` (it replaces `move.b M,dN` /
+  `and.l #$ff,dN` with `moveq #0,dN` / `move.b M,dN`), but no subsequent pass
+  removes the now-redundant `moveq` when safe.
 - **Where**: `AsmOptimizer.kt`.
 - **Effort**: small-medium (each needs flag-safety scanning like 2.2/2.3).
 
