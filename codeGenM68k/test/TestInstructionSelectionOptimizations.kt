@@ -1291,6 +1291,23 @@ class TestInstructionSelectionOptimizations : FunSpec({
             )
         )
 
+        // 68020 folds the scale into the full-extension form, no manual scaling.
+        lines.any { it == "fmove.s  (0,a0,d0.l*4),fp0" } shouldBe true
+        lines.any { it == "fmove.s  fp0,(0,a0,d0.l*8)" } shouldBe true
+        lines.none { it.startsWith("lsl.l") } shouldBe true
+        lines.none { it.startsWith("add.l  d0,d0") } shouldBe true
+    }
+
+    test("float indexed memory lowering scales manually on 68000") {
+        val lines = generateAsm(
+            tempRoot.resolve("test-m68k-indexed-float-000"),
+            listOf(
+                IRInstructions.loadMemory(Opcode.LOADX, IRDataType.FLOAT, 1, IRMemory.indexed("arr", 2, IRDataType.WORD, 4)),
+                IRInstructions.storeMemory(Opcode.STOREX, IRDataType.FLOAT, 1, IRMemory.indexed("arr", 2, IRDataType.WORD, 8))
+            ),
+            Amiga500Target()
+        )
+
         lines.any { it == "lsl.l  #2,d0" } shouldBe true
         lines.any { it == "lsl.l  #3,d0" } shouldBe true
         lines.any { it == "fmove.s  (0,a0,d0.l),fp0" } shouldBe true

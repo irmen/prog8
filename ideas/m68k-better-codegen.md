@@ -188,11 +188,24 @@ effort. Status: proposal.
 
 ## Tier 3 - Instruction selection at lowering (days-weeks)
 
-### 3.1 Use 68020 scaled indexing directly
+### 3.1 Use 68020 scaled indexing directly [DONE]
 - **Where**: `InstrLoadStore.kt` / `resolveMemory()`.
 - On 68020, emit `move.l (base,didx.l*scale),d0` instead of manual mul + add.
 - Gate on `cpu.is68020`.
 - **Effort**: medium.
+- **Done, mostly verify-first**: all four `Indexed` branches (int/float x
+  allocated/staged) already emitted scaled forms with correct 68020 gating -
+  proven by compiling an int+float indexing probe for both CPUs (020 uses
+  `(a0,d3.w*2)`, `(0,a0,d2.l*4)`; 000 uses `add.w`/`lsl.l` + unscaled forms).
+  The single real gap: the float *staged* branch manually scaled even on 020
+  (`lsl.l` + `(0,a0,d0.l)`). It now folds to `(0,a0,d0.l*scale)` for 2/4/8.
+  Sound: D0 holds the word index zero-extended (`moveq #0` + WORD load), so
+  full-`.l` scaling is identical. Encoding verified with vasm (020+68881
+  accepts, 68000+68881 rejects - the gate is load-bearing, and the earlier
+  scare was just a missing `-m68881` flag in the manual check).
+- **Measured**: zero corpus occurrences of the staged-float shape (no
+  `(0,a0,d0.l)` anywhere in textelite/maze), so binaries byte-identical;
+  coverage is fixture tests (020 scaled + 000 manual) instead.
 
 ### 3.2 Cheaper zero-extension [DONE]
 - `move.b x,d0; and.l #$ff,d0` -> `moveq #0,d0; move.b x,d0` (or `move.b` +

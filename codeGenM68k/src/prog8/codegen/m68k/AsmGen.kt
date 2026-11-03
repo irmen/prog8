@@ -834,7 +834,10 @@ internal class AsmGen(val program: IRProgram, internal val target: ICompilationT
                         invalidateD0Cache()
                         emitLine("moveq  #0, $SCRATCH_D0")
                         emitLoadD0(idx, IRDataType.WORD)
-                        if (scale != 1) {
+                        // On the 68020 the scale folds into the full-extension form below;
+                        // manual scaling is only needed on the 68000 or for other scales.
+                        val scaled020 = program.options.compTarget.cpu >= CpuType.M68020 && scale in setOf(2, 4, 8)
+                        if (scale != 1 && !scaled020) {
                             invalidateD0Cache()
                             when (scale) {
                                 2 -> emitLine("add.l  $SCRATCH_D0,$SCRATCH_D0")
@@ -844,7 +847,8 @@ internal class AsmGen(val program: IRProgram, internal val target: ICompilationT
                             }
                         }
                         emitLine("lea  $baseAddr, $SCRATCH_A0")
-                        "(0, $SCRATCH_A0, $SCRATCH_D0.l)"
+                        if (scaled020) "(0, $SCRATCH_A0, $SCRATCH_D0.l*$scale)"
+                        else "(0, $SCRATCH_A0, $SCRATCH_D0.l)"
                     } else {
                         emitLine("lea  $baseAddr, $SCRATCH_A0")
                         when {

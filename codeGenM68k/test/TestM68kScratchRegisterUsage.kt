@@ -159,8 +159,8 @@ class TestM68kScratchRegisterUsage : FunSpec({
             floats = true
         )
 
-        lines.any { it == "fmove.s  (0,a0,d0.l),fp0" } shouldBe true
-        lines.any { it == "lsl.l  #2,d0" } shouldBe true
+        lines.any { it == "fmove.s  (0,a0,d0.l*4),fp0" } shouldBe true
+        lines.none { it.startsWith("lsl.l") || it.startsWith("add.l") } shouldBe true
     }
 
     test("does not forward immediates for register-allocated call arguments") {
