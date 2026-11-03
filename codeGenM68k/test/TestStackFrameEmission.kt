@@ -413,10 +413,12 @@ class TestStackFrameEmission : FunSpec({
             sub("test.outside", frameSize = 0, instructions = listOf(IRInstructions.simple(Opcode.RETURN)),
                 extraChunks = listOf(outsideInner))
         )
-        val jmpIdx = lines.indexOfFirst { it.startsWith("jmp") && "outside.inner" in it }
-        (jmpIdx > 0) shouldBe true
-        lines[jmpIdx - 1] shouldBe "unlk  a5"
+        // PC-relative bra to the outside label (vasm sizes it, falling back to jmp if out of range)
+        val braIdx = lines.indexOfFirst { it.startsWith("bra") && "outside.inner" in it }
+        (braIdx > 0) shouldBe true
+        lines[braIdx - 1] shouldBe "unlk  a5"
         lines.any { it.startsWith("bne") } shouldBe true
+        lines.none { it.startsWith("jmp") } shouldBe true
     }
 
     test("signed comparison branch to an absolute address tears down only the taken path") {

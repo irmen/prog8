@@ -162,11 +162,19 @@ effort. Status: proposal.
 - **Where**: `resolveMemory()` + `InstrLoadStore.kt`.
 - **Effort**: medium.
 
-### 3.4 Tail-call and branch optimization
+### 3.4 Tail-call and branch optimization [DONE]
 - Conditional-branch-over-`bra` inversion already exists
   (`optimizeConditionalOverJump`); `bsr+rts` -> `bra` already exists
   (`optimizeTailCall`). Remaining work: `jmp` PC-relative where in range.
 - **Effort**: medium.
+- **Done**: audit showed `JUMP`/`CALL` to labels already emit `bra`/`bsr`
+  (vasm sizes them, falling back if out of range); the only absolute jump to
+  a local label left was `emitBranch`'s taken path when leaving a subroutine.
+  It now emits `bra` for label targets (new `targetIsAbsolute` parameter
+  threaded through all branch helpers; absolute/indirect/library-dispatch
+  forms keep `jmp`/`jsr`, which cannot be PC-relative). Verified on
+  textelite: the sole remaining `jmp label` is a hand-written library
+  tail-call, not generated code.
 
 ## Tier 4 - Register allocation & spilling (weeks)
 
