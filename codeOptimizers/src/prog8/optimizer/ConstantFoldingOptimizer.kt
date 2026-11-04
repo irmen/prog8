@@ -436,7 +436,7 @@ class ConstantFoldingOptimizer(private val program: Program, private val errors:
                         }
                     }
                 } else if(arrayIndexedExpression.pointerderef!=null) {
-                    TODO("constant fold pointer[i]  ${arrayIndexedExpression.position}")
+                    // pointerderef[i]: the pointer value is runtime-only, nothing to constant-fold
                 }
             }
         }
