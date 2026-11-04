@@ -159,6 +159,11 @@ Use `moveq` for small constants, `addq`/`subq` for constants 1 through 8, and
 
 ## Tools
 
+GitHub CI agents do not have `vasm` installed (only `64tass`). Anything that
+relies on assembling m68k code with `vasm` cannot run there; use
+`writeAssembly = true, assemble = false` and inspect the generated `.asm` text
+instead.
+
 For QEMU 68k, Prog8 invokes `vasmm68k_mot` with `-m68020 -m68881 -Felf
 -opt-speed -warnunaligned -ldots -spaces`, then links with `vlink`. For raw
 binary output use `-Fbin` and `-join=0x<addr>`. Add `-L listing.txt` when a

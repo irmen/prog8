@@ -167,6 +167,10 @@ Use `if_cs`, `if_cc`, `if_z`, and `if_nz` for direct CPU-flag branches.
 - Use `-check` for syntax and semantic checks without output generation.
 - Use `-noopt` to determine whether a failure is optimizer-related.
 - For IR execution, use `-vmtrace` when control flow needs inspection.
+- GitHub CI agents do not have `vasm` installed (only `64tass`). Any test or
+  workflow that relies on assembling m68k code (amiga500, amiga1200, qemu68k)
+  with `vasm` cannot run there; use `writeAssembly = true, assemble = false` and
+  inspect the generated `.asm` text instead.
 
 
 ## Searching

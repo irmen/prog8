@@ -356,7 +356,7 @@ main {
 }
 """
             val errors = ErrorReporterForTests()
-            compileText(Amiga500Target(), false, src, outputDir, errors=errors) shouldBe null
+            compileText(Amiga500Target(), false, src, outputDir, errors=errors, writeAssembly = false, assemble = false) shouldBe null
             errors.errors.any { it.contains("alias loop") } shouldBe true
         }
 

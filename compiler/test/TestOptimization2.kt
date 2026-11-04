@@ -936,7 +936,7 @@ main {
                 }
             }
         """.trimIndent()
-        compileText(Amiga500Target(), true, src, testOutputDir)!!
+        compileText(Amiga500Target(), true, src, testOutputDir, writeAssembly = true, assemble = false)!!
         val asmFile = testOutputDir.toFile().listFiles { it.name.endsWith(".asm") }!!.single().toPath()
         val asm = asmFile.readText().lines()
         asm.none { it.contains("muls.w") } shouldBe true
@@ -953,7 +953,7 @@ main {
                 }
             }
         """.trimIndent()
-        compileText(Amiga500Target(), true, src, testOutputDir)!!
+        compileText(Amiga500Target(), true, src, testOutputDir, writeAssembly = true, assemble = false)!!
         val asmFile = testOutputDir.toFile().listFiles { it.name.endsWith(".asm") }!!.single().toPath()
         val asm = asmFile.readText().lines()
         asm.none { it.contains("mulu.w  #29") } shouldBe true
@@ -970,7 +970,7 @@ main {
                 }
             }
         """.trimIndent()
-        compileText(Qemu68kTarget(), true, src, testOutputDir)!!
+        compileText(Qemu68kTarget(), true, src, testOutputDir, writeAssembly = true, assemble = false)!!
         val asmFile = testOutputDir.toFile().listFiles { it.name.endsWith(".asm") }!!.single().toPath()
         val asm = asmFile.readText().lines()
         asm.any { it.contains("mulu.w  #29") } shouldBe true
