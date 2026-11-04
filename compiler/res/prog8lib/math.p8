@@ -1085,4 +1085,67 @@ _no:
         ; Return the result multiplied by the common factors of 2
         return aa << shift
     }
+
+    asmsub popcount(ubyte value @A) clobbers(X, Y) -> ubyte @A {
+        ; count the number of set bits in the byte
+        %asm {{
+            ldx  #0
+            ldy  #8
+        -   lsr  a
+            bcc  +
+            inx
+        +   dey
+            bne  -
+            txa
+            rts
+        }}
+    }
+
+    asmsub ctz(uword value @AY) clobbers(X, Y) -> ubyte @A {
+        ; count trailing zero bits of the word; returns 16 if value is 0
+        %asm {{
+            sta  P8ZP_SCRATCH_W1
+            sty  P8ZP_SCRATCH_W1+1
+            lda  P8ZP_SCRATCH_W1
+            ora  P8ZP_SCRATCH_W1+1
+            bne  +
+            lda  #16
+            rts
+        +   ldx  #0
+        -   lda  P8ZP_SCRATCH_W1
+            and  #1
+            bne  done
+            lsr  P8ZP_SCRATCH_W1+1
+            ror  P8ZP_SCRATCH_W1
+            inx
+            cpx  #16
+            bne  -
+        done:
+            txa
+            rts
+        }}
+    }
+
+    asmsub reverse(uword value @AY) -> uword @AY {
+        ; reverse the bit order of the word
+        %asm {{
+            sta  P8ZP_SCRATCH_W1
+            sty  P8ZP_SCRATCH_W1+1
+            lda  #0
+            sta  P8ZP_SCRATCH_W2
+            sta  P8ZP_SCRATCH_W2+1
+            ldy  #16
+        -   asl  P8ZP_SCRATCH_W2
+            rol  P8ZP_SCRATCH_W2+1
+            lsr  P8ZP_SCRATCH_W1+1
+            ror  P8ZP_SCRATCH_W1
+            bcc  +
+            inc  P8ZP_SCRATCH_W2
+        +   dey
+            bne  -
+            lda  P8ZP_SCRATCH_W2
+            ldy  P8ZP_SCRATCH_W2+1
+            rts
+        }}
+    }
 }

@@ -1,6 +1,6 @@
 
 Prog8 compiler v14.0-BETA3 by Irmen de Jong (irmen@razorvine.net)
-Prerelease version from git commit e98adeaf in branch master
+Prerelease version from git commit 2a0d3445 in branch master
 This software is licensed under the GNU GPL 3.0, see https://www.gnu.org/licenses/gpl.html
 
 Compiling program import-all-qemu68k.p8
@@ -296,6 +296,8 @@ math  {
     crc32_end  () -> long
     crc32_start  ()
     crc32_update  (ubyte value @D0)
+    ctz  (uword value @D0) -> ubyte @D0
+    ctzl  (long value @D0) -> ubyte @D0
     diff  (ubyte v1 @D0, ubyte v2 @D1) -> ubyte @D0
     diffl  (long l1 @D0, long l2 @D1) -> long @D0
     diffw  (uword w1 @D0, uword w2 @D1) -> uword @D0
@@ -309,8 +311,11 @@ math  {
     log2  (ubyte value @D0) -> ubyte @D0
     log2l  (long value @D0) -> ubyte @D0
     log2w  (uword value @D0) -> ubyte @D0
+    popcount  (long value @D0) -> ubyte @D0
     randrange  (ubyte n) -> ubyte
     randrangew  (uword n) -> uword
+    reverse  (uword value @D0) -> uword @D0
+    reversel  (long value @D0) -> long @D0
     rnd  () -> ubyte
     rndseed  (uword seed1, uword seed2)
     rndw  () -> uword
@@ -540,3 +545,4 @@ wavfile  {
 }
 
 
+No output produced.

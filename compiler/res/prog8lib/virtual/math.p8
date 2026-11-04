@@ -192,6 +192,63 @@ math {
         return result
     }
 
+    sub popcount(long value) -> ubyte {
+        ; count the number of set bits in the long
+        ubyte result = 0
+        repeat 32 {
+            if (value & 1) != 0
+                result++
+            value >>= 1
+        }
+        return result
+    }
+
+    sub ctz(uword value) -> ubyte {
+        ; count trailing zero bits of the word; returns 16 if value is 0
+        if value == 0
+            return 16
+        ubyte result = 0
+        while (value & 1) == 0 {
+            value >>= 1
+            result++
+        }
+        return result
+    }
+
+    sub ctzl(long value) -> ubyte {
+        ; count trailing zero bits of the long; returns 32 if value is 0
+        if value == 0
+            return 32
+        ubyte result = 0
+        while (value & 1) == 0 {
+            value >>= 1
+            result++
+        }
+        return result
+    }
+
+    sub reverse(uword value) -> uword {
+        ; reverse the bit order of the word
+        uword result = 0
+        repeat 16 {
+            result <<= 1
+            result |= (value & 1) as uword
+            value >>= 1
+        }
+        return result
+    }
+
+    sub reversel(long value) -> long {
+        ; reverse the bit order of the long
+        long result = 0
+        repeat 32 {
+            result <<= 1
+            result |= (value & 1) as long
+            value >>= 1
+        }
+        return result
+    }
+
     sub direction(ubyte x1, ubyte y1, ubyte x2, ubyte y2) -> ubyte {
         ; From a pair of positive coordinates, calculate discrete direction between 0 and 23 into A.
         ; This adjusts the atan() result  so that the direction N is centered on the angle=N instead of having it as a boundary

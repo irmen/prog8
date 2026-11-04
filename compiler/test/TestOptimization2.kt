@@ -13,10 +13,7 @@ import prog8.ast.expressions.*
 import prog8.ast.statements.*
 import prog8.ast.walk.IAstVisitor
 import prog8.code.ast.*
-import prog8.code.target.C64Target
-import prog8.code.target.Cx16Target
-import prog8.code.target.Qemu68kTarget
-import prog8.code.target.VMTarget
+import prog8.code.target.*
 import prog8.intermediate.IRFileReader
 import prog8.vm.VmRunner
 import prog8.vm.VmVariableAllocator
@@ -927,6 +924,56 @@ main {
         y3.operator shouldBe "<<"
         (y3.left as PtPrefix).operator shouldBe "-"
         (y3.right as PtNumber).number shouldBe 3.0
+    }
+
+    test("multiplication by negative constant is strength-reduced for muls") {
+        val testOutputDir = tempdir().toPath()
+        val src = """
+            main {
+                sub start() {
+                    byte @shared x = 5
+                    byte @shared y = x * -10
+                }
+            }
+        """.trimIndent()
+        compileText(Amiga500Target(), true, src, testOutputDir)!!
+        val asmFile = testOutputDir.toFile().listFiles { it.name.endsWith(".asm") }!!.single().toPath()
+        val asm = asmFile.readText().lines()
+        asm.none { it.contains("muls.w") } shouldBe true
+        asm.any { it.trimStart().startsWith("neg.l") } shouldBe true
+    }
+
+    test("multiplication by constant 29 is strength-reduced on amiga500") {
+        val testOutputDir = tempdir().toPath()
+        val src = """
+            main {
+                sub start() {
+                    ubyte @shared x = 5
+                    ubyte @shared y = x * 29
+                }
+            }
+        """.trimIndent()
+        compileText(Amiga500Target(), true, src, testOutputDir)!!
+        val asmFile = testOutputDir.toFile().listFiles { it.name.endsWith(".asm") }!!.single().toPath()
+        val asm = asmFile.readText().lines()
+        asm.none { it.contains("mulu.w  #29") } shouldBe true
+        asm.any { it.trimStart().startsWith("lsl.l") } shouldBe true
+    }
+
+    test("multiplication by constant 29 is NOT strength-reduced on qemu68k (68020)") {
+        val testOutputDir = tempdir().toPath()
+        val src = """
+            main {
+                sub start() {
+                    ubyte @shared x = 5
+                    ubyte @shared y = x * 29
+                }
+            }
+        """.trimIndent()
+        compileText(Qemu68kTarget(), true, src, testOutputDir)!!
+        val asmFile = testOutputDir.toFile().listFiles { it.name.endsWith(".asm") }!!.single().toPath()
+        val asm = asmFile.readText().lines()
+        asm.any { it.contains("mulu.w  #29") } shouldBe true
     }
 
     test("self-referential subroutine is not inlined (would cause infinite loop)") {

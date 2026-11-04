@@ -1,6 +1,6 @@
 
 Prog8 compiler v14.0-BETA3 by Irmen de Jong (irmen@razorvine.net)
-Prerelease version from git commit e98adeaf in branch master
+Prerelease version from git commit 2a0d3445 in branch master
 This software is licensed under the GNU GPL 3.0, see https://www.gnu.org/licenses/gpl.html
 
 Compiling program import-all-cx16.p8
@@ -605,6 +605,7 @@ math  {
     crc32_end  () -> long @R14R15
     crc32_start  ()
     crc32_update  (ubyte value)
+    ctz  (uword value @AY) clobbers (X,Y) -> ubyte @A
     diff  (ubyte v1 @A, ubyte v2 @Y) -> ubyte @A
     diffl  (long v1, long v2) -> long
     diffw  (uword w1 @R0, uword w2 @AY) -> uword @AY
@@ -624,10 +625,12 @@ math  {
     log2w  (uword value @AY) -> ubyte @Y
     mul16_last_upper  () -> uword @AY
     mul32  (uword a, uword b) -> long
+    popcount  (ubyte value @A) clobbers (X,Y) -> ubyte @A
     randrange  (ubyte n) -> ubyte
     randrange_rom  (ubyte n) -> ubyte
     randrangew  (uword n) -> uword
     randrangew_rom  (uword n) -> uword
+    reverse  (uword value @AY) -> uword @AY
     rnd  () clobbers (Y) -> ubyte @A
     rnd_rom  () clobbers (Y) -> ubyte @A
     rndseed  (uword seed1 @AY, uword seed2 @R0) clobbers (A,Y)
@@ -1652,6 +1655,9 @@ verafx  {
     clear  (ubyte vbank, uword vaddr, ubyte data, uword num_longwords)
     copy  (ubyte srcbank, uword srcaddr, ubyte tgtbank, uword tgtaddr, uword num_longwords)
     line  (uword x1, ubyte y1, uword x2, ubyte y2, ubyte color)
+    line_batch_begin  ()
+    line_batch_draw  (uword x1, ubyte y1, uword x2, ubyte y2, ubyte color)
+    line_batch_end  ()
     muls  (word value1 @R0, word value2 @R1) clobbers (X) -> long @R0R1
     muls16  (word value1 @R0, word value2 @R1) clobbers (X) -> word @AY
     mult16  (uword value1 @R0, uword value2 @R1) clobbers (X) -> uword @AY
@@ -1680,3 +1686,4 @@ wavfile  {
 }
 
 
+No output produced.

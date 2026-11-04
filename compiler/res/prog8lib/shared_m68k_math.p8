@@ -769,4 +769,112 @@ math.crc32_table:
         ; finalize the "streaming" crc32 and return the result
         return crc32_state ^ $ffffffff
     }
+
+    asmsub popcount(long value @D0) -> ubyte @D0 {
+        ; count the number of set bits in the long (SWAR, no multiply)
+        %asm {{
+            move.l  d1,-(sp)
+            move.l  d0,d1
+            lsr.l   #1,d1
+            and.l   #$55555555,d1
+            sub.l   d1,d0
+            move.l  d0,d1
+            lsr.l   #2,d1
+            and.l   #$33333333,d1
+            and.l   #$33333333,d0
+            add.l   d1,d0
+            move.l  d0,d1
+            lsr.l   #4,d1
+            add.l   d1,d0
+            and.l   #$0F0F0F0F,d0
+            move.l  d0,d1
+            lsr.l   #8,d1
+            add.l   d1,d0
+            move.l  d0,d1
+            lsr.l   #8,d1
+            lsr.l   #8,d1
+            add.l   d1,d0
+            and.l   #$3F,d0
+            move.l  (sp)+,d1
+            rts
+        }}
+    }
+
+    asmsub ctz(uword value @D0) -> ubyte @D0 {
+        ; count trailing zero bits of the word; returns 16 if value is 0
+        %asm {{
+            and.l   #$0000FFFF,d0
+            tst.w   d0
+            bne     .nz
+            moveq   #16,d0
+            rts
+        .nz:
+            moveq   #0,d1
+        .loop:
+            btst    d1,d0
+            bne     .done
+            addq.b  #1,d1
+            bra     .loop
+        .done:
+            move.b  d1,d0
+            rts
+        }}
+    }
+
+    asmsub ctzl(long value @D0) -> ubyte @D0 {
+        ; count trailing zero bits of the long; returns 32 if value is 0
+        %asm {{
+            tst.l   d0
+            bne     .nz
+            moveq   #32,d0
+            rts
+        .nz:
+            moveq   #0,d1
+        .loop:
+            btst    d1,d0
+            bne     .done
+            addq.b  #1,d1
+            bra     .loop
+        .done:
+            move.b  d1,d0
+            rts
+        }}
+    }
+
+    asmsub reverse(uword value @D0) -> uword @D0 {
+        ; reverse the bit order of the word
+        %asm {{
+            move.l  d1,-(sp)
+            move.l  d2,-(sp)
+            and.l   #$0000FFFF,d0
+            moveq   #0,d1
+            moveq   #15,d2
+        .loop:
+            lsr.w   #1,d0
+            addx.w  d1,d1
+            dbra    d2,.loop
+            move.w  d1,d0
+            move.l  (sp)+,d2
+            move.l  (sp)+,d1
+            rts
+        }}
+    }
+
+    asmsub reversel(long value @D0) -> long @D0 {
+        ; reverse the bit order of the long
+        %asm {{
+            move.l  d1,-(sp)
+            move.l  d2,-(sp)
+            moveq   #0,d1
+            moveq   #31,d2
+        .loop:
+            lsr.l   #1,d0
+            addx.l  d1,d1
+            dbra    d2,.loop
+            move.l  d1,d0
+            move.l  (sp)+,d2
+            move.l  (sp)+,d1
+            rts
+        }}
+    }
 }

@@ -368,6 +368,10 @@ private fun AsmGen.emitMulOp(dstReg: Int, srcReg: Int?, type: IRDataType, unsign
                 }
                 imm != null -> {
                     directDataDst(dstReg, IRDataType.BYTE)?.let { d ->
+                        if (tryEmitStrengthReducedMultiply(d, !unsigned, IRDataType.BYTE, imm, "x * $imm")) {
+                            invalidateD0Cache()
+                            return
+                        }
                         if (unsigned) emitLine("and.l  #\$ff, $d") else emitSignExtendByteToLong(d)
                         emitLine("$op.w  #${imm.and(0xffff)}, $d")
                         invalidateD0Cache()
@@ -409,6 +413,10 @@ private fun AsmGen.emitMulOp(dstReg: Int, srcReg: Int?, type: IRDataType, unsign
                 }
                 imm != null -> {
                     directDataDst(dstReg, IRDataType.WORD)?.let { d ->
+                        if (tryEmitStrengthReducedMultiply(d, !unsigned, IRDataType.WORD, imm, "x * $imm")) {
+                            invalidateD0Cache()
+                            return
+                        }
                         emitLine("$op.w  #${imm.and(0xffff)}, $d")
                         invalidateD0Cache()
                         return
@@ -448,6 +456,10 @@ private fun AsmGen.emitMulOp(dstReg: Int, srcReg: Int?, type: IRDataType, unsign
                     }
                     imm != null -> {
                         directDataDst(dstReg, IRDataType.LONG)?.let { d ->
+                            if (tryEmitStrengthReducedMultiply(d, !unsigned, IRDataType.LONG, imm, "x * $imm")) {
+                                invalidateD0Cache()
+                                return
+                            }
                             emitLine("$op.l  #$imm, $d")
                             invalidateD0Cache()
                             return
@@ -997,6 +1009,85 @@ private fun AsmGen.emitFloatMemBinary(op: String, fpReg1: RegisterNum, target: S
     emitFmoveFloat(floatOperand(fpReg1), FP_SRC)
     emitLine("$op  $FP_SRC, $FP_ACC")
     emitLine("fmove.s  $FP_ACC, $target")
+}
+
+private fun AsmGen.tryEmitStrengthReducedMultiply(
+    d: String,
+    signed: Boolean,
+    type: IRDataType,
+    constant: Int,
+    comment: String
+): Boolean {
+    if (constant < 0 && !signed)
+        return false
+    val needNegate = constant < 0 && signed
+    val positiveConstant = if (constant < 0) -constant else constant
+    if (positiveConstant <= 0)
+        return false
+    val recipe = findMultiplyRecipe(positiveConstant, program.options.compTarget.cpu) ?: return false
+
+    // Prepare the operand in d and attach the explanatory comment to the first
+    // emitted instruction only.
+    when (type) {
+        IRDataType.BYTE -> {
+            if (signed) {
+                emitLine("ext.w  $d", "; $comment")
+                emitLine("ext.l  $d")
+            } else {
+                emitLine("and.w  #\$ff, $d", "; $comment")
+                emitLine("ext.l  $d")
+            }
+        }
+        IRDataType.WORD -> {
+            if (signed)
+                emitLine("ext.l  $d", "; $comment")
+            else
+                emitLine("and.l  #\$ffff, $d", "; $comment")
+        }
+        IRDataType.LONG -> {
+            // No extension needed; comment goes on the save-original instruction below.
+        }
+        else -> return false
+    }
+
+    // Preserve the original operand in SCRATCH_D1 for terms that need it.
+    emitLine("move.l  $d, $SCRATCH_D1", if (type == IRDataType.LONG) "; $comment" else "")
+
+    // First term into d.
+    val first = recipe.terms.first()
+    when {
+        first.shift == 0 && first.sign > 0 -> {
+            // d already holds +1 * original.
+        }
+        first.shift == 0 && first.sign < 0 -> emitLine("neg.l  $d")
+        first.shift > 0 && first.sign > 0 -> emitLine("lsl.l  #${first.shift}, $d")
+        first.shift > 0 && first.sign < 0 -> {
+            emitLine("lsl.l  #${first.shift}, $d")
+            emitLine("neg.l  $d")
+        }
+    }
+
+    // Remaining terms.
+    for (term in recipe.terms.drop(1)) {
+        if (term.shift == 0) {
+            emitLine(if (term.sign > 0) "add.l  $SCRATCH_D1, $d" else "sub.l  $SCRATCH_D1, $d")
+        } else {
+            invalidateD0Cache()
+            emitLine("move.l  $SCRATCH_D1, $SCRATCH_D0")
+            emitLine("lsl.l  #${term.shift}, $SCRATCH_D0")
+            emitLine(if (term.sign > 0) "add.l  $SCRATCH_D0, $d" else "sub.l  $SCRATCH_D0, $d")
+        }
+    }
+
+    // Apply any power-of-two factor that was extracted from the constant.
+    if (recipe.overallShift > 0)
+        emitLine("lsl.l  #${recipe.overallShift}, $d")
+
+    // For negative constants, negate the final product.
+    if (needNegate)
+        emitLine("neg.l  $d")
+
+    return true
 }
 
 private fun immVal(value: Int, type: IRDataType): Int = when(type) {

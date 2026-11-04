@@ -1518,6 +1518,26 @@ random numbers
 ``log2l (long v)``
     Returns the 2-Log of the long value v.
 
+``popcount (ubyte v)``
+    Returns the number of set bits in the byte value v.
+
+``popcount (long v)``
+    Returns the number of set bits in the long value v.
+
+``ctz (uword v)``
+    Returns the number of trailing zero bits in the word value v.
+    Returns 16 if v is 0.
+
+``ctzl (long v)``
+    Returns the number of trailing zero bits in the long value v.
+    Returns 32 if v is 0.
+
+``reverse (uword v)``
+    Returns the value v with its bit order reversed.
+
+``reversel (long v)``
+    Returns the value v with its bit order reversed.
+
 trigonometry
 ~~~~~~~~~~~~
 .. index:: pair: Libraries; trigonometry

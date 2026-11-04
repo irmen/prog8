@@ -273,35 +273,56 @@ effort. Status: proposal.
   textelite: the sole remaining `jmp label` is a hand-written library
   tail-call, not generated code.
 
-### 3.5 Multiply-by-constant strength reduction
-- Replace `mulu.w #N` / `muls.w #N` (and `.l` forms on 68020) with
-  shift-add-sub recipes where cheaper. The recipes work for both signed and
-  unsigned multiplication by a positive constant: left-shift and add are
-  linear over two's complement, so the same `x << a + x << b + ...` chain
-  produces the correct low bits for `muls` as well as `mulu`. Negative
-  constants (`x * -N`) can be handled by computing the positive recipe and
-  negating the result.
+### 3.5 Multiply-by-constant strength reduction [DONE]
+- **Done**: implemented in `codeGenM68k` lowering (`InstrArithmetic.kt`) for
+  immediate `mulu`/`muls` (byte/word/long) when the destination is a data
+  register. The backend decomposes `x * N` into a shift-add-sub recipe and
+  falls back to the native multiply when no profitable recipe exists.
+- The recipes work for both signed and unsigned multiplication by a positive
+  constant: left-shift and add/sub are linear over two's complement, so the
+  same chain produces the correct low bits for `muls` as well as `mulu`.
+  Signed negative constants are now handled too: the positive recipe is
+  computed and the final result is negated. For unsigned `mulu`, a negative
+  immediate is rejected and the original multiply is kept.
 - Examples: few-bit constants (`10x = (x<<3)+(x<<1)`), subtraction forms
   (`29x = (x<<5)-(x<<2)-x`, `31x = (x<<5)-x`), factored forms (`45x` via
   `9x` then `5x`). Classic minimal-chain recipes (Bernstein); a small table
   of common strides (array widths, screen rows, struct sizes) covers nearly
   all real occurrences.
-- **Where**: lowering where `mulu.w #N` is emitted (`InstrArithmetic.kt`,
-  index scaling in `resolveMemory()`), possibly plus a peephole for
-  already-emitted forms.
+- **Where**: `InstrArithmetic.kt` (`emitMulOp`), with the recipe generator in
+  `MultiplyByConstant.kt`.
 - **Gate by CPU and term count**: aggressive table on 68000 (`mulu.w` is ~70
   cycles, nearly every 2-3 term recipe wins; allow up to ~3-4 terms);
   short recipes only on 68020 (`muls.l` is ~28-30 cycles, chains run ~8-16;
   limit to ~2 terms). Off on 68030/68040/68060 because the hardware
   multiplier is fast enough that shift-add chains are unlikely to help and
   can be slower. Prog8 currently has no 030/040/060 targets, so the practical
-  cutoff is 68000 vs 68020, but the implementation must check
-  `compTarget.cpu` and disable the optimization for anything newer than 68020.
+  cutoff is 68000 vs 68020, but the implementation checks `compTarget.cpu`
+  and disables the optimization for anything newer than 68020.
 - **Benefit**: speed first, size second. Real occurrences exist: `mulu.w #29`
   in `cellidx` and float-index paths. Baseline: vbcc `-O2` also emits
   `mulu.w #29` here, so this is a spot to beat vbcc, not just match it -
   measure against the `available_uncarved` comparison setup.
+- **Measured effect on `examples/amiga` (amiga500 / 68000)**:
+  - `blitcop`: 2 `muls.w #100` -> 0
+  - `circles`: 1 `mulu.w #40` -> 0
+  - `gfxdemo`: 1 `mulu.w #24` -> 0
+  - `screen`: 1 `mulu.w #3` -> 0
+  - `tictactoe`: 7 `mulu.w`/`muls.w` -> 0
+  - `viewdemo`: 2 `mulu.w` -> 0
+  - `iff`: 3 -> 1 remaining `mulu.w #3` (non-data-register destination path)
+  - Binary size increased slightly where the optimization fired (e.g.
+    `tictactoe` +88 B, `viewdemo` +28 B, `blitcop` +28 B) because the
+    shift-add chains are larger than the 4-byte `mulu.w` instruction.
+- **Measured effect on `examples/qemu68k/maze.p8`**:
+  - `amiga500` (68000): 26 `mulu.w` -> 0, binary +420 B (8712 -> 9132)
+  - `qemu68k` (68020): 31 -> 25 `mulu.w`, binary +72 B (19503 -> 19575);
+    the 25 remaining are all `mulu.w #29` (3-term recipe, above the 68020
+    limit of 2 terms)
 - **Effort**: medium.
+- **Limitations**: only the data-register destination path is optimized. If
+  the compiler has to stage the multiply through `d0` (spilled destination,
+  memory source, etc.) the original `mulu`/`muls` is kept.
 - **Loop-gating rejected**: the easy signal (`loopNestingDepth > 0` in `AsmGen`)
   only covers counted `IRLoopChunk` (dbra) loops, and real hot loops never
   arrive as those - maze's `.p8ir` contains zero `IRLoopChunk`s (`repeat`,
