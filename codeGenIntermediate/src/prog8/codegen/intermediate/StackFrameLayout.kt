@@ -36,6 +36,12 @@ import prog8.intermediate.*
  * static variable is a compile error, since two activations would share that storage.
  * Such a subroutine with nothing left to share is fine on the static path.
  */
+
+// Hoisted out of the per-line scan in writesFramePointerRegister: compiling these for every
+// assembly line of every assembly subroutine is measurable on assembly-heavy programs.
+private val asmLabelPrefix = Regex("^[.0-9A-Za-z_$]+:")
+private val asmWhitespaceRun = Regex("[ \t]+")
+
 class StackFrameLayout(
     private val program: IRProgram,
     private val errors: IErrorReporter,
@@ -82,7 +88,7 @@ class StackFrameLayout(
 
         val referencedIn = mutableMapOf<String, MutableSet<String>>()
         val addressTaken = mutableSetOf<String>()
-        val asmTexts = mutableListOf<String>()
+        val asmTextSources = mutableListOf<String>()
 
         fun noteRefs(chunk: IRCodeChunkBase, sub: String?) {
             chunk.instructions.forEach { instr ->
@@ -98,8 +104,9 @@ class StackFrameLayout(
                 chunk.forEachChunkRecursive { noteRefs(it, null) }
             }
         }
-        program.allAsmSubs().forEach { asmSub -> asmTexts += asmSub.asmChunk.assembly }
-        program.forEachChunk { chunk -> if (chunk is IRInlineAsmChunk) asmTexts += chunk.assembly }
+        program.allAsmSubs().forEach { asmSub -> asmTextSources += asmSub.asmChunk.assembly }
+        program.forEachChunk { chunk -> if (chunk is IRInlineAsmChunk) asmTextSources += chunk.assembly }
+        val asmTexts = AsmTexts(asmTextSources)
 
         val callSites = collectCallSites(subLabels)
         val dispatchTargets = collectDispatchTargets(subLabels, addressTaken)
@@ -274,8 +281,8 @@ class StackFrameLayout(
         for (rawLine in asm.lines()) {
             // drop comments and a leading label, so a labelled instruction is still examined
             val line = rawLine.substringBefore(';')
-                .replace(Regex("^[.0-9A-Za-z_$]+:"), "")
-                .trim().replace(Regex("[ \t]+"), " ")
+                .replace(asmLabelPrefix, "")
+                .trim().replace(asmWhitespaceRun, " ")
             if (line.isEmpty() || line.startsWith('.'))    // equates and directives
                 continue
             val words = line.split(' ')
@@ -419,7 +426,7 @@ class StackFrameLayout(
         sub: IRSubroutine,
         referencedIn: Map<String, Set<String>>,
         addressTaken: Set<String>,
-        asmTexts: List<String>,
+        asmTexts: AsmTexts,
         callSites: Map<String, List<CallSiteRef>>,
         dispatchTargets: Set<String>,
         indirectCallers: Set<String>,
@@ -1030,7 +1037,7 @@ class StackFrameLayout(
         reentrant: Set<String>,
         referencedIn: Map<String, Set<String>>,
         addressTaken: Set<String>,
-        asmTexts: List<String>
+        asmTexts: AsmTexts
     ) {
         for (sub in program.allSubs()) {
             if (sub.label !in reentrant) continue
@@ -1255,7 +1262,7 @@ class StackFrameLayout(
         program.allSubs().firstOrNull { it.label == callee }?.parameters?.map { it.name }
 
     /** returns the element data type when the variable is frameable, null otherwise */
-    private fun isFrameableVariable(v: IRStStaticVariable, name: String, addressTaken: Set<String>, asmTexts: List<String>): DataType? {
+    private fun isFrameableVariable(v: IRStStaticVariable, name: String, addressTaken: Set<String>, asmTexts: AsmTexts): DataType? {
         if (frameableVariableProblem(v, name, addressTaken, asmTexts) != null)
             return null
         // an array is described by its element data type, a scalar by its own
@@ -1264,7 +1271,7 @@ class StackFrameLayout(
 
     /** like [isFrameableVariable], but an inline-assembly reference is acceptable: the parameter
      *  keeps its static cell and gets an entry-time copy-in from its incoming slot (§6.1) */
-    private fun isFrameableParameter(v: IRStStaticVariable, name: String, addressTaken: Set<String>, asmTexts: List<String>): DataType? {
+    private fun isFrameableParameter(v: IRStStaticVariable, name: String, addressTaken: Set<String>, asmTexts: AsmTexts): DataType? {
         if (frameableVariableProblem(v, name, addressTaken, asmTexts, asmAllowed = true) != null)
             return null
         // an array is described by its element data type, a scalar by its own
@@ -1272,7 +1279,7 @@ class StackFrameLayout(
     }
 
     /** returns why the variable cannot be moved into a frame, or null when it can */
-    private fun frameableVariableProblem(v: IRStStaticVariable, name: String, addressTaken: Set<String>, asmTexts: List<String>, asmAllowed: Boolean = false): String? {
+    private fun frameableVariableProblem(v: IRStStaticVariable, name: String, addressTaken: Set<String>, asmTexts: AsmTexts, asmAllowed: Boolean = false): String? {
         if (v.shared) return "it is marked @shared"    // @shared guarantees a stable, externally visible address
         if (name in addressTaken) return "its address is taken"
         if (!asmAllowed && isLabelReferencedInAsm(name, asmTexts)) return "inline assembly refers to it"
@@ -1292,13 +1299,56 @@ class StackFrameLayout(
         }
     }
 
-    /** true if [label] occurs as a whole symbol reference in any inline assembly text */
-    private fun isLabelReferencedInAsm(label: String, asmTexts: List<String>): Boolean {
-        // Avoid false positives where one label is a prefix/suffix of another (e.g. main.foo
-        // inside main.foobar). Treat label characters as letters, digits, underscore and dot.
-        val escaped = Regex.escape(label)
-        val pattern = "(?<![A-Za-z0-9_.])$escaped(?![A-Za-z0-9_.])".toRegex()
-        return asmTexts.any { pattern.containsMatchIn(it) }
+    /** true if [label] occurs as a whole symbol reference in the program's inline assembly */
+    private fun isLabelReferencedInAsm(label: String, asmTexts: AsmTexts): Boolean = asmTexts.references(label)
+
+    /**
+     * All inline assembly texts of the program, with their symbol-like tokens extracted once.
+     *
+     * Every subroutine, parameter and variable is checked against these texts, so compiling a
+     * regular expression per query (and scanning the full text with it) is far too expensive on
+     * assembly-heavy programs. A token is a maximal run of label characters, which also keeps
+     * the check free of false positives for labels that are a prefix/suffix of another
+     * (`main.foo` inside `main.foobar`).
+     */
+    private class AsmTexts(val texts: List<String>) {
+        private val identifiers: Set<String> = buildSet {
+            for (text in texts) {
+                var start = -1
+                for (i in text.indices) {
+                    if (isLabelChar(text[i])) {
+                        if (start < 0) start = i
+                    } else if (start >= 0) {
+                        add(text.substring(start, i))
+                        start = -1
+                    }
+                }
+                if (start >= 0)
+                    add(text.substring(start))
+            }
+        }
+
+        fun references(label: String): Boolean {
+            if (label.any { !isLabelChar(it) }) {
+                // not representable as a token; scan with explicit boundaries, same rule as the tokens
+                return texts.any { text ->
+                    var idx = text.indexOf(label)
+                    while (idx >= 0) {
+                        val before = if (idx == 0) null else text[idx - 1]
+                        val after = text.getOrNull(idx + label.length)
+                        if ((before == null || !isLabelChar(before)) && (after == null || !isLabelChar(after)))
+                            return true
+                        idx = text.indexOf(label, idx + 1)
+                    }
+                    false
+                }
+            }
+            return label in identifiers
+        }
+
+        private companion object {
+            fun isLabelChar(c: Char) = c in 'a'..'z' || c in 'A'..'Z' || c in '0'..'9' || c == '_' || c == '.'
+        }
     }
 
     private fun baseToScalar(base: BaseDataType): DataType? = when (base) {

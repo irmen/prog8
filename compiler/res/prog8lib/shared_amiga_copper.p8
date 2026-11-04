@@ -124,7 +124,7 @@ copper {
         return base
     }
 
-    sub set_planes(uword base, ^^long planes, ubyte depth) {
+    sub set_planes(uword base, ^^pointer planes, ubyte depth) {
         ; Patch plane addresses into the MOVE value slots emitted by
         ; attach_planes(): plane p's high word goes to slot base + p*4,
         ; low word to slot base+2 + p*4 (same layout as

@@ -345,6 +345,13 @@ math {
         }}
     }
 
+    inline asmsub mul32(uword a @D0, uword b @D1) -> long @D0 {
+        ; Unsigned 16x16 multiplication with the full 32-bit product.
+        %asm {{
+            mulu.w  d1,d0
+        }}
+    }
+
     asmsub lerp(ubyte v0 @D0, ubyte v1 @D1, ubyte t @D2) -> ubyte @D0 {
         ; Linear interpolation (LERP)
         ; returns an interpolation between two inputs (v0, v1) for a parameter t in the interval [0, 255]

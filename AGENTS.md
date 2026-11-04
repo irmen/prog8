@@ -247,7 +247,7 @@ When the task involves writing or understanding `.p8` (Prog8 source) or `.p8ir` 
 - **the `-printast2` switch prints out the optimized Simple AST** just before it goes to the code generator. This is useful for debugging optimizer issues.
 - **the `-out outdir` switch sets an alternative output directory** for compiled files (.prg, .asm, .list, etc.). **By default, output files are written to the current working directory**.
 - **the `-o <file>` switch names the exact final program artifact** (also spelled `--output`); all other output files go in the same directory with the same stem. Cannot be combined with `-out` or with multiple source files.
-- **Other useful flags**: `-quiet` (suppress messages), `-warnimplicitcasts` (warn on implicit type widening), `-daemon` (keep a background compiler process alive — must be passed on every invocation)
+- **Other useful flags**: `-quiet` (suppress messages), `-warnimplicitcasts` (warn on implicit type widening)
 
 ### Compilation Output Files
 Names follow the source file name, or the stem of the `-o` file when that option is used.

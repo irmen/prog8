@@ -14,8 +14,8 @@ internal fun optimizeAssembly(lines: MutableList<String>) {
         fun runPass(
             mods: List<Modification>,
             windowSize: Int,
-            currentLines: Sequence<List<TrimmedLine>>
-        ): Sequence<List<TrimmedLine>> {
+            currentLines: List<List<TrimmedLine>>
+        ): List<List<TrimmedLine>> {
             if (mods.isNotEmpty()) {
                 applyModifications(mods, lines, pretrimmed)
                 modified = true
@@ -185,7 +185,7 @@ private fun optimizeMoveqLongForm(lines: List<String>, allPretrimmed: List<Strin
         if (parts.size != 2)
             continue
         val dst = parts[1].trim().lowercase()
-        if (!dst.matches(dataRegisterPattern))
+        if (!dst.isDataReg())
             continue
         val value = parseImmediate(parts[0]) ?: continue
         val signed = if (value > 0x7fffffffL) value - 0x100000000L else value
@@ -259,7 +259,6 @@ private sealed interface LeaBase {
 }
 
 private val addressArithOpPattern = Regex("^(addq|subq|adda|suba|add|sub)\\.([wl])$")
-private val addressRegPattern = Regex("^a[0-7]$")
 private val symbolBasePattern = Regex("^([^$():,\\s]+?)([+-]\\d+)?$")
 
 /**
@@ -308,7 +307,7 @@ private fun parseLeaBase(src: String): LeaBase? {
         val m = symbolBasePattern.matchEntire(body) ?: return null
         return LeaBase.Symbol(m.groupValues[1], m.groupValues[2].ifEmpty { "0" }.toLong())
     }
-    if (text.lowercase().matches(addressRegPattern))
+    if (text.isAddressReg())
         return LeaBase.Register(text.lowercase())
     // Anything else reads memory (frame slot, symbol, indexed operand), so its
     // value cannot be reproduced by a `lea`.
@@ -342,7 +341,7 @@ private fun optimizeAddressArithmetic(lines: List<String>, allPretrimmed: List<S
         if (moveOps.size != 2)
             continue
         val dst = moveOps[1].trim().lowercase()
-        if (!dst.matches(addressRegPattern))
+        if (!dst.isAddressReg())
             continue
         val arithToken = second.instructionPart().substringBefore(' ').substringBefore('\t').lowercase()
         val arith = addressArithOpPattern.matchEntire(arithToken) ?: continue
@@ -438,7 +437,7 @@ private fun optimizeMoveqWordForm(lines: MutableList<String>, allPretrimmed: Lis
         val src = parts[0].trim()
         val dst = parts[1].trim().lowercase()
         if (!src.startsWith("#")) continue
-        if (!dst.matches(dataRegisterPattern)) continue
+        if (!dst.isDataReg()) continue
 
         // Parse immediate
         val immStr = src.substring(1).trim()
@@ -504,7 +503,7 @@ private fun constFoldMnemonic(op: String, size: Char, dst: String): String? {
     val dstLower = dst.lowercase()
     if (dstLower == "sr" || dstLower == "ccr")
         return null
-    if (dstLower.matches(addressRegPattern) && op != "move")
+    if (dstLower.isAddressReg() && op != "move")
         return null
     return when (op) {
         "add" -> "addi.$size"
@@ -634,7 +633,7 @@ private fun sameOperand(a: String, b: String): Boolean {
     return al == b.lowercase() && al.matches(Regex("^(d[0-7]|a[0-7]|fp[0-9]+)$"))
 }
 
-private fun optimizeRedundantMovePair(linesBy: Sequence<List<TrimmedLine>>): List<Modification> {
+private fun optimizeRedundantMovePair(linesBy: List<List<TrimmedLine>>): List<Modification> {
     //  Drops the second of two consecutive moves when it provably does nothing:
     //  - duplicate `move.S X,Y` twice: same value, identical flags.
     //  - mirrored `move.S X,Y` / `move.S Y,X` (both plain `move.`, or both
@@ -701,7 +700,7 @@ private fun optimizeMoveSelfNoOps(allPretrimmed: List<String>): List<Modificatio
     return mods
 }
 
-private fun optimizeSwapBack(linesBy: Sequence<List<TrimmedLine>>): List<Modification> {
+private fun optimizeSwapBack(linesBy: List<List<TrimmedLine>>): List<Modification> {
     //  move.S  dA,dB  /  move.S  dB,dA  ->  drop the second move (swap-back, register-only, always safe;
     //  both moves set identical flags since they move the same value at the same size)
     val mods = mutableListOf<Modification>()
@@ -714,7 +713,7 @@ private fun optimizeSwapBack(linesBy: Sequence<List<TrimmedLine>>): List<Modific
         val m2 = second.moveOperands() ?: continue
         val (src1, dst1) = m1
         val (src2, dst2) = m2
-        if (!src1.lowercase().matches(dataRegisterPattern) || !dst1.lowercase().matches(dataRegisterPattern)) continue
+        if (!src1.isDataReg() || !dst1.isDataReg()) continue
         if (src1.lowercase() == dst1.lowercase()) continue
         if (src2.lowercase() == dst1.lowercase() && dst2.lowercase() == src1.lowercase() && first.moveSize() == second.moveSize())
             mods.add(Modification(lines[1].index, true, null))
@@ -726,7 +725,7 @@ private fun optimizeSwapBack(linesBy: Sequence<List<TrimmedLine>>): List<Modific
  *  side effects and hits the same slot while a5 is untouched (consecutive lines). */
 private fun String.isFrameSlotOperand(): Boolean = parseFrameSlot(this) != null
 
-private fun optimizeStoreReloadToRegCopy(linesBy: Sequence<List<TrimmedLine>>): List<Modification> {
+private fun optimizeStoreReloadToRegCopy(linesBy: List<List<TrimmedLine>>): List<Modification> {
     //  move.S  dN,M  /  move.S  M,dK  (K != N, same mem)  ->  keep store, replace reload with move.S dN,dK
     val mods = mutableListOf<Modification>()
     for (lines in linesBy) {
@@ -740,9 +739,9 @@ private fun optimizeStoreReloadToRegCopy(linesBy: Sequence<List<TrimmedLine>>): 
         if (m1.size != 2 || m2.size != 2) continue
         val (src1, dst1) = m1[0].trim() to m1[1].trim()
         val (src2, dst2) = m2[0].trim() to m2[1].trim()
-        if (!src1.lowercase().matches(dataRegisterPattern)) continue
-        if (dst1.lowercase().matches(dataRegisterPattern)) continue
-        if (!dst2.lowercase().matches(dataRegisterPattern)) continue
+        if (!src1.isDataReg()) continue
+        if (dst1.isDataReg()) continue
+        if (!dst2.isDataReg()) continue
         if (src2.lowercase() != dst1.lowercase()) continue
         if (dst2.lowercase() == src1.lowercase()) continue
         if (first.moveSize() != second.moveSize()) continue
@@ -837,7 +836,7 @@ private fun optimizeByteZeroExtendSafe(lines: List<String>, allPretrimmed: List<
         if (parts.size != 2) continue
         val src1 = parts[0].trim()
         val dst1 = parts[1].trim()
-        if (!dst1.lowercase().matches(dataRegisterPattern)) continue
+        if (!dst1.isDataReg()) continue
         val reg = dst1.lowercase()
 
         // Next line must be the masking and.l/andi.l
@@ -910,7 +909,7 @@ private fun optimizeCmpZeroToTst(lines: List<String>, allPretrimmed: List<String
         if (!isImmediateZero(parts[0].trim()))
             continue
         val dst = parts[1].trim().lowercase()
-        if (!dst.matches(dataRegisterPattern))
+        if (!dst.isDataReg())
             continue
         val originalLine = lines.getOrNull(entry.index) ?: allPretrimmed[entry.index]
         val indent = originalLine.takeWhile { it.isWhitespace() }
@@ -940,9 +939,14 @@ private class TrimmedLine(val value: String, val trimmed: String, val index: Int
     val instruction: String = trimmed.instructionPart()
 }
 
-private fun getLinesBy(pretrimmed: MutableList<String>, originalLines: MutableList<String>, windowSize: Int): Sequence<List<TrimmedLine>> =
-    pretrimmed.asSequence()
-        .withIndex()
+/**
+ * The instruction windows of the given size, one list per window.
+ *
+ * Materialized once per caller: the same sequence is consumed by every pass in a round, so a lazy
+ * sequence would re-parse every line once per pass.
+ */
+private fun getLinesBy(pretrimmed: MutableList<String>, originalLines: MutableList<String>, windowSize: Int): List<List<TrimmedLine>> =
+    pretrimmed.withIndex()
         .filter { it.value.isNotBlank() && !it.value.startsWith(';') }
         .map { TrimmedLine(originalLines[it.index], it.value, it.index) }
         .windowed(windowSize, partialWindows = false)
@@ -1007,11 +1011,13 @@ private fun String.isMove(): Boolean =
 /** Size suffix of a move instruction: 'b', 'w' or 'l'. */
 private fun String.moveSize(): Char = substringAfter('.').firstOrNull() ?: ' '
 
-/** Matches exactly a data register d0-d7, in either case. */
-private val dataRegisterPattern = Regex("^d[0-7]$")
-
 /** A data register d0-d7 (registers are case-insensitive, unlike symbols). */
-private fun String.isDataReg(): Boolean = lowercase().matches(dataRegisterPattern)
+private fun String.isDataReg(): Boolean =
+    length == 2 && (this[0] == 'd' || this[0] == 'D') && this[1] in '0'..'7'
+
+/** An address register a0-a7 (registers are case-insensitive, unlike symbols). */
+private fun String.isAddressReg(): Boolean =
+    length == 2 && (this[0] == 'a' || this[0] == 'A') && this[1] in '0'..'7'
 
 /** Split an operand pair on commas at parenthesis depth 0 (m68k addressing modes embed commas, e.g. `(-8,a5),a2`). */
 private fun splitOperands(operands: String): List<String> {
@@ -1061,7 +1067,7 @@ private fun String.isSafeMemoryOperand(): Boolean {
 
 // === peephole passes ===
 
-private fun optimizeJmpToNextLabel(linesBy: Sequence<List<TrimmedLine>>): List<Modification> {
+private fun optimizeJmpToNextLabel(linesBy: List<List<TrimmedLine>>): List<Modification> {
     //  bra  LABEL / LABEL:  ->  remove the branch; keep any label on the branch line (also the jmp form)
     val mods = mutableListOf<Modification>()
     for (lines in linesBy) {
@@ -1091,7 +1097,7 @@ private fun optimizeJmpToNextLabel(linesBy: Sequence<List<TrimmedLine>>): List<M
     return mods
 }
 
-private fun optimizeConditionalOverJump(linesBy: Sequence<List<TrimmedLine>>): List<Modification> {
+private fun optimizeConditionalOverJump(linesBy: List<List<TrimmedLine>>): List<Modification> {
     //  bCOND  THEN
     //  bra    JOIN
     // THEN:
@@ -1143,7 +1149,7 @@ private fun optimizeConditionalOverJump(linesBy: Sequence<List<TrimmedLine>>): L
     return mods
 }
 
-private fun optimizeTailCall(linesBy: Sequence<List<TrimmedLine>>): List<Modification> {
+private fun optimizeTailCall(linesBy: List<List<TrimmedLine>>): List<Modification> {
     //  bsr  LABEL / rts  ->  bra  LABEL (tail call); only direct targets, also handles the jsr form
     val mods = mutableListOf<Modification>()
     for (lines in linesBy) {
@@ -1178,7 +1184,7 @@ private fun optimizeTailCall(linesBy: Sequence<List<TrimmedLine>>): List<Modific
     return mods
 }
 
-private fun optimizeRedundantTst(linesBy: Sequence<List<TrimmedLine>>): List<Modification> {
+private fun optimizeRedundantTst(linesBy: List<List<TrimmedLine>>): List<Modification> {
     //  An instruction below that sets N/Z exactly like tst (clearing V/C, preserving X),
     //  followed by  tst.S  DST on the same operand at the same size  ->  remove the tst.
     val mods = mutableListOf<Modification>()
@@ -1281,7 +1287,7 @@ private fun optimizeLslOneToDouble(lines: List<String>, allPretrimmed: List<Stri
         if (parts[0].trim() != "#1")
             continue
         val dst = parts[1].trim()
-        if (!dst.lowercase().matches(dataRegisterPattern))
+        if (!dst.isDataReg())
             continue
         val originalLine = lines.getOrNull(entry.index) ?: allPretrimmed[entry.index]
         val originalIndent = originalLine.takeWhile { it.isWhitespace() }
@@ -1301,7 +1307,7 @@ private fun optimizeLslOneToDouble(lines: List<String>, allPretrimmed: List<Stri
  * `move.w X,dN` + `ext.l dN` and `ext.w dN` + `ext.l dN` are intentionally
  * not folded: existing tests/codegen rely on `ext.l` being emitted explicitly.
  */
-private fun optimizeRedundantExt(linesBy: Sequence<List<TrimmedLine>>): List<Modification> {
+private fun optimizeRedundantExt(linesBy: List<List<TrimmedLine>>): List<Modification> {
     val mods = mutableListOf<Modification>()
     for (lines in linesBy) {
         val first = lines[0].instruction
@@ -1313,7 +1319,7 @@ private fun optimizeRedundantExt(linesBy: Sequence<List<TrimmedLine>>): List<Mod
         val secondParts = secondOps.split(',', limit = 2)
         if (secondParts.size != 1) continue
         val secondDst = secondParts[0].trim().lowercase()
-        if (!secondDst.matches(dataRegisterPattern)) continue
+        if (!secondDst.isDataReg()) continue
 
         // duplicate extension
         if ((firstToken == "ext.w" || firstToken == "ext.l") && firstToken == secondToken) {

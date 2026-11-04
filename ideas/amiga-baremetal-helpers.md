@@ -1,26 +1,5 @@
 # Amiga bare metal helper libraries
 
-## Status
-
-- **Implemented:** `custom.load_colors()` / `custom.load_colors_ocs()` (palette
-  loaders, 24-bit and 12-bit `$0RGB`), `custom.load_iff_cmap()` (IFF CMAP
-  chunks, chipset-aware), `custom.waitvsync()`, `custom.detect_chipset()`,
-  `custom.grab_system()` / `restore_system()`, `custom.cpuVBR`,
-  `blitter.wait()`, `blitter.copy_rect()`, `blitter.masked_blit()`,
-  `blitter.fill_rect()`, `blitter.fill_plane()`, `blitter.clear_plane()`,
-  `blitter.line_init()` / `line_draw()`, `copper.move()/set()/wait()/skip()/end()`,
-  `copper.attach_planes()` / `copper.set_planes()` (bare-metal page flip),
-  `copper.rasterbar()`, `copper.aga_move()` / `aga_set()`,
-  `playfield.create()` / `create_backplane()` / `flip()` / `show()` /
-  `patch_copper()` / `patch_copper_at()` / `set_scroll()` / `waitvsync()`.
-- **Open:** everything below (sprite helper, IRQ/VERTB/CIA/TOD, BOB helper
-  extensions, text output). The BOB helper open questions have been resolved
-  into designs: `soft_blit` (per-pixel/soft-scroll BOB blit), `horiz_line`,
-  `vert_line`, `line_draw_fill`, `area_fill`; `line_draw` should dispatch
-  axis-aligned segments to `horiz_line`/`vert_line`; clear-BOB and "what else"
-  are answered (use `fill_rect`/`copy_rect`, collision is CPU/hardware). See the
-  "BOB helpers" section.
-
 ## Sprite Helper Library
 
 Add a bare-metal `sprites` helper module for the `amiga500` and `amiga1200`
@@ -395,94 +374,7 @@ pattern and composes cleanly with the existing `copy_rect`/`soft_blit`.
 - `blitter.wait()` already exists in `shared_amiga_blitter.p8` (busy-waits on
   DMACONR bit 6). No new helper needed — just reuse/alias it.
 
-### Additional proposed primitives
-
-- `blitter.horiz_line(dst, x1, x2, y, pattern, mod)` — **CPU, not blitter.**
-  A horizontal line is just word writes to chip RAM (~4-8 cycles/word on
-  68000), but the blitter's per-blit setup cost is ~70-90 cycles and a
-  real line needs 1-3 blits (left edge, middle fill, right edge) because
-  the edge words need read-modify-write masks. The blitter only pulls ahead
-  around 14-20 words (224-320 px) of *middle* fill, and even then the
-  edges still cost CPU cycles. For typical UI elements (health bars,
-  borders, crosshairs — usually under 100 px) the CPU is faster. The
-  blitter's async nature means it wins when the CPU has other work to do
-  during the draw (the line costs 0 CPU cycles while the blitter DMAs).
-  Implementation: read-modify-write the two edge bytes, word-write the
-  middle. On **both 68000 and 68020**, use `movem.l` to write up to 16
-  consecutive words per instruction (big-endian: `move.l d0,(a0)` writes
-  the high word at `(a0)`, the low word at `(a0)+2`, so `movem.l
-  d0-d3,(a0)` fills 16 consecutive words with no gaps). Per-word cost on
-  68000: `move.w` = 8 cycles, `move.l` = 6, `movem.w` = 5, `movem.l` =
-  4.5 — `movem.l` is the fastest because the bus bandwidth is identical
-  (1 bus cycle per word, 2 per longword) but the instruction overhead is
-  amortized over more data per instruction. Load the fill pattern into
-  both halves of each register (e.g. `$ABABABAB`) and `movem.l
-  d0-d7,(a0)` writes 16 copies of the pattern word. For edge masks, use a
-  small lookup table in **fast RAM** (it's CPU data, not display data,
-  so no chip-RAM wait states): `left_mask[16]` = `$ffff >> (x1 & 15)`,
-  `right_mask[16]` = `$ffff << (15-(x2 & 15))` — 64 bytes total, one
-  indexed read each. On 68000 a variable `lsl.w` costs 6+2n cycles (up
-  to 36 for a 15-bit shift) so the table wins clearly; on 68020 the
-  barrel shifter is faster (2 cycles) but the table is still quick
-  (~6-8 cycles) and avoids a runtime chipset branch or a second code
-  path. The table is the pragmatic choice for both. On **68020+
-  (amiga1200)**, keep the inner loop under 256 bytes so it stays in the
-  020's instruction cache. The 020's 2x clock speed halves the CPU cost
-  while the blitter runs at the same 7 MHz, widening the CPU's
-  advantage.
-- `blitter.vert_line(dst, x, y1, y2, pattern, mod)` — vertical line. Uses a
-  **vertical blit** (width=1 word, height = y2-y1+1, modulo = screen pitch - 2)
-  with BLTAFWM/BLTALWM set to the bit mask for the x position. This is faster
-  than the blitter's line mode (Bresenham) because it avoids per-pixel
-  Bresenham state tracking — pure DMA. The mask is computed as
-  `1 << (15 - (x & 15))` and applied to both first/last word masks (since
-  width=1 word, they're the same word). BLTADAT holds the pixel pattern (the
-  masks select the column; `$ffff` gives a solid line, `$5555`/`$3333` a
-  dotted one) with USEA/USED and minterm `$F0` (D = A).
-  Unlike `horiz_line`, this stays a blitter routine: a single blit with no
-  edge masking, so the ~70-cycle setup is paid once for N DMA cycles. For a
-  200-pixel vertical line: ~70+200 = ~270 cycles vs ~2400 for CPU. The
-  blitter wins big here on both 68000 and 68020.
-
-### Axis-aligned fast paths in line_draw
-
-`line_draw` is a Bresenham blit: it walks the line pixel-run by pixel-run,
-rewriting the octant/`BLTSIZE` state as it goes. That is the right tool for
-arbitrary slopes, but an axis-aligned segment (`y1 == y2` or `x1 == x2`) pays
-the whole machinery (~70-90 cycles of setup plus per-row bookkeeping) for
-something that has a specialised routine:
-
-- horizontal (`y1 == y2`) -> `horiz_line`: `movem.l` fills 16 pixels per
-  instruction at ~4.5 cycles/word, with no blitter setup at all, so it wins
-  for every span.
-- vertical (`x1 == x2`) -> `vert_line`: one blit, ~70 + height DMA cycles,
-  versus the line-mode walk advancing row by row.
-
-So `line_draw` should recognise both cases and dispatch before doing any
-octant setup. Two compares cost nothing next to what they skip, and callers
-get the optimised path for free - UI frames, crosshairs, bar charts and
-polygon edges are axis-aligned far more often than not.
-
-Implementation notes:
-
-- The dispatch needs the fill pattern and pitch, which `line_init` currently
-  only pokes into `BLTBDAT`/`BLTCMOD`. Those registers are write-only, so
-  `line_init` must additionally keep copies in BSS (`line_pattern`,
-  `line_mod`) for the specialised routines to use.
-- Masking must produce bit-identical output to the Bresenham path, or the
-  optimisation becomes a rendering difference that is hard to spot: the
-  vertical case sets `BLTAFWM`/`BLTALWM` to `1 << (15 - (x & 15))`, the
-  horizontal case uses the two edge-mask table lookups.
-- Degenerate case `x1 == x2 && y1 == y2` (a single pixel): treat it as a
-  one-pixel horizontal line. Both edge masks then apply to the same word, so
-  the implementation has to AND them rather than write twice.
-- `line_draw_fill` can use the same dispatch, but must honour the
-  exclusive-endpoint rule: an axis-aligned fill edge draws its first pixel
-  and skips its last, so the dispatch passes `x2-1` / `y2-1`.
-- Worth a regression check: draw axis-aligned lines through both paths into
-  two planes and compare them.
-
-### Filled polygon support
+## Filled polygon support (blitter line/polygon helpers, not BOB helpers)
 
 The Amiga blitter has a **hardware area-fill mode** (BLTCON1 FILL bit). When
 enabled, the blitter scans each scanline left-to-right, toggling a fill state
@@ -647,6 +539,17 @@ Conclusions:
   each glyph row splits across two destination bytes
   (`glyph >> shift`, `glyph << (8 - shift)`); shift == 0 skips the second
   byte. Right-edge rows need a bounds check on the +1 byte.
+- **Word-combined writes (bandwidth optimization).** Two adjacent glyphs can
+  be merged into a single 16-bit word (`glyph0 << 8 | glyph1`, with the
+  appropriate shift applied) and written to chip RAM in one `move.w`,
+  halving the number of chip-RAM writes versus per-byte stores. This pays
+  off most for byte-aligned (shift == 0) runs; at non-zero shifts the merge
+  requires shifting both glyphs and OR-ing before the store, but still saves
+  a write. The foreground plane set is fixed by `text.color(fg)` (a single
+  color for the whole run), so no per-glyph plane check is needed — just
+  write that fixed set of planes with the combined word. 0 bits never clear
+  existing pixels under OR semantics. Edge glyphs at the right margin fall
+  back to the per-byte path.
 - Transparent only: 0 pixels never touch the destination (OR semantics), so
   only planes with the foreground bit set are visited (cost scales with
   popcount of the color). Erasing/redrawing backdrops stays the caller's job

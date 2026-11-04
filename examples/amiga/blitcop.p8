@@ -60,7 +60,7 @@ main {
             ; math.cos8/sin8 return -127..127, so scale to radius
             word x2 = 160 + (cs as word * RADIUS as word) / 127
             word y2 = 128 + (sn as word * RADIUS as word) / 127
-            blitter.line_draw(160, 128, x2 as uword, y2 as uword, 40, bitplane)
+            blitter.line_draw(160, 128, x2 as uword, y2 as uword, bitplane)
         }
         blitter.wait()
 

@@ -132,7 +132,7 @@ main {
             for e in 0 to EDGE_COUNT - 1 {
                 ubyte v1 = edgesFrom[e]
                 ubyte v2 = edgesTo[e]
-                blitter.line_draw(px[v1] as uword, py[v1] as uword, px[v2] as uword, py[v2] as uword, 40, backplane)
+                blitter.line_draw(px[v1] as uword, py[v1] as uword, px[v2] as uword, py[v2] as uword, backplane)
             }
 
             angle_x += ROT_X_SPEED

@@ -3,6 +3,9 @@
 blitter {
     %option merge, no_symbol_prefixing, ignore_unused
 
+    private uword @shared line_pattern
+    private uword @shared line_mod
+
     ; blitter - bare-metal blitter programming helpers: rect copies, fills,
     ; masked blits and line drawing with the MINTERM logic modes below.
     ; No OS calls; safe after custom.grab_system(). CPU and blitter run
@@ -154,8 +157,6 @@ blitter {
         }}
     }
 
-    ; Initialize the blitter for fast line drawing.
-    ; Call this once before drawing a batch of lines with the same parameters.
     ; mask: first/last word mask (usually $ffff for full-word lines)
     ; pixel: line pixel pattern in BLTADAT (usually $8000 for single pixel)
     ; pattern: line fill pattern in BLTBDAT (usually $ffff for solid lines)
@@ -170,6 +171,9 @@ blitter {
         move.w  d1,custom.BLTADAT
         move.w  d2,custom.BLTBDAT
         move.w  d4,custom.BLTCMOD
+        move.w  d4,custom.BLTDMOD
+        move.w  d2,blitter.line_pattern
+        move.w  d4,blitter.line_mod
         movem.l (sp)+,d2-d7/a2-a6
         rts
 .wait_blt:
@@ -188,14 +192,61 @@ blitter {
     ; screen_mod: bytes per row of the destination bitplane (pitch)
     ; screen_ptr: pointer to bitplane memory (CHIP RAM)
     ; Waits for blitter idle at start, returns immediately after triggering the blit.
-    asmsub line_draw(uword x1 @D0, uword y1 @D1, uword x2 @D2, uword y2 @D3, uword screen_mod @D4, pointer screen_ptr @A1) {
+    sub line_draw(uword x1, uword y1, uword x2, uword y2, pointer screen_ptr) {
+        line_draw_mode(x1, y1, x2, y2, screen_ptr, false)
+    }
+
+    ; Clear only the pixels of a line without disturbing other bits in its words.
+    sub line_erase(uword x1, uword y1, uword x2, uword y2, pointer screen_ptr) {
+        line_draw_mode(x1, y1, x2, y2, screen_ptr, true)
+    }
+
+    ; Draw a line in an exact pen color on a multi-plane bit-mapped screen.
+    ; For every bitplane of the bitmap, the plane's pixels along the line are
+    ; drawn (set) when that bit of the pen is on, or erased (cleared) when it
+    ; is off, so the line's pixels get exactly the given color without OR-ing
+    ; with anything that was underneath. Needs line_init() once beforehand
+    ; with the bitmap's BytesPerRow.
+    ; planes must point to an array of at least depth 32-bit plane base
+    ; addresses. With a graphics.BitMap, pass `&bitmap.Planes as ^^pointer`;
+    ; with hand-allocated chip memory, pass a pointer to your plane table.
+    ; No BitMap required, so bare-metal callers can pass a hand-built array.
+    sub line_color(uword x1, uword y1, uword x2, uword y2, ubyte pen, ubyte depth, ^^pointer planes) {
+        for plane in 0 to depth-1 {
+            bool isSet = ((pen >> plane) & 1) != 0
+            if isSet
+                line_draw(x1, y1, x2, y2, planes[plane])
+            else
+                line_erase(x1, y1, x2, y2, planes[plane])
+        }
+    }
+
+    asmsub line_draw_mode(uword x1 @D0, uword y1 @D1, uword x2 @D2, uword y2 @D3, pointer screen_ptr @A1, bool erase @D5) {
         %asm {{
         movem.l d2-d7/a2-a6,-(sp)
+
+        ; Axis-aligned fast path: dispatch horizontal spans to the CPU routine.
+        cmp.w   d1,d3
+        bne.s   .not_horiz_fast
+        ; horizontal: y1 == y2
+        move.w  blitter.line_pattern,d3
+        bsr     blitter.horiz_line_mode
+        bra     .finish
+.not_horiz_fast:
+        ; note: there is no faster vertical line case possible.
 
         ; CPU setup (these would normally be done once in LineInit and
         ; preserved across calls; we set them up here for self-containment).
         move.w  #1*64+2,a3           ; add-value for BLTSIZE
-        move.l  #$bfa0000f,a4        ; minterm+mask for quick-rol
+        ; minterm pack: $B0000000 | (minterm << 20) | $0f. After the
+        ; and.w/ror.l #4/octant dance below this yields
+        ; BLTCON0 = $xBRM (x = x1 & $f shift, B = SRCA|SRCC|SRCD, minterm)
+        ; and BLTCON1 high byte $00; the octant table fills BLTCON1's low byte.
+        move.l  #($B0000000)|(blitter.MINTERM_OR<<20)|$0000000f,a4    ; draw: D = A | C
+        tst.b   d5
+        beq.s   .minterm_ready
+        move.l  #($B0000000)|(blitter.MINTERM_ERASE<<20)|$0000000f,a4 ; erase: D = ~A & C
+.minterm_ready:
 
         ; d0=x1, d1=y1, d2=x2, d3=y2, d4=screen_mod, a1=screen_ptr
         move.l  a4,d6                ; minterm+mask
@@ -220,6 +271,7 @@ blitter {
 .dylarger:
 
         ; --- blit values ---
+        move.w  blitter.line_mod,d4
         muls    d4,d1                ; d1 = y1 * screen_mod
         asr.w   #3,d0                ; bit 0 ignored by Blitter
         add.w   d0,d1                ; offset on screen
@@ -231,7 +283,8 @@ blitter {
         sub.w   d3,d5                ; d5 = 2*SDelta - LDelta
         smi     d0                   ; if (2*Sdelta-Ldelta) < 0,
         sub.b   d0,d6                ; add 1 (subtract -1) to octant lookup
-        move.b  OctTbl(pc,d6.w),d6   ; look up BLTCON bits for octant
+        lea     OctTbl(pc),a0
+        move.b  (a0,d6.w),d6         ; look up BLTCON bits for octant
 
         move.w  d5,d2                ; d2 low word = 2*SDelta - LDelta
         sub.w   d3,d2                ; d2 low word = 2*SDelta - 2*LDelta
@@ -246,6 +299,7 @@ blitter {
         move.l  d1,custom.BLTCPT     ; source
         move.l  d1,custom.BLTDPT     ; destination
         move.w  d3,custom.BLTSIZE
+.finish:
         movem.l (sp)+,d2-d7/a2-a6
         rts
 
@@ -355,4 +409,152 @@ OctTbl:
         rts
         }}
     }
+
+    ; Accelerated horizontal line (CPU-side).
+    ; Draws/erases a horizontal span [x1..x2] on scanline y of the bitplane dst.
+    ; Draw replaces covered pixels with pattern; erase clears pattern bits.
+    ; (No faster vertical-line helper exists: a vertical blit has the same DMA
+    ; traffic as the Bresenham line mode, so vertical segments stay on line_draw.)
+    private asmsub horiz_line_mode(pointer dst @A1, uword x1 @D0, uword x2 @D2, uword y @D1, uword pattern @D3, bool erase @D5) {
+        %asm {{
+        movem.l d2-d7/a2-a3,-(sp)
+        move.w  d5,a2            ; save erase flag
+        ; wait for any in-flight blit before touching chip RAM
+.h_wait:
+        btst.b  #6,custom.DMACONR
+        bne.s   .h_wait
+        ; swap x if needed
+        cmp.w   d2,d0
+        ble.s   .h_nswap
+        exg     d0,d2
+.h_nswap:
+        ; leftMask -> d6
+        move.w  d0,d5
+        and.w   #15,d5
+        move.w  #$ffff,d6
+        lsr.w   d5,d6
+        ; rightMask -> a0 (low word)
+        move.w  d2,d5
+        and.w   #15,d5
+        move.w  #15,d7
+        sub.w   d5,d7
+        move.w  #$ffff,d5
+        lsl.w   d7,d5
+        move.w  d5,a0
+        ; leftWord -> d5, rightWord -> d7
+        move.w  d0,d5
+        lsr.w   #4,d5
+        move.w  d2,d7
+        lsr.w   #4,d7
+        ; row base ptr -> a3
+        move.w  blitter.line_mod,d4
+        mulu.w  d4,d1            ; y*mod
+        move.w  d5,d2
+        add.w   d2,d2            ; leftWord*2
+        ext.l   d2
+        add.l   d2,d1
+        lea     (a1,d1.l),a3     ; dst base
+        move.w  d3,d4            ; pattern (screen_mod is dead now)
+        ; same word?
+        cmp.w   d5,d7
+        bne.s   .h_multi
+        ; mask = leftMask & rightMask
+        move.w  a0,d2
+        and.w   d6,d2
+        cmpa.w  #0,a2
+        bne.s   .h_same_erase
+        ; draw: old ^ ((old ^ pattern) & mask) reads the word once
+        move.w  (a3),d0
+        move.w  d0,d1
+        eor.w   d4,d0
+        and.w   d2,d0
+        eor.w   d1,d0
+        move.w  d0,(a3)
+        bra     .h_done
+.h_same_erase:
+        move.w  d4,d0
+        and.w   d2,d0            ; pattern & mask
+        not.w   d0
+        and.w   d0,(a3)
+        bra     .h_done
+.h_multi:
+        ; left edge
+        cmpa.w  #0,a2
+        bne.s   .h_left_erase
+        move.w  (a3),d0
+        move.w  d0,d1
+        eor.w   d4,d0
+        and.w   d6,d0
+        eor.w   d1,d0
+        move.w  d0,(a3)
+        bra.s   .h_left_done
+.h_left_erase:
+        move.w  d4,d0
+        and.w   d6,d0
+        not.w   d0
+        and.w   d0,(a3)
+.h_left_done:
+        addq.l  #2,a3
+        ; middle count
+        move.w  d7,d0
+        sub.w   d5,d0
+        subq.w  #1,d0
+        ble.s   .h_right
+        cmpa.w  #0,a2
+        bne.s   .h_mid_erase
+        ; middle: fill with the pattern, two longwords per iteration
+        move.w  d0,d3
+        and.w   #1,d3            ; trailing odd word
+        lsr.w   #1,d0            ; longword count
+        move.w  d4,d1
+        swap    d1
+        move.w  d4,d1            ; pattern in both halves
+        move.w  d0,d2
+        lsr.w   #1,d2            ; longword pairs
+        beq.s   .h_mid_odd_long
+        subq.w  #1,d2
+.h_mid_pairs:
+        move.l  d1,(a3)+
+        move.l  d1,(a3)+
+        dbra    d2,.h_mid_pairs
+.h_mid_odd_long:
+        btst    #0,d0
+        beq.s   .h_mid_single_word
+        move.l  d1,(a3)+
+.h_mid_single_word:
+        tst.w   d3
+        beq.s   .h_right
+        move.w  d4,(a3)+
+        bra.s   .h_right
+.h_mid_erase:
+        move.w  d4,d1
+        not.w   d1
+.h_mid_erase_loop:
+        and.w   d1,(a3)
+        addq.l  #2,a3
+        subq.w  #1,d0
+        bgt.s   .h_mid_erase_loop
+.h_right:
+        move.w  a0,d2            ; rightMask
+        cmpa.w  #0,a2
+        bne.s   .h_right_erase
+        move.w  (a3),d0
+        move.w  d0,d1
+        eor.w   d4,d0
+        and.w   d2,d0
+        eor.w   d1,d0
+        move.w  d0,(a3)
+        bra     .h_done
+.h_right_erase:
+        move.w  d4,d0
+        and.w   d2,d0
+        not.w   d0
+        and.w   d0,(a3)
+.h_done:
+        movem.l (sp)+,d2-d7/a2-a3
+        rts
+        }}
+    }
+
 }
+

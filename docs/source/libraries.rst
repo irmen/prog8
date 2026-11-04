@@ -1424,8 +1424,9 @@ large multiplications
 ~~~~~~~~~~~~~~~~~~~~~
 .. index:: pair: Libraries; large multiplications
 
-``mul32 (word w1, word w2) -> long``
-   Returns the 32 bits signed long result of w1 * w2
+``mul32 (uword a, uword b) -> long``
+   Returns the full 32-bit product of two unsigned words, represented as a Prog8 ``long``.
+   On the m68k cpus this even translates into a single multiplication instruction.
 
 ``mul16_last_upper () -> uword``
     Fetches the upper 16 bits of the previous 16*16 bit multiplication.

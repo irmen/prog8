@@ -33,7 +33,7 @@ class M68kCodeGenerator(val retainSSA: Boolean): ICodeGeneratorBackend {
         renumberVregsPerSubroutine(irProgram)?.let {
             virtualRegisterTypes = it
         }
-        CompilationTimings.record("ir prepare", prepareTiming)
+        CompilationTimings.record("vreg numbering", prepareTiming)
 
         if (options.compTarget.supportsStackFrames) {
             CompilationTimings.measure("frame layout") {

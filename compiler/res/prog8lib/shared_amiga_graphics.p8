@@ -18,30 +18,44 @@ graphics {
     const ubyte LACE = $0004
     const ubyte SUPERHIRES = $20
 
-    ; Canonical $00RRGGBB palette loaders for Intuition ViewPorts. You only
-    ; ever deal in 24-bit longs; conversion happens inside and the ECS/AGA
-    ; path is picked at runtime, so one binary serves both chipsets.
+    ; Static scratch tables for load_palette (avoid per-call heap allocation).
+    ; AGA: 1 header long + 256*3 RGB longs + 1 terminator = 770 longs.
+    ; ECS: 32 $0RGB UWORDs.
     sub load_palette(^^ViewPort vp, ^^long rgb24, uword count) {
-        ; Same visible result as LoadRGB32/LoadRGB4 with no caller-managed
-        ; table buffer. AGA: SetRGB32 loop ($xx000000 channels). ECS: SetRGB4
-        ; loop (top nibbles). Kickstart 1.3 compatible on the ECS path (AGA
-        ; hardware implies 3.0+, where the 32-bit calls exist).
+        ; Canonical $00RRGGBB palette loader. Builds a LoadRGB32/LoadRGB4
+        ; table in a static buffer and loads all entries in a single
+        ; graphics.library call, instead of one SetRGB32/SetRGB4 per color.
+        ; AGA: LoadRGB32 (V39+, 256 entries). ECS: LoadRGB4 (32 entries).
         if count == 0
             return
         if custom.detect_chipset()==custom.CHIPSET::AGA {
-            for n in 0 to count-1 {
-                long rgb = rgb24[n]
-                SetRGB32(vp, n as long, ((rgb >> 16) & $ff) << 24,
-                         ((rgb >> 8) & $ff) << 24, (rgb & $ff) << 24)
+            uword n = min(count, 256)
+            ; table: 1 long (count << 16 | start) + n*3 RGB longs + 1 terminator
+            load_rgb32_table[0] = (n as long) << 16
+            for i in 0 to n-1 {
+                long rgb = rgb24[i]
+                load_rgb32_table[1 + i*3]   = ((rgb >> 16) & $ff) << 24
+                load_rgb32_table[1 + i*3+1] = ((rgb >> 8) & $ff) << 24
+                load_rgb32_table[1 + i*3+2] = (rgb & $ff) << 24
             }
+            load_rgb32_table[1 + n*3] = 0
+            LoadRGB32(vp, &load_rgb32_table)
         } else {
-            for n in 0 to count-1 {
-                long rgb32 = rgb24[n]
-                SetRGB4(vp, n as word, (((rgb32 >> 16) & $f0) >> 4) as ubyte,
-                        (((rgb32 >> 8) & $f0) >> 4) as ubyte, ((rgb32 & $f0) >> 4) as ubyte)
+            ; Static array + LoadRGB4 (no heap allocation, Kickstart 1.3 safe).
+            uword no = min(count, 32) as uword
+            for i in 0 to no-1 {
+                long rgbo = rgb24[i]
+                load_rgb4_table[i] = (((((rgbo >> 16) & $f0) >> 4) << 8) |
+                                     ((((rgbo >> 8) & $f0) >> 4) << 4) |
+                                     (((rgbo & $f0) >> 4))) as uword
             }
+            LoadRGB4(vp, &load_rgb4_table, no as word)
         }
     }
+
+    private long[770] load_rgb32_table
+    private uword[32] load_rgb4_table
+
 
     sub load_iff_cmap(^^ViewPort vp, ^^ubyte cmap, uword count) {
         ; Load an IFF/ILBM CMAP chunk into a ViewPort's colormap. CMAP stores
@@ -67,7 +81,7 @@ graphics {
                 set_palette_color(vp, ia, rgba)
             }
         } else {
-            ubyte no = min(count, 32) as ubyte
+            uword no = min(count, 32) as uword
             for io in 0 to no-1 {
                 uword bo = (io as uword)*3
                 long rgbo = ((cmap[bo] as long) << 16) | ((cmap[bo+1] as long) << 8) | (cmap[bo+2] as long)

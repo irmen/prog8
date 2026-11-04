@@ -1,6 +1,6 @@
 
 Prog8 compiler v14.0-BETA3 by Irmen de Jong (irmen@razorvine.net)
-Prerelease version from git commit aaef40ba in branch master
+Prerelease version from git commit 667782dd in branch master
 This software is licensed under the GNU GPL 3.0, see https://www.gnu.org/licenses/gpl.html
 
 Compiling program import-all-amiga1200.p8
@@ -643,7 +643,10 @@ blitter  {
     copy_rect  (long src @A0, long dst @A1, uword width_words @D0, uword height @D1, uword src_mod @D2, uword dst_mod @D3, uword minterm @D4, ubyte descending @D5)
     fill_plane  (long dst @A0, uword width_words @D0, uword height @D1, uword pattern @D2)
     fill_rect  (long dst @A0, uword width_words @D0, uword height @D1, uword pattern @D2, uword modulo @D3)
-    line_draw  (uword x1 @D0, uword y1 @D1, uword x2 @D2, uword y2 @D3, uword screen_mod @D4, long screen_ptr @A1)
+    line_color  (uword x1, uword y1, uword x2, uword y2, ubyte pen, ubyte depth, ^^pointer planes)
+    line_draw  (uword x1, uword y1, uword x2, uword y2, long screen_ptr)
+    line_draw_mode  (uword x1 @D0, uword y1 @D1, uword x2 @D2, uword y2 @D3, long screen_ptr @A1, bool erase @D5)
+    line_erase  (uword x1, uword y1, uword x2, uword y2, long screen_ptr)
     line_init  (uword mask @D0, uword pixel @D1, uword pattern @D2, uword screen_mod @D4)
     masked_blit  (long src @A0, long mask @A1, long dst @A2, uword width_words @D0, uword height @D1, uword src_mod @D2, uword mask_mod @D3, uword dst_mod @D4)
     set_blitpri  (bool hasprio @D0)
@@ -771,7 +774,7 @@ copper  {
     move  (uword reg, uword value) -> uword
     rasterbar  (ubyte vstart, ubyte lines) -> uword
     set  (uword slot, uword value)
-    set_planes  (uword base, ^^long planes, ubyte depth)
+    set_planes  (uword base, ^^pointer planes, ubyte depth)
     skip  (ubyte v, ubyte h)
     wait  (ubyte v, ubyte h)
 }
@@ -5425,6 +5428,7 @@ math  {
     log2  (ubyte value @D0) -> ubyte @D0
     log2l  (long value @D0) -> ubyte @D0
     log2w  (uword value @D0) -> ubyte @D0
+    mul32  (uword a @D0, uword b @D1) -> long @D0
     popcount  (long value @D0) -> ubyte @D0
     randrange  (ubyte n) -> ubyte
     randrangew  (uword n) -> uword
@@ -5831,5 +5835,4 @@ wavfile  {
     parse_header  (^^ubyte wav_data) -> bool
     read_le_word  (long addr) -> uword
 }
-
 
