@@ -43,6 +43,39 @@ graphics {
         }
     }
 
+    sub load_iff_cmap(^^ViewPort vp, ^^ubyte cmap, uword count) {
+        ; Load an IFF/ILBM CMAP chunk into a ViewPort's colormap. CMAP stores
+        ; colors as packed RGB888 triples (3 bytes each: R, G, B) - a file
+        ; format, not a hardware format - so the conversion differs per chipset:
+        ; - AGA: 24-bit color registers, 8 bits per channel, lossless. Up to
+        ;   256 entries (8 banks of 32 selected via BPLCON3).
+        ; - OCS/ECS: 12-bit $0RGB registers, 4 bits per channel, so the low
+        ;   nibble of each channel is dropped. 32 entries max.
+        ; count is the number of colors in the chunk (chunk size / 3).
+        ; This is the OS-friendly counterpart of custom.load_iff_cmap(), the
+        ; hardware-banging version that pokes COLORxx directly for bare-metal
+        ; use. Going through graphics.library here keeps the ViewPort's ColorMap
+        ; and the hardware in agreement, which matters because Intuition's
+        ; copper list reloads the registers from the ColorMap every frame.
+        if count == 0
+            return
+        if custom.detect_chipset()==custom.CHIPSET::AGA {
+            uword na = min(count, 256)
+            for ia in 0 to na-1 {
+                uword ba = ia*3
+                long rgba = ((cmap[ba] as long) << 16) | ((cmap[ba+1] as long) << 8) | (cmap[ba+2] as long)
+                set_palette_color(vp, ia, rgba)
+            }
+        } else {
+            ubyte no = min(count, 32) as ubyte
+            for io in 0 to no-1 {
+                uword bo = (io as uword)*3
+                long rgbo = ((cmap[bo] as long) << 16) | ((cmap[bo+1] as long) << 8) | (cmap[bo+2] as long)
+                set_palette_color(vp, io as uword, rgbo)
+            }
+        }
+    }
+
     sub set_palette_color(^^ViewPort vp, uword index, long rgb24) {
         ; Single canonical color into a ViewPort's colormap. Index above 31
         ; is ignored on ECS.

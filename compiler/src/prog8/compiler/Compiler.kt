@@ -215,6 +215,7 @@ fun compileProgram(args: CompilerArguments): CompilationResult? {
 
             var createAssemblyDuration = Duration.ZERO
             var simplifiedAstDuration = Duration.ZERO
+            var codegenPhases: List<Pair<String, Duration>> = emptyList()
 
             if (args.writeAssembly) {
 
@@ -288,7 +289,8 @@ fun compileProgram(args: CompilerArguments): CompilationResult? {
                 writeBankedCallsFile(intermediateAst, symbolTable!!, compilationOptions, args.errors)
 
                 createAssemblyDuration = measureTime {
-                    val result = createAssemblyAndAssemble(
+                    val (result, phases) = CompilationTimings.collect(args.showTimings) {
+                        createAssemblyAndAssemble(
                             intermediateAst,
                             symbolTable,
                             args.errors,
@@ -296,6 +298,8 @@ fun compileProgram(args: CompilerArguments): CompilationResult? {
                             program.generatedLabelSequenceNumber,
                             args.assemble
                         )
+                    }
+                    codegenPhases = phases
                     irInstructionCount = result.irInstructionCount
                     irRegisterCount = result.irRegisterCount
                     if (!result.success) {
@@ -331,6 +335,8 @@ fun compileProgram(args: CompilerArguments): CompilationResult? {
                 println("ast postprocess  : ${postprocessDuration.toString(DurationUnit.SECONDS, 3)}")
                 println("code prepare     : ${simplifiedAstDuration.toString(DurationUnit.SECONDS, 3)}")
                 println("code generation  : ${createAssemblyDuration.toString(DurationUnit.SECONDS, 3)}")
+                for ((label, phaseDuration) in codegenPhases)
+                    println("  ${label.padEnd(15)}: ${phaseDuration.toString(DurationUnit.SECONDS, 3)}")
                 val totalDuration = parseDuration + processDuration + optimizeDuration + postprocessDuration + simplifiedAstDuration + createAssemblyDuration
                 println("          total  : ${totalDuration.toString(DurationUnit.SECONDS, 3)}")
             }
@@ -937,6 +943,8 @@ private fun createAssemblyAndAssemble(program: PtProgram,
     val chunkCount = assembly?.irChunkCount ?: 0
     val registerCount = assembly?.irRegisterCount ?: 0
 
-    val success = assembly!=null && errors.noErrors() && (!assemble || assembly.assemble(compilerOptions, errors))
+    val success = assembly!=null && errors.noErrors() && (!assemble || CompilationTimings.measure("assembling") {
+        assembly.assemble(compilerOptions, errors)
+    })
     return AssemblyResult(success, instructionCount, chunkCount, registerCount)
 }

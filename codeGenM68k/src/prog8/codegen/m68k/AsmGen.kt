@@ -955,24 +955,28 @@ internal class AsmGen(val program: IRProgram, internal val target: ICompilationT
     // === main entry point ===
 
     fun generate(): Boolean {
-        emitHeader()
-        emitCode()
-        emitDataSection()
-        emitBssSection()
+        CompilationTimings.measure("asm generation") {
+            emitHeader()
+            emitCode()
+            emitDataSection()
+            emitBssSection()
 
-        if(program.options.output == OutputType.AMIGAHUNK) {
-            emitRaw("prog8_program_end:     ; end of the program")
-        } else {
-            // label prog8_program_end is defined by the linker script (ELF)
+            if(program.options.output == OutputType.AMIGAHUNK) {
+                emitRaw("prog8_program_end:     ; end of the program")
+            } else {
+                // label prog8_program_end is defined by the linker script (ELF)
+            }
         }
 
         val options = program.options
         val asmFile = OutputFiles.of(options, program.name).asm()
         try {
             if (options.optimize) {
-                val asmLines = output.toString().lines().toMutableList()
-                optimizeAssembly(asmLines)
-                asmFile.toFile().writeText(asmLines.joinToString("\n") + "\n")
+                CompilationTimings.measure("asm optimize") {
+                    val asmLines = output.toString().lines().toMutableList()
+                    optimizeAssembly(asmLines)
+                    asmFile.toFile().writeText(asmLines.joinToString("\n") + "\n")
+                }
             } else {
                 // write the unmodified code
                 asmFile.toFile().writeText(output.toString())

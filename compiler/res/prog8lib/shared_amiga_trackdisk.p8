@@ -1,5 +1,14 @@
 %import exec
 
+; trackdisk - raw floppy access via trackdisk.device, shared by the
+; amiga500 and amiga1200 targets. The per-target trackdisk.p8 adds
+; opendevice(unit)/closedevice() (Kickstart 1.3 compatible setup of the
+; shared TrackIO request; unit 0-3 = DF0:-DF3:). All routines here are
+; synchronous DoIO calls on that request and return the device error
+; code (0 = success). Buffers must be in chip RAM on Kickstart < V36
+; (trackdisk DMA). This is sector-level access with no filesystem; for a
+; raw streaming example see examples/amiga/stream-disk.p8.
+
 trackdisk {
     %option merge, no_symbol_prefixing, ignore_unused
 

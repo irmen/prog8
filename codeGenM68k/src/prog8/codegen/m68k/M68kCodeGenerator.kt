@@ -5,6 +5,7 @@ import prog8.code.SymbolTable
 import prog8.code.assembly.IAssemblyProgram
 import prog8.code.ast.PtProgram
 import prog8.code.core.CompilationOptions
+import prog8.code.core.CompilationTimings
 import prog8.code.core.ICompilationTarget
 import prog8.code.core.IErrorReporter
 import prog8.codegen.intermediate.IRCodeGen
@@ -21,6 +22,7 @@ class M68kCodeGenerator(val retainSSA: Boolean): ICodeGeneratorBackend {
 
         val irCodeGen = IRCodeGen(program, symbolTable, options, errors, retainSSA)
         val irProgram = irCodeGen.generate()
+        val prepareTiming = CompilationTimings.mark()
         var virtualRegisterTypes = irCodeGen.registerTypes().entries.associate { (num, type) ->
             val register: VirtualRegister = if (type == IRDataType.FLOAT) VirtualRegister.float(num.value) else VirtualRegister.int(num.value)
             register to type
@@ -31,16 +33,19 @@ class M68kCodeGenerator(val retainSSA: Boolean): ICodeGeneratorBackend {
         renumberVregsPerSubroutine(irProgram)?.let {
             virtualRegisterTypes = it
         }
+        CompilationTimings.record("ir prepare", prepareTiming)
 
         if (options.compTarget.supportsStackFrames) {
-            // Use the pre-promotion allocation as a pressure baseline. M9 may add several
-            // long-lived vregs to a subroutine; candidates that cross calls are only admitted
-            // when their register class still has room in this baseline allocation.
-            val baseline = M68kRegisterAllocator(irProgram).allocate()
-            val pressure = baseline.statsBySub.mapValues { (_, stats) ->
-                StackFrameLayout.PromotionPressure(stats.maxLiveData, stats.maxLiveAddress, stats.maxLiveFloat)
-            }.mapKeys { (sub, _) -> sub.label }
-            StackFrameLayout(irProgram, errors, pressure).apply()
+            CompilationTimings.measure("frame layout") {
+                // Use the pre-promotion allocation as a pressure baseline. M9 may add several
+                // long-lived vregs to a subroutine; candidates that cross calls are only admitted
+                // when their register class still has room in this baseline allocation.
+                val baseline = M68kRegisterAllocator(irProgram).allocate()
+                val pressure = baseline.statsBySub.mapValues { (_, stats) ->
+                    StackFrameLayout.PromotionPressure(stats.maxLiveData, stats.maxLiveAddress, stats.maxLiveFloat)
+                }.mapKeys { (sub, _) -> sub.label }
+                StackFrameLayout(irProgram, errors, pressure).apply()
+            }
         }
 
         if (options.dumpVariables)
@@ -48,10 +53,13 @@ class M68kCodeGenerator(val retainSSA: Boolean): ICodeGeneratorBackend {
 
         // Register allocation is done as late as possible: after frame layout and variable dump,
         // but before the IR is serialized (spill slots are patched into frames first) and before AsmGen.
-        val allocation = M68kRegisterAllocator(irProgram).allocate()
-        for ((sub, spilled) in allocation.spilledVregsBySub) {
-            if (spilled.isNotEmpty())
-                appendSpillSlotsToFrame(sub, spilled, virtualRegisterTypes, irProgram.options.compTarget, errors)
+        val allocation = CompilationTimings.measure("reg alloc") {
+            val allocation = M68kRegisterAllocator(irProgram).allocate()
+            for ((sub, spilled) in allocation.spilledVregsBySub) {
+                if (spilled.isNotEmpty())
+                    appendSpillSlotsToFrame(sub, spilled, virtualRegisterTypes, irProgram.options.compTarget, errors)
+            }
+            allocation
         }
 
         IRFileWriter(irProgram, null).write()

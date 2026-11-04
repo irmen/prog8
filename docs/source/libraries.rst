@@ -561,9 +561,14 @@ modules. Import them the same way as any other library::
     reports the machine's TV standard. ``waitvsync()``,
     AGA colour register writes, and controller input routines. Canonical
     ``$00RRGGBB`` palette helpers ``load_colors()``/``set_color()``/
-    ``cycle_forward()`` and ``pack12()`` load the bare-metal palette AGA-aware
+    ``cycle_forward()`` and ``pack12()`` load the bare-metal palette AGA-aware,
+    and ``load_colors_ocs()`` takes raw 12-bit ``$0RGB`` words;
+    ``load_iff_cmap()`` loads an IFF/ILBM CMAP chunk (packed RGB888 triples)
+    and converts per chipset (exact 24-bit on AGA, quantised to 4 bits per
+    channel on OCS/ECS)
     (``graphics`` has the matching ``ViewPort`` loaders
-    ``load_palette()``/``set_palette_color()``). ``detect_chipset()`` returns
+    ``load_palette()``/``set_palette_color()``/``load_iff_cmap()``, which go
+    through graphics.library instead of poking the registers). ``detect_chipset()`` returns
     ``custom.CHIPSET::OCS``, ``custom.CHIPSET::ECS`` or
     ``custom.CHIPSET::AGA`` using the Denise ID and VPOSR hardware registers.
     ``joystick_axes(port)`` returns signed x/y values in -1..1.

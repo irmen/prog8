@@ -124,6 +124,25 @@ copper {
         return base
     }
 
+    sub set_planes(uword base, ^^long planes, ubyte depth) {
+        ; Patch plane addresses into the MOVE value slots emitted by
+        ; attach_planes(): plane p's high word goes to slot base + p*4,
+        ; low word to slot base+2 + p*4 (same layout as
+        ; playfield.patch_copper(), but without the graphics.BitMap).
+        ; This is the visible half of a bare-metal double-buffer flip:
+        ; build the list once, then set_planes() with the other buffer's
+        ; plane table each frame. planes is an array of 32-bit plane
+        ; addresses (same layout as graphics.BitMap.Planes; cast a
+        ; pointer array with `as ^^long`). depth is capped at 8.
+        if depth > 8
+            depth = 8
+        for p in 0 to depth-1 {
+            uword slot = base + (p as uword)*4
+            set(slot, msw(planes[p]))
+            set(slot+2, lsw(planes[p]))
+        }
+    }
+
     sub rasterbar(ubyte vstart, ubyte lines) -> uword {
         ; Emit a WAIT + MOVE COLOR00 skeleton for lines scanlines starting at
         ; vstart (hp $07, colors zeroed) and return the first color slot;

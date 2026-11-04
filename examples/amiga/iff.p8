@@ -179,8 +179,10 @@ main {
             ^^ubyte rgb = iffcmap.Data
             uword numcolors = iffcmap.Size as uword /3
             pointer viewport = intuition.GetScreenViewPort(scr)
-            for c in 0 to numcolors-1
-                graphics.SetRGB4(viewport, c as word, rgb[c*3]>>4, rgb[c*3+1]>>4, rgb[c*3+2]>>4)
+            ; CMAP holds packed RGB888 triples; load_iff_cmap converts per chipset
+            ; (exact 24-bit on AGA, 4 bits per channel on OCS/ECS). The screen is
+            ; 5 planes = 32 colors, so anything beyond that is ignored.
+            graphics.load_iff_cmap(viewport, rgb, min(numcolors, 32))
         }
     }
 }

@@ -50,6 +50,9 @@ Source line tracking in new codegen backends
 Libraries
 ^^^^^^^^^
 - Add split-word array sorting routines to sorting module by adding copies of the existing non-split routines that are split-aware (split words are stored as separate lsb/msb arrays, so the split-aware routines must index into both halves).
+- add an IFF ANIM5 playback helper module for the Amiga targets (a separate concern from the bare-metal hardware helpers): in-memory IFF chunk walker (BMHD/CMAP/CAMG/BODY plus per-frame ANHD/DLTA), ByteRun1 decoder, op5 byte-vertical delta decoder (unvscomp-style), and a small double-buffer/interleave state machine with ANHD ``reltime`` pacing via vblank waits. CMAP loading is already covered by ``custom.load_iff_cmap()`` (bare metal) and ``graphics.load_iff_cmap()`` (Intuition screens). Usable both OS-friendly (drawing into a ``playfield``) and bare-metal (chip-RAM planes plus ``copper.set_planes`` for the flip). A working C reference implementation is in ``ideas/anim5player.c``: SDL2 + libiff, but structured the way an on-system player must work (two screens, page flip per frame, op5 deltas decoded on demand, no frame cache), so the decode loop and the double-buffer/interleave recipe can be ported from it directly.
+- implement the Amiga sorting library: ``compiler/res/prog8lib/shared_amiga_sorting.p8`` is currently a ``; TODO`` stub. Word and long data only (no ubyte variants: on m68k the useful cases are word/long, and byte access gains nothing there): gnome sort and shell sort over uw values plus the by_uw key-value form, and 32-bit long variants (shellsort_ul, gnomesort_ul, by_ul forms) since long is first-class on m68k. Do not port the 6502 routines mechanically: ``num_elements`` widens from ubyte to uword, the gap sequence extends to the full published Ciura sequence (1750, 701, 301, 132, 57, 23, 10, 4, 1), and the ``@requirezp`` annotations are dropped (6502-only).
+- implement the remaining Amiga bare-metal hardware helpers; see ``ideas/amiga-baremetal-helpers.md`` for the designs and status. Still open: the sprite helper module (packing control words, setting sprite pointers, AGA ``FMODE`` fetch width), the BOB helpers (``soft_blit``, ``area_fill``, ``horiz_line``, ``vert_line``, ``line_draw_fill``), dispatching axis-aligned segments from ``line_draw`` to ``horiz_line``/``vert_line``, IRQ/VERTB/CIA/TOD handling, and bare-metal text output.
 - make a list of all floats.* routines that the compiler expects for full float support?
 
 
@@ -61,6 +64,27 @@ Optimizations
 - Compilation speed: try to join multiple modifications in 1 result in the AST processors instead of returning it straight away every time
 - various Ast optimizers skip stuff if compTarget.name==VMTarget.NAME.  Once new 6502 codegen is done from IR code, those 6502 only optimizations should probably be removed
 - m68k/Amiga dead-code elimination: vasm does not strip unreachable routines from the final HUNK output, and ``IRUnusedCodeRemover`` currently keeps assembly subroutines from library modules conservatively (see its TODO). Improve IR reachability analysis so imported library routines are retained only when reachable from program entry points, inline assembly references, address-taken symbols, or other live routines. Keep the existing conservative fallback for opaque assembly references, and add size-regression tests for examples such as ``lowlevel-timer``.
+
+
+m68k code generation performance
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Profiling (JFR) of the m68k targets shows the assembly *emission* is not the problem: it is 0.07s for a
+5,200-line file, because it appends into a single ``StringBuilder``. The cost sits in the string-level peephole
+optimizer (``asm optimize``, ~0.33s) and in frame layout (``frame layout``, ~0.47s, with 15% of all samples in
+one function). Suggested improvements, in priority order:
+
+- ``StackFrameLayout.isLabelReferencedInAsm`` compiles a fresh ``Regex`` for every label and scans every inline
+  assembly text with it, once per subroutine *and* once per parameter. Tokenize the inline assembly texts once
+  into a ``Set<String>`` of identifiers and make the check a set lookup; that also removes the need for the
+  lookbehind/lookahead that currently protects against prefix/suffix label matches.
+- ``StackFrameLayout.writesFramePointerRegister`` compiles two ``Regex``es per assembly line
+  (``^[.0-9A-Za-z_$]+:`` and ``[ \t]+``). Hoist them to top-level constants, or strip a leading ``label:`` and
+  collapse whitespace with plain scanning.
+- Replace the ``dataRegisterPattern``/``addressRegPattern`` regex matches in ``AsmOptimizer`` with direct
+  character checks (``length == 2 && this[0] == 'd' && this[1] in '0'..'7'``).
+- ``AsmOptimizer`` re-parses every line in every pass of its fixed-point loop (lowercase, substring, ``split``).
+  Cache the per-line parse result (trimmed text, mnemonic, operands) once per round, or restrict the passes to
+  the line ranges that a previous modification touched.
 
 
 Dead Code Elimination bug in 64tass, for nested subroutines

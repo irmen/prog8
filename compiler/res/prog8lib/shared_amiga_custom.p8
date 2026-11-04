@@ -4,6 +4,12 @@
 custom {
     %option merge, no_symbol_prefixing, ignore_unused
 
+    ; custom - Amiga custom-chip register file plus bare-metal hardware
+    ; helpers: display setup (compute_display), palette loaders, chipset
+    ; detection, vblank pacing, input readers, and grab_system()/
+    ; restore_system() machine takeover. Everything works without the OS
+    ; except the takeover routines themselves (which call exec).
+
     ; OS-interaction note:
     ;   The read-only helpers below (joystick_*, mouse_*, key_pressed,
     ;   raw_keyboard_poll reads) only read hardware registers and are safe
@@ -438,6 +444,56 @@ IRQ7 = $7C
         if index > 31
             return
         pokew($dff180 + (index as uword)*2, pack12(rgb24))
+    }
+
+    sub load_iff_cmap(^^ubyte cmap, uword count) {
+        ; Load an IFF/ILBM CMAP chunk into the palette. CMAP stores colors as
+        ; packed RGB888 triples (3 bytes each: R, G, B) - a file format, not a
+        ; hardware format - so the right conversion differs per chipset:
+        ; - AGA: 24-bit color registers, 8 bits per channel, lossless. Up to
+        ;   256 entries (8 banks of 32 selected via BPLCON3 by set_aga_color).
+        ; - OCS/ECS: 12-bit $0RGB registers, 4 bits per channel, so the low
+        ;   nibble of each channel is dropped. 32 entries max.
+        ; count is the number of colors in the chunk (chunk size / 3).
+        ; This is the hardware-banging version of graphics.load_iff_cmap(),
+        ; which writes through graphics.library for Intuition screens. Use this
+        ; one only when no OS copper list reloads the COLORxx registers (bare
+        ; metal display, or a screen whose palette you own outright).
+        if count == 0
+            return
+        if detect_chipset()==CHIPSET::AGA {
+            uword na = min(count, 256)
+            for ia in 0 to na-1 {
+                uword ba = ia*3
+                long rgba = ((cmap[ba] as long) << 16) | ((cmap[ba+1] as long) << 8) | (cmap[ba+2] as long)
+                set_aga_color(ia as ubyte, rgba)
+            }
+        } else {
+            ubyte no = min(count, 32) as ubyte
+            for io in 0 to no-1 {
+                uword bo = (io as uword)*3
+                long rgbo = ((cmap[bo] as long) << 16) | ((cmap[bo+1] as long) << 8) | (cmap[bo+2] as long)
+                set_ocs_color(io, rgbo)
+            }
+        }
+    }
+
+    sub load_colors_ocs(^^uword colors, ubyte count) {
+        ; Bare-metal load of count 12-bit $0RGB colors into COLOR00.. .
+        ; This is the raw COLORxx register format, so no conversion at all:
+        ; one write per color. On AGA the write lands in the upper 12 bits
+        ; of the 24-bit color registers, requiring BPLCON3 LOCT=0 (the
+        ; reset default; set_aga_color also leaves it that way), and the
+        ; lower 8 bits are left untouched (same as set_ocs_color). Only
+        ; the 32-entry register file; AGA palette banks (BPLCON4) for
+        ; >5-plane modes are the caller's business.
+        if count == 0
+            return
+        ubyte n = count
+        if n > 32
+            n = 32
+        for i in 0 to n-1
+            pokew($dff180 + (i as uword)*2, colors[i] & $0fff)
     }
 
     sub load_colors(^^long rgb24, ubyte count) {

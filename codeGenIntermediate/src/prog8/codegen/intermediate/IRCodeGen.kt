@@ -43,6 +43,7 @@ class IRCodeGen(
         get() = addressDtFor(options.compTarget)
 
     fun generate(): IRProgram {
+        val translateTiming = CompilationTimings.mark()
         // The pure "virtual" (VM) target doesn't need symbol prefixing because the VM
         // doesn't emit assembly and has no risk of symbol clashes.  Any other target
         // (that goes through assembly code generation) MUST prefix symbols to avoid
@@ -91,9 +92,14 @@ class IRCodeGen(
         if(retainSSA)
             irProg.splitSSAchunks()
 
+        CompilationTimings.record("ir generation", translateTiming)
+
         // the optimizer also does 1 essential step regardless of optimizations: joining adjacent chunks.
         val optimizer = IRPeepholeOptimizer(irProg, retainSSA)
-        optimizer.optimize(options.optimize, errors)
+        CompilationTimings.measure("ir optimize") {
+            optimizer.optimize(options.optimize, errors)
+            irProg.validate()
+        }
 
         // Register packing: reduce distinct virtual registers by coalescing non-overlapping live ranges.
         // Subroutines at different call depths should get disjoint slot ranges to avoid caller/callee
@@ -105,8 +111,6 @@ class IRCodeGen(
         //    irProg.wasPackingApplied = true
         //    wasPackingApplied = true
         //}
-
-        irProg.validate()
 
         return irProg
     }

@@ -1,6 +1,6 @@
 
 Prog8 compiler v14.0-BETA3 by Irmen de Jong (irmen@razorvine.net)
-Prerelease version from git commit 2a0d3445 in branch master
+Prerelease version from git commit aaef40ba in branch master
 This software is licensed under the GNU GPL 3.0, see https://www.gnu.org/licenses/gpl.html
 
 Compiling program import-all-amiga500.p8
@@ -627,10 +627,18 @@ LIBRARY MODULE NAME: blitter
 ----------------------------
 
 blitter  {
+    const uword  MINTERM_AND
     const uword  MINTERM_A_ONLY
     const uword  MINTERM_A_XOR_C
     const uword  MINTERM_B_ONLY
+    const uword  MINTERM_CLEAR
+    const uword  MINTERM_COND
+    const uword  MINTERM_ERASE
+    const uword  MINTERM_IDENTITY
     const uword  MINTERM_MASKED
+    const uword  MINTERM_MASKED_OR
+    const uword  MINTERM_OR
+    const uword  MINTERM_SET
     clear_plane  (long dst @A0, uword width_words @D0, uword height @D1)
     copy_rect  (long src @A0, long dst @A1, uword width_words @D0, uword height @D1, uword src_mod @D2, uword dst_mod @D3, uword minterm @D4, ubyte descending @D5)
     fill_plane  (long dst @A0, uword width_words @D0, uword height @D1, uword pattern @D2)
@@ -763,6 +771,7 @@ copper  {
     move  (uword reg, uword value) -> uword
     rasterbar  (ubyte vstart, ubyte lines) -> uword
     set  (uword slot, uword value)
+    set_planes  (uword base, ^^long planes, ubyte depth)
     skip  (ubyte v, ubyte h)
     wait  (ubyte v, ubyte h)
 }
@@ -1328,6 +1337,8 @@ custom  {
     key_pressed  (ubyte code) -> bool
     left_button  () -> bool
     load_colors  (^^long rgb24, ubyte count)
+    load_colors_ocs  (^^uword colors, ubyte count)
+    load_iff_cmap  (^^ubyte cmap, uword count)
     middle_button  () -> bool
     mouse_delta  (ubyte port) -> byte, byte
     mouse_init  (ubyte port, ubyte scale_divisor)
@@ -3469,6 +3480,7 @@ graphics  {
     WritePixelLine8  (^^graphics.RastPort rp @A0, uword xstart @D0, uword ystart @D1, uword width @D2, long array @A2, ^^graphics.RastPort tempRP @A1) -> long @D0@bank 3 = -$0306
     XorRectRegion  (long region @A0, long rectangle @A1) -> bool @D0@bank 3 = -$022e
     XorRegionRegion  (long srcRegion @A0, long destRegion @A1) -> bool @D0@bank 3 = -$026a
+    load_iff_cmap  (^^graphics.ViewPort vp, ^^ubyte cmap, uword count)
     load_palette  (^^graphics.ViewPort vp, ^^long rgb24, uword count)
     set_palette_color  (^^graphics.ViewPort vp, uword index, long rgb24)
 }
@@ -5593,4 +5605,3 @@ wavfile  {
 }
 
 
-No output produced.

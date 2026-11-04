@@ -6,6 +6,7 @@ import prog8.code.assembly.AssemblyProgram6502
 import prog8.code.assembly.IAssemblyProgram
 import prog8.code.ast.PtProgram
 import prog8.code.core.CompilationOptions
+import prog8.code.core.CompilationTimings
 import prog8.code.core.IErrorReporter
 import prog8.codegen.intermediate.IRCodeGen
 import prog8.intermediate.IRDataType
@@ -37,7 +38,7 @@ class New6502CodeGenerator(val retainSSA: Boolean,
         IRFileWriter(irProgram, null).write()
 
         val gen = AsmGen(irProgram, irProgram.options.compTarget, errors)
-        val success = gen.generate()
+        val success = CompilationTimings.measure("asm generation") { gen.generate() }
         if(!success)
             return null
 

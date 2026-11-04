@@ -1,3 +1,9 @@
+; bcd - packed binary-coded-decimal arithmetic for the amiga500/amiga1200
+; targets: add and subtract on BCD values (two decimal digits per byte)
+; via the 68k's ABCD/SBCD instructions. Byte, word and long variants,
+; plus addtol()/subfroml() for in-place long accumulators such as score
+; counters. No OS calls.
+
 bcd {
     %option merge, ignore_unused
 

@@ -318,6 +318,10 @@ One or more .p8 module files
 
 ``-timings``
     Show a more detailed breakdown of the time taken in various compiler phases, for performance analysis of the compiler itself.
+    The ``code generation`` stage is broken down further into the sub-phases that apply to the selected backend (indented below it):
+    ``ir generation`` and ``ir optimize`` for the IR-based backends (m68k, the new 6502 code generator and the virtual target),
+    ``ir prepare``/``frame layout``/``reg alloc`` for the m68k targets, ``asm generation``, ``asm optimize`` for the old 6502
+    code generator, and ``assembling`` for the external assembler (or writing the ``.p8ir`` file on the virtual target).
 
 ``-varsaddress <address>``
     Put uninitialized non-zeropage variables and memory slabs (``memory()`` allocations) at the given raw address

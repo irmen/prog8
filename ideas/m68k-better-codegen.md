@@ -36,6 +36,80 @@ effort. Status: proposal.
 - `TestCompilerOnExamples` has no m68k expected-size table (classes cover
   C64 / Cx16 / Both / Virtual / PET32 only).
 
+## Tier 4 re-measurement (2026-11-04, 30 programs across qemu68k + amiga1200)
+
+Compiled all examples for both qemu68k and amiga1200 targets and counted A5
+frame-slot accesses (`(off,a5)`) vs `p8_regfile` references in the generated
+`.asm`. Results:
+
+| Program (target) | Frame slots | Regfile refs | Ratio |
+|---|---|---|---|
+| textelite (qemu68k) | 474 | 3 (2 accesses + label) | ~158:1 |
+| maze (qemu68k) | 206 | 3 (2 accesses + label) | ~69:1 |
+| qemubootinfo (qemu68k) | 112 | 3 (2 accesses + label) | ~37:1 |
+| 3d (amiga1200) | 343 | 75 (74 init-staging + 1 label) | ~4.6:1 |
+| adpcmbench (amiga1200) | 200 | 73 (72 init-staging + 1 label) | ~2.7:1 |
+| custominputs (amiga1200) | 289 | 75 (74 init-staging + 1 label) | ~3.9:1 |
+| viewdemo (amiga1200) | 258 | 75 (74 init-staging + 1 label) | ~3.4:1 |
+| blitcop (amiga1200) | 250 | 75 (74 init-staging + 1 label) | ~3.3:1 |
+| gfxdemo (amiga1200) | 238 | 73 (72 init-staging + 1 label) | ~3.3:1 |
+| wavc (amiga1200) | 229 | 73 (72 init-staging + 1 label) | ~3.1:1 |
+| tictactoe (amiga1200) | 167 | 73 (72 init-staging + 1 label) | ~2.3:1 |
+| window3d (amiga1200) | 149 | 73 (72 init-staging + 1 label) | ~2.0:1 |
+| stream-adpcm (amiga1200) | 134 | 73 (72 init-staging + 1 label) | ~1.8:1 |
+| circles (amiga1200) | 126 | 73 (72 init-staging + 1 label) | ~1.7:1 |
+| bdmusic (amiga1200) | 88 | 113 (112 init-staging + 1 label) | ~0.8:1 |
+| hlaudio (amiga1200) | 69 | 113 (112 init-staging + 1 label) | ~0.6:1 |
+| (remaining amiga programs) | 4-85 | 73-77 (all init-staging + 1 label) | ~0.05-1.2:1 |
+
+**Key finding: the register allocator's spill path to `p8_regfile` is essentially
+never exercised.** Every regfile reference that does exist falls into one of
+three categories, none of which are register-spill decisions:
+
+1. **Struct instance initialization staging** (`move.l #addr,p8_regfile+N` then
+   `move.l p8_regfile+N,var`) — the compiler uses regfile slots as a temporary
+   holding area for struct instance addresses during startup init. Present in
+   all amiga1200 programs (72-112 references each).
+
+2. **System startup library code** (`move.l #libname,p8_regfile+0` / `clr.l
+   p8_regfile+4` / `movea.l p8_regfile,a1` / `move.l p8_regfile+4,d0` /
+   `jsr exec.OpenLibrary`) — hand-written or compiler-generated startup code
+   that opens AmigaOS libraries. Present in all amiga1200 programs (5
+   regfile read/write pairs each, in `init_system`).
+
+3. **`sys.die.code` staging** (`move.w sys.die.code,p8_regfile+0` then
+   `move.w p8_regfile+0,d0`) — a single store-reload pair. Present in
+   qemu68k programs only (2 accesses + label).
+
+**Zero spill-pattern accesses** (`move.X dN,p8_regfile+N` or
+`move.X p8_regfile+N,dN` for computation) were found in any program. The 5
+"spill-pattern" grep hits in amiga programs are all from category 2 (system
+startup), not from register pressure.
+
+**Conclusion for Tier 4:** The premise that "the regfile is the default fallback
+for uncolored vregs" is not borne out by real output. The allocator already
+sends virtually all spills to A5 frame slots. The regfile's remaining uses are
+initialization and library code, not register-spill traffic. This
+significantly reduces the expected benefit of 4.1-4.5:
+
+- **4.1 (widen promotion)**: Low benefit — there is almost nothing to promote
+  because the allocator already sends spills to frame slots. The regfile
+  references that exist are not spill decisions.
+- **4.2 (prefer frames over regfile)**: Low benefit — the regfile is already a
+  last resort in practice; it is not being used as a default spill target.
+- **4.3 (improve coloring heuristic)**: Still potentially valuable — better
+  coloring could reduce frame-slot traffic (the dominant spill target: 4-474
+  accesses per program). This is the one Tier 4 item that could yield
+  measurable gains.
+- **4.4 (interprocedural hints)**: Unchanged — could reduce caller-saved kill
+  sets, but high effort and deferred.
+- **4.5 (eliminate regfile entirely)**: Not feasible without refactoring — the
+  regfile is still needed for struct-instance init staging and system startup
+  code. These code paths would need to be rewritten to use frame slots or
+  direct moves before the BSS label can be removed. The assembler would catch
+  any missed reference, but the refactor scope is larger than originally
+  estimated.
+
 ## Tier 1 - Cosmetic / trivial (hours each) [ALL DONE]
 
 ### 1.1 Strip IR debug comments from emitted asm [DONE]
@@ -346,10 +420,17 @@ effort. Status: proposal.
 
 ## Tier 4 - Register allocation & spilling (weeks)
 
-> Re-verify this tier's premise first: real output shows spills already go
-> primarily to A5 frame slots (M9 promotion) and regfile traffic is nearly
-> nil even on large examples. The "largest quality gap" framing below may be
-> outdated; re-measure on higher-register-pressure programs before investing.
+> **RE-MEASURED 2026-11-04 (30 programs, qemu68k + amiga1200):** The premise
+> is confirmed but the framing needs adjustment. Regfile traffic from actual
+> register spilling is **zero** in all programs. The regfile references that do
+> exist are from struct-instance init staging, system startup (library code),
+> and `sys.die.code` staging — none are spill decisions. A5 frame slots are
+> the dominant spill target (4-474 accesses/program). The "largest quality gap"
+> framing is partially outdated: 4.1/4.2 have low expected benefit (the
+> allocator already does what they propose), but 4.3 (coloring heuristic) could
+> still reduce frame-slot traffic. 4.5 (eliminate regfile) requires refactoring
+> init/startup code paths that currently use regfile as staging. See the
+> re-measurement table above for full data.
 
 ### 4.1 Widen StackFrameLayout promotion
 - **Where**: `StackFrameLayout` (M9) in `M68kCodeGenerator.kt`.
@@ -361,21 +442,42 @@ effort. Status: proposal.
 - Constraint already enforced: the 16384 frame size limit and `%option noframe`
   checks exist in `M68kCodeGenerator.kt`; this item is only the promotion
   policy.
+- **Re-measurement note (2026-11-04)**: The allocator already sends virtually
+  all spills to A5 frame slots. Regfile traffic from register spilling is
+  zero in all 30 measured programs. The regfile references that do exist are
+  from struct-init staging and system startup, not spill decisions. Expected
+  benefit is **low** — there is almost nothing to promote. Consider
+  downgrading priority or combining with 4.3 (coloring heuristic) which
+  targets the actual dominant spill target (frame slots).
 
 ### 4.2 Prefer frames over regfile as the spill target
 - Make the regfile a last resort (globals / non-reentrant state) rather than
   the default fallback for uncolored vregs.
 - **Effort**: medium, depends on 4.1.
 - **Does NOT remove the regfile**: this only reduces traffic. Some cases still
-  legitimately need the regfile fallback (unallocated vregs, `%option noframe`
-  subs, raw `%asm` textual references, float spills). Actual removal of the
-  `p8_regfile` / `p8_fregfile` BSS labels is 4.5 and must remain conditional.
+  legitimately need the regfile fallback (unallocated vregs, raw `%asm`
+  textual references, float spills). `%option noframe` subs are NO LONGER in
+  this list — they will use static in-memory variables instead (see 4.5).
+  Actual removal of the `p8_regfile` / `p8_fregfile` BSS labels is 4.5 and
+  must remain conditional.
+- **Re-measurement note (2026-11-04)**: The regfile is already a last resort
+  in practice — the allocator does not use it as a default spill target. Zero
+  spill-pattern accesses were found in any of the 30 measured programs.
+  Expected benefit is **low**. The regfile's remaining uses (struct-init
+  staging, system startup) are not spill decisions and would not be affected
+  by this change.
 
 ### 4.3 Improve coloring heuristic
 - Current greedy by liveness. Add cost model: prefer keeping pointer-typed
   vregs in address regs (A2-A4), data in D2-D6; spill cheapest (fewest uses,
   longest live range) first.
 - **Effort**: medium.
+- **Re-measurement note (2026-11-04)**: This is the most promising Tier 4
+  item. Frame-slot accesses are the dominant spill target (4-474/program).
+  Better coloring could reduce these by keeping more vregs in hardware
+  registers. The current greedy heuristic has no cost model, so it may spill
+  hot vregs prematurely. This is the one Tier 4 item likely to yield
+  measurable code-size and performance gains.
 
 ### 4.4 Cross-chunk / limited interprocedural hints
 - Inline small callees' register usage to avoid full caller-saved kill sets at
@@ -392,15 +494,66 @@ effort. Status: proposal.
   `M68kCodeGenerator.kt` (spill-slot path), `VregRenumber.kt` (bails when the
   regfile layout is observed).
 - **Measure first**: enumerate remaining references after 4.1/4.2 by cause -
-  unallocated vregs (empty allocator map), `%option noframe` subs (cannot take
-  frame slots today), raw `%asm` textual refs (`inlineAsmMayReadRegisters`
-  can only see the regfile symbols textually), float spills.
-- **Plan**: route unallocated vregs to frame slots (or keep the noframe error
-  when no frame is possible); emit the BSS labels conditionally - only when
-  codegen fallback or a raw-`%asm` textual scan still references them, so
-  hand-written library code keeps assembling; apply the same conditional to
-  `p8_fregfile`; revisit the `VregRenumber` bail-out once the layout can be
-  empty.
+  unallocated vregs (empty allocator map), raw `%asm` textual refs
+  (`inlineAsmMayReadRegisters` can only see the regfile symbols textually),
+  float spills. `%option noframe` subs are removed from this list — they will
+  use static variables, not the regfile.
+- **Re-measurement note (2026-11-04)**: Even after 4.1/4.2, the regfile
+  cannot be fully eliminated. The remaining references are not from register
+  spilling but from:
+  - **Struct instance initialization staging** (72-112 references/program on
+    amiga1200): `move.l #addr,p8_regfile+N` then `move.l p8_regfile+N,var`.
+    These would need to be rewritten to use direct moves or frame slots.
+  - **System startup library code** (5 read/write pairs/program on amiga1200):
+    `move.l #libname,p8_regfile+0` / `clr.l p8_regfile+4` / `movea.l
+    p8_regfile,a1` / `move.l p8_regfile+4,d0` / `jsr exec.OpenLibrary`.
+    These are in hand-written or compiler-generated startup code.
+  - **`sys.die.code` staging** (2 accesses/program on qemu68k): a single
+    store-reload pair.
+  - **`%option noframe` subroutines**: These bypass the register allocator
+    entirely (`allocateSubroutine` skips them, setting `spilledVregsBySub =
+    emptyList()`). In codegen, `operand()` falls through to `regAddr()`,
+    which returns `p8_regfile+N` for any unallocated vreg (all of them, since
+    noframe subs get no allocation). So noframe subs currently depend on
+    `p8_regfile` for **all** their temporary values.
+
+    **Correct strategy (per user):** noframe subs should NOT use the register
+    allocator or the regfile at all. Instead, they should revert to **static
+    in-memory variable allocation**, exactly like the 6502 codegen does and like
+    the m68k codegen did before the register allocator was introduced. Named
+    locals and temporaries get dedicated static variables in BSS (e.g.
+    `p8v_varname`), accessed via absolute addressing. This is the natural fit
+    for noframe subs because:
+    - They manage the machine stack themselves, so they can't use A5 frames
+    - They are typically simple (interrupt handlers, stack manipulation)
+    - Static allocation avoids any register-pressure or spilling concerns
+    - It matches the 6502 codegen's model, reducing codegen divergence
+
+    This means 4.5's noframe strategy is NOT "hardware registers only" but
+    rather "static memory variables" — the allocator is bypassed entirely and
+    codegen uses the pre-allocator static-variable path. The register allocator
+    stays skipped for noframe subs; only the codegen fallback changes from
+    `p8_regfile` to static `p8v_` variables.
+
+    This is actually **better for 4.5** because it removes the regfile
+    dependency from noframe subs without requiring allocator changes. The
+    static-variable path already exists in the codebase (used by 6502 codegen)
+    and would need to be wired into the m68k codegen for noframe subs.
+  The scope of 4.5 is larger than originally estimated — it requires
+  refactoring init/startup code paths AND noframe subroutine handling, not
+  just the allocator. The assembler would catch any missed reference as an
+  undefined symbol.
+- **Plan**: route unallocated vregs to frame slots (for frame-based subs) or
+  to static variables (for noframe subs — see note above); emit the BSS labels
+  conditionally - only when codegen fallback or a raw-`%asm` textual scan still
+  references them, so hand-written library code keeps assembling; apply the
+  same conditional to `p8_fregfile`; revisit the `VregRenumber` bail-out once
+  the layout can be empty.
+
+  The noframe case simplifies from "error if no frame possible" to "use static
+  variables instead of regfile" — no allocator changes needed, only a codegen
+  fallback change from `regAddr()` → `p8_regfile+N` to static `p8v_` variable
+  addressing.
 - **Benefit**: smaller BSS, no global mutable spill state (reentrant-safe),
   cleaner listings; the assembler catches any missed reference as an
   undefined symbol.

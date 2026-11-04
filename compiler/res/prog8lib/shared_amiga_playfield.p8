@@ -1,24 +1,38 @@
-; playfield - bare-metal bitplane manager, shared by the amiga500 and amiga1200 targets.
+; playfield - playfield setup and display for bare-metal programs, shared by
+; the amiga500 and amiga1200 targets.
 ;
-; Kickstart 1.3 compatible: the AllocBitMap fast path is only taken when
-; sys.exec_version() reports 3.0+, otherwise InitBitMap + AllocRaster is used.
-; Pairs with custom.compute_display(): create()
-; allocates chip-RAM bitplanes and computes the shadow display registers,
-; show()/patch_copper() install the plane addresses, apply_registers() writes
-; the rest. The caller owns the copper list and calls custom.grab_system() /
-; custom.restore_system() itself (see examples/amiga/viewdemo.p8).
+; Intent: own the bitplanes and display registers of a single playfield for
+; code that bangs the hardware directly (games, demos, double-buffered
+; animation). The module is deliberately split into two phases:
+;
+;   setup  - runs while the OS is alive: create() allocates chip-RAM
+;            bitplanes through graphics.library and computes the shadow
+;            display registers with custom.compute_display();
+;            create_backplane() allocates a matching second buffer.
+;            This is the only phase that calls the OS; letting Kickstart
+;            do the chip-RAM bookkeeping is the reason this module exists.
+;   display - needs no OS at all: show() writes the plane addresses into
+;            BPLxPT, apply_registers() writes the rest of the shadow
+;            registers, patch_copper() patches plane addresses into the
+;            caller's copper list. All safe after custom.grab_system(),
+;            which the caller performs (and later restore_system()) itself;
+;            the caller also owns the copper list
+;            (see examples/amiga/viewdemo.p8).
+;
 ; No dual playfield, interlace, DBLPAL/DBLNTSC or superhires: whatever
 ; compute_display() rejects, create() rejects too (returns false).
 ;
-; Single active playfield (module-level state, like easygfx). For double
-; buffering, allocate a second buffer with create_backplane() and swap the two
-; with flip(); drawing always targets back while bitmap is shown
-; (see examples/amiga/3d.p8).
+; Single active playfield (module-level state, like easygfx). Double
+; buffering: create_backplane() allocates a matching second buffer and
+; flip() swaps the two structs - flip() is pure bookkeeping, the visible
+; update still has to happen via show() or patch_copper(). Drawing always
+; targets back while bitmap is shown (see examples/amiga/3d.p8).
 ;
-; Allocation strategy: on Kickstart 3.0+ graphics.AllocBitMap allocates the
-; requested backing dimensions with BMF_CLEAR; older Kickstarts use
-; InitBitMap + AllocRaster followed by clear() to get the same zeroed planes.
-; The back buffer uses the same split, so both buffers match on all systems.
+; Kickstart 1.3 compatible. Allocation strategy: on Kickstart 3.0+
+; graphics.AllocBitMap allocates the requested backing dimensions with
+; BMF_CLEAR; older Kickstarts use InitBitMap + AllocRaster followed by
+; clear() to get the same zeroed planes. The back buffer uses the same
+; split, so both buffers match on all systems.
 
 %import exec
 %import graphics

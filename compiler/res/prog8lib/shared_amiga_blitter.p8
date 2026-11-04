@@ -3,6 +3,11 @@
 blitter {
     %option merge, no_symbol_prefixing, ignore_unused
 
+    ; blitter - bare-metal blitter programming helpers: rect copies, fills,
+    ; masked blits and line drawing with the MINTERM logic modes below.
+    ; No OS calls; safe after custom.grab_system(). CPU and blitter run
+    ; concurrently by design (see WAITING BEHAVIOR below).
+
     ; WARNING: All pointers passed to blitter routines MUST point to CHIP RAM.
     ; The Amiga blitter hardware can only access CHIP RAM directly.
     ; Using fast RAM pointers will result in bus errors or corrupted data.
@@ -21,6 +26,14 @@ blitter {
     const uword MINTERM_A_ONLY = $F0    ; channel A only (same as COPY)
     const uword MINTERM_B_ONLY = $CC    ; channel B only
     const uword MINTERM_A_XOR_C = $5A   ; A XOR C (erase/restore patterns)
+    const uword MINTERM_MASKED_OR = $EA ; C OR (A AND B) - additive overlay with mask
+    const uword MINTERM_OR = $FA        ; A OR C - simple overlay, no mask
+    const uword MINTERM_ERASE = $0A     ; (NOT A) AND C - erase where source is set
+    const uword MINTERM_IDENTITY = $AA  ; C - no-op (used with BLTCDAT for fills)
+    const uword MINTERM_CLEAR = $00     ; 0 - clear destination (all zeros)
+    const uword MINTERM_SET = $FF       ; 1 - set destination (all ones)
+    const uword MINTERM_AND = $3C       ; (A AND B) AND C - keep where all three set
+    const uword MINTERM_COND = $AC      ; (A AND C) OR (B AND NOT C) - conditional replace
 
     asmsub wait() {
         ; Wait until the blitter is completely idle.

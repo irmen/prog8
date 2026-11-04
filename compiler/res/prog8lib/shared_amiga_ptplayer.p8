@@ -1,3 +1,11 @@
+; ptplayer - ProTracker module playback via Frank Wille's public-domain
+; ptplayer playroutine (banner below). install() hooks the player into
+; the CIA timer interrupt, init(moduledata) points it at a module,
+; enable() starts replay, disable()/end() stop it, remove() unhooks the
+; interrupt. Sample data must be in chip RAM (Paula DMA); the module
+; structure itself can live anywhere. Status queries: songname(),
+; numpatterns(), currentpos(), volumes(). See examples/amiga/modplay.p8.
+
 ;**************************************************
 ;*    ----- Protracker V2.3B Playroutine -----	  *
 ;**************************************************

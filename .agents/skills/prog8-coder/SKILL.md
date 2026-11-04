@@ -48,6 +48,23 @@ handling, causing programs to crash on start. It is appropriate for library
 modules, IRQ handlers, boot stubs, or code that deliberately avoids those
 libraries.
 
+## Built-in Functions
+
+Prefer these over hand-rolled code: they compile to optimal instructions and are
+folded at compile time when the arguments are constant. Check this list before
+writing a loop or an if-chain for something it already covers (e.g. use
+`min(a, b)`, not `if a < b ... else ...`).
+
+- Math: `abs`, `clamp(value, min, max)`, `divmod` (one division, two results),
+  `gcd`, `max`, `min`, `sgn`, `sqrt`.
+- Bytes and words: `lsb`, `lsw`, `msb`, `msw`, `lmh` (low/mid/high bytes of a
+  long), `mkword`, `mklong`, `mklong2`.
+- Bit rotation: `rol`, `rol2`, `ror`, `ror2`.
+- Other: `len`, `offsetof(Struct.field)`, `peek`/`peekw`/`peekl`/`peekp`,
+  `peekbool`, `cmp` (result via CPU flags; prefer `sgn(x - y)` when a value is
+  needed), and the `push*`/`pop*` CPU stack family (seldom needed).
+- Float variants live in the `floats` module (`floats.minf`, `maxf`, `clampf`).
+
 ## Types and Memory
 
 - Primitive types include `bool`, `byte`, `ubyte`, `word`, `uword`, `long`,

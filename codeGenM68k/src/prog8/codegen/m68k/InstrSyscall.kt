@@ -26,7 +26,7 @@ internal fun AsmGen.translateSyscall(num: Int, site: CallSite) {
         IMSyscall.CLAMP_WORD.number -> translateSyscallClamp(site, IRDataType.WORD, true)
         IMSyscall.CLAMP_UWORD.number -> translateSyscallClamp(site, IRDataType.WORD, false)
         IMSyscall.CLAMP_LONG.number -> translateSyscallClamp(site, IRDataType.LONG, true)
-        else -> TODO("syscall $num on m68k")
+        else -> TODO("syscall $num on m68k")  // unreachable
     }
 }
 

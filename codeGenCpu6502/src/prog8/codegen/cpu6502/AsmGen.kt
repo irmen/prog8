@@ -107,7 +107,9 @@ class AsmGen6502Internal (
         if(!options.quiet)
             println("Generating assembly code... ")
 
-        programGen.generate()
+        CompilationTimings.measure("asm generation") {
+            programGen.generate()
+        }
 
         if(errors.noErrors()) {
             val output = OutputFiles.of(options, program.name).asm()
@@ -120,7 +122,9 @@ class AsmGen6502Internal (
                 }
             }
             if(options.optimize) {
-                optimizeAssembly(asmLines, options.compTarget, symbolTable)
+                CompilationTimings.measure("asm optimize") {
+                    optimizeAssembly(asmLines, options.compTarget, symbolTable)
+                }
                 output.writeLines(asmLines)
             } else {
                 // write the unmodified code

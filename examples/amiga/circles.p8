@@ -113,6 +113,10 @@ main {
         }
     }
 
+    ; TODO: once blitter.horiz_line() exists (see ideas/amiga-baremetal-helpers.md), use it for
+    ; each plane instead of the byte loop below: mask-table edge bytes plus a movem.l word fill
+    ; for the interior. Keep it CPU-side - one blit per span and plane would cost more in blitter
+    ; setup than the fill itself.
     sub drawSpan(^^graphics.BitMap bitmap, uword left, uword y, uword length, ubyte color) {
         uword firstByte = left >> 3
         uword lastPixel = left + length - 1

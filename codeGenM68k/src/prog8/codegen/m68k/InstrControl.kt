@@ -388,7 +388,7 @@ internal fun AsmGen.translateControl(insn: IRInstruction, forwardedImmediateCall
                     emitLoadD0(srcReg, IRDataType.LONG)
                     emitStoreD0(dstReg, IRDataType.LONG)
                 }
-                else -> TODO("EXT for ${type.name}")
+                else -> TODO("EXT for ${type.name}")  // unreachable
             }
         }
 
@@ -431,7 +431,7 @@ internal fun AsmGen.translateControl(insn: IRInstruction, forwardedImmediateCall
                     emitLoadD0(srcReg, IRDataType.LONG)
                     emitStoreD0(dstReg, IRDataType.LONG)
                 }
-                else -> TODO("EXTS for ${type.name}")
+                else -> TODO("EXTS for ${type.name}")  // unreachable
             }
         }
 
@@ -514,7 +514,7 @@ internal fun AsmGen.translateControl(insn: IRInstruction, forwardedImmediateCall
                     emitLine("or.w  ${operand(srcReg3)}, $SCRATCH_D0")
                     emitStoreD0(dstReg, IRDataType.LONG)
                 }
-                else -> TODO("CONCAT for ${type.name}")
+                else -> TODO("CONCAT for ${type.name}")  // unreachable
             }
         }
 
