@@ -46,8 +46,10 @@ dependencies {
     implementation(project(":codeCore"))
     implementation(project(":intermediate"))
     implementation("com.michael-bull.kotlin-result:kotlin-result-jvm:2.3.1")
-    implementation("com.github.ajalt.clikt:clikt:5.1.0")
-    implementation("com.github.ajalt.mordant:mordant:3.1.0")
+    implementation("com.github.ajalt.clikt:clikt:5.1.0") {
+        exclude(group = "com.github.ajalt.mordant", module = "mordant")
+    }
+    implementation("com.github.ajalt.mordant:mordant-core:3.1.0")
 
     // Test dependencies - Kotest BOM is provided by root build.gradle.kts
     testImplementation("io.kotest:kotest-runner-junit5")
