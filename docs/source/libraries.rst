@@ -593,7 +593,15 @@ modules. Import them the same way as any other library::
     Poll mouse deltas once per frame because each hardware counter is 8-bit.
 
 ``blitter``
-    Blitter operations and the ``MINTERM`` logic modes.
+    Bare-metal blitter programming, no OS calls: ``copy_rect()`` and
+    ``fill_rect()``, ``masked_blit()``, ``clear_plane()``/``fill_plane()``,
+    and the line drawer (``line_init()``, ``line_draw()``, ``line_erase()``,
+    ``line_color()``, with a fast horizontal-segment path). ``set_blitpri()``
+    sets the blitter DMA priority, ``wait()`` busy-waits until the blitter is
+    idle. All pointers must be in CHIP RAM, width is limited to 64 words per
+    operation, and every operation waits for the blitter at entry but not for
+    its completion on return. The ``MINTERM_*`` constants select the logic
+    function.
 
 ``playfield``
     Bare-metal bitplane manager to pair with ``custom.compute_display()``:

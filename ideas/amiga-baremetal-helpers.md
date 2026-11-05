@@ -278,15 +278,16 @@ bare-metal helper or example exists.
 
 Both CIAs have a 24-bit BCD TOD clock (hours:minutes:seconds.tenths) driven
 by the power line frequency (50 Hz PAL / 60 Hz NTSC, divided to 10 Hz).
-Registers: `CIAA_TODHI/MID/LO` ($bfe801/$bfe901/$bfea01) and
-`CIAB_TODHI/MID/LO` ($bfd801/$bfd901/$bfda01).
+Registers (named as in ``custom``): `CIAA_TODLOW/MID/HI` ($bfe801/$bfe901/$bfea01)
+and `CIAB_TODLOW/MID/HI` ($bfd800/$bfd900/$bfda00). CIA-A sits on the odd byte
+lane, CIA-B on the even one, hence the different low address bit.
 
 Helpers to provide:
 - `cia.tod_read(cia) -> (hours, minutes, seconds, tenths)` — read all 3 bytes
-  with latch (read TODHI first to latch, then MID, then LO). Returns BCD
+  with latch (read TODHI first to latch, then TODMID, then TODLOW). Returns BCD
   values; caller converts to binary if needed.
 - `cia.tod_write(cia, h, m, s, t)` — set the time. Write TODHI first (stops
-  clock), then MID, then TODLO (restarts clock).
+  clock), then TODMID, then TODLOW (restarts clock).
 - `cia.tod_alarm(cia, h, m, s, t)` — set the alarm register. When TOD matches,
   triggers an interrupt on the CIA's CPU level (level 2 for CIA-A, level 6 for
   CIA-B).
@@ -302,8 +303,8 @@ Notes:
   `grab_system()`, it's free to use. CIA-B TOD is often used for disk timing.
 - Reading TODHI latches all three bytes for a consistent snapshot. Not reading
   TODHI first gives inconsistent (torn) reads.
-- Writing TODHI stops the clock; writing TODLO restarts it. The set sequence
-  must be HI → MID → LO.
+- Writing TODHI stops the clock; writing TODLOW restarts it. The set sequence
+  must be HI -> MID -> LOW.
 
 ## BOB helpers (extensions to shared_amiga_blitter.p8)
 
