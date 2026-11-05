@@ -22,6 +22,7 @@
 %import sorting
 %import strings
 %import syslib
+%import text
 %import textio
 %import wavfile
 %import exec

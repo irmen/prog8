@@ -1,6 +1,6 @@
 
 Prog8 compiler v14.0-BETA3 by Irmen de Jong (irmen@razorvine.net)
-Prerelease version from git commit 667782dd in branch master
+Prerelease version from git commit c1bedc61 in branch master
 This software is licensed under the GNU GPL 3.0, see https://www.gnu.org/licenses/gpl.html
 
 Compiling program import-all-amiga1200.p8
@@ -5484,6 +5484,16 @@ ptplayer  {
 }
 
 
+LIBRARY MODULE NAME: shared_amiga_text
+--------------------------------------
+
+text  {
+    char  (uword x, uword y, ubyte chr, ubyte color)
+    init  (uword p, ubyte d, ^^pointer bitplanes)
+    print  (uword x, uword y, str message, ubyte color)
+}
+
+
 LIBRARY MODULE NAME: sound
 --------------------------
 
@@ -5835,4 +5845,5 @@ wavfile  {
     parse_header  (^^ubyte wav_data) -> bool
     read_le_word  (long addr) -> uword
 }
+
 

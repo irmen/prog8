@@ -1,0 +1,1 @@
+%import shared_amiga_text
