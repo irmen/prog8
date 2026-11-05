@@ -572,16 +572,27 @@ modules. Import them the same way as any other library::
     ``custom.CHIPSET::OCS``, ``custom.CHIPSET::ECS`` or
     ``custom.CHIPSET::AGA`` using the Denise ID and VPOSR hardware registers.
     ``joystick_axes(port)`` returns signed x/y values in -1..1.
-    ``joystick_fire(port)`` and
-    ``joystick_fire2(port)`` return the two fire-button states;
-    ``joystick_state(port)`` combines directions and fire buttons into bit flags
-    such as ``custom.JOY_UP`` and ``custom.JOY_FIRE2``. These flags can be
-    combined with bitwise OR.
+    ``joystick_fire(port)`` and ``joystick_fire2(port)`` return true when the
+    respective button is pressed. ``joystick_state(port)`` combines directions
+    and both fire buttons into bit flags such as ``custom.JOY_UP`` and
+    ``custom.JOY_FIRE2``; combine these flags with bitwise OR.
+    ``get_button_states()`` samples the input registers once each and returns a
+    ``uword`` mask with set bits for pressed buttons. Test a button with
+    bitwise AND, for example
+    ``(custom.get_button_states() & custom.BTN_JOY_FIRE) != 0``. The ``BTN_*``
+    constants identify these physical inputs:
+
+    * ``BTN_MOUSE_LEFT`` (``$0040``): connector 1 button 1, also joystick port 0 fire.
+    * ``BTN_JOY_FIRE`` (``$0080``): connector 2 button 1 (joystick port 1 fire).
+    * ``BTN_MOUSE_MIDDLE`` (``$0100``): connector 1 middle button.
+    * ``BTN_MOUSE_RIGHT`` (``$0400``): connector 1 button 2, also joystick port 0 second fire.
+    * ``BTN_JOY_FIRE2`` (``$4000``): connector 2 button 2 (joystick port 1 second fire).
+
     ``mouse_delta(port)`` returns signed, scaled x/y movement since its previous call.
     ``left_button()``, ``middle_button()`` and ``right_button()`` read the three
-    mouse buttons on connector 1. The first joystick fire input is read from CIA-A;
-    the second is on pin 9 via POTGOR.
-    Ports are zero-based: 0 is JOY0DAT / connector 1, 1 is JOY1DAT / connector 2.
+    mouse buttons on connector 1 and return true when pressed. Joystick ports are
+    zero-based: 0 is JOY0DAT / connector 1, 1 is JOY1DAT / connector 2. The first
+    fire input is read from CIA-A; the second is on pin 9 via POTGOR.
     Use the joystick routines with a digital joystick and the mouse routines with
     a mouse or trackball; these are direct hardware readers, not gameport.device calls.
     Call ``mouse_init(port, scale_divisor)`` before polling to set the sensitivity:

@@ -1,6 +1,6 @@
 
 Prog8 compiler v14.0-BETA3 by Irmen de Jong (irmen@razorvine.net)
-Prerelease version from git commit c1bedc61 in branch master
+Prerelease version from git commit db5352bc in branch master
 This software is licensed under the GNU GPL 3.0, see https://www.gnu.org/licenses/gpl.html
 
 Compiling program import-all-amiga1200.p8
@@ -949,6 +949,11 @@ custom  {
     &uword  BPLCON4
     &uword  BPLHSTOP
     &uword  BPLHSTRT
+    const uword  BTN_JOY_FIRE
+    const uword  BTN_JOY_FIRE2
+    const uword  BTN_MOUSE_LEFT
+    const uword  BTN_MOUSE_MIDDLE
+    const uword  BTN_MOUSE_RIGHT
     const ubyte  CHIPSET::AGA
     const ubyte  CHIPSET::ECS
     const ubyte  CHIPSET::OCS
@@ -1332,23 +1337,24 @@ custom  {
     detect_chipset  () -> ubyte
     filter_off  ()
     filter_on  ()
+    get_button_states  () -> uword @D0
     grab_system  (bool replace_view @D0)
     joystick_axes  (ubyte port) -> byte, byte
-    joystick_fire  (ubyte port) -> bool
-    joystick_fire2  (ubyte port) -> bool
+    joystick_fire  (ubyte port @D0) -> bool @Pz
+    joystick_fire2  (ubyte port @D0) -> bool @Pz
     joystick_state  (ubyte port) -> ubyte
     key_pressed  (ubyte code) -> bool
-    left_button  () -> bool
+    left_button  () -> bool @Pz
     load_colors  (^^long rgb24, ubyte count)
     load_colors_ocs  (^^uword colors, ubyte count)
     load_iff_cmap  (^^ubyte cmap, uword count)
-    middle_button  () -> bool
+    middle_button  () -> bool @Pz
     mouse_delta  (ubyte port) -> byte, byte
     mouse_init  (ubyte port, ubyte scale_divisor)
     pack12  (long rgb24 @D0) -> uword @D0
     raw_keyboard_poll  () -> bool, ubyte
     restore_system  ()
-    right_button  () -> bool
+    right_button  () -> bool @Pz
     set_aga_color  (ubyte color_index @D0, long rgb24 @D1)
     set_color  (ubyte index, long rgb24)
     set_ocs_color  (ubyte index, long rgb24)

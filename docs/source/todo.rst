@@ -1,9 +1,6 @@
 TODO
 ====
 
-- improve Amiga bare-metal joystick/mouse fire and button handling in ``shared_amiga_custom.p8`` so the helpers consistently return a proper boolean (true/false) instead of relying on raw active-low bit tests.
-
-
 Future Things and Ideas
 ^^^^^^^^^^^^^^^^^^^^^^^
 - extend the ``-gendoc`` command to generate user reference documentation from Markdown docstrings; see ``ideas/markdown-docstrings-and-reference-docs.md`` for the plan.

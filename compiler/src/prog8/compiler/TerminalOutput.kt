@@ -18,10 +18,7 @@ internal interface Presenter {
 }
 
 internal fun createPresenter(plainText: Boolean): Presenter {
-    // Only construct a real Terminal on an interactive console. Probing
-    // Mordant's terminal providers loads JNI (JNA's dispatch library) as a
-    // side effect, which normal piped compiles, tests and daemons must never
-    // pay. Non-interactive output therefore stays plain println output.
+    // Core-only Mordant cannot probe terminal size, so keep piped output plain.
     if(plainText || System.console() == null)
         return PlainPresenter()
     return try {

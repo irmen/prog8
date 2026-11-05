@@ -585,6 +585,17 @@ IRQ7 = $7C
     const ubyte JOY_FIRE = %00010000
     const ubyte JOY_FIRE2 = %00100000
 
+    ; All fire/button states gathered by get_button_states() in one uword.
+    ; Pressed buttons are set bits; test and combine with & and |.
+    ; The bits mirror the raw register positions of the input lines
+    ; (CIA-A PRA bits 6/7, POTGOR bits 8/10/14), which lets the routine
+    ; return the mask with two reads and no repacking.
+    const uword BTN_MOUSE_LEFT   = $0040   ; connector 1 button 1 (also reads as joy fire)
+    const uword BTN_JOY_FIRE     = $0080   ; connector 2 button 1
+    const uword BTN_MOUSE_MIDDLE = $0100
+    const uword BTN_MOUSE_RIGHT  = $0400   ; connector 1 button 2 / second fire
+    const uword BTN_JOY_FIRE2    = $4000   ; connector 2 button 2 / second fire
+
     private uword[2] mouse_previous
     private bool[2] mouse_initialized
     private word[2] mouse_x_remainder
@@ -610,22 +621,46 @@ IRQ7 = $7C
         return x, y
     }
 
-    sub joystick_fire(ubyte port) -> bool {
+    asmsub joystick_fire(ubyte port @D0) -> bool @Pz {
         ; Fire switches are active low on CIA-A PRA bits 6 and 7.
-        when port {
-            0 -> return (CIAA_PRA & $40)==0
-            1 -> return (CIAA_PRA & $80)==0
-            else -> return false
-        }
+        ; Z flag carries the result: set = pressed, clear = released or invalid port.
+        %asm {{
+            tst.b   d0
+            beq.s   .p0
+            cmp.b   #1,d0
+            bne.s   .fail
+            move.b  custom.CIAA_PRA,d0
+            andi.b  #$80,d0      ; Z set = bit 7 low = pressed
+            rts
+.p0:
+            move.b  custom.CIAA_PRA,d0
+            andi.b  #$40,d0
+            rts
+.fail:
+            moveq   #1,d0        ; nonzero -> Z clear -> false
+            rts
+        }}
     }
 
-    sub joystick_fire2(ubyte port) -> bool {
+    asmsub joystick_fire2(ubyte port @D0) -> bool @Pz {
         ; Second fire is active low on pin 9: POTGOR bit 10 or 14.
-        when port {
-            0 -> return (POTGOR & $0400)==0
-            1 -> return (POTGOR & $4000)==0
-            else -> return false
-        }
+        ; Z flag carries the result: set = pressed, clear = released or invalid port.
+        %asm {{
+            tst.b   d0
+            beq.s   .p0
+            cmp.b   #1,d0
+            bne.s   .fail
+            move.w  custom.POTGOR,d0   ; andi.w flags ignore the upper word
+            andi.w  #$4000,d0
+            rts
+.p0:
+            move.w  custom.POTGOR,d0
+            andi.w  #$0400,d0
+            rts
+.fail:
+            moveq   #1,d0
+            rts
+        }}
     }
 
     sub joystick_state(ubyte port) -> ubyte {
@@ -734,22 +769,50 @@ IRQ7 = $7C
 
     ; ========== mouse button status ==========
 
-    sub left_button() -> bool {
-        ; Returns true if the left mouse button (port 1) is pressed.
-        ; Left button is CIA-A PRA bit 6, active low.
-        return (CIAA_PRA & %01000000) == 0
+    asmsub left_button() -> bool @Pz {
+        ; Left button is CIA-A PRA bit 6, active low. Z set = pressed.
+        %asm {{
+            move.b  custom.CIAA_PRA,d0
+            andi.b  #$40,d0
+            rts
+        }}
     }
 
-    sub right_button() -> bool {
-        ; Returns true if the right mouse button (port 1) is pressed.
-        ; Right button is POTGOR ($dff016) bit 10, active low.
-        return (POTGOR & %0000010000000000) == 0
+    asmsub right_button() -> bool @Pz {
+        ; Right button is POTGOR ($dff016) bit 10, active low. Z set = pressed.
+        %asm {{
+            move.w  custom.POTGOR,d0   ; andi.w flags ignore the upper word
+            andi.w  #$0400,d0
+            rts
+        }}
     }
 
-    sub middle_button() -> bool {
-        ; Returns true if the middle mouse button (port 1) is pressed.
-        ; Middle button is POTGOR ($dff016) bit 8, active low.
-        return (POTGOR & %0000000100000000) == 0
+    asmsub middle_button() -> bool @Pz {
+        ; Middle button is POTGOR ($dff016) bit 8, active low. Z set = pressed.
+        %asm {{
+            move.w  custom.POTGOR,d0
+            andi.w  #$0100,d0
+            rts
+        }}
+    }
+
+    asmsub get_button_states() -> uword @D0 {
+        ; Every fire/button state on both connectors in one uword mask,
+        ; sampled with one read of each register (see the BTN_* constants;
+        ; pressed = 1). The active-low input lines are inverted in place,
+        ; so the mask bits sit at their raw register positions.
+        %asm {{
+            moveq   #0,d0
+            move.b  custom.CIAA_PRA,d0    ; bits 6/7: connector 1/2 button 1, active low
+            eori.b  #$c0,d0               ; active low -> active high
+            andi.b  #$c0,d0               ; drop the other PRA lines
+            moveq   #0,d1
+            move.w  custom.POTGOR,d1      ; bits 8/10/14: middle, connector 1 fire2, connector 2 fire2, active low
+            andi.w  #$4500,d1
+            eori.w  #$4500,d1
+            or.w    d1,d0
+            rts
+        }}
     }
 
 
