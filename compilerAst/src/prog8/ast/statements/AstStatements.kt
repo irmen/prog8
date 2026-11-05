@@ -403,7 +403,6 @@ class VarDecl(
             }
             val dt = when {
                 param.type.isArray -> DataType.UWORD
-                param.type.isString -> DataType.pointer(BaseDataType.UBYTE)
                 else -> param.type
             }
             return builder(dt, param.position)

@@ -1021,8 +1021,49 @@ _after:
         val iterableDt = forLoop.iterable.inferType(program).getOrUndef()
         val isArray = iterableDt.isArray
         val isString = iterableDt.isString
+        val isPointerToByte = iterableDt.isPointerToByte
         val stepVal = forLoop.step?.constValue(program)?.number
         val isReverse = stepVal == -1.0
+
+        // Desugar forward iteration over a pointer-to-byte (e.g. a str parameter)
+        // into an index loop, because the pointer's storage holds an address rather
+        // than the string data itself.
+        if(isPointerToByte && forLoop.linkedVia == null && forLoop.iterable is IdentifierReference) {
+            val pos = forLoop.position
+            val startExpr = forLoop.iterable as IdentifierReference
+            val iterableRef = startExpr.copy()
+            val statements = mutableListOf<Statement>()
+            val names = forLoop.loopVar.nameInSource
+            val scope = forLoop.definingScope
+            val existing = if (names.size == 1) scope.lookup(names.single()) else null
+            if (existing !is VarDecl) {
+                val iterableType = forLoop.iterable.inferType(program).getOrUndef()
+                val effectiveType = forLoop.loopVarType ?: iterableType
+                val decl = VarDecl.builder(effectiveType, pos)
+                    .names(names.single())
+                    .type(VarDeclType.VAR)
+                    .build()
+                statements.add(decl)
+            }
+            val uniq = "${pos.line}_${pos.startCol}"
+            val idxName = "ptr_idx_${names.single()}_$uniq"
+            val idxVar = VarDecl(VarDeclType.VAR, VarDeclOrigin.USERCODE, DataType.UBYTE, ZeropageWish.DONTCARE, SplitWish.DONTCARE, null, null, idxName, emptyList(), null, false, 0u, false, null, pos)
+            val idxInit = Assignment(AssignTarget(IdentifierReference(listOf(idxName), pos), null, null, null, false, position = pos), NumericLiteral.optimalInteger(0, pos), AssignmentOrigin.OPTIMIZER, pos)
+            val cond = BinaryExpression(ArrayIndexedExpression(iterableRef.copy(), null, null, ArrayIndex(IdentifierReference(listOf(idxName), pos), pos), pos), "!=", NumericLiteral.optimalInteger(0, pos), pos)
+            val elementAssign = Assignment(AssignTarget(forLoop.loopVar.copy(), null, null, null, false, position = pos), ArrayIndexedExpression(iterableRef.copy(), null, null, ArrayIndex(IdentifierReference(listOf(idxName), pos), pos), pos), AssignmentOrigin.OPTIMIZER, pos)
+            val idxInc = Assignment(AssignTarget(IdentifierReference(listOf(idxName), pos), null, null, null, false, position = pos), BinaryExpression(IdentifierReference(listOf(idxName), pos), "+", NumericLiteral.optimalInteger(1, pos), pos), AssignmentOrigin.OPTIMIZER, pos)
+            val whileBody = AnonymousScope(mutableListOf<Statement>(elementAssign).apply { addAll(forLoop.body.statements) }.apply { add(idxInc) }, pos)
+            val whileLoop = WhileLoop(cond, whileBody, pos)
+            val replacementStatements = mutableListOf<Statement>()
+            replacementStatements.add(idxVar)
+            replacementStatements.add(idxInit)
+            replacementStatements.addAll(statements)
+            replacementStatements.add(whileLoop)
+            val replacement = AnonymousScope(replacementStatements, pos)
+            replacement.linkParents(parent)
+            return listOf(AstReplaceNode(forLoop, replacement, parent))
+        }
+
         if(!(isArray || isString)) return noModifications
         if(isReverse) {
             // Keep this in desugaring: backend support would duplicate descending

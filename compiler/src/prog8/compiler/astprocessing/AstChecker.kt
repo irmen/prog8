@@ -307,8 +307,8 @@ internal class AstChecker(private val program: Program,
 
         if(forLoop.iterable is IFunctionCall) {
             errors.err("can not loop over function call return value", forLoop.position)
-        } else if(!(iterableDt.isIterable) && forLoop.iterable !is RangeExpression) {
-            if (iterableDt.isPointer)
+        } else if(!(iterableDt.isIterable || iterableDt.isPointerToByte) && forLoop.iterable !is RangeExpression) {
+            if (iterableDt.isPointer && iterableDt.subType != null)
                 errors.err("pointer-linked for loop requires an explicit 'via .field'", forLoop.position)
             else
                 errors.err("can only loop over an iterable type", forLoop.position)
@@ -319,7 +319,7 @@ internal class AstChecker(private val program: Program,
             } else {
                 when (loopvar.datatype.base) {
                     BaseDataType.UBYTE -> {
-                        if (!iterableDt.isUnsignedByte && !iterableDt.isUnsignedByteArray && !iterableDt.isString)
+                        if (!iterableDt.isUnsignedByte && !iterableDt.isUnsignedByteArray && !iterableDt.isString && !iterableDt.isPointerToByte)
                             errors.err("ubyte loop variable can only loop over unsigned bytes or strings", forLoop.position)
                         checkUnsignedLoopDownto0(forLoop.iterable as? RangeExpression)
                     }

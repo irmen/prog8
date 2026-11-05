@@ -728,7 +728,7 @@ class IRCodeGen(
             }
             is PtIdentifier -> {
                 require(forLoop.variable.name == loopvar.scopedNameString)
-                val elementDt = irType(iterable.type.elementType())
+                val elementDt = if (iterable.type.isPointerToByte) irType(DataType.UBYTE) else irType(iterable.type.elementType())
                 val iterableLength = symbolTable.getLength(iterable.name)
                 val loopvarSymbol = forLoop.variable.name
                 val loopvarDt = irType((loopvar.astNode as IPtVariable).type)
@@ -754,7 +754,7 @@ class IRCodeGen(
                 }
 
                 when {
-                    iterable.type.isString -> {
+                    iterable.type.isString || iterable.type.isPointerToByte -> {
                         addInstr(result, IRInstructions.load(indexRegType, indexReg, 0), null)
                         val loopChunk = IRCodeChunk(loopLabel, null)
                         loopChunk += IRInstructions.loadMemory(Opcode.LOADX, elementDt, tmpReg, IRMemory.indexed(iterable.name, indexReg, options.compTarget.indexRegType))

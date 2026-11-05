@@ -1185,7 +1185,7 @@ $loopLabel          sty  $indexVar
         }
 
         when {
-            iterableDt.isString -> iterateStrings()
+            iterableDt.isString || iterableDt.isPointerToByte -> iterateStrings()
             iterableDt.isByteArray || iterableDt.isBoolArray -> iterateBytes()
             iterableDt.isSplitWordArray(asmgen.options.compTarget) -> iterateSplitWords()
             iterableDt.isWordArray -> iterateWords()
