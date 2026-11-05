@@ -1162,27 +1162,74 @@ LIBRARY_HELPERS = {
     const ubyte LACE = $0004
     const ubyte SUPERHIRES = $20
 
-    ; Canonical $00RRGGBB palette loaders for Intuition ViewPorts. You only
-    ; ever deal in 24-bit longs; conversion happens inside and the ECS/AGA
-    ; path is picked at runtime, so one binary serves both chipsets.
+    ; Static scratch tables for load_palette (avoid per-call heap allocation).
+    ; AGA: 1 header long + 256*3 RGB longs + 1 terminator = 770 longs.
+    ; ECS: 32 $0RGB UWORDs.
     sub load_palette(^^ViewPort vp, ^^long rgb24, uword count) {
-        ; Same visible result as LoadRGB32/LoadRGB4 with no caller-managed
-        ; table buffer. AGA: SetRGB32 loop ($xx000000 channels). ECS: SetRGB4
-        ; loop (top nibbles). Kickstart 1.3 compatible on the ECS path (AGA
-        ; hardware implies 3.0+, where the 32-bit calls exist).
+        ; Canonical $00RRGGBB palette loader. Builds a LoadRGB32/LoadRGB4
+        ; table in a static buffer and loads all entries in a single
+        ; graphics.library call, instead of one SetRGB32/SetRGB4 per color.
+        ; AGA: LoadRGB32 (V39+, 256 entries). ECS: LoadRGB4 (32 entries).
         if count == 0
             return
         if custom.detect_chipset()==custom.CHIPSET::AGA {
-            for n in 0 to count-1 {
-                long rgb = rgb24[n]
-                SetRGB32(vp, n as long, ((rgb >> 16) & $ff) << 24,
-                         ((rgb >> 8) & $ff) << 24, (rgb & $ff) << 24)
+            uword n = min(count, 256)
+            ; table: 1 long (count << 16 | start) + n*3 RGB longs + 1 terminator
+            load_rgb32_table[0] = (n as long) << 16
+            for i in 0 to n-1 {
+                long rgb = rgb24[i]
+                load_rgb32_table[1 + i*3]   = ((rgb >> 16) & $ff) << 24
+                load_rgb32_table[1 + i*3+1] = ((rgb >> 8) & $ff) << 24
+                load_rgb32_table[1 + i*3+2] = (rgb & $ff) << 24
+            }
+            load_rgb32_table[1 + n*3] = 0
+            LoadRGB32(vp, &load_rgb32_table)
+        } else {
+            ; Static array + LoadRGB4 (no heap allocation, Kickstart 1.3 safe).
+            uword no = min(count, 32) as uword
+            for i in 0 to no-1 {
+                long rgbo = rgb24[i]
+                load_rgb4_table[i] = (((((rgbo >> 16) & $f0) >> 4) << 8) |
+                                     ((((rgbo >> 8) & $f0) >> 4) << 4) |
+                                     (((rgbo & $f0) >> 4))) as uword
+            }
+            LoadRGB4(vp, &load_rgb4_table, no as word)
+        }
+    }
+
+    private long[770] load_rgb32_table
+    private uword[32] load_rgb4_table
+
+
+    sub load_iff_cmap(^^ViewPort vp, ^^ubyte cmap, uword count) {
+        ; Load an IFF/ILBM CMAP chunk into a ViewPort's colormap. CMAP stores
+        ; colors as packed RGB888 triples (3 bytes each: R, G, B) - a file
+        ; format, not a hardware format - so the conversion differs per chipset:
+        ; - AGA: 24-bit color registers, 8 bits per channel, lossless. Up to
+        ;   256 entries (8 banks of 32 selected via BPLCON3).
+        ; - OCS/ECS: 12-bit $0RGB registers, 4 bits per channel, so the low
+        ;   nibble of each channel is dropped. 32 entries max.
+        ; count is the number of colors in the chunk (chunk size / 3).
+        ; This is the OS-friendly counterpart of custom.load_iff_cmap(), the
+        ; hardware-banging version that pokes COLORxx directly for bare-metal
+        ; use. Going through graphics.library here keeps the ViewPort's ColorMap
+        ; and the hardware in agreement, which matters because Intuition's
+        ; copper list reloads the registers from the ColorMap every frame.
+        if count == 0
+            return
+        if custom.detect_chipset()==custom.CHIPSET::AGA {
+            uword na = min(count, 256)
+            for ia in 0 to na-1 {
+                uword ba = ia*3
+                long rgba = ((cmap[ba] as long) << 16) | ((cmap[ba+1] as long) << 8) | (cmap[ba+2] as long)
+                set_palette_color(vp, ia, rgba)
             }
         } else {
-            for n in 0 to count-1 {
-                long rgb32 = rgb24[n]
-                SetRGB4(vp, n as word, (((rgb32 >> 16) & $f0) >> 4) as ubyte,
-                        (((rgb32 >> 8) & $f0) >> 4) as ubyte, ((rgb32 & $f0) >> 4) as ubyte)
+            uword no = min(count, 32) as uword
+            for io in 0 to no-1 {
+                uword bo = (io as uword)*3
+                long rgbo = ((cmap[bo] as long) << 16) | ((cmap[bo+1] as long) << 8) | (cmap[bo+2] as long)
+                set_palette_color(vp, io as uword, rgbo)
             }
         }
     }
@@ -1199,6 +1246,68 @@ LIBRARY_HELPERS = {
             SetRGB4(vp, index as word, (((rgb24 >> 16) & $f0) >> 4) as ubyte,
                     (((rgb24 >> 8) & $f0) >> 4) as ubyte, ((rgb24 & $f0) >> 4) as ubyte)
         }
+    }
+
+    ; ===== RastPort flag macros from the C header graphics/gfxmacros.h =====
+    ; BNDRYOFF/SetOPen are C macros in the NDK, they are never executed
+    ; through the library base (no LVO), so they get handwritten subroutines here,
+    ; named exactly like the C macros.
+
+    const uword AREAOUTLINE = $0008     ; RastPort flag bit 3, used by areafiller
+
+    sub BNDRYOFF(^^RastPort rp) {
+        ; Stop outlining filled areas with the outline pen; clears the
+        ; RastPort AREAOUTLINE flag. Same name as the C macro in gfxmacros.h.
+        rp.Flags &= ~AREAOUTLINE
+    }
+
+    sub SetOPen(^^RastPort rp, ubyte pen) {
+        ; Outline filled areas with pen; same name as the C macro in gfxmacros.h.
+        rp.AOlPen = pen as byte
+        rp.Flags |= AREAOUTLINE
+    }
+
+    sub SetDrPt(^^RastPort rp, uword pattern) {
+        ; Start drawing dotted lines with the pattern (same name as the
+        ; C macro). FRST_DOT makes Draw() plot the first dot of each line,
+        ; Linpatcnt gets a full pattern period.
+        rp.LinePtrn = pattern
+        rp.Flags |= RPF_FRST_DOT
+        rp.Linpatcnt = 15
+    }
+
+    sub SetAfPt(^^RastPort rp, pointer pattern, ubyte size) {
+        ; Use a repeating pattern for area fills (same name as the C
+        ; macro). pattern points to the fill template, size is the log2
+        ; word count the template (0 = solid fill).
+        rp.AreaPtrn = pattern
+        rp.AreaPtSz = size as byte
+    }
+
+    sub SetWrMsk(^^RastPort rp, ubyte mask) {
+        ; Pixel write mask: raster words only update where mask is set
+        ; (same name as the C macro).
+        rp.Mask = mask
+    }
+
+    sub SafeSetOutlinePen(^^RastPort rp, ubyte pen) {
+        ; Kickstart-safe outline pen selection (same name as the C macro):
+        ; the V39 SetOutlinePen() LVO on Kickstart 3.0+ (exec version 39+),
+        ; otherwise the older SetOPen() field pokes.
+        if sys.exec_version() >= 39
+            void SetOutlinePen(rp, pen as long)
+        else
+            SetOPen(rp, pen)
+    }
+
+    sub SafeSetWriteMask(^^RastPort rp, ubyte mask) {
+        ; Kickstart-safe pixel write mask (same name as the C macro):
+        ; the V39 SetWriteMask() LVO on Kickstart 3.0+ (exec version 39+),
+        ; otherwise the direct Mask field poke.
+        if sys.exec_version() >= 39
+            void SetWriteMask(rp, mask as long)
+        else
+            rp.Mask = mask
     }
 ''',
     'exec': '''
@@ -2361,13 +2470,16 @@ def main():
 
         # Also check what the hand-written helpers reference (e.g. the
         # openlib/closelib helpers call exec.OpenLibrary/CloseLibrary,
-        # the intuition helpers return ^^graphics. structs)
+        # the intuition helpers return ^^graphics. structs). Match real code
+        # only: strip ' and ;-comment spans first so comment text like
+        # "graphics.library" does not add a bogus import.
         helper = LIBRARY_HELPERS.get(lib, '')
-        if helper and 'exec.' in helper:
+        helper_code = '\n'.join(line.split(';', 1)[0] for line in helper.split('\n'))
+        if helper_code and 'exec.' in helper_code:
             needed_imports.add('exec')
-        if helper and 'graphics.' in helper:
+        if helper_code and 'graphics.' in helper_code:
             needed_imports.add('graphics')
-        if helper and 'custom.' in helper:
+        if helper_code and 'custom.' in helper_code:
             needed_imports.add('custom')
 
         # Build output string

@@ -344,6 +344,7 @@ easygfx {
         if rastport == 0 or tmpras_buf == 0
             return
         graphics.SetAPen(rastport, pen)
+        graphics.BNDRYOFF(rastport)    ; filled shapes get no outline pen border
         ^^graphics.TmpRas saved = rastport.TmpRas
         ^^graphics.TmpRas tp = &tmpras_store[0]
         void graphics.InitTmpRas(tp, tmpras_buf, tmpras_size)
@@ -399,6 +400,7 @@ easygfx {
         rastport.TmpRas = tp
         graphics.InitArea(ai, area_vectors, 4)
         rastport.AreaInfo = ai
+        graphics.BNDRYOFF(rastport)    ; filled shapes get no outline pen border
         if graphics.AreaEllipse(rastport, origin_x+cx, origin_y+cy, rx, ry) == 0
             void graphics.AreaEnd(rastport)
         rastport.TmpRas = saved_tr

@@ -3,9 +3,9 @@
 ;; Bank: 3
 ;; Functions: 163
 
+%import custom
 %import exec
 %import utility
-%import custom
 
 graphics {
     %option merge, no_symbol_prefixing
@@ -102,6 +102,68 @@ graphics {
             SetRGB4(vp, index as word, (((rgb24 >> 16) & $f0) >> 4) as ubyte,
                     (((rgb24 >> 8) & $f0) >> 4) as ubyte, ((rgb24 & $f0) >> 4) as ubyte)
         }
+    }
+
+    ; ===== RastPort flag macros from the C header graphics/gfxmacros.h =====
+    ; BNDRYOFF/SetOPen are C macros in the NDK, they are never executed
+    ; through the library base (no LVO), so they get handwritten subroutines here,
+    ; named exactly like the C macros.
+
+    const uword AREAOUTLINE = $0008     ; RastPort flag bit 3, used by areafiller
+
+    sub BNDRYOFF(^^RastPort rp) {
+        ; Stop outlining filled areas with the outline pen; clears the
+        ; RastPort AREAOUTLINE flag. Same name as the C macro in gfxmacros.h.
+        rp.Flags &= ~AREAOUTLINE
+    }
+
+    sub SetOPen(^^RastPort rp, ubyte pen) {
+        ; Outline filled areas with pen; same name as the C macro in gfxmacros.h.
+        rp.AOlPen = pen as byte
+        rp.Flags |= AREAOUTLINE
+    }
+
+    sub SetDrPt(^^RastPort rp, uword pattern) {
+        ; Start drawing dotted lines with the pattern (same name as the
+        ; C macro). FRST_DOT makes Draw() plot the first dot of each line,
+        ; Linpatcnt gets a full pattern period.
+        rp.LinePtrn = pattern
+        rp.Flags |= RPF_FRST_DOT
+        rp.Linpatcnt = 15
+    }
+
+    sub SetAfPt(^^RastPort rp, pointer pattern, ubyte size) {
+        ; Use a repeating pattern for area fills (same name as the C
+        ; macro). pattern points to the fill template, size is the log2
+        ; word count the template (0 = solid fill).
+        rp.AreaPtrn = pattern
+        rp.AreaPtSz = size as byte
+    }
+
+    sub SetWrMsk(^^RastPort rp, ubyte mask) {
+        ; Pixel write mask: raster words only update where mask is set
+        ; (same name as the C macro).
+        rp.Mask = mask
+    }
+
+    sub SafeSetOutlinePen(^^RastPort rp, ubyte pen) {
+        ; Kickstart-safe outline pen selection (same name as the C macro):
+        ; the V39 SetOutlinePen() LVO on Kickstart 3.0+ (exec version 39+),
+        ; otherwise the older SetOPen() field pokes.
+        if sys.exec_version() >= 39
+            void SetOutlinePen(rp, pen as long)
+        else
+            SetOPen(rp, pen)
+    }
+
+    sub SafeSetWriteMask(^^RastPort rp, ubyte mask) {
+        ; Kickstart-safe pixel write mask (same name as the C macro):
+        ; the V39 SetWriteMask() LVO on Kickstart 3.0+ (exec version 39+),
+        ; otherwise the direct Mask field poke.
+        if sys.exec_version() >= 39
+            void SetWriteMask(rp, mask as long)
+        else
+            rp.Mask = mask
     }
 
     extsub @bank 3   -30 = BltBitMap(^^BitMap srcBitMap @A0, word xSrc @D0, word ySrc @D1, ^^BitMap destBitMap @A1, word xDest @D2, word yDest @D3, word xSize @D4, word ySize @D5, ubyte minterm @D6, ubyte mask @D7, pointer tempA @A2) -> long @D0

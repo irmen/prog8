@@ -1,6 +1,6 @@
 
 Prog8 compiler v14.0-BETA3 by Irmen de Jong (irmen@razorvine.net)
-Prerelease version from git commit db5352bc in branch master
+Prerelease version from git commit c8f34536 in branch master
 This software is licensed under the GNU GPL 3.0, see https://www.gnu.org/licenses/gpl.html
 
 Compiling program import-all-amiga500.p8
@@ -639,13 +639,16 @@ blitter  {
     const uword  MINTERM_MASKED_OR
     const uword  MINTERM_OR
     const uword  MINTERM_SET
+    area_fill  (long src @A0, uword width_words @D0, uword height @D1, uword mod @D2, uword pattern @D3)
     clear_plane  (long dst @A0, uword width_words @D0, uword height @D1)
     copy_rect  (long src @A0, long dst @A1, uword width_words @D0, uword height @D1, uword src_mod @D2, uword dst_mod @D3, uword minterm @D4, ubyte descending @D5)
     fill_plane  (long dst @A0, uword width_words @D0, uword height @D1, uword pattern @D2)
     fill_rect  (long dst @A0, uword width_words @D0, uword height @D1, uword pattern @D2, uword modulo @D3)
     line_color  (uword x1, uword y1, uword x2, uword y2, ubyte pen, ubyte depth, ^^pointer planes)
     line_draw  (uword x1, uword y1, uword x2, uword y2, long screen_ptr)
+    line_draw_fill  (uword x1, uword y1, uword x2, uword y2, long screen_ptr)
     line_draw_mode  (uword x1 @D0, uword y1 @D1, uword x2 @D2, uword y2 @D3, long screen_ptr @A1, bool erase @D5)
+    line_draw_mode_fill  (uword x1 @D0, uword y1 @D1, uword x2 @D2, uword y2 @D3, long screen_ptr @A1, bool erase @D5)
     line_erase  (uword x1, uword y1, uword x2, uword y2, long screen_ptr)
     line_init  (uword mask @D0, uword pixel @D1, uword pattern @D2, uword screen_mod @D4)
     masked_blit  (long src @A0, long mask @A1, long dst @A2, uword width_words @D0, uword height @D1, uword src_mod @D2, uword mask_mod @D3, uword dst_mod @D4)
@@ -2626,6 +2629,7 @@ graphics  {
     const ubyte  AGNUS
     const ubyte  ANFRACSIZE
     const uword  ANIMHALF
+    const uword  AREAOUTLINE
     const ubyte  AVOID_FLICKER
     const ubyte  BANDWIDTH_1X
     const ubyte  BANDWIDTH_2XDBL
@@ -3345,6 +3349,7 @@ graphics  {
     AskSoftStyle  (^^graphics.RastPort rp @A1) -> long @D0@bank 3 = -$54
     AttachPalExtra  (^^graphics.ColorMap cm @A0, ^^graphics.ViewPort vp @A1) -> long @D0@bank 3 = -$0342
     AttemptLockLayerRom  (^^graphics.Layer layer @A5) -> bool @D0@bank 3 = -$028e
+    BNDRYOFF  (^^graphics.RastPort rp)
     BestModeIDA  (long tags @A0) -> long @D0@bank 3 = -$041a
     BitMapScale  (long bitScaleArgs @A0)@bank 3 = -$02a6
     BltBitMap  (^^graphics.BitMap srcBitMap @A0, word xSrc @D0, word ySrc @D1, ^^graphics.BitMap destBitMap @A1, word xDest @D2, word yDest @D3, word xSize @D4, word ySize @D5, ubyte minterm @D6, ubyte mask @D7, long tempA @A2) -> long @D0@bank 3 = -$1e
@@ -3447,18 +3452,23 @@ graphics  {
     RemFont  (^^graphics.TextFont textFont @A1)@bank 3 = -$01e6
     RemIBob  (long bob @A0, ^^graphics.RastPort rp @A1, ^^graphics.ViewPort vp @A2)@bank 3 = -$84
     RemVSprite  (long vSprite @A0)@bank 3 = -$8a
+    SafeSetOutlinePen  (^^graphics.RastPort rp, ubyte pen)
+    SafeSetWriteMask  (^^graphics.RastPort rp, ubyte mask)
     ScalerDiv  (uword factor @D0, uword numerator @D1, uword denominator @D2) -> uword @D0@bank 3 = -$02ac
     ScrollRaster  (^^graphics.RastPort rp @A1, word dx @D0, word dy @D1, word xMin @D2, word yMin @D3, word xMax @D4, word yMax @D5)@bank 3 = -$018c
     ScrollRasterBF  (^^graphics.RastPort rp @A1, word dx @D0, word dy @D1, word xMin @D2, word yMin @D3, word xMax @D4, word yMax @D5)@bank 3 = -$03ea
     ScrollVPort  (^^graphics.ViewPort vp @A0)@bank 3 = -$024c
     SetABPenDrMd  (^^graphics.RastPort rp @A1, long apen @D0, long bpen @D1, long drawmode @D2)@bank 3 = -$037e
     SetAPen  (^^graphics.RastPort rp @A1, ubyte pen @D0)@bank 3 = -$0156
+    SetAfPt  (^^graphics.RastPort rp, long pattern, ubyte size)
     SetBPen  (^^graphics.RastPort rp @A1, ubyte pen @D0)@bank 3 = -$015c
     SetChipRev  (long want @D0) -> long @D0@bank 3 = -$0378
     SetCollision  (long num @D0, long routine @A0, long gelsInfo @A1)@bank 3 = -$90
     SetDrMd  (^^graphics.RastPort rp @A1, ubyte drawMode @D0)@bank 3 = -$0162
+    SetDrPt  (^^graphics.RastPort rp, uword pattern)
     SetFont  (^^graphics.RastPort rp @A1, ^^graphics.TextFont textFont @A0) -> long @D0@bank 3 = -$42
     SetMaxPen  (^^graphics.RastPort rp @A0, long maxpen @D0)@bank 3 = -$03de
+    SetOPen  (^^graphics.RastPort rp, ubyte pen)
     SetOutlinePen  (^^graphics.RastPort rp @A0, long pen @D0) -> long @D0@bank 3 = -$03d2
     SetRGB32  (^^graphics.ViewPort vp @A0, long n @D0, long r @D1, long g @D2, long b @D3)@bank 3 = -$0354
     SetRGB32CM  (^^graphics.ColorMap cm @A0, long n @D0, long r @D1, long g @D2, long b @D3)@bank 3 = -$03e4
@@ -3467,6 +3477,7 @@ graphics  {
     SetRPAttrsA  (^^graphics.RastPort rp @A0, long tags @A1)@bank 3 = -$040e
     SetRast  (^^graphics.RastPort rp @A1, ubyte pen @D0)@bank 3 = -$ea
     SetSoftStyle  (^^graphics.RastPort rp @A1, long style @D0, long enable @D1) -> long @D0@bank 3 = -$5a
+    SetWrMsk  (^^graphics.RastPort rp, ubyte mask)
     SetWriteMask  (^^graphics.RastPort rp @A0, long msk @D0) -> long @D0@bank 3 = -$03d8
     SortGList  (^^graphics.RastPort rp @A1)@bank 3 = -$96
     StripFont  (^^graphics.TextFont font @A0)@bank 3 = -$0336
