@@ -694,6 +694,27 @@ main {
         errors.errors[0] shouldContain "asmsub seems to never return"
     }
 
+    test("rte counts as a return instruction in asmsub on m68k") {
+        val src="""
+main {
+    sub start() {
+        test()
+    }
+
+    asmsub test() {
+        %asm {{
+            movem.l d0-d7/a0-a6,-(sp)
+            movem.l (sp)+,d0-d7/a0-a6
+            rte
+        }}
+    }
+}"""
+
+        val errors = ErrorReporterForTests()
+        compileText(Amiga500Target(), false, src, outputDir, writeAssembly = true, assemble = false, errors = errors) shouldNotBe null
+        errors.errors.size shouldBe 0
+    }
+
     test("missing rts in asmsub suppressed") {
         val src="""
 main {

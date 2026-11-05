@@ -1,6 +1,6 @@
 ---
 name: m68k-coder
-description: Writing or understanding Motorola 68000/68020 assembly in vasm mot syntax, standalone or embedded in Prog8
+description: Writing or understanding classic Motorola M680x0 assembly in vasm mot syntax, standalone or embedded in Prog8
 ---
 
 # M68K Assembly Coder
@@ -37,6 +37,12 @@ defaults to `.x` (12 bytes). Register-to-register operations need no suffix.
 
 ## Architecture
 
+- Consider only classic M680x0 CPUs: 68000, 68010, 68020, 68030, 68040, and
+  68060. Fully ignore Dragonball and ColdFire variants, including their
+  instruction sets, exception frames, and privilege rules.
+- Never use, recommend, or rely on `CALLM` or `RTM`, even for 68020-targeted
+  code. They are MC68020-only and unimplemented on later classic CPUs. Use
+  ordinary `jsr`/`rts` calls instead.
 - Registers `D0-D7` and `A0-A7` are 32-bit; `A7` is the stack pointer.
 - Pointers are 32-bit and must normally be accessed with `.l`.
 - Memory is big-endian: `$1234` is stored as `$12,$34` and a long's low byte

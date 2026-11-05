@@ -1,9 +1,53 @@
 # Amiga bare metal helper libraries
 
+### CPU scope
+
+Only **classic M680x0 CPUs** (68000, 68010, 68020, 68030, 68040, 68060) are considered.
+**Dragonball and ColdFire variants are fully ignored** — their instruction sets,
+exception frames, and supervisor/user privilege rules are not part of this design.
+This matches the `m68k-coder` skill scope: write/understand classic M680x0 assembly
+in vasm mot syntax only; do not target or reference Dragonball/ColdFire.
+
+- **Never use `CALLM` or `RTM`.** Both exist **only** on the MC68020; they are
+  removed on every later classic CPU (68030/68040/68060) and on ColdFire, where
+  executing them takes an unimplemented-instruction exception. They are the
+  module call/return pair tied to the MC68851 access-control model Motorola
+  dropped once the on-chip MMU replaced it. Use a normal `jsr`/`rts` subroutine
+  call instead.
+
+## Shared object metadata
+
+Keep movable-object metadata separate from renderer-specific image data. `Mob`
+lives in the lightweight `amiga_objects` types module imported by `sprites` and
+`blitter`; it contains no bitmap pointers and requires no OS libraries.
+
+```prog8
+struct Mob {
+    uword id
+    word x_pos
+    word y_pos
+    word origin_x
+    word origin_y
+    uword width
+    uword height
+    uword state
+}
+
+```
+
+`x_pos`/`y_pos` are the screen coordinates of the image's top-left; the
+client-selected anchor is at `(x_pos + origin_x, y_pos + origin_y)`. Width is
+the exact pixel width and height is in rows. `Mob.state` is a client-defined
+state identifier, independent of rendering. Client code owns animation timing
+and frame selection; image/frame pointers stay in each renderer-specific object.
+
 ## Sprite Helper Library
 
 Add a bare-metal `sprites` helper module for the `amiga500` and `amiga1200`
 targets, using the registers exposed by `custom`.
+
+The sprite descriptor will reference the shared `Mob`; sprite-specific payload
+fields are deferred until the sprite implementation.
 
 ### Plan
 
@@ -36,9 +80,9 @@ targets, using the registers exposed by `custom`.
     (COLOR00-COLOR255). The helper provides `set_even_bank`/`set_odd_bank`
     but never allocates or reserves palette ranges. Caller decides which entries
     to use for which bank.
-  - **No hidden side effects**: primitives only write the registers they're
-    named after. No global state, no "current sprite" pointer, no cached
-    values that could go stale. Every call is independent and idempotent.
+- **No hidden side effects**: primitives only write the registers they're
+  named after. No global state, no "current sprite" pointer, no cached
+  values that could go stale. Every call is independent and idempotent.
 
 ### Implementation phases
 
@@ -212,25 +256,57 @@ any single scanline, the even/odd bank pairing applies.
 The highest-value missing piece: cx16-style IRQ helpers reshaped for the
 68000/Amiga model. Both entries below converge on it.
 
+These helpers are for programs that have taken over the machine with
+`custom.grab_system()`, not for OS-friendly interrupt installation. Programs
+that leave AmigaOS running should use `AddIntServer()`/`RemIntServer()` for
+shared Exec interrupt chains, `AddICRVector()`/`RemICRVector()` for CIA sources,
+and `timer.device` for ordinary timing. Exec calls these routines as
+subroutines, so they return with `rts`; the bare-metal vector trampoline returns
+with `rte`.
+
 - `custom.set_handler(level, sub)` / `custom.restore_handler(level)` plus
   Paula source-bit enable/disable (`INTENA`/`INTREQ` discipline). A straight
-  copy of `sys.set_rasterirq` doesn't map: eight autovector levels carry
+  copy of `sys.set_rasterirq` doesn't map: seven autovector levels (1-7) carry
   multiplexed Amiga sources (VERTB and COPER share level 3, CIA-A/B sit on
-  2/6).
+  2/6, and level 7 is NMI and not maskable through `INTENA`).
 - **VBR-aware**: the handler mechanism must use `custom.cpuVBR` as the vector
   base address (not hardcode $000000). On 68000, VBR is always 0 (no VBR
   register). On 68010+ (68020/68030/68040/68060), VBR can be relocated.
   `custom.cpuVBR` is already populated by `grab_system()` (or equivalent)
   via supervisor-mode `MOVEC VBR,d0` on capable CPUs, defaulting to 0 on
-  68000. All vector reads/writes go through `custom.cpuVBR + level*4`.
-- Likely needs codegen work, not just library: handler subs need
-  save/restore + `rte` frames, which the m68k backend may not emit today.
-- **Do NOT modify `grab_system`/`restore_system`.** Instead, add a separate
-  handler registry: `set_handler` records the installed handler (level + sub)
-  in a small internal table (8 slots, one per autovector level). `restore_system`
-  iterates this table and calls `restore_handler` for each entry before
-  restoring the original vectors. This keeps `grab_system`/`restore_system`
-  unchanged and the IRQ mechanism fully opt-in.
+  68000. Autovector level N lives at `custom.cpuVBR + (24+N)*4`, i.e.
+  `custom.cpuVBR + $60 + N*4`; the existing `custom.IRQ1`..`custom.IRQ7`
+  constants hold exactly those offsets ($64..$7C). `cpuVBR + N*4` would land
+  on the reset/exception vectors instead. Call `set_handler` only after
+  `grab_system()`, so that `cpuVBR` is populated and the vectors it saves are
+  the OS ones.
+- **No codegen work needed.** An `asmsub` trampoline supplies the frame: save
+  `D0-D7/A0-A6`, derive the level from `SR` (valid because exception entry
+  runs in supervisor mode with `IPL = level`), `jsr` the handler, restore the
+  registers and return with `rte`. The handler itself is an ordinary Prog8
+  `sub` with no parameters and no return value, returning with a normal `rts`.
+  `rte` is accepted as an asmsub terminator (alongside `rts`/`rti`), so the
+  trampoline needs no `; !notreached!` marker.
+- **Do not use floating point in handlers.** The supplied trampoline preserves
+  all integer registers (`D0-D7/A0-A6`) but does not save FPU state. If a handler
+  must use the FPU, it needs a dedicated wrapper that saves and restores the
+  complete state for the installed FPU: `FP0-FP7`, `FPCR`, `FPSR`, `FPIAR`, and
+  any implementation-specific internal state. Keep handlers and routines they
+  call integer-only whenever possible.
+- **Leave `grab_system` unchanged; add an additive teardown hook to
+  `restore_system`.** `grab_system` must not manage handlers: it runs at
+  startup, before any handler exists, and it only saves the IRQ1/IRQ3/IRQ4
+  vectors anyway. Keep a separate registry (8 slots, one per autovector
+  level) holding the handler address plus the vector that was in place when
+  `set_handler` ran. `restore_handler(level)` puts that vector back.
+  `restore_system()` gains one trailing loop that calls `restore_handler` for
+  every active slot **after** restoring its own saved IRQ1/3/4 vectors. That
+  ordering is what makes teardown safe: it also repairs the case where a
+  handler was installed before `grab_system` (which would otherwise have
+  saved the trampoline as the "original"). The loop is a no-op for programs
+  that never call `set_handler`. Levels 2, 5, 6 and 7 have no saved vector in
+  `grab_system`, so the registry's captured original is the only way to
+  restore those.
 
   **Why a separate registry is simpler than modifying `grab_system`:**
   - `grab_system` runs at startup before user code — it saves original vectors
@@ -251,10 +327,11 @@ No bare-metal vertical-blank example exists (`lowlevel-timer.p8` is OS-based;
 m68k targets have no `sys.set_irq` helpers, see `targetsystem.rst`).
 
 - Install an autovector level-3 handler via `custom.cpuVBR` after
-  `custom.grab_system()`, enable `VERTB` in `INTENA`, acknowledge via
-  `INTREQ` every field, return with `rte`. Restoration is handled by the
-  separate handler registry (see section 2) plus `restore_system` — no
-  changes to `grab_system` needed.
+  `custom.grab_system()`, enable `VERTB` in `INTENA` (including the master
+  `INTEN` bit, which `grab_system` cleared), acknowledge each vblank by
+  writing the VERTB bit to `INTREQ` (a write of 1 clears it), return with
+  `rte`. Restoration is handled by the separate handler registry plus the
+  trailing loop in `restore_system`; `grab_system` stays unchanged.
 - Keep the handler minimal (set a frame flag, like the timer example);
   the main loop does the work.
 - `playfield.waitvsync` stays the polling fallback; document when the IRQ
@@ -310,6 +387,49 @@ Notes:
 
 `shared_amiga_blitter.p8` IS the blitter library. These are additions to it,
 not a separate module.
+
+### BOB data descriptors
+
+Use Prog8 `snake_case` names, following the Amiga `graphics.BitMap` concepts.
+All BOB data is uncompressed, planar, and in CHIP RAM. Within each frame, store
+each color plane contiguously in plane-major order. The mask, when present, is
+stored separately from the color data, matching the Amiga `ImageData` and
+`ImageShadow` convention. Plane 0 is the least-significant bit of the palette
+index. The descriptor itself need not be in CHIP RAM.
+
+Rows use one fixed format, so the descriptor does not store row or frame
+strides. `width` preserves the exact image width in pixels. Derive
+`width_words = ceil(width / 16)` for blitter operations, matching the Amiga BOB
+convention. `row_words = width_words + 1`; the extra final word of
+every color and mask row is a zero guard word for soft blits. Thus
+`row_bytes = row_words * 2` and `plane_bytes = height * row_bytes`. The mask
+uses the same row format as the color planes; its bits can mark unused pixels
+in the final image word as transparent. Rows are left-justified: the leftmost
+pixel is bit 15 of the first word; unused low bits in a partial final word are
+zero, followed by the guard word.
+
+`Bob` references the shared `Mob` and stores BOB-specific image metadata and
+pointers:
+
+```prog8
+struct Bob {
+    ^^amiga_objects.Mob mob
+    uword depth
+    pointer data
+    pointer mask
+}
+```
+
+`mob` is required. `data` points to plane 0 of the currently selected frame, and
+`mask` points to that frame's separate mask or is null for an opaque BOB. Color
+plane `p` starts at `data + p * plane_bytes`. Client code owns animation timing
+and frame selection, updating `data` and `mask` before drawing. The multi-plane
+BOB draw helper accepts a full `^^Bob` so it can read both the Mob metadata and
+the image pointers; it does not mutate either.
+
+Sprite sheets are input assets, not a runtime BOB layout. Extracting and
+repacking their cells into the required plane-major frames is the responsibility
+of the client or its asset converter; the blitter library does not convert them.
 
 - **Soft-scroll BOB blit — needed (decision: implement).** `masked_blit` is
   word-aligned only, which forces BOBs to 16-pixel boundaries and looks jerky
