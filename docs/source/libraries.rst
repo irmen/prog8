@@ -1896,7 +1896,10 @@ sorting
 Various sorting routines (gnome sort and shell sort variants) for byte, word and string arrays.
 **NOTE:** all word and str arrays have to be @nosplit! Words and pointers need to be consecutive in memory for now.
 **NOTE:** sorting is done in ascending order.
-Read the :source:`sorting source code <compiler/res/prog8lib/sorting.p8>`
+On the m68k targets (amiga500, amiga1200, qemu68k) the ``sorting`` module provides word (``uw``) and long (``ul``) variants
+(gnome sort and shell sort, including the ``by_uw``/``by_ul`` key-value forms); there are no byte variants there.
+Read the :source:`sorting source code <compiler/res/prog8lib/sorting.p8>` (6502 targets)
+or the :source:`m68k sorting source code <compiler/res/prog8lib/shared_m68k_sorting.p8>` (m68k targets)
 to see what's in there.   Also check out the :source:`sortingbench <examples/cx16/sortingbench.p8>` example.
 
 

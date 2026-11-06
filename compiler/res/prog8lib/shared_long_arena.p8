@@ -8,6 +8,7 @@
 %option ignore_unused
 
 arena {
+    %option merge
     private pointer @shared base
     private pointer @shared next
     private pointer @shared end

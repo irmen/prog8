@@ -1,6 +1,6 @@
 
 Prog8 compiler v14.0-BETA3 by Irmen de Jong (irmen@razorvine.net)
-Prerelease version from git commit 2a0d3445 in branch master
+Prerelease version from git commit a98938db in branch master
 This software is licensed under the GNU GPL 3.0, see https://www.gnu.org/licenses/gpl.html
 
 Compiling program import-all-qemu68k.p8
@@ -311,6 +311,7 @@ math  {
     log2  (ubyte value @D0) -> ubyte @D0
     log2l  (long value @D0) -> ubyte @D0
     log2w  (uword value @D0) -> ubyte @D0
+    mul32  (uword a @D0, uword b @D1) -> long @D0
     popcount  (long value @D0) -> ubyte @D0
     randrange  (ubyte n) -> ubyte
     randrangew  (uword n) -> uword
@@ -323,6 +324,21 @@ math  {
     sin8u  (ubyte angle) -> ubyte
     sinr8  (ubyte radians) -> byte
     sinr8u  (ubyte radians) -> ubyte
+}
+
+
+LIBRARY MODULE NAME: sorting
+----------------------------
+
+sorting  {
+    gnomesort_by_ul  (^^long keys, ^^long values, uword num_elements)
+    gnomesort_by_uw  (^^uword keys, ^^uword values, uword num_elements)
+    gnomesort_ul  (^^long values, uword num_elements)
+    gnomesort_uw  (^^uword values, uword num_elements)
+    shellsort_by_ul  (^^long keys, ^^long values, uword num_elements)
+    shellsort_by_uw  (^^uword keys, ^^uword values, uword num_elements)
+    shellsort_ul  (^^long values, uword num_elements)
+    shellsort_uw  (^^uword values, uword num_elements)
 }
 
 
@@ -540,9 +556,12 @@ wavfile  {
     ubyte  nchannels
     uword  sample_rate
     ubyte  wavefmt
+    convert_16bit_mono  (long buf @A0, long nwords @D0)
+    convert_16bit_stereo  (long src @A0, long dst_left @A1, long dst_right @A2, long nframes @D0)
+    convert_8bit_mono  (long buf @A0, long len @D0)
+    convert_8bit_stereo  (long src @A0, long dst_left @A1, long dst_right @A2, long nframes @D0)
     parse_header  (^^ubyte wav_data) -> bool
     read_le_word  (long addr) -> uword
 }
 
 
-No output produced.

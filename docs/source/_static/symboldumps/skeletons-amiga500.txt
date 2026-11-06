@@ -1,6 +1,6 @@
 
 Prog8 compiler v14.0-BETA3 by Irmen de Jong (irmen@razorvine.net)
-Prerelease version from git commit c8f34536 in branch master
+Prerelease version from git commit a98938db in branch master
 This software is licensed under the GNU GPL 3.0, see https://www.gnu.org/licenses/gpl.html
 
 Compiling program import-all-amiga500.p8
@@ -5275,13 +5275,18 @@ ptplayer  {
 }
 
 
-LIBRARY MODULE NAME: shared_amiga_text
---------------------------------------
+LIBRARY MODULE NAME: sorting
+----------------------------
 
-text  {
-    char  (uword x, uword y, ubyte chr, ubyte color)
-    init  (uword p, ubyte d, ^^pointer bitplanes)
-    print  (uword x, uword y, str message, ubyte color)
+sorting  {
+    gnomesort_by_ul  (^^long keys, ^^long values, uword num_elements)
+    gnomesort_by_uw  (^^uword keys, ^^uword values, uword num_elements)
+    gnomesort_ul  (^^long values, uword num_elements)
+    gnomesort_uw  (^^uword values, uword num_elements)
+    shellsort_by_ul  (^^long keys, ^^long values, uword num_elements)
+    shellsort_by_uw  (^^uword keys, ^^uword values, uword num_elements)
+    shellsort_ul  (^^long values, uword num_elements)
+    shellsort_uw  (^^uword values, uword num_elements)
 }
 
 
@@ -5393,6 +5398,16 @@ sys  {
     stack_size  () -> long @D0
     wait  (long ticks @D1)
     waitvsync  ()
+}
+
+
+LIBRARY MODULE NAME: text
+-------------------------
+
+text  {
+    char  (uword x, uword y, ubyte chr, ubyte color)
+    init  (uword p, ubyte d, ^^pointer bitplanes)
+    print  (uword x, uword y, str message, ubyte color)
 }
 
 
@@ -5631,6 +5646,10 @@ wavfile  {
     ubyte  nchannels
     uword  sample_rate
     ubyte  wavefmt
+    convert_16bit_mono  (long buf @A0, long nwords @D0)
+    convert_16bit_stereo  (long src @A0, long dst_left @A1, long dst_right @A2, long nframes @D0)
+    convert_8bit_mono  (long buf @A0, long len @D0)
+    convert_8bit_stereo  (long src @A0, long dst_left @A1, long dst_right @A2, long nframes @D0)
     parse_header  (^^ubyte wav_data) -> bool
     read_le_word  (long addr) -> uword
 }
