@@ -66,6 +66,7 @@ Optimizations
 - various Ast optimizers skip stuff if compTarget.name==VMTarget.NAME.  Once new 6502 codegen is done from IR code, those 6502 only optimizations should probably be removed
 - m68k/Amiga dead-code elimination: vasm does not strip unreachable routines from the final HUNK output, and ``IRUnusedCodeRemover`` currently keeps assembly subroutines from library modules conservatively (see its TODO). Improve IR reachability analysis so imported library routines are retained only when reachable from program entry points, inline assembly references, address-taken symbols, or other live routines. Keep the existing conservative fallback for opaque assembly references, and add size-regression tests for examples such as ``lowlevel-timer``.
 - m68k/Amiga codegen: eliminate redundant pointer reloads in the IR. For example, ``wavc``'s ``read_le_word`` loads its ``addr`` argument twice because the optimizer rewrites the second ``loadm.p`` as ``loadm.l`` and existing CSE does not merge different types. See ``ideas/m68k-eliminate-double-pointer-reload.md`` for a plan.
+- m68k/Amiga codegen: omit the A5 frame pointer in leaf functions and other routines that do not need it. vbcc defaults to SP-relative locals and only uses a frame pointer with ``-use-framepointer``; Prog8 currently sets up ``link a5,#0`` / ``unlk a5`` in every subroutine. See ``ideas/m68k-frame-pointer-omission.md`` for a plan.
 
 
 Dead Code Elimination bug in 64tass, for nested subroutines

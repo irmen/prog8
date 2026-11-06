@@ -29,7 +29,7 @@ package prog8.codegen.new6502
 import prog8.code.core.toHex
 import prog8.intermediate.*
 
-internal fun AsmGen.translateLoadStore(insn: IRInstruction) {
+internal fun AsmGen.translateLoadStore(insn: IRInstruction, nextInstruction: IRInstruction? = null) {
     val type = insn.type ?: IRDataType.BYTE
 
     // FLOAT operations use the float register file instead of the integer one
@@ -88,7 +88,8 @@ internal fun AsmGen.translateLoadStore(insn: IRInstruction) {
             val isLong = insn.opcode in setOf(Opcode.LOADMZL, Opcode.LOADMSL)
             val srcType = if (isLong) IRDataType.BYTE else type
             loadFromMemory(dst, target, srcType)
-            extendLoadedValue(dst, srcType, isLong, isSign)
+            if (!isDeadExtendBeforeShift(insn, nextInstruction))
+                extendLoadedValue(dst, srcType, isLong, isSign)
         }
 
         Opcode.LOADIZ, Opcode.LOADIS, Opcode.LOADIZL, Opcode.LOADISL -> {
@@ -98,7 +99,8 @@ internal fun AsmGen.translateLoadStore(insn: IRInstruction) {
             val isLong = insn.opcode in setOf(Opcode.LOADIZL, Opcode.LOADISL)
             val srcType = if (isLong) IRDataType.BYTE else type
             indirectLoad(dst, mem.pointer.intNumber, mem.displacement, srcType)
-            extendLoadedValue(dst, srcType, isLong, isSign)
+            if (!isDeadExtendBeforeShift(insn, nextInstruction))
+                extendLoadedValue(dst, srcType, isLong, isSign)
         }
 
         Opcode.STOREM -> {
@@ -838,6 +840,36 @@ internal fun AsmGen.extendLoadedValue(dst: Int, srcType: IRDataType, isLong: Boo
             emitStoreZero(regAddrByte(dst, 3))
         }
     }
+}
+
+/**
+ * Check if an extending load is immediately followed by a left logical shift whose count is
+ * large enough to discard all the extended/sign-replicated bits. In that case the extension
+ * is dead and can be skipped.
+ */
+private fun AsmGen.isDeadExtendBeforeShift(loadInsn: IRInstruction, nextInsn: IRInstruction?): Boolean {
+    if (nextInsn?.opcode != Opcode.LSLI) return false
+    val shiftAmount = nextInsn.immediate?.integerValue ?: return false
+    val loadDest = loadInsn.dest?.registerNumber ?: return false
+    if (nextInsn.dest?.registerNumber != loadDest) return false
+
+    val (sourceBits, resultBits) = when (loadInsn.opcode) {
+        Opcode.LOADMZ, Opcode.LOADMS, Opcode.LOADIZ, Opcode.LOADIS -> when (loadInsn.type) {
+            IRDataType.BYTE -> 8 to 16
+            IRDataType.WORD -> 16 to 32
+            else -> return false
+        }
+        Opcode.LOADMZL, Opcode.LOADMSL, Opcode.LOADIZL, Opcode.LOADISL -> 8 to 32
+        else -> return false
+    }
+
+    val shiftBits = when (nextInsn.type) {
+        IRDataType.WORD -> 16
+        IRDataType.LONG -> 32
+        else -> return false
+    }
+    if (shiftBits != resultBits) return false
+    return shiftAmount >= resultBits - sourceBits && shiftAmount < resultBits
 }
 
 internal fun AsmGen.loadFromMemory(reg: Int, sourceAddress: String, type: IRDataType) {

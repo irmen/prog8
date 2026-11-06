@@ -750,9 +750,10 @@ internal class AsmGen(val program: IRProgram, private val target: ICompilationTa
                 is IRCodeChunk -> {
                     val cl = chunk.label
                     if (cl != null && cl != sub.label) emitRaw("    $cl:")
-                    for (insn in chunk.instructions) {
+                    for (index in chunk.instructions.indices) {
+                        val insn = chunk.instructions[index]
                         emitRaw("        ; $insn")
-                        translateInstruction(insn)
+                        translateInstruction(insn, chunk.instructions.getOrNull(index + 1))
                     }
                 }
                 is IRLoopChunk -> {
@@ -768,9 +769,10 @@ internal class AsmGen(val program: IRProgram, private val target: ICompilationTa
                                 if(cl2!=null && cl2!=label) emitRaw("    $cl2:")
                                 emitRaw("    tya        ; save loop counter Y")
                                 emitRaw("    pha")
-                                for(insn in bodyChunk.instructions) {
+                                for(index in bodyChunk.instructions.indices) {
+                                    val insn = bodyChunk.instructions[index]
                                     emitRaw("        ; $insn")
-                                    translateInstruction(insn)
+                                    translateInstruction(insn, bodyChunk.instructions.getOrNull(index + 1))
                                 }
                                 emitRaw("    pla")
                                 emitRaw("    tay        ; restore loop counter Y")
@@ -787,7 +789,11 @@ internal class AsmGen(val program: IRProgram, private val target: ICompilationTa
                                 for(innerBody in bodyChunk.body) if(innerBody is IRCodeChunk) {
                                     emitRaw("    tya        ; save outer loop counter Y")
                                     emitRaw("    pha")
-                                    for(insn in innerBody.instructions){ emitRaw("        ; $insn"); translateInstruction(insn) }
+                                    for(index in innerBody.instructions.indices){
+                                        val insn = innerBody.instructions[index]
+                                        emitRaw("        ; $insn")
+                                        translateInstruction(insn, innerBody.instructions.getOrNull(index + 1))
+                                    }
                                     emitRaw("    pla")
                                     emitRaw("    tay        ; restore outer loop counter Y")
                                 }
@@ -895,14 +901,14 @@ internal class AsmGen(val program: IRProgram, private val target: ICompilationTa
 
     private fun translateChunk(chunk: IRCodeChunk) {
         emitSourceComment(chunk.sourceLinesPositions)
-        for (insn in chunk.instructions) {
-            translateInstruction(insn)
+        for (index in chunk.instructions.indices) {
+            translateInstruction(chunk.instructions[index], chunk.instructions.getOrNull(index + 1))
         }
     }
 
     // === instruction dispatch ===
 
-    private fun translateInstruction(insn: IRInstruction) {
+    private fun translateInstruction(insn: IRInstruction, nextInstruction: IRInstruction? = null) {
         emitRaw("        ; $insn")
         insn.hardwareSlot?.let { hw ->
             val slotNames = mapOf(0 to "A", 1 to "X", 2 to "Y", 3 to "AX", 4 to "AY", 5 to "XY")
@@ -918,7 +924,7 @@ internal class AsmGen(val program: IRProgram, private val target: ICompilationTa
             Opcode.STOREM, Opcode.STOREX, Opcode.STOREZM, Opcode.STOREZI, Opcode.STOREIM, Opcode.STOREZX, Opcode.STOREHR, Opcode.STOREI,
             Opcode.LOADP_INC, Opcode.STOREP_INC,
             Opcode.LOADHFACZERO, Opcode.LOADHFACONE,
-            Opcode.STOREHFACZERO, Opcode.STOREHFACONE -> translateLoadStore(insn)
+            Opcode.STOREHFACZERO, Opcode.STOREHFACONE -> translateLoadStore(insn, nextInstruction)
 
             Opcode.INC, Opcode.INCM, Opcode.DEC, Opcode.DECM,
             Opcode.NEG, Opcode.NEGM,
