@@ -2,7 +2,7 @@ package prog8.codegen.m68k
 
 import prog8.intermediate.*
 
-internal fun AsmGen.translateLoadStore(insn: IRInstruction, suppressRegfileStore: Boolean = false) {
+internal fun AsmGen.translateLoadStore(insn: IRInstruction, suppressRegfileStore: Boolean = false, nextInstruction: IRInstruction? = null) {
     val type = insn.type ?: IRDataType.BYTE
 
     if (type == IRDataType.FLOAT) {
@@ -71,12 +71,20 @@ internal fun AsmGen.translateLoadStore(insn: IRInstruction, suppressRegfileStore
             val target = resolveMemory(insn.requireMemory())
             when (type) {
                 IRDataType.BYTE -> {
-                    emitLoadD0ZeroExtendedFromAddress(target, IRDataType.BYTE)
-                    emitStoreD0(dst, IRDataType.WORD)
+                    if (isDeadExtendBeforeShift(insn, nextInstruction)) {
+                        emitMoveToIntRegister(target, dst, IRDataType.BYTE)
+                    } else {
+                        emitLoadD0ZeroExtendedFromAddress(target, IRDataType.BYTE)
+                        emitStoreD0(dst, IRDataType.WORD)
+                    }
                 }
                 IRDataType.WORD -> {
-                    emitLoadD0ZeroExtendedFromAddress(target, IRDataType.WORD)
-                    emitStoreD0(dst, IRDataType.LONG)
+                    if (isDeadExtendBeforeShift(insn, nextInstruction)) {
+                        emitMoveToIntRegister(target, dst, IRDataType.WORD)
+                    } else {
+                        emitLoadD0ZeroExtendedFromAddress(target, IRDataType.WORD)
+                        emitStoreD0(dst, IRDataType.LONG)
+                    }
                 }
                 else -> error("LOADMZ of unsupported type $type")
             }
@@ -87,14 +95,22 @@ internal fun AsmGen.translateLoadStore(insn: IRInstruction, suppressRegfileStore
             val target = resolveMemory(insn.requireMemory())
             when (type) {
                 IRDataType.BYTE -> {
-                    emitLoadD0FromAddress(target, IRDataType.BYTE)
-                    emitLine("ext.w   d0")
-                    emitStoreD0(dst, IRDataType.WORD)
+                    if (isDeadExtendBeforeShift(insn, nextInstruction)) {
+                        emitMoveToIntRegister(target, dst, IRDataType.BYTE)
+                    } else {
+                        emitLoadD0FromAddress(target, IRDataType.BYTE)
+                        emitLine("ext.w   d0")
+                        emitStoreD0(dst, IRDataType.WORD)
+                    }
                 }
                 IRDataType.WORD -> {
-                    emitLoadD0FromAddress(target, IRDataType.WORD)
-                    emitLine("ext.l   d0")
-                    emitStoreD0(dst, IRDataType.LONG)
+                    if (isDeadExtendBeforeShift(insn, nextInstruction)) {
+                        emitMoveToIntRegister(target, dst, IRDataType.WORD)
+                    } else {
+                        emitLoadD0FromAddress(target, IRDataType.WORD)
+                        emitLine("ext.l   d0")
+                        emitStoreD0(dst, IRDataType.LONG)
+                    }
                 }
                 else -> error("LOADMS of unsupported type $type")
             }
@@ -103,16 +119,24 @@ internal fun AsmGen.translateLoadStore(insn: IRInstruction, suppressRegfileStore
         Opcode.LOADMZL -> {
             val dst = insn.requireIntDest().intNumber
             val target = resolveMemory(insn.requireMemory())
-            emitLoadD0ZeroExtendedFromAddress(target, IRDataType.BYTE)
-            emitStoreD0(dst, IRDataType.LONG)
+            if (isDeadExtendBeforeShift(insn, nextInstruction)) {
+                emitMoveToIntRegister(target, dst, IRDataType.BYTE)
+            } else {
+                emitLoadD0ZeroExtendedFromAddress(target, IRDataType.BYTE)
+                emitStoreD0(dst, IRDataType.LONG)
+            }
         }
 
         Opcode.LOADMSL -> {
             val dst = insn.requireIntDest().intNumber
             val target = resolveMemory(insn.requireMemory())
-            emitLoadD0FromAddress(target, IRDataType.BYTE)
-            emitSignExtendByteToLong(SCRATCH_D0)
-            emitStoreD0(dst, IRDataType.LONG)
+            if (isDeadExtendBeforeShift(insn, nextInstruction)) {
+                emitMoveToIntRegister(target, dst, IRDataType.BYTE)
+            } else {
+                emitLoadD0FromAddress(target, IRDataType.BYTE)
+                emitSignExtendByteToLong(SCRATCH_D0)
+                emitStoreD0(dst, IRDataType.LONG)
+            }
         }
 
         Opcode.LOADIZ, Opcode.LOADIS, Opcode.LOADIZL, Opcode.LOADISL -> {
@@ -122,18 +146,22 @@ internal fun AsmGen.translateLoadStore(insn: IRInstruction, suppressRegfileStore
             val isLong = insn.opcode in setOf(Opcode.LOADIZL, Opcode.LOADISL)
             val srcType = if (isLong) IRDataType.BYTE else type
             val destType = if (isLong) IRDataType.LONG else if (srcType == IRDataType.BYTE) IRDataType.WORD else IRDataType.LONG
-            if (isSign) {
-                emitLoadD0FromAddress(source, srcType)
-                if (srcType == IRDataType.BYTE && destType == IRDataType.LONG)
-                    emitSignExtendByteToLong(SCRATCH_D0)
-                else {
-                    if (srcType == IRDataType.BYTE) emitLine("ext.w   d0")
-                    if (destType == IRDataType.LONG) emitLine("ext.l   d0")
-                }
+            if (isDeadExtendBeforeShift(insn, nextInstruction)) {
+                emitMoveToIntRegister(source, dst, srcType)
             } else {
-                emitLoadD0ZeroExtendedFromAddress(source, srcType)
+                if (isSign) {
+                    emitLoadD0FromAddress(source, srcType)
+                    if (srcType == IRDataType.BYTE && destType == IRDataType.LONG)
+                        emitSignExtendByteToLong(SCRATCH_D0)
+                    else {
+                        if (srcType == IRDataType.BYTE) emitLine("ext.w   d0")
+                        if (destType == IRDataType.LONG) emitLine("ext.l   d0")
+                    }
+                } else {
+                    emitLoadD0ZeroExtendedFromAddress(source, srcType)
+                }
+                emitStoreD0(dst, destType)
             }
-            emitStoreD0(dst, destType)
         }
 
         Opcode.LOADHR -> {
@@ -220,6 +248,45 @@ internal fun AsmGen.translateLoadStore(insn: IRInstruction, suppressRegfileStore
 
         else -> error("Unknown load/store opcode: ${insn.opcode}")
     }
+}
+
+/**
+ * Check if an extending load (LOADMZ/LOADMS/LOADMZL/LOADMSL/LOADIZ/LOADIS/LOADIZL/LOADISL)
+ * is immediately followed by a left logical shift whose count is large enough to shift out
+ * all the extended/sign-replicated bits. In that case the extension is dead: the shift result
+ * only depends on the narrow source bits.
+ *
+ * Conditions:
+ * - next instruction is LSLI with the same destination register as the load
+ * - shift count N satisfies  (resultSize - sourceSize) <= N < resultSize
+ * - the value is resident in a data register (the narrow move must target a Dn directly)
+ */
+private fun AsmGen.isDeadExtendBeforeShift(loadInsn: IRInstruction, nextInsn: IRInstruction?): Boolean {
+    if (nextInsn?.opcode != Opcode.LSLI) return false
+    val shiftAmount = nextInsn.immediate?.integerValue ?: return false
+    val loadDest = loadInsn.dest?.registerNumber ?: return false
+    if (nextInsn.dest?.registerNumber != loadDest) return false
+
+    val (sourceBits, resultBits) = when (loadInsn.opcode) {
+        Opcode.LOADMZ, Opcode.LOADMS, Opcode.LOADIZ, Opcode.LOADIS -> when (loadInsn.type) {
+            IRDataType.BYTE -> 8 to 16
+            IRDataType.WORD -> 16 to 32
+            else -> return false
+        }
+        Opcode.LOADMZL, Opcode.LOADMSL, Opcode.LOADIZL, Opcode.LOADISL -> 8 to 32
+        else -> return false
+    }
+
+    val shiftBits = when (nextInsn.type) {
+        IRDataType.WORD -> 16
+        IRDataType.LONG -> 32
+        else -> return false
+    }
+    if (shiftBits != resultBits) return false
+    if (shiftAmount < resultBits - sourceBits || shiftAmount >= resultBits) return false
+
+    val phys = regAllocation[VirtualRegister.int(loadDest)]
+    return phys?.startsWith("d") == true
 }
 
 // === Float load/store via FPU (68881/68882) ===

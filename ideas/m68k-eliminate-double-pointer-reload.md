@@ -44,8 +44,8 @@ The unoptimized IR already had both loads typed as `loadm.p`; the optimizer rewr
 
 This plan is **only** about the double reload. Two related improvements are tracked separately and implemented first:
 
-1. Remove the dead `and.w #$ff` before a left shift by 8. The IR pattern is `loadiz.b X; lsli.w #8`, and `lsli.w #8` already zeroes the low byte, so the zero-extend is unnecessary. A cleaner long-term fix is to teach the IR optimizer (or the M68K code generator's IR-to-asm pattern matching) that `loadiz.b X; lsl.w #8` doesn't need the zero-extend at all. Until then, an assembly peephole captures the win.
-2. Use the shorter `moveq #0, dN; move.b M, dN` idiom instead of `move.b M, dN; and.w #$ff, dN` for zero extension.
+1. ~~Remove the dead `and.w #$ff` before a left shift by 8.~~ **Done.** The IR pattern is `loadiz.b X; lsli.w #N` (and the sign/zero-extending variants). For a left shift by `N >= resultSize - sourceSize`, the extension is dead because the shift discards all extended/sign-replicated bits. Implemented in the M68K backend (`InstrLoadStore.kt`): an extending load immediately followed by such a shift now emits just `move.<srcSize> M, dN` and lets the following shift operate on the narrow value directly. The temporary assembly peephole was removed.
+2. ~~Use the shorter `moveq #0, dN; move.b M, dN` idiom instead of `move.b M, dN; and.w #$ff, dN` for zero extension.~~ **Done.** All byte/word zero-extending loads now emit `moveq #0, dN; move.<size> M, dN` in the backend.
 
 ## Proposed solution
 
@@ -81,4 +81,4 @@ The IR-level fix is preferred because it benefits every backend and removes the 
 
 ## Status
 
-Not yet implemented. The two related peephole improvements above are being implemented first to measure their individual impact.
+Not yet implemented: the double pointer reload itself still remains. The two related improvements in Scope are done and merged.

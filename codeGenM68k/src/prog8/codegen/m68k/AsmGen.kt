@@ -1322,10 +1322,12 @@ internal class AsmGen(val program: IRProgram, internal val target: ICompilationT
             val clobbersLoopCounter = preserveLoopCounter && mayClobberLoopCounter(insn)
             if (clobbersLoopCounter)
                 emitLine("move.w  d7,-(sp)", "save loop counter around call")
+            val nextInsn = if (index + 1 < chunk.instructions.size) chunk.instructions[index + 1] else null
             translateInstruction(
                 insn,
                 callOptimizations[index],
-                index in deadLoadIndices
+                index in deadLoadIndices,
+                nextInsn
             )
             previousInsn = insn
             if (clobbersLoopCounter)
@@ -1450,7 +1452,8 @@ internal class AsmGen(val program: IRProgram, internal val target: ICompilationT
     private fun translateInstruction(
         insn: IRInstruction,
         forwardedImmediateCall: ImmediateCallOptimization? = null,
-        suppressRegfileStore: Boolean = false
+        suppressRegfileStore: Boolean = false,
+        nextInstruction: IRInstruction? = null
     ) {
         // No IR echo for zero-clear stores: prologue clear runs would drown in "; storezm" noise.
         // IR echo comments are opt-in via -ircomments (off by default); source-line comments are unaffected.
@@ -1467,7 +1470,7 @@ internal class AsmGen(val program: IRProgram, internal val target: ICompilationT
             Opcode.STOREM, Opcode.STOREX, Opcode.STOREZM, Opcode.STOREZI, Opcode.STOREIM, Opcode.STOREZX, Opcode.STOREHR, Opcode.STOREI,
             Opcode.LOADHFACZERO, Opcode.LOADHFACONE,
             Opcode.STOREHFACZERO, Opcode.STOREHFACONE ->
-                translateLoadStore(insn, suppressRegfileStore)
+                translateLoadStore(insn, suppressRegfileStore, nextInstruction)
 
             Opcode.INC, Opcode.INCM, Opcode.DEC, Opcode.DECM,
             Opcode.NEG, Opcode.NEGM,
