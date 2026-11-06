@@ -2421,6 +2421,16 @@ wavfile
     about 28.8 kHz (the Paula DMA ceiling) should be resampled beforehand.
     8-bit wav samples are unsigned (silence = $80) while Paula plays signed
     bytes, so flip the sign bit (``xori #$80`` per byte) before playback.
+    Two helpers in the module do this for you: ``convert_8bit_mono(buf, len)``
+    for mono (in place) and ``convert_8bit_stereo(src, dst_left,
+    dst_right, nframes)`` for stereo (splits the interleaved L/R stream
+    into two buffers, sign-flipping both). Stereo wavs need the latter;
+    mono wavs need only the former. For 16-bit stereo wavs (already signed
+    little-endian), ``convert_16bit_stereo(src, dst_left, dst_right,
+    nframes)`` splits them into two native big-endian word buffers (the
+    byte swap is done in the same pass), and ``convert_16bit_mono(buf,
+    nwords)`` converts 16-bit samples between little-endian (WAV on
+    disk) and native big-endian m68k order in place.
     All sample data must live in CHIP RAM, sample lengths are passed as
     words to Paula (pad an odd-length sample with one byte), and a stereo
     (interleaved) wav must be de-interleaved into left and right buffers

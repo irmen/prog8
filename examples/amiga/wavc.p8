@@ -1,11 +1,12 @@
-; Convert a wave file to a raw PCM wave file.
+; Convert a wave file to amiga-playable raw PCM.
 ; The input file is given as command-line argument.
-; The converted file is written to "out.wav"
+; Output: "out.pcm" (mono) or "out_left.pcm" + "out_right.pcm" (stereo).
 ; Compile with:  prog8c -target amiga1200 examples/amiga/wavc.p8
 ;
 ; Supported input formats:
-; - DVI/IMA ADPCM (format 17): decoded to 16-bit PCM
-; - PCM (format 1): rewritten as a minimal PCM wav (only RIFF/fmt/data chunks)
+; - 8-bit PCM (mono or stereo): sign-flipped to signed 8-bit Paula PCM
+; - 16-bit PCM (mono or stereo): byte-swapped to big-endian m68k order
+; - DVI/IMA ADPCM (format 17): decoded to 16-bit PCM, then byte-swapped
 
 %import dos
 %import textio
@@ -13,24 +14,30 @@
 %import adpcm
 
 main {
+
     ; Buffer for the wav file header (must be large enough to hold the complete header).
     const long HEADERSIZE = 4096
     ubyte[HEADERSIZE] wav_buffer
 
-    ; The ADPCM decoder operates on fixed 256-byte input blocks.
-    const uword ADPCM_BLOCK_SIZE = 256
-
-    ; General-purpose copy buffer for PCM pass-through and ADPCM input chunks.
+    ; General-purpose input copy buffer for PCM pass-through and ADPCM input chunks.
     const long BUFFERSIZE = 32768
     ubyte[BUFFERSIZE] copy_buffer
 
-    ; Accumulation buffer for decoded PCM output. Flushed to disk when full.
-    ; Must be at least as large as one decoded block (1010 bytes).
+    ; Accumulation buffer for decoded ADPCM PCM output. Flushed to disk when full.
+    ; Must be at least as large as one decoded block (1010 bytes mono, 996 stereo).
     const long OUTPUT_BUFFERSIZE = 32768
     ubyte[OUTPUT_BUFFERSIZE] output_buffer
 
+    ; Scratch buffers for stereo deinterleaving (half of BUFFERSIZE each).
+    const long STEREO_BUFSIZE = 16384
+    ubyte[STEREO_BUFSIZE] left_buffer
+    ubyte[STEREO_BUFSIZE] right_buffer
+
+    ; ADPCM decoder operates on fixed 256-byte input blocks.
+    const uword ADPCM_BLOCK_SIZE = 256
+
     sub start() {
-        txt.print("wavc - wav file converter\n")
+        txt.print("wavc - wav file converter to amiga-playable PCM\n")
         txt.print("input: ")
         txt.print(dos.GetArgStr())
         txt.nl()
@@ -43,92 +50,277 @@ main {
             return
         }
 
-        ; create the output file
-        pointer outfile = dos.Open("out.wav", dos.MODE_NEWFILE)
-        if outfile==0 {
-            txt.print("cannot create output file out.wav\n")
-            void dos.Close(file)
-            return
-        }
-
-        if convert(file, outfile) {
-            txt.print("conversion successful\n")
-            void dos.Close(outfile)
-        } else {
-            txt.print("conversion failed\n")
-            void dos.Close(outfile)
-            void dos.DeleteFile("out.wav")      ; remove the incomplete output file
-        }
-        void dos.Close(file)
-    }
-
-    sub convert(pointer file, pointer outfile) -> bool {
         ; read enough data into memory to cover the complete header structure
         long header_bytes = dos.Read(file, &wav_buffer, HEADERSIZE)
         if header_bytes < 44 {
             ; 44 bytes is the minimum for a valid RIFF/WAVE/fmt/data header;
             ; a short read here means a truncated or unreadable file
             txt.print("cannot read the file\n")
-            return false
+            void dos.Close(file)
+            return
         }
 
         ; parse the header from the loaded data
         if not wavfile.parse_header(&wav_buffer) {
             txt.print("this does not appear to be a valid wav file\n")
-            return false
+            void dos.Close(file)
+            return
         }
 
         print_header_info()
 
-        when wavfile.wavefmt {
-            wavfile.Format::DVI_ADPCM -> return convert_adpcm(file, outfile)
-            wavfile.Format::PCM -> return convert_pcm(file, outfile)
-            else -> {
-                txt.print("unsupported audio format for conversion\n")
-                return false
-            }
+        ; seek to the start of the audio data
+        if dos.Seek(file, wavfile.data_offset, dos.OFFSET_BEGINNING) < 0 {
+            txt.print("cannot seek to audio data\n")
+            void dos.Close(file)
+            return
         }
+
+        bool ok = false
+        when wavfile.wavefmt {
+            wavfile.Format::PCM -> {
+                if wavfile.bits_per_sample == 8 {
+                    if wavfile.nchannels == 1
+                        ok = convert_pcm_8_mono(file)
+                    else if wavfile.nchannels == 2
+                        ok = convert_pcm_8_stereo(file)
+                    else
+                        txt.print("unsupported channel count\n")
+                } else if wavfile.bits_per_sample == 16 {
+                    if wavfile.nchannels == 1
+                        ok = convert_pcm_16_mono(file)
+                    else if wavfile.nchannels == 2
+                        ok = convert_pcm_16_stereo(file)
+                    else
+                        txt.print("unsupported channel count\n")
+                } else {
+                    txt.print("unsupported bit depth for PCM\n")
+                }
+            }
+            wavfile.Format::DVI_ADPCM -> {
+                if wavfile.nchannels == 1
+                    ok = convert_adpcm_mono(file)
+                else if wavfile.nchannels == 2
+                    ok = convert_adpcm_stereo(file)
+                else
+                    txt.print("unsupported channel count for ADPCM\n")
+            }
+            else -> txt.print("unsupported audio format for conversion\n")
+        }
+
+        if ok
+            txt.print("conversion successful\n")
+        else
+            txt.print("conversion failed\n")
+
+        void dos.Close(file)
     }
 
-    sub convert_adpcm(pointer file, pointer outfile) -> bool {
-        ; This decoder only supports the 256-byte block size used by standard
-        ; ffmpeg/sox-generated IMA-ADPCM files.
+    ; ---------- 8-bit PCM mono ----------
+    sub convert_pcm_8_mono(pointer file) -> bool {
+        ; convert unsigned 8-bit PCM to signed (amiga-playable) in place
+        pointer outfile = dos.Open("out.pcm", dos.MODE_NEWFILE)
+        if outfile==0 {
+            txt.print("cannot create out.pcm\n")
+            return false
+        }
+        txt.print("converting 8-bit mono PCM...\n")
+        long total = wavfile.data_size
+        long done = 0
+        while done < total {
+            long chunk = total - done
+            if chunk > BUFFERSIZE
+                chunk = BUFFERSIZE
+            long read_n = dos.Read(file, &copy_buffer, chunk)
+            if read_n <= 0 {
+                txt.print("\ncannot read input\n")
+                void dos.Close(outfile)
+                return false
+            }
+            wavfile.convert_8bit_mono(&copy_buffer, read_n)
+            long write_n = dos.Write(outfile, &copy_buffer, read_n)
+            if write_n != read_n {
+                txt.print("\ncannot write output\n")
+                void dos.Close(outfile)
+                return false
+            }
+            done += write_n
+            txt.chrout('.')
+        }
+        txt.nl()
+        txt.print("done, wrote ")
+        txt.print_l(done)
+        txt.print(" bytes to out.pcm\n")
+        void dos.Close(outfile)
+        return true
+    }
+
+    ; ---------- 8-bit PCM stereo ----------
+    sub convert_pcm_8_stereo(pointer file) -> bool {
+        ; deinterleave + sign-flip into left/right buffers
+        pointer outl = dos.Open("out_left.pcm", dos.MODE_NEWFILE)
+        if outl==0 {
+            txt.print("cannot create out_left.pcm\n")
+            return false
+        }
+        pointer outr = dos.Open("out_right.pcm", dos.MODE_NEWFILE)
+        if outr==0 {
+            txt.print("cannot create out_right.pcm\n")
+            void dos.Close(outl)
+            return false
+        }
+        txt.print("converting 8-bit stereo PCM...\n")
+        long total_frames = wavfile.data_size / 2 as long
+        long done_frames = 0
+        while done_frames < total_frames {
+            long frames = (total_frames - done_frames)
+            long limit = BUFFERSIZE / 2
+            if frames > limit
+                frames = limit
+            long bytes = frames * 2
+            long read_n = dos.Read(file, &copy_buffer, bytes)
+            if read_n != bytes {
+                txt.print("\ncannot read input\n")
+                void dos.Close(outl)
+                void dos.Close(outr)
+                return false
+            }
+            wavfile.convert_8bit_stereo(&copy_buffer, &left_buffer, &right_buffer, frames)
+            long wl = dos.Write(outl, &left_buffer, frames)
+            long wr = dos.Write(outr, &right_buffer, frames)
+            if wl != frames or wr != frames {
+                txt.print("\ncannot write output\n")
+                void dos.Close(outl)
+                void dos.Close(outr)
+                return false
+            }
+            done_frames += frames
+            txt.chrout('.')
+        }
+        txt.nl()
+        txt.print("done, wrote ")
+        txt.print_l(done_frames)
+        txt.print(" frames to out_left.pcm / out_right.pcm\n")
+        void dos.Close(outl)
+        void dos.Close(outr)
+        return true
+    }
+
+    ; ---------- 16-bit PCM mono ----------
+    sub convert_pcm_16_mono(pointer file) -> bool {
+        ; byte-swap to native big-endian in place
+        pointer outfile = dos.Open("out.pcm", dos.MODE_NEWFILE)
+        if outfile==0 {
+            txt.print("cannot create out.pcm\n")
+            return false
+        }
+        txt.print("converting 16-bit mono PCM...\n")
+        long total = wavfile.data_size
+        long done = 0
+        while done < total {
+            long chunk = total - done
+            if chunk > BUFFERSIZE
+                chunk = BUFFERSIZE
+            ; ensure word-aligned
+            if (chunk & 1) != 0
+                chunk -= 1
+            if chunk == 0
+                break
+            long read_n = dos.Read(file, &copy_buffer, chunk)
+            if read_n != chunk {
+                txt.print("\ncannot read input\n")
+                void dos.Close(outfile)
+                return false
+            }
+            wavfile.convert_16bit_mono(&copy_buffer, (read_n / 2) as long)
+            long write_n = dos.Write(outfile, &copy_buffer, read_n)
+            if write_n != read_n {
+                txt.print("\ncannot write output\n")
+                void dos.Close(outfile)
+                return false
+            }
+            done += write_n
+            txt.chrout('.')
+        }
+        txt.nl()
+        txt.print("done, wrote ")
+        txt.print_l(done)
+        txt.print(" bytes to out.pcm\n")
+        void dos.Close(outfile)
+        return true
+    }
+
+    ; ---------- 16-bit PCM stereo ----------
+    sub convert_pcm_16_stereo(pointer file) -> bool {
+        ; deinterleave + byte-swap into left/right buffers
+        pointer outl = dos.Open("out_left.pcm", dos.MODE_NEWFILE)
+        if outl==0 {
+            txt.print("cannot create out_left.pcm\n")
+            return false
+        }
+        pointer outr = dos.Open("out_right.pcm", dos.MODE_NEWFILE)
+        if outr==0 {
+            txt.print("cannot create out_right.pcm\n")
+            void dos.Close(outl)
+            return false
+        }
+        txt.print("converting 16-bit stereo PCM...\n")
+        long total_frames = wavfile.data_size / 4 as long
+        long done_frames = 0
+        while done_frames < total_frames {
+            long frames = (total_frames - done_frames)
+            long limit = BUFFERSIZE / 4
+            if frames > limit
+                frames = limit
+            long bytes = frames * 4
+            long read_n = dos.Read(file, &copy_buffer, bytes)
+            if read_n != bytes {
+                txt.print("\ncannot read input\n")
+                void dos.Close(outl)
+                void dos.Close(outr)
+                return false
+            }
+            wavfile.convert_16bit_stereo(&copy_buffer, &left_buffer, &right_buffer, frames)
+            long wl = dos.Write(outl, &left_buffer, frames * 2)
+            long wr = dos.Write(outr, &right_buffer, frames * 2)
+            if wl != frames * 2 or wr != frames * 2 {
+                txt.print("\ncannot write output\n")
+                void dos.Close(outl)
+                void dos.Close(outr)
+                return false
+            }
+            done_frames += frames
+            txt.chrout('.')
+        }
+        txt.nl()
+        txt.print("done, wrote ")
+        txt.print_l(done_frames)
+        txt.print(" frames to out_left.pcm / out_right.pcm\n")
+        void dos.Close(outl)
+        void dos.Close(outr)
+        return true
+    }
+
+    ; ---------- DVI/IMA ADPCM mono ----------
+    sub convert_adpcm_mono(pointer file) -> bool {
         if wavfile.block_align != ADPCM_BLOCK_SIZE {
             txt.print("error: ADPCM block size must be 256 bytes\n")
             return false
         }
-        if wavfile.nchannels != 1 and wavfile.nchannels != 2 {
-            txt.print("error: only mono and stereo ADPCM are supported\n")
-            return false
-        }
-
         long blocks = wavfile.data_size / ADPCM_BLOCK_SIZE as long
         long remainder = wavfile.data_size % ADPCM_BLOCK_SIZE as long
         if remainder != 0 {
-            ; the decoder only handles full blocks; drop the partial final block
             txt.print("note: skipping partial final block of ")
             txt.print_l(remainder)
             txt.print(" bytes\n")
         }
-        long pcm_data_size
-        if wavfile.nchannels == 1
-            pcm_data_size = blocks * 1010 as long
-        else
-            pcm_data_size = blocks * 996 as long
+        long pcm_data_size = blocks * 1010 as long
 
-        ; write a standard PCM wav header (sizes patched after decoding)
-        write_pcm_header(pcm_data_size)
-        if dos.Write(outfile, &wav_buffer, 44 as long) != 44 {
-            txt.print("cannot write the output header\n")
+        pointer outfile = dos.Open("out.pcm", dos.MODE_NEWFILE)
+        if outfile==0 {
+            txt.print("cannot create out.pcm\n")
             return false
         }
-
-        ; seek to the start of the ADPCM data
-        if dos.Seek(file, wavfile.data_offset, dos.OFFSET_BEGINNING) < 0 {
-            txt.print("cannot seek to the ADPCM data\n")
-            return false
-        }
-
         txt.print("decoding ")
         txt.print_l(blocks)
         txt.print(" ADPCM blocks...\n")
@@ -143,35 +335,30 @@ main {
             long read_n = dos.Read(file, &copy_buffer, chunk)
             if read_n != chunk {
                 txt.print("\nerror reading ADPCM chunk\n")
+                void dos.Close(outfile)
                 return false
             }
             long blocks_in_chunk = chunk / (ADPCM_BLOCK_SIZE as long)
             long block_in_chunk = 0
             pointer chunkptr = &copy_buffer
             while block_in_chunk < blocks_in_chunk {
-                long decoded_size
-                if wavfile.nchannels == 1
-                    decoded_size = 1010 as long
-                else
-                    decoded_size = 996 as long
+                long decoded_size = 1010 as long
                 if output_offset + decoded_size > OUTPUT_BUFFERSIZE {
                     long write_n = dos.Write(outfile, &output_buffer, output_offset)
                     txt.chrout('.')
                     txt.flush()
                     if write_n != output_offset {
                         txt.print("\nerror writing the output file\n")
+                        void dos.Close(outfile)
                         return false
                     }
                     total_written += write_n
                     output_offset = 0
                     outputptr = &output_buffer
                 }
-                if wavfile.nchannels == 1
-                    adpcm.decode_block_mono(chunkptr, outputptr)
-                else
-                    adpcm.decode_block_stereo(chunkptr, outputptr)
-                ; the decoder produces big-endian samples; wav needs little-endian
-                swap_sample_bytes(outputptr, decoded_size as uword)
+                adpcm.decode_block_mono(chunkptr, outputptr)
+                ; decoder produces big-endian 16-bit; convert to native order
+                wavfile.convert_16bit_mono(outputptr, (decoded_size / 2) as long)
                 output_offset += decoded_size
                 outputptr += decoded_size
                 chunkptr += ADPCM_BLOCK_SIZE as long
@@ -183,150 +370,103 @@ main {
             long flush_n = dos.Write(outfile, &output_buffer, output_offset)
             if flush_n != output_offset {
                 txt.print("\nerror writing the output file\n")
+                void dos.Close(outfile)
                 return false
             }
             total_written += flush_n
         }
         txt.nl()
-
         if total_written != pcm_data_size {
             txt.print("warning: decoded size mismatch\n")
         }
-
-        if not patch_header_sizes(outfile, 36 as long + total_written, total_written)
-            return false
-
         txt.print("done, wrote ")
         txt.print_l(total_written)
-        txt.print(" bytes of decoded PCM to out.wav\n")
+        txt.print(" bytes to out.pcm\n")
+        void dos.Close(outfile)
         return true
     }
 
-    sub convert_pcm(pointer file, pointer outfile) -> bool {
-        ; For PCM input, the sample data is already in the right format.
-        ; Write a minimal PCM header and copy only the sample data, then patch
-        ; the header sizes to match the amount of data actually written.
-        write_pcm_header(wavfile.data_size)
-        if dos.Write(outfile, &wav_buffer, 44 as long) != 44 {
-            txt.print("cannot write the output header\n")
+    ; ---------- DVI/IMA ADPCM stereo ----------
+    sub convert_adpcm_stereo(pointer file) -> bool {
+        if wavfile.block_align != ADPCM_BLOCK_SIZE {
+            txt.print("error: ADPCM block size must be 256 bytes\n")
             return false
         }
-
-        if dos.Seek(file, wavfile.data_offset, dos.OFFSET_BEGINNING) < 0 {
-            txt.print("cannot seek to the PCM data\n")
+        if wavfile.nchannels != 2 {
+            txt.print("error: expected stereo ADPCM\n")
             return false
         }
+        long blocks = wavfile.data_size / ADPCM_BLOCK_SIZE as long
+        long remainder = wavfile.data_size % ADPCM_BLOCK_SIZE as long
+        if remainder != 0 {
+            txt.print("note: skipping partial final block of ")
+            txt.print_l(remainder)
+            txt.print(" bytes\n")
+        }
+        long pcm_data_size = blocks * 996 as long
 
-        txt.print("copying PCM data...\n")
+        pointer outl = dos.Open("out_left.pcm", dos.MODE_NEWFILE)
+        if outl==0 {
+            txt.print("cannot create out_left.pcm\n")
+            return false
+        }
+        pointer outr = dos.Open("out_right.pcm", dos.MODE_NEWFILE)
+        if outr==0 {
+            txt.print("cannot create out_right.pcm\n")
+            void dos.Close(outl)
+            return false
+        }
+        txt.print("decoding ")
+        txt.print_l(blocks)
+        txt.print(" ADPCM blocks...\n")
         long total_written = 0
-        while total_written < wavfile.data_size {
-            long chunk = wavfile.data_size - total_written
+        long output_offset = 0
+        pointer outputptr = &output_buffer
+        long remaining = wavfile.data_size
+        while remaining > 0 {
+            long chunk = remaining
             if chunk > BUFFERSIZE
                 chunk = BUFFERSIZE
             long read_n = dos.Read(file, &copy_buffer, chunk)
-            if read_n<=0 {
-                txt.print("\ncannot read the input file\n")
+            if read_n != chunk {
+                txt.print("\nerror reading ADPCM chunk\n")
+                void dos.Close(outl)
+                void dos.Close(outr)
                 return false
             }
-            long write_n = dos.Write(outfile, &copy_buffer, read_n)
-            if write_n != read_n {
-                txt.print("\ncannot write the output file\n")
-                return false
+            long blocks_in_chunk = chunk / (ADPCM_BLOCK_SIZE as long)
+            long block_in_chunk = 0
+            pointer chunkptr = &copy_buffer
+            while block_in_chunk < blocks_in_chunk {
+                long decoded_size = 996 as long
+                adpcm.decode_block_stereo(chunkptr, &output_buffer)
+                ; decoder produces big-endian 16-bit; convert to native order
+                ; and deinterleave into left/right buffers
+                wavfile.convert_16bit_stereo(&output_buffer, &left_buffer, &right_buffer, (decoded_size / 4) as long)
+                long half = decoded_size / 2 as long
+                long wl = dos.Write(outl, &left_buffer, half)
+                long wr = dos.Write(outr, &right_buffer, half)
+                if wl != half or wr != half {
+                    txt.print("\nerror writing the output file\n")
+                    void dos.Close(outl)
+                    void dos.Close(outr)
+                    return false
+                }
+                total_written += half
+                chunkptr += ADPCM_BLOCK_SIZE as long
+                block_in_chunk++
+                txt.chrout('.')
+                txt.flush()
             }
-            total_written += write_n
-            txt.chrout('.')
+            remaining -= chunk
         }
         txt.nl()
-
-        if not patch_header_sizes(outfile, 36 as long + total_written, total_written)
-            return false
-
-        txt.print("done, copied ")
+        txt.print("done, wrote ")
         txt.print_l(total_written)
-        txt.print(" bytes of PCM to out.wav\n")
+        txt.print(" bytes per channel to out_left.pcm / out_right.pcm\n")
+        void dos.Close(outl)
+        void dos.Close(outr)
         return true
-    }
-
-    sub swap_sample_bytes(pointer buf, uword length) {
-        ; swap the bytes of every 16-bit word in the buffer (big-endian to little-endian)
-        uword i
-        for i in 0 to length-1 step 2 {
-            ubyte tmp = buf[i]
-            buf[i] = buf[i+1]
-            buf[i+1] = tmp
-        }
-    }
-
-    sub patch_header_sizes(pointer outfile, long riff_size, long data_size) -> bool {
-        ; patch the RIFF size field at offset 4
-        write_le4(&wav_buffer, riff_size, 0)
-        if dos.Seek(outfile, 4 as long, dos.OFFSET_BEGINNING) < 0 {
-            txt.print("cannot seek in the output file\n")
-            return false
-        }
-        if dos.Write(outfile, &wav_buffer, 4 as long) != 4 {
-            txt.print("cannot update the output header\n")
-            return false
-        }
-        ; patch the data chunk size field at offset 40
-        write_le4(&wav_buffer, data_size, 0)
-        if dos.Seek(outfile, 40 as long, dos.OFFSET_BEGINNING) < 0 {
-            txt.print("cannot seek in the output file\n")
-            return false
-        }
-        if dos.Write(outfile, &wav_buffer, 4 as long) != 4 {
-            txt.print("cannot update the output header\n")
-            return false
-        }
-        return true
-    }
-
-    sub write_pcm_header(long data_size) {
-        ; create a standard 44-byte raw PCM wav header in wav_buffer:
-        ; "RIFF", size, "WAVE", "fmt ", 16, format=PCM(1), channels, sample rate,
-        ; byte rate, block align, bits per sample, "data", data size
-        wav_buffer[0] = iso:'R'
-        wav_buffer[1] = iso:'I'
-        wav_buffer[2] = iso:'F'
-        wav_buffer[3] = iso:'F'
-        wav_buffer[8] = iso:'W'
-        wav_buffer[9] = iso:'A'
-        wav_buffer[10] = iso:'V'
-        wav_buffer[11] = iso:'E'
-        wav_buffer[12] = iso:'f'
-        wav_buffer[13] = iso:'m'
-        wav_buffer[14] = iso:'t'
-        wav_buffer[15] = iso:' '
-        wav_buffer[36] = iso:'d'
-        wav_buffer[37] = iso:'a'
-        wav_buffer[38] = iso:'t'
-        wav_buffer[39] = iso:'a'
-
-        uword pcm_block_align = (wavfile.nchannels as uword) * (wavfile.bits_per_sample as uword / 8)
-
-        write_le4(&wav_buffer, 36 as long + data_size, 4)            ; RIFF size
-        write_le2(&wav_buffer, 16, 16)                               ; fmt chunk size
-        write_le2(&wav_buffer, 1, 20)                                ; audio format = PCM
-        write_le2(&wav_buffer, wavfile.nchannels as uword, 22)       ; channels
-        write_le4(&wav_buffer, wavfile.sample_rate as long, 24)      ; sample rate
-        write_le4(&wav_buffer, (wavfile.sample_rate as long) * (pcm_block_align as long), 28)   ; byte rate
-        write_le2(&wav_buffer, pcm_block_align, 32)                  ; block align
-        write_le2(&wav_buffer, wavfile.bits_per_sample as uword, 34) ; bits per sample
-        write_le4(&wav_buffer, data_size, 40)                        ; data chunk size
-    }
-
-    sub write_le2(pointer buf, uword value, uword offset) {
-        ; write a 16-bit little-endian value into memory
-        buf[offset] = value as ubyte
-        buf[offset+1] = (value >> 8) as ubyte
-    }
-
-    sub write_le4(pointer buf, long value, uword offset) {
-        ; write a 32-bit little-endian value into memory
-        buf[offset] = value as ubyte
-        buf[offset+1] = (value >> 8) as ubyte
-        buf[offset+2] = (value >> 16) as ubyte
-        buf[offset+3] = (value >> 24) as ubyte
     }
 
     sub print_header_info() {
