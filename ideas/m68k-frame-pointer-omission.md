@@ -1,10 +1,16 @@
-# M68K frame-pointer omission
+# M68K frame-pointer omission [PARTLY IMPLEMENTED]
+
+**Status: partly implemented - phase 1 of 2.** Phase 1 (restricted scope: zero
+locals/spills, stack-passed arguments only, no callee-saved registers, no
+hand-written A5 references) is done and shipped in the M68K backend. Phase 2
+(lifting the no-callee-saved restriction by tracking the movem save size) is
+documented below as a possible but tricky improvement and is not implemented.
 
 ## Problem
 
 The Prog8 M68K backend currently sets up an `A5` frame pointer in every subroutine, even when it is not needed. vbcc (and most M68K compilers) default to SP-relative locals and only use a frame pointer when asked with `-use-framepointer`.
 
-For example, `p8b_wavfile.p8s_read_le_word` in `wavc` currently emits:
+For example, `p8b_wavfile.p8s_read_le_word` in `wavc` before phase 1 emitted:
 
 ```asm
 p8b_wavfile.p8s_read_le_word:
@@ -104,4 +110,20 @@ The right place is the code generator, which already knows the frame layout.
 
 ## Status
 
-Not yet implemented.
+Step 1 implemented (restricted scope): subroutines with zero locals/spills, stack-passed
+arguments only, no callee-saved registers and no hand-written A5 references omit the
+`link`/`unlk` pair and address their incoming arguments relative to `SP` (offset
+`INCOMING_BASE - 4`, i.e. 4(sp) for the first argument). `framePointerOmitted` is
+stamped on `IRSubroutine` by the M68K backend after register allocation, so the
+decision can take the final callee-saved set into account. `read_le_word` in `wavc`
+is the reference case and now emits `move.l 4(sp),a2` with no frame setup.
+
+Step 2 (possible but tricky improvement): lift the "no callee-saved registers"
+restriction by tracking the movem save size and adding it to every incoming-arg
+offset (so args live at `4 + movemSize(sp)`). This needs (a) computing the movem
+byte size from `currentSubCalleeSaved` before emitting incoming-arg references,
+(b) threading that delta through `resolveMemoryBase` and any other place that
+formats a `FrameSlot` as text, and (c) keeping the offset arithmetic in range.
+The restricted scope already covers the bulk of leaf helpers; step 2 mainly
+benefits helpers that save one or two registers. Defer until profiling shows it
+matters.

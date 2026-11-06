@@ -62,6 +62,21 @@ class M68kCodeGenerator(val retainSSA: Boolean): ICodeGeneratorBackend {
             allocation
         }
 
+        // Step 1 of frame-pointer omission: mark leaf-ish framed subroutines (no locals/spills,
+        // stack-passed arguments only, no callee-saved registers, no hand-written A5 references)
+        // so AsmGen skips the link/unlk pair and addresses incoming arguments relative to SP.
+        // Subroutines that gain callee-saved registers during allocation keep their frame.
+        for (sub in irProgram.allSubs()) {
+            val calleeSaved = allocation.calleeSavedBySub[sub] ?: emptySet()
+            val hasA5Asm = sub.chunks.filterIsInstance<IRInlineAsmChunk>().any {
+                StackFrameLayout.asmWritesFramePointerRegister(it.assembly)
+            }
+            if (sub.hasFrame && sub.frameSize == 0 && sub.incomingSize > 0 &&
+                sub.frameVregSlots.isEmpty() && !sub.noframe && calleeSaved.isEmpty() && !hasA5Asm) {
+                sub.framePointerOmitted = true
+            }
+        }
+
         IRFileWriter(irProgram, null).write()
 
         // Aggregate register-allocation statistics (printed for every m68k compile, unless quiet).

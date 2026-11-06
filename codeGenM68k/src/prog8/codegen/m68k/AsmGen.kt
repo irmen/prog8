@@ -367,6 +367,7 @@ internal class AsmGen(val program: IRProgram, internal val target: ICompilationT
     // true while emitting a subroutine that has a frame (local area and/or incoming argument
     // area); the return translation emits `unlk a5` before each rts when this is set.
     internal var frameActive = false
+    internal var framePointerOmitted = false
 
     // the code chunks of the subroutine currently being emitted, to tell a jump that stays
     // inside it apart from one that leaves it
@@ -777,9 +778,10 @@ internal class AsmGen(val program: IRProgram, internal val target: ICompilationT
         val resolved = when (base) {
             // combine slot offset and reference displacement into a single a5-relative displacement
             is AddressBase.FrameSlot -> {
-                val total = base.offset + displacement
+                val adjustedOffset = if (framePointerOmitted) base.offset - 4 else base.offset
+                val total = adjustedOffset + displacement
                 if (total !in -32768..32767) error("frame displacement $total out of 16-bit range")
-                return "$total(a5)"
+                return if (framePointerOmitted) "$total(sp)" else "$total(a5)"
             }
             is AddressBase.Symbol -> resolveSymbolRef(base.name)
             is AddressBase.Absolute -> base.address.value.toHex()
@@ -1118,7 +1120,8 @@ internal class AsmGen(val program: IRProgram, internal val target: ICompilationT
         val entrypointNames = setOf("p8b_main.p8s_start", "main.start")
         if(sub.label in entrypointNames)
             emitLine("bsr  run_global_inits")
-        frameActive = sub.hasFrame
+        frameActive = sub.hasFrame && !sub.framePointerOmitted
+        framePointerOmitted = sub.framePointerOmitted
         frameVregSlots = sub.frameVregSlots
         currentSubCalleeSaved = calleeSavedBySub[sub] ?: emptySet()
         // Swap in this sub's allocation and type maps: vreg numbers (and the d0 cache) may be reused across subs.
@@ -1135,10 +1138,12 @@ internal class AsmGen(val program: IRProgram, internal val target: ICompilationT
         }
         invalidateD0Cache()
         currentSubChunks = mutableSetOf<IRCodeChunkBase>().also { set -> sub.forEachChunk { set.add(it) } }
-        if (sub.hasFrame) {
+        if (sub.hasFrame && !sub.framePointerOmitted) {
             emitRaw("; stack frame: ${sub.frameSize} bytes of locals, ${sub.incomingSize} bytes of arguments")
             emitLine(if (sub.frameSize > 0) "link  a5,#-${sub.frameSize}" else "link  a5,#0")
             reportFrameSize(sub)
+        } else if (sub.framePointerOmitted) {
+            emitRaw("; stack frame: frame pointer omitted; incoming args addressed relative to SP")
         }
         emitCalleeSave()
         val livenessInstructions = sub.chunks.filterIsInstance<IRCodeChunk>().flatMap { it.instructions }
@@ -1173,6 +1178,7 @@ internal class AsmGen(val program: IRProgram, internal val target: ICompilationT
         emitRaw("; End of subroutine: $subLabel")
         emitRaw("")
         frameActive = false
+        framePointerOmitted = false
         frameVregSlots = emptyMap()
         currentSubChunks = emptySet()
         currentSubCalleeSaved = emptySet()

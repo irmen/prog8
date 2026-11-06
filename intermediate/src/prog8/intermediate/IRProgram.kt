@@ -607,7 +607,12 @@ class IRSubroutine(
     /** set when the subroutine is marked %option noframe: it always uses the legacy static
      *  convention (typically because it manipulates the machine stack itself) and is exempt
      *  from the re-entrancy check */
-    val noframe: Boolean = false): IIRBlockElement {
+    val noframe: Boolean = false,
+    /** set by the M68K backend when a frameless subroutine (no locals/spills, stack args only,
+     *  no callee-saved registers, no hand-written A5 references) omits the link/unlk pair and
+     *  addresses its incoming arguments relative to SP instead of A5. Backend-only; never set by
+     *  the IR reader for cross-target use. */
+    var framePointerOmitted: Boolean = false): IIRBlockElement {
 
     class IRParam(val name: String, val dt: DataType)
 

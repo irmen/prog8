@@ -154,6 +154,8 @@ class IRFileWriter(private val irProgram: IRProgram, outfileOverride: Path?) {
                             xml.writeAttribute("VREGSLOTS", child.frameVregSlots.entries.joinToString(",") { "${it.key}:${it.value}" })
                         if (child.noframe)
                             xml.writeAttribute("NOFRAME", "true")
+                        if (child.framePointerOmitted)
+                            xml.writeAttribute("OMITFP", "true")
                         xml.writeCharacters("\n")
                         xml.writeStartElement("PARAMS")
                         xml.writeCharacters("\n")

@@ -55,6 +55,9 @@ class StackFrameLayout(
     )
 
     companion object {
+        /** Public entry point so the M68K backend can reuse the same A5-write detection. */
+        fun asmWritesFramePointerRegister(asm: String): Boolean = writesFramePointerRegister(asm)
+
         const val MAX_FRAME_SIZE = 16384      // §3: per-frame limit, far below the 16-bit displacement range
 
         /** virtual register numbers from here on are reserved for the runtime and cannot be relocated */
@@ -263,65 +266,6 @@ class StackFrameLayout(
                 reaching += label
         }
         return reaching
-    }
-
-    /**
-     * True when the assembly text writes to A5 without protecting the caller's frame pointer, in a
-     * form this textual check recognises: as the destination operand of an instruction, as the frame
-     * register of a `link`, or anywhere in a `movem` register list (whose mask syntax is not parsed
-     * here). The usual `move.l a5,-(sp)` ... `move.l (sp)+,a5` prologue/epilogue pair is recognised
-     * as balanced and does not count; a write in between does.
-     *
-     * The scan is linear and ignores branches, so a subroutine that saves A5 on one path and
-     * overwrites it on another is reported conservatively as a clobber. Being over-cautious only
-     * costs the calling subroutine its stack frame (it keeps the static convention instead).
-     */
-    private fun writesFramePointerRegister(asm: String): Boolean {
-        var saved = false
-        for (rawLine in asm.lines()) {
-            // drop comments and a leading label, so a labelled instruction is still examined
-            val line = rawLine.substringBefore(';')
-                .replace(asmLabelPrefix, "")
-                .trim().replace(asmWhitespaceRun, " ")
-            if (line.isEmpty() || line.startsWith('.'))    // equates and directives
-                continue
-            val words = line.split(' ')
-            val mnemonic = words[0].lowercase()
-            val operands = words.drop(1).joinToString(",").split(',')
-            if (operands.any { it.isEmpty() })
-                continue
-            if (mnemonic.startsWith("movem")) {
-                val pushes = operands.last().lowercase() == "-(sp)"
-                val mentionsA5 = operands.any { it.lowercase().contains("a5") }
-                if (pushes && mentionsA5) {
-                    saved = true
-                    continue
-                }
-                if (!pushes && operands.first().lowercase() == "(sp)+" && mentionsA5) {
-                    saved = false
-                    continue
-                }
-                if (mentionsA5 && !saved)
-                    return true
-                continue
-            }
-            if (mnemonic == "link" && operands[0].lowercase().removePrefix("-") == "a5")
-                return true
-            val source = operands.first().lowercase()
-            val destination = operands.last().lowercase()
-            val writesA5 = destination == "a5" || destination == "-a5"
-            if (destination == "-(sp)" && source == "a5") {
-                saved = true
-                continue
-            }
-            if (source == "(sp)+" && writesA5 && operands.size == 2) {
-                saved = false
-                continue
-            }
-            if (writesA5 && !saved)
-                return true
-        }
-        return false
     }
 
     /**
@@ -1526,4 +1470,55 @@ class StackFrameLayout(
             else -> null
         }
     }
+}
+
+
+fun writesFramePointerRegister(asm: String): Boolean {
+    var saved = false
+    for (rawLine in asm.lines()) {
+        // drop comments and a leading label, so a labelled instruction is still examined
+        val line = rawLine.substringBefore(';')
+            .replace(asmLabelPrefix, "")
+            .trim().replace(asmWhitespaceRun, " ")
+        if (line.isEmpty() || line.startsWith('.'))    // equates and directives
+            continue
+        val words = line.split(' ')
+        val mnemonic = words[0].lowercase()
+        val operands = words.drop(1).joinToString(",").split(',')
+        if (operands.any { it.isEmpty() })
+            continue
+        if (mnemonic.startsWith("movem")) {
+            val pushes = operands.last().lowercase() == "-(sp)"
+            val mentionsA5 = operands.any { it.lowercase().contains("a5") }
+            if (pushes && mentionsA5) {
+                saved = true
+                continue
+            }
+            if (!pushes && operands.first().lowercase() == "(sp)+" && mentionsA5) {
+                saved = false
+                continue
+            }
+            if (mentionsA5 && !saved)
+                return true
+            continue
+        }
+        if (mnemonic == "exg" && operands.any { it.lowercase() == "a5" })
+            return true
+        if (mnemonic == "link" && operands[0].lowercase().removePrefix("-") == "a5")
+            return true
+        val source = operands.first().lowercase()
+        val destination = operands.last().lowercase()
+        val writesA5 = destination == "a5" || destination == "-a5"
+        if (destination == "-(sp)" && source == "a5") {
+            saved = true
+            continue
+        }
+        if (source == "(sp)+" && writesA5 && operands.size == 2) {
+            saved = false
+            continue
+        }
+        if (writesA5 && !saved)
+            return true
+    }
+    return false
 }

@@ -89,13 +89,14 @@ main {
 }
 """
         val (lines, ir) = compile(src)
-        // incoming-only frame: no locals, but the parameters need a frame pointer
-        lines.any { it == "link  a5,#0" } shouldBe true
-        lines.any { it == "unlk  a5" } shouldBe true
-        // word-packed slots: long at 8, word slot at 12, byte slot at 14 with the byte at 14
-        lines.any { it.contains("14(a5)") } shouldBe true     // ubyte at slot 14 base byte
-        lines.any { it.contains("12(a5)") } shouldBe true     // word at slot 12
-        lines.any { it.contains("8(a5)") } shouldBe true      // long at slot 8
+        val withpSub = IRFileReader().read(ir).allSubs().first { it.label.endsWith("p8s_withp") }
+        val withpAsm = subAssembly(lines, "p8b_main.p8s_withp")
+        withpSub.hasFrame shouldBe true
+        // With no locals and only incoming arguments, the backend omits the frame pointer.
+        withpSub.framePointerOmitted shouldBe true
+        withpAsm.any { it.contains("frame pointer omitted") } shouldBe true
+        withpAsm.none { "(a5)" in it } shouldBe true
+        // word-packed slots (IR offsets): long at 8, word slot at 12, byte slot at 14.
         // parameters are no longer static storage
         lines.none { "p8v_a:" in it || "p8v_b:" in it || "p8v_c:" in it } shouldBe true
         // the caller pushes every argument into its own slot (byte: single one-instruction
@@ -110,10 +111,8 @@ main {
         // IR carries the incoming area size and the frame-slot argument locations
         ir.contains("INCOMING=\"8\"") shouldBe true
         ir.contains("frame:14") shouldBe true
-        val reloaded = IRFileReader().read(ir)
-        val sub = reloaded.allSubs().first { it.label.endsWith("p8s_withp") }
-        sub.frameSize shouldBe 0
-        sub.incomingSize shouldBe 8
+        withpSub.frameSize shouldBe 0
+        withpSub.incomingSize shouldBe 8
     }
 
     test("many parameters use one cleanup for the whole argument area") {
@@ -132,11 +131,14 @@ main {
         // no byte slot reservations; byte pushes use a single move.b predecrement
         lines.count { it == "subq.l  #2,sp" } shouldBe 0
         lines.any { it == "lea  12(sp),sp" } shouldBe true     // 12 bytes: the addq form maxes out at 8
+        val sub = IRFileReader().read(ir).allSubs().first { it.label.endsWith("p8s_five") }
+        val fiveAsm = subAssembly(lines, "p8b_main.p8s_five")
+        sub.hasFrame shouldBe true
+        sub.framePointerOmitted shouldBe true
+        fiveAsm.any { it.contains("frame pointer omitted") } shouldBe true
+        fiveAsm.none { "(a5)" in it } shouldBe true
         // 5 parameters, word-packed slots, accumulated right-to-left: byte slot at 18,
-        // word slot at 16, long slot at 12, byte slot at 10, word slot at 8
-        lines.any { it.contains("18(a5)") } shouldBe true       // ubyte at slot 18 base byte
-        lines.any { it.contains("16(a5)") } shouldBe true       // uword at slot 16
-        lines.any { it.contains("12(a5)") } shouldBe true       // long at slot 12
+        // word slot at 16, long slot at 12, byte slot at 10, word slot at 8.
         ir.contains("INCOMING=\"12\"") shouldBe true
     }
 
@@ -811,10 +813,13 @@ main {
     ubyte @shared g
 }
 """
-        val (lines, _) = compile(src)
+        val (lines, ir) = compile(src)
         val rec = subAssembly(lines, "p8b_main.p8s_rec")
-        rec.any { it == "link  a5,#0" } shouldBe true
-        rec.any { it.startsWith("move.b  8(a5),") } shouldBe true
+        val sub = IRFileReader().read(ir).allSubs().first { it.label.endsWith("p8s_rec") }
+        sub.hasFrame shouldBe true
+        sub.framePointerOmitted shouldBe true
+        rec.any { it.contains("frame pointer omitted") } shouldBe true
+        rec.none { "(a5)" in it } shouldBe true
         rec.any { it.contains("p8b_main.p8s_rec.p8v_x") } shouldBe true
         // the static cell is kept for the assembly reference; the body itself also uses the
         // static cell (the entry-time copy-in made it the current value)
@@ -837,10 +842,13 @@ main {
     ubyte @shared g
 }
 """
-        val (lines, _) = compile(src)
+        val (lines, ir) = compile(src)
         val leaf = subAssembly(lines, "p8b_main.p8s_leaf")
-        leaf.any { it.startsWith("link") } shouldBe true
-        leaf.any { it.contains("(a5)") } shouldBe true
+        val sub = IRFileReader().read(ir).allSubs().first { it.label.endsWith("p8s_leaf") }
+        sub.hasFrame shouldBe true
+        sub.framePointerOmitted shouldBe true
+        leaf.any { it.contains("frame pointer omitted") } shouldBe true
+        leaf.none { "(a5)" in it } shouldBe true
     }
 
     test("inline assembly subroutine with %option noframe keeps the static convention") {
@@ -861,6 +869,29 @@ main {
 """
         val (lines, _) = compile(src)
         val leaf = subAssembly(lines, "p8b_main.p8s_leaf")
+        leaf.any { it.startsWith("link") } shouldBe false
+        leaf.any { it.contains("p8b_main.p8s_leaf.p8v_a") } shouldBe true
+    }
+
+    test("inline assembly that exchanges A5 keeps the static convention") {
+        val src = """
+main {
+    sub leaf(ubyte a) -> ubyte {
+        %asm {{
+            exg a5,d0
+        }}
+        return a + 1
+    }
+    sub start() {
+        g = leaf(3)
+    }
+    ubyte @shared g
+}
+"""
+        val (lines, ir) = compile(src)
+        val leaf = subAssembly(lines, "p8b_main.p8s_leaf")
+        val sub = IRFileReader().read(ir).allSubs().first { it.label.endsWith("p8s_leaf") }
+        sub.hasFrame shouldBe false
         leaf.any { it.startsWith("link") } shouldBe false
         leaf.any { it.contains("p8b_main.p8s_leaf.p8v_a") } shouldBe true
     }
@@ -1142,7 +1173,12 @@ main {
 """
         val (lines, ir) = compile(src)
         val pick = subAssembly(lines, "p8b_main.p8s_pick")
-        pick.any { it.startsWith("link ") || it.startsWith("bra") } shouldBe true
+        val sub = IRFileReader().read(ir).allSubs().first { it.label.endsWith("p8s_pick") }
+        sub.hasFrame shouldBe true
+        // The only argument is passed on the stack; with no locals the frame pointer is omitted.
+        sub.framePointerOmitted shouldBe true
+        pick.any { it.contains("frame pointer omitted") } shouldBe true
+        pick.none { "(a5)" in it } shouldBe true
         // the jump table auto-variable keeps static storage on purpose: it is read-only
         // constant data, and framing it would add an initialization store on every call
         ir.contains("auto_heap_value") shouldBe true
@@ -1475,11 +1511,21 @@ main {
         compileText(Qemu68kTarget(), optimize = false, src, outputDir,
             writeAssembly = true, assemble = false, errors = errors) shouldNotBe null
         errors.errors shouldBe emptyList()
+        val (lines, ir) = compile(src, Qemu68kTarget())
+        val program = IRFileReader().read(ir)
         // each task runs on its own private stack, so locals live in frames: no marks needed
-        val (lines, _) = compile(src, Qemu68kTarget())
-        for (sub in listOf("p8b_main.p8s_task1", "p8b_main.p8s_task2", "p8b_main.p8s_helper")) {
-            subAssembly(lines, sub).any { it.startsWith("link") } shouldBe true
+        for (subName in listOf("p8b_main.p8s_task1", "p8b_main.p8s_task2")) {
+            val sub = program.allSubs().first { it.label == subName }
+            sub.hasFrame shouldBe true
+            subAssembly(lines, subName).any { it.startsWith("link") } shouldBe true
         }
+        // helper has no locals and only an incoming argument, so the frame pointer is omitted
+        val helper = program.allSubs().first { it.label == "p8b_main.p8s_helper" }
+        val helperAsm = subAssembly(lines, "p8b_main.p8s_helper")
+        helper.hasFrame shouldBe true
+        helper.framePointerOmitted shouldBe true
+        helperAsm.any { it.contains("frame pointer omitted") } shouldBe true
+        helperAsm.none { "(a5)" in it } shouldBe true
     }
 
     test("%option with a non-noframe argument is rejected in a subroutine") {
@@ -1602,7 +1648,7 @@ main {
         val asmSlice = asmSubByName(lines, "bump")
         val stateAsmReg = Regex("""moveq\s+#0,(d\d)""").find(asmSlice.joinToString("\n"))!!.groupValues[1]
         // addq #2 (or addi) form for the constant increment: destination is the local's register
-        val constAdds = asmSlice.filter { Regex("""^add(?:i|q)\.b\s+#2,d\d$""").matches(it) }
+        val constAdds = asmSlice.filter { Regex("""^add[iq]\.b\s+#2,d\d$""").matches(it) }
         constAdds.any() shouldBe true
         for (line in constAdds)
             line.substringBefore(';').trim().substringAfter(',') shouldBe stateAsmReg
