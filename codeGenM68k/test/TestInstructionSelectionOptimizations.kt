@@ -2038,95 +2038,6 @@ class TestInstructionSelectionOptimizations : FunSpec({
         lines.any { it.trim() == "or.b  d5,d4" } shouldBe true
     }
 
-    // === A6 zero-extend peephole ===
-
-    test("A6 rewrites move.b+and.l zero-extension to moveq+move.b") {
-        val lines = mutableListOf(
-            "    move.b  (a5),d0",
-            "    and.l   #\$ff,d0",
-            "    move.l  d0,d2",
-            "    rts"
-        )
-        optimizeAssembly(lines)
-        lines.count { it.trimStart() == "moveq  #0,d0" } shouldBe 1
-        lines.count { it.trimStart() == "move.b  (a5),d0" } shouldBe 1
-        lines.count { it.contains("and.l") } shouldBe 0
-    }
-
-    test("A6 does not rewrite when an N-sensitive branch follows") {
-        val lines = mutableListOf(
-            "    move.b  (a5),d0",
-            "    and.l   #\$ff,d0",
-            "    bmi     somewhere",
-            "    rts"
-        )
-        optimizeAssembly(lines)
-        lines.count { it.contains("and.l") } shouldBe 1
-        lines.count { it.contains("moveq") } shouldBe 0
-    }
-
-    test("A6 does not rewrite when flags survive across a label to a branch") {
-        val lines = mutableListOf(
-            "    move.b  (a5),d0",
-            "    and.l   #\$ff,d0",
-            ".somewhere:",
-            "    bmi     done",
-            "    rts"
-        )
-        optimizeAssembly(lines)
-        lines.count { it.contains("and.l") } shouldBe 1
-        lines.count { it.contains("moveq") } shouldBe 0
-    }
-
-    test("A6 does not rewrite when flags survive a non-flag instruction") {
-        val lines = mutableListOf(
-            "    move.b  (a5),d0",
-            "    and.l   #\$ff,d0",
-            "    movea.l #$1234,a0",
-            "    bmi     somewhere",
-            "    rts"
-        )
-        optimizeAssembly(lines)
-        lines.count { it.contains("and.l") } shouldBe 1
-        lines.count { it.contains("moveq") } shouldBe 0
-    }
-
-    test("A6 rewrites when a flag setter follows the zero-extension") {
-        val lines = mutableListOf(
-            "    move.b  (a5),d0",
-            "    and.l   #\$ff,d0",
-            "    movea.l #$1234,a0",
-            "    move.l  d0,d3",
-            "    bmi     somewhere",
-            "    rts"
-        )
-        optimizeAssembly(lines)
-        lines.count { it.trimStart() == "moveq  #0,d0" } shouldBe 1
-        lines.count { it.contains("and.l") } shouldBe 0
-    }
-
-    test("A6 handles tab-separated asm operands") {
-        val lines = mutableListOf(
-            "\tmove.b\t(a5),d0",
-            "\tand.l\t#\$ff,d0",
-            "\tmove.l\td0,d2"
-        )
-        optimizeAssembly(lines)
-        lines.count { it.trim() == "moveq  #0,d0" } shouldBe 1
-        lines.count { it.trim() == "move.b  (a5),d0" } shouldBe 1
-        lines.count { it.contains("and.l") } shouldBe 0
-    }
-
-    test("A6 does not treat symbols starting with d as data registers") {
-        val lines = mutableListOf(
-            "    move.b  (a0),data",
-            "    and.l   #\$ff,data",
-            "    rts"
-        )
-        optimizeAssembly(lines)
-        lines.count { it.contains("and.l") } shouldBe 1
-        lines.count { it.contains("moveq") } shouldBe 0
-    }
 
     // === A5 moveq word-form peephole ===
 
@@ -2338,8 +2249,9 @@ class TestInstructionSelectionOptimizations : FunSpec({
             )
         )
 
-        // the zero-extending and.w was emitted with three spaces before normalization
-        lines.any { it == "and.w  #\$ff,d0" } shouldBe true
+        // byte zero-extension is emitted directly as moveq/move.b
+        lines.any { it == "moveq  #0,d0" } shouldBe true
+        lines.any { it == "move.b  p8b_test.p8v_value,d0" } shouldBe true
         // every indented line the codegen emits starts with a lowercase mnemonic
         lines.filter { it.startsWith("    ") }.none { it[4].isUpperCase() } shouldBe true
     }

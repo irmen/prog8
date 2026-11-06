@@ -574,9 +574,9 @@ internal fun AsmGen.translateControl(insn: IRInstruction, forwardedImmediateCall
         Opcode.FFROMUB -> {
             val fpDst = insn.requireFloatDest().floatNumber
             val srcReg = insn.requireIntSourceA().intNumber
-            emitLoadD0(srcReg, IRDataType.BYTE)
-            emitLine("and.l  #\$ff, $SCRATCH_D0")
+            emitLine("moveq  #0, $SCRATCH_D0")
             invalidateD0Cache()
+            emitLoadD0(srcReg, IRDataType.BYTE)
             emitLine("fmove.l  $SCRATCH_D0, $FP_ACC")
             emitFmoveFloat(FP_ACC, floatOperand(fpDst))
         }
@@ -593,9 +593,9 @@ internal fun AsmGen.translateControl(insn: IRInstruction, forwardedImmediateCall
         Opcode.FFROMUW -> {
             val fpDst = insn.requireFloatDest().floatNumber
             val srcReg = insn.requireIntSourceA().intNumber
-            emitLoadD0(srcReg, IRDataType.WORD)
-            emitLine("and.l  #\$ffff, $SCRATCH_D0")
+            emitLine("moveq  #0, $SCRATCH_D0")
             invalidateD0Cache()
+            emitLoadD0(srcReg, IRDataType.WORD)
             emitLine("fmove.l  $SCRATCH_D0, $FP_ACC")
             emitFmoveFloat(FP_ACC, floatOperand(fpDst))
         }
@@ -621,9 +621,9 @@ internal fun AsmGen.translateControl(insn: IRInstruction, forwardedImmediateCall
             val dstReg = insn.requireIntDest().intNumber
             val fpSrc = insn.requireFloatSourceA().floatNumber
             emitFmoveFloat(floatOperand(fpSrc), FP_ACC)
+            emitLine("moveq  #0, $SCRATCH_D0")
             invalidateD0Cache()
             emitLine("fmove.b  $FP_ACC, $SCRATCH_D0")
-            emitLine("and.l  #\$ff, $SCRATCH_D0")
             emitStoreD0(dstReg, IRDataType.BYTE)
         }
 

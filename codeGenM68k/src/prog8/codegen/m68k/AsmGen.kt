@@ -277,6 +277,15 @@ internal class AsmGen(val program: IRProgram, internal val target: ICompilationT
         }
     }
 
+    // Load a value from an arbitrary address and zero-extend it into d0.
+    // Clears d0 first so the upper bits are zero; this is shorter and faster
+    // than loading and then masking on the 68000.
+    fun emitLoadD0ZeroExtendedFromAddress(address: String, srcType: IRDataType) {
+        emitLine("moveq  #0, $SCRATCH_D0")
+        invalidateD0Cache()
+        emitLine("move${dtSuffix(srcType)}  $address, $SCRATCH_D0")
+    }
+
     // Store d0 to an arbitrary address. If the address is a register-file slot,
     // update the cache; otherwise clear it.
     fun emitStoreD0ToAddress(address: String, type: IRDataType) {

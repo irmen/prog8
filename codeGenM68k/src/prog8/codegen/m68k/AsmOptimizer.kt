@@ -32,9 +32,9 @@ internal fun optimizeAssembly(lines: MutableList<String>) {
         by2 = runPass(optimizeRedundantMovePair(by2), 2, by2)
         by2 = runPass(optimizeStoreReloadToRegCopy(by2), 2, by2)
         by2 = runPass(optimizeRedundantExt(by2), 2, by2)
-        val a6Mods = optimizeByteZeroExtendSafe(lines, pretrimmed)
-        if (a6Mods.isNotEmpty()) {
-            applyModifications(a6Mods, lines, pretrimmed)
+        val loadShiftMods = optimizeByteLoadAndShift(lines, pretrimmed)
+        if (loadShiftMods.isNotEmpty()) {
+            applyModifications(loadShiftMods, lines, pretrimmed)
             modified = true
         }
         // single-line immediate-form rewrites: provably safe, no context needed.
@@ -814,68 +814,168 @@ private fun String.zeroExtendFlagDecision(): FlagDecision {
     }
 }
 
-private fun optimizeByteZeroExtendSafe(lines: List<String>, allPretrimmed: List<String>): List<Modification> {
-    //  move.b  M,dN  /  and.l  #$ff,dN  ->  moveq  #0,dN  /  move.b  M,dN
-    //  Safety: M must not use dN as an address/index register, and must be a plain operand token.
-    //  Flag safety: the rewrite changes the N flag for byte values >= 128 (move.b reflects the
-    //  byte's sign bit, and.l #$ff always leaves N=0). Scan forward along the fall-through path:
-    //  only rewrite when a flag setter replaces N before an N-sensitive reader can see it.
+/**
+ * Fold a byte zero-extend followed by a word move and a left shift by 8 into a
+ * direct byte load and shift. The zero-extend is dead because `lsl.w #8` shifts
+ * the high byte out and zeroes the low byte anyway.
+ *
+ *   move.b  M,dX  /  and.[wl]  #$ff,dX  /  move.w  dX,dY  /  lsl.w  #8,dY
+ *   moveq   #0,dX /  move.b  M,dX       /  move.w  dX,dY  /  lsl.w  #8,dY
+ * ->
+ *   move.b  M,dY  /  lsl.w  #8,dY
+ *
+ * The intermediate dX value must not be observed before it is overwritten;
+ * a short forward scan verifies this.
+ */
+private fun optimizeByteLoadAndShift(lines: List<String>, allPretrimmed: List<String>): List<Modification> {
     val filtered = allPretrimmed.withIndex()
         .filter { it.value.isNotBlank() && !it.value.trimStart().startsWith(';') }
         .map { IndexedValue(it.index, it.value.trimStart()) }
         .toList()
 
     val mods = mutableListOf<Modification>()
+    val controlTransfers = setOf(
+        "bra", "bsr", "jmp", "jsr", "rts", "rtr", "rte", "trap",
+        "dbcc", "dbcs", "dbhi", "dbhs", "dblo", "dbls", "dbne", "dbnz", "dbeq", "dbz",
+        "dbmi", "dbpl", "dbge", "dblt", "dbgt", "dble", "dbvc", "dbvs", "dbtst", "dbset",
+        "dbclr", "dbchg", "dbf", "dbra"
+    )
+    val byteMaskImmediates = setOf("#\$ff", "#\$00ff", "#\$000000ff", "#0xff", "#0x00ff", "#0x000000ff")
+
+    fun isDreg(s: String) = s.length == 2 && s[0] in setOf('d', 'D') && s[1] in '0'..'7'
+
+    fun String.mnemonic(): String =
+        substringBefore(' ').substringBefore('\t').substringBefore('.').lowercase()
+
+    fun String.firstWriteTo(reg: String): Boolean {
+        val token = this.mnemonic()
+        if (token == "moveq") {
+            val ops = this.instructionOperands() ?: return false
+            val parts = splitOperands(ops)
+            return parts.size == 2 && parts[1].trim().lowercase() == reg
+        }
+        if (token == "clr") {
+            val ops = this.instructionOperands() ?: return false
+            val parts = splitOperands(ops)
+            return parts.size == 1 && parts[0].trim().lowercase() == reg
+        }
+        if (token.startsWith("move")) {
+            val ops = this.instructionOperands() ?: return false
+            val parts = splitOperands(ops)
+            if (parts.size != 2) return false
+            val dst = parts[1].trim().lowercase()
+            return dst == reg
+        }
+        return false
+    }
 
     for (i in filtered.indices) {
-        val line = filtered[i].value
-        val lower = line.lowercase()
-        if (!lower.startsWith("move.b")) continue
-        val operands = line.instructionOperands() ?: continue
-        val parts = operands.split(',', limit = 2)
-        if (parts.size != 2) continue
-        val src1 = parts[0].trim()
-        val dst1 = parts[1].trim()
-        if (!dst1.isDataReg()) continue
-        val reg = dst1.lowercase()
+        if (i + 3 >= filtered.size) continue
+        val l0 = filtered[i].value
+        val l1 = filtered[i + 1].value
+        val l2 = filtered[i + 2].value
+        val l3 = filtered[i + 3].value
 
-        // Next line must be the masking and.l/andi.l
-        if (i + 1 >= filtered.size) continue
-        val nextLine = filtered[i + 1].value
-        val nextLower = nextLine.lowercase()
-        if (!nextLower.startsWith("and.l") && !nextLower.startsWith("andi.l")) continue
-        val andOps = nextLine.instructionOperands() ?: continue
-        val andParts = andOps.split(',', limit = 2)
-        if (andParts.size != 2) continue
-        if (andParts[1].trim().lowercase() != reg) continue
-        val imm = andParts[0].trim().lowercase()
-        if (imm !in setOf("#\$ff", "#\$00ff", "#\$000000ff", "#0xff", "#0x00ff", "#0x000000ff")) continue
+        // First instruction must load a byte into a data register (form A)
+        // or clear the scratch register (form B).
+        val lower0 = l0.lowercase()
+        val formB = lower0.startsWith("moveq")
+        val dx: String
+        val srcM: String
+        if (formB) {
+            val ops0 = l0.instructionOperands() ?: continue
+            val parts0 = splitOperands(ops0)
+            if (parts0.size != 2 || parts0[0].trim() != "#0") continue
+            dx = parts0[1].trim().lowercase()
+            if (!isDreg(dx)) continue
 
-        // M must be a clean operand token that does not reference dN
-        if (src1.any { it.isWhitespace() }) continue
-        if (src1.contains(reg, ignoreCase = true)) continue
+            // Second instruction of form B: move.b M,dx
+            if (!l1.lowercase().startsWith("move.b")) continue
+            val ops1 = l1.instructionOperands() ?: continue
+            val parts1 = splitOperands(ops1)
+            if (parts1.size != 2) continue
+            if (parts1[1].trim().lowercase() != dx) continue
+            srcM = parts1[0].trim()
+        } else {
+            if (!lower0.startsWith("move.b")) continue
+            val ops0 = l0.instructionOperands() ?: continue
+            val parts0 = splitOperands(ops0)
+            if (parts0.size != 2) continue
+            dx = parts0[1].trim().lowercase()
+            if (!isDreg(dx)) continue
+            srcM = parts0[0].trim()
 
-        // Flag safety: scan the fall-through path after the rewritten pair.
-        var flagSafe = true
-        scan@ for (j in i + 2 until filtered.size) {
-            when (filtered[j].value.zeroExtendFlagDecision()) {
-                FlagDecision.Overwritten -> break@scan
-                FlagDecision.Unsafe -> {
-                    flagSafe = false
-                    break@scan
-                }
-                FlagDecision.Continue -> {}
+            // Second instruction of form A: and.[wl] #$ff,dx
+            val token1 = l1.mnemonic()
+            if (token1 != "and") continue
+            val ops1 = l1.instructionOperands() ?: continue
+            val parts1 = splitOperands(ops1)
+            if (parts1.size != 2) continue
+            val imm = parts1[0].trim().lowercase()
+            if (imm !in byteMaskImmediates) continue
+            if (parts1[1].trim().lowercase() != dx) continue
+        }
+        if (srcM.any { it.isWhitespace() }) continue
+        if (srcM.contains(dx, ignoreCase = true)) continue
+
+        // Third instruction: move.w dx,dy
+        val lower2 = l2.lowercase()
+        if (!lower2.startsWith("move.w")) continue
+        val ops2 = l2.instructionOperands() ?: continue
+        val parts2 = splitOperands(ops2)
+        if (parts2.size != 2) continue
+        if (parts2[0].trim().lowercase() != dx) continue
+        val dy = parts2[1].trim().lowercase()
+        if (!isDreg(dy)) continue
+
+        // Fourth instruction: lsl.w #8,dy
+        val lower3 = l3.lowercase()
+        if (!lower3.startsWith("lsl.w")) continue
+        val ops3 = l3.instructionOperands() ?: continue
+        val parts3 = splitOperands(ops3)
+        if (parts3.size != 2) continue
+        if (parts3[0].trim() != "#8") continue
+        if (parts3[1].trim().lowercase() != dy) continue
+
+        // Safety: dX must be overwritten before it is read after the pattern.
+        var safe = true
+        scan@ for (j in i + 4 until filtered.size) {
+            val line = filtered[j].value
+            if (hasLabel(line)) {
+                safe = false
+                break@scan
+            }
+            val instr = line.instructionPart()
+            val token = instr.mnemonic()
+            if (token in controlTransfers) {
+                safe = false
+                break@scan
+            }
+            if (line.lowercase().contains(dx)) {
+                if (line.firstWriteTo(dx)) break@scan
+                safe = false
+                break@scan
             }
         }
-        if (!flagSafe) continue
+        if (!safe) continue
 
         val originalLine0 = lines.getOrNull(filtered[i].index) ?: allPretrimmed[filtered[i].index]
-        val originalIndent0 = originalLine0.takeWhile { it.isWhitespace() }
         val originalLine1 = lines.getOrNull(filtered[i + 1].index) ?: allPretrimmed[filtered[i + 1].index]
-        val originalIndent1 = originalLine1.takeWhile { it.isWhitespace() }
+        val originalLine2 = lines.getOrNull(filtered[i + 2].index) ?: allPretrimmed[filtered[i + 2].index]
+        val originalLine3 = lines.getOrNull(filtered[i + 3].index) ?: allPretrimmed[filtered[i + 3].index]
+        val indent0 = originalLine0.takeWhile { it.isWhitespace() }
+        val indent1 = originalLine1.takeWhile { it.isWhitespace() }
+        val indent2 = originalLine2.takeWhile { it.isWhitespace() }
+        val indent3 = originalLine3.takeWhile { it.isWhitespace() }
+        val label0 = keepLabel(originalLine0)
+        val labelPrefix0 = if (label0.isNotEmpty()) "$label0  " else ""
+        val label3 = keepLabel(originalLine3)
+        val labelPrefix3 = if (label3.isNotEmpty()) "$label3  " else ""
 
-        mods.add(Modification(filtered[i].index, false, originalIndent0 + "moveq  #0,$reg"))
-        mods.add(Modification(filtered[i + 1].index, false, originalIndent1 + "move.b  $src1,$reg"))
+        mods.add(Modification(filtered[i].index, false, "$indent0$labelPrefix0" + "move.b  $srcM,$dy"))
+        mods.add(Modification(filtered[i + 1].index, true, null))
+        mods.add(Modification(filtered[i + 2].index, true, null))
+        mods.add(Modification(filtered[i + 3].index, false, "$indent3$labelPrefix3" + "lsl.w  #8,$dy"))
     }
 
     return mods
