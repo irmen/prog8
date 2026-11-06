@@ -282,7 +282,7 @@ significantly reduces the expected benefit of 4.1-4.5:
 
 ## Tier 3 - Instruction selection at lowering (days-weeks)
 
-### 3.1 Use 68020 scaled indexing directly [DONE]
+### 3.1 Use 68020 scaled indexing directly [DONE PARTLY]
 - **Where**: `InstrLoadStore.kt` / `resolveMemory()`.
 - On 68020, emit `move.l (base,didx.l*scale),d0` instead of manual mul + add.
 - Gate on `cpu.is68020`.
@@ -300,6 +300,18 @@ significantly reduces the expected benefit of 4.1-4.5:
 - **Measured**: zero corpus occurrences of the staged-float shape (no
   `(0,a0,d0.l)` anywhere in textelite/maze), so binaries byte-identical;
   coverage is fixture tests (020 scaled + 000 manual) instead.
+- **2026-11-06 scope correction - pointer-indexed access is NOT covered.** The
+  scaled-indexing path only triggers on IR `MemoryReference.Indexed` reads
+  (named arrays). Pointer-indexed arrays (`values[pos]` where `values` is a
+  `^^uword`/`^^long`) go through `ExpressionGen.translatePointerIndexing`
+  (`codeGenIntermediate/ExpressionGen.kt`), which folds the element scale
+  into the index **in-register at IR level** (`loadmz` + `lsl.l` +
+  `addr.l` + `LOADI Indirect[reg]`), because `MemoryReference.Indexed`
+  requires a static `AddressBase` and cannot base on a register-held pointer.
+  By the time the backend sees it there is no index/scale left to fold into
+  `(aN,dN.w*2)`, so 68020 targets produce the same manual scale dance as the
+  68000. This affects every pointer-indexed loop on all m68k targets (the
+  shared sorting lib, list/graph traversal, gfx loops). See 5.3 for the fix.
 
 ### 3.2 Cheaper zero-extension [DONE]
 - `move.b x,d0; and.l #$ff,d0` -> `moveq #0,d0; move.b x,d0` (or `move.b` +
@@ -732,6 +744,62 @@ all.
 ### 5.2 Dead store / dead variable elimination at IR level for m68k
 - Tighten `UnusedCodeRemover` / `VregRenumber` for m68k-specific spill patterns.
 - **Effort**: medium.
+
+### 5.3 Pointer-indexed array access: keep index + scale in the IR memory reference
+- **Problem**: pointer-indexed element access (`values[pos]` on `^^uword`,
+  the shape the shared sorting lib and most generic-code loops use) is IR that
+  pre-folds the element scale into a long index register:
+  ```ir
+  loadmz.w r80.l,[frame:-2]   ; r80 = zero-ext(pos)
+  lsl.l     r80.l             ; scale-by-N folded in-register
+  loadr.p   r81.p,r123.p      ; r81 = values
+  addr.l    r80.l,r81.l       ; r81 += r80
+  loadi.w   r82.w,[r81.p]     ; r82 = [r81]
+  ```
+  The backend then materializes the whole thing as ~9 instructions per access
+  (zero-extend, double, two stagings, pointer stage + D0 bounce + add); on
+  68020 it cannot use hardware scaling because the index/scale is gone. Per
+  element read is 9 instructions today.
+- **Fix**: teach the IR about a register-held pointer base with a scaled index,
+  e.g. extend `MemoryReference.Indexed` to allow a `pointer`-vreg base (a new
+  `AddressBase.Register(vreg)` variant) or add an indexed variant of
+  `MemoryReference.Indirect`. Then:
+  1. `ExpressionGen.translatePointerIndexing` and the deref-chain path emit
+     `LOADI/STOREI [rPtr + rIdx.w * eltSize]` and let `multiplyByConst`/`lsl`
+     disappear from the IR (do NOT pre-scale; keep scale in the memref just
+     like the named-array `LOADX` path does).
+  2. `resolveMemory()` lowers that shape directly: 68020 -> `(rPtr, rIdx.w*scale)`
+     word index (2 instructions per access); 68000 -> zero-extend index +
+     manual scale + `add.l` (4-5 instructions, and the two now-redundant
+     stagings disappear because the scaled effective address needs no An home).
+  3. Scope/gate: the IR change touched `intermediate` is shared - so
+     `IRTextCodec` encode/decode, the register-use accounting
+     (`IRInstructions.addUsedRegistersCounts`), `mapRegisters`/renumber and the
+     VirtualMachine interpreter must all handle the new shape. 6502 codegen
+     does not consume IR so it is unaffected.
+- **Benefit**: ~3x fewer instructions per pointer-indexed access on 68020
+  (9 -> 2); ~1.7x on 68000 (9 -> 5); helps every m68k program using
+  pointer-indexed loops, not just the sorting lib.
+- **Effort**: large (IR representation + codec + VM + backend lowering).
+- **Verification**: sort-lib bench on fixed arrays (sorted + random), plus
+  `-dumpsymbols`-style corpus `.text` measurement over the examples; the
+  `(aN,dN.w*2)` encoding is 68020-gated and must be vasm-verified like 3.1.
+
+### 5.3b [DONE 2026-11-06] Backend peephole cleanup of the existing dance (option B)
+- Two new passes in `AsmOptimizer.kt`, both running before the window passes:
+  - `optimizeStagedAddCollapse`: `move.l aX,dY` / `move.l dY,d0` / `add.l d0,aN`
+    -> `add.l aX,aN` (the pointer stage + D0-bounce trio), when the staged data
+    registers are provably dead after the add and the trio carries no labels.
+  - `optimizeRedundantStagedMove`: drop the first of two consecutive
+    `movea.l dK,aN` stagings when the An is fully rewritten between them and
+    never read (the dead stage in the index-doubling idiom).
+- **Verified**: `gnomesort_uw` inner element read is now 6 instructions
+  (was 9); full sorting test program `.text` 5029 -> 4813 bytes on qemu68k;
+  all m68k example programs still assemble; qemu-system-m68k functional run
+  of the m68k sorting example produces correct sorted output; full gradle
+  build + `:codeGenM68k:test` pass.
+- These shrink the 5.3 gap's 9-instruction baseline to 6; 5.3 remains the
+  structural fix (and removes the remaining staging/`add.l` pairs on 68020).
 
 
 
