@@ -2,7 +2,7 @@
 ; module to parse the header data of a .wav file
 ; big-endian version for 32 bits 68000 cpus
 ;
-; note: the sample rate in hz can be converted to a vera rate via:
+; note (cx16 target): the sample rate in hz can be converted to a vera rate via:
 ;        vera_rate = (wavfile.sample_rate as long * 65536 / 25000000) as ubyte + 1
 ;        vera_rate_hz = (vera_rate as uword * 25000000 / 65536) as uword
 ;
@@ -10,6 +10,15 @@
 ;        const float vera_freq_factor = 25e6 / 65536.0
 ;        vera_rate = (wavfile.sample_rate as float / vera_freq_factor) + 1.0 as ubyte
 ;        vera_rate_hz = (vera_rate as float) * vera_freq_factor as uword
+;
+; note (amiga targets): the sample rate converts to a Paula period;
+;        sound.set_freqvol(channel, sample_rate, volume) does the conversion
+;        automatically with the machine's PAL or NTSC chip clock. Rates above
+;        the ~28.8 kHz DMA ceiling should be resampled. 8-bit wav samples are
+;        unsigned (silence = $80) but Paula plays signed bytes: xor each byte
+;        with $80. Sample data must be in chip RAM, lengths are word-based
+;        (pad odd-length samples), stereo wavs must be de-interleaved into
+;        two buffers for two voices, and samples start with a zero word.
 ;
 
 wavfile {

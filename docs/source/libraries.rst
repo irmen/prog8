@@ -663,7 +663,9 @@ modules. Import them the same way as any other library::
     single zero word; after the sample ends Paula loops on that word, so the
     channel falls silent. ``is_playing`` and ``stream_ready`` poll the audio
     interrupt request flag to notice the end, so no interrupt handler is
-    installed.
+    installed. ``set_freqvol()`` takes a sample rate in hertz and converts it
+    to the Paula playback period using the machine's PAL or NTSC chip clock
+    (the other ``set_period()`` variant takes the raw period value directly).
 
 ``ptplayer``
     ProTracker module (MOD) player: load and play Amiga ProTracker modules via
@@ -2400,7 +2402,8 @@ wavfile
         long data_size
 
 .. note::
-    the sample rate in hertz can be converted to a vera rate value via::
+    For the cx16 target, the sample rate in hertz can be converted to a vera
+    rate value via::
 
         vera_rate = (wavfile.sample_rate as long * 65536 / 25000000) as ubyte + 1
         vera_rate_hz = (vera_rate as uword * 25000000 / 65536) as uword
@@ -2410,3 +2413,17 @@ wavfile
         const float vera_freq_factor = 25e6 / 65536.0
         vera_rate = (wavfile.sample_rate as float / vera_freq_factor) + 1.0 as ubyte
         vera_rate_hz = (vera_rate as float) * vera_freq_factor as uword
+
+.. note::
+    For the amiga targets, the sample rate converts to a Paula period;
+    ``sound.set_freqvol(channel, sample_rate, volume)`` does this conversion
+    automatically using the machine's PAL or NTSC chip clock. Rates above
+    about 28.8 kHz (the Paula DMA ceiling) should be resampled beforehand.
+    8-bit wav samples are unsigned (silence = $80) while Paula plays signed
+    bytes, so flip the sign bit (``xori #$80`` per byte) before playback.
+    All sample data must live in CHIP RAM, sample lengths are passed as
+    words to Paula (pad an odd-length sample with one byte), and a stereo
+    (interleaved) wav must be de-interleaved into left and right buffers
+    played by two voices in lockstep. The sample data must also start with
+    a single zero word so looping one-shots end in silence - see the
+    ``sound`` module description above.
