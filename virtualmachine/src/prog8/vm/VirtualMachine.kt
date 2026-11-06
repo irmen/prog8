@@ -942,12 +942,13 @@ class VirtualMachine(private val irProgram: IRProgram) {
             val location = arg.location as? CallLocation.ParameterMemory
                 ?: throw IllegalArgumentException("argument variable should have been given its memory address as well")
             val address = requireNotNull(location.address) { "argument variable should have been given its memory address as well" }
-            when(arg.source.type) {
-                IRDataType.BYTE -> memory.setUB(address.value, registers.getUB(arg.source.registerNumber))
-                IRDataType.WORD -> memory.setUW(address.value, registers.getUW(arg.source.registerNumber))
-                IRDataType.POINTER -> memory.setSL(address.value, registers.getSL(arg.source.registerNumber))
-                IRDataType.LONG -> memory.setSL(address.value, registers.getSL(arg.source.registerNumber))
-                IRDataType.FLOAT -> memory.setFloat(address.value, registers.getFloat(arg.source.registerNumber))
+            val reg = (arg.source as RegisterCallSource).register
+            when(reg.type) {
+                IRDataType.BYTE -> memory.setUB(address.value, registers.getUB(reg.registerNumber))
+                IRDataType.WORD -> memory.setUW(address.value, registers.getUW(reg.registerNumber))
+                IRDataType.POINTER -> memory.setSL(address.value, registers.getSL(reg.registerNumber))
+                IRDataType.LONG -> memory.setSL(address.value, registers.getSL(reg.registerNumber))
+                IRDataType.FLOAT -> memory.setFloat(address.value, registers.getFloat(reg.registerNumber))
             }
         }
         // store the call site and jump

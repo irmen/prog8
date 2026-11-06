@@ -116,12 +116,24 @@ class TestIRTextCodec: FunSpec({
         site.target shouldBe CallTarget.Direct(CodeReference.Label("main.foo"))
         site.arguments.size shouldBe 2
         site.arguments[0].location shouldBe CallLocation.ParameterMemory("main.foo.arg")
-        site.arguments[0].source.registerNumber shouldBe 1
+        site.arguments[0].registerSource.registerNumber shouldBe 1
         site.arguments[1].location shouldBe CallLocation.HardwareRegister(CallingConventionSlot(3))
         site.results.size shouldBe 2
         site.results[0].destination!!.registerNumber shouldBe 3
         site.results[1].destination shouldBe null
         site.results[1].location shouldBe CallLocation.StatusFlag(Statusflag.Pc)
+    }
+
+    test("immediate call arguments are preserved") {
+        roundtrip("call main.foo(#\$2a.b@s0)")
+        roundtrip("call main.foo(#\$1234.w@s10)")
+        roundtrip("call main.foo(#main.items@s18)")
+        roundtrip("call main.foo(#main.items+4@s18)")
+        val call = IRTextCodec.parse("call main.foo(#\$2a.b@s0)")
+        val site = call.requireCallSite()
+        site.arguments[0].isImmediate shouldBe true
+        site.arguments[0].location shouldBe CallLocation.HardwareRegister(CallingConventionSlot(0))
+        site.arguments[0].immediateSource shouldBe ImmediateOperand.Integer(0x2a, IRDataType.BYTE)
     }
 
     test("amiga library call keeps the signed lvo") {

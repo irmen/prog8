@@ -862,11 +862,11 @@ private fun AsmGen.translateCall(fnLabel: String, callSite: CallSite, forwardedI
         paramNames.getOrNull(index)?.substringAfterLast('.')?.removePrefix("p8v_")
     val forwardedRegs = forwardedImmediateCall?.loads?.keys ?: emptySet()
     for ((index, arg) in callSite.arguments.withIndex()) {
-        if (arg.source.register in forwardedRegs) continue
+        if (arg.source is RegisterCallSource && arg.registerSource.register in forwardedRegs) continue
         translateArgument(arg, fnLabel, forwardedImmediateCall, paramNameFor(index))
     }
     for ((index, arg) in callSite.arguments.withIndex()) {
-        if (arg.source.register !in forwardedRegs) continue
+        if (arg.source !is RegisterCallSource || arg.registerSource.register !in forwardedRegs) continue
         translateArgument(arg, fnLabel, forwardedImmediateCall, paramNameFor(index))
     }
 
@@ -906,18 +906,24 @@ private fun AsmGen.translateCall(fnLabel: String, callSite: CallSite, forwardedI
 
 private fun AsmGen.emitInlineMemcopyCall(callSite: CallSite, forwardedImmediateCall: ImmediateCallOptimization?): Boolean {
     if (callSite.arguments.size != 3) return false
-    val fwd = forwardedImmediateCall ?: return false
+    val fwd = forwardedImmediateCall
     val srcArg = callSite.arguments[0]
     val tgtArg = callSite.arguments[1]
     val countArg = callSite.arguments[2]
-    // size must be a constant immediate forwarded to the call; non-constant -> always call
-    val countLoad = fwd.loads[countArg.source.register] ?: return false
-    val count = countLoad.immediate?.integerValue ?: return false
+    // size must be a constant immediate (either directly or forwarded); non-constant -> always call
+    val count = when (countArg.source) {
+        is ImmediateCallSource -> countArg.immediateSource.integerValue
+        is RegisterCallSource -> fwd?.loads?.get(countArg.registerSource.register)?.immediate?.integerValue
+    } ?: return false
     if (count <= 0) return true
 
     // Only .w/.l when both pointers are provably aligned; computed addresses fall back to byte copies.
-    val srcImm = fwd.loads[srcArg.source.register]?.immediate?.integerValue
-    val tgtImm = fwd.loads[tgtArg.source.register]?.immediate?.integerValue
+    fun immediateIntegerValue(arg: CallArgument): Int? = when (arg.source) {
+        is ImmediateCallSource -> arg.immediateSource.integerValue
+        is RegisterCallSource -> fwd?.loads?.get(arg.registerSource.register)?.immediate?.integerValue
+    }
+    val srcImm = immediateIntegerValue(srcArg)
+    val tgtImm = immediateIntegerValue(tgtArg)
     val bothEven = srcImm != null && tgtImm != null && srcImm % 2 == 0 && tgtImm % 2 == 0
     val bothLongAligned = srcImm != null && tgtImm != null && srcImm % 4 == 0 && tgtImm % 4 == 0
     val useLong = bothLongAligned && count % 4 == 0
@@ -985,55 +991,42 @@ private fun AsmGen.translateArgument(
     forwardedImmediateCall: ImmediateCallOptimization? = null,
     paramName: String? = null
 ) {
-    val argReg = arg.source
-    val forwarded = forwardedImmediateCall?.loads?.get(argReg.register)
-
     // If the argument has a calling convention slot, load it into that hardware register
     val slot = (arg.location as? CallLocation.HardwareRegister)?.slot
     if (slot != null) {
         val hwReg = m68kSlotRegister(slot)
-        if (argReg.isFloat) {
-            if (forwarded != null) {
-                emitFloadConstantTo(hwReg, forwarded.requireImmediateFloat())
-            } else {
-                emitFmoveFloat(floatOperand(argReg.floatNumber), hwReg)
-            }
-        } else {
-            if (forwarded != null) {
-                val value = forwarded.requireImmediateInt()
-                val s = dtSuffix(argReg.type)
-                if (hwReg.startsWith("a")) {
-                    // address registers only accept movea/suba, not clr or moveq
-                    when (value) {
-                        0 -> emitLine("suba.l  $hwReg, $hwReg")
-                        else -> emitLine("movea.l  #$value, $hwReg")
+        when (arg.source) {
+            is ImmediateCallSource -> emitImmediateToHardwareRegister(arg.immediateSource, hwReg)
+            is RegisterCallSource -> {
+                val argReg = arg.registerSource
+                val forwarded = forwardedImmediateCall?.loads?.get(argReg.register)
+                if (argReg.isFloat) {
+                    if (forwarded != null) {
+                        emitFloadConstantTo(hwReg, forwarded.requireImmediateFloat())
+                    } else {
+                        emitFmoveFloat(floatOperand(argReg.floatNumber), hwReg)
                     }
                 } else {
-                    // moveq is faster than clr on a data register with identical flags;
-                    // the full-long clear is a safe superset for byte/word arguments.
-                    if (value == 0)
-                        emitLine("moveq  #0, $hwReg")
-                    else {
-                        // use moveq (2 bytes, 4 cycles) when the value fits its signed 8-bit range; bytes 128-255 map to -128..-1
-                        val moveqValue = if (argReg.type == IRDataType.BYTE && value in 128..255) value - 256 else value
-                        if (moveqValue in -128..127)
-                            emitLine("moveq  #$moveqValue, $hwReg")
-                        else
-                            emitLine("move$s  #$value, $hwReg")
+                    if (forwarded != null) {
+                        emitImmediateToHardwareRegister(forwarded.requireImmediate(), hwReg)
+                    } else {
+                        val source = operand(argReg.intNumber)
+                        if (hwReg.startsWith("a") && argReg.type in setOf(IRDataType.LONG, IRDataType.POINTER)) {
+                            // loading a pointer into an address register; movea.l is the proper form and skips the +0 offset
+                            emitLine("movea.l  ${source.removeSuffix("+0")}, $hwReg")
+                        } else {
+                            val s = dtSuffix(argReg.type)
+                            emitLine("move$s  $source, $hwReg")
+                        }
                     }
-                }
-            } else {
-                val source = operand(argReg.intNumber)
-                if (hwReg.startsWith("a") && argReg.type in setOf(IRDataType.LONG, IRDataType.POINTER)) {
-                    // loading a pointer into an address register; movea.l is the proper form and skips the +0 offset
-                    emitLine("movea.l  ${source.removeSuffix("+0")}, $hwReg")
-                } else {
-                    val s = dtSuffix(argReg.type)
-                    emitLine("move$s  $source, $hwReg")
                 }
             }
         }
     } else {
+        // Immediate arguments are only supported for hardware-register locations.
+        require(arg.source is RegisterCallSource) { "immediate call argument requires a hardware register location: $arg" }
+        val argReg = arg.registerSource
+
         // Stack argument: push into the parameter's word-packed slot, landing at the slot's base byte.
         if (arg.location is CallLocation.FrameSlot) {
             if (argReg.isFloat) {
@@ -1065,6 +1058,45 @@ private fun AsmGen.translateArgument(
             } else {
                 val s = dtSuffix(argReg.type)
                 emitLine("move$s  ${operand(argReg.intNumber)}, $target")
+            }
+        }
+    }
+}
+
+private fun AsmGen.emitImmediateToHardwareRegister(immediate: ImmediateOperand, hwReg: String) {
+    when (immediate) {
+        is ImmediateOperand.FloatValue -> emitFloadConstantTo(hwReg, immediate.value)
+        is ImmediateOperand.SymbolAddress -> {
+            // address registers only accept movea/suba, not clr or moveq
+            if (hwReg.startsWith("a")) {
+                emitLine("movea.l  #${immediate.symbol}, $hwReg")
+            } else {
+                val s = dtSuffix(immediate.type)
+                emitLine("move$s  #${immediate.symbol}, $hwReg")
+            }
+        }
+        is ImmediateOperand.Integer -> {
+            val value = immediate.value
+            val s = dtSuffix(immediate.type)
+            if (hwReg.startsWith("a")) {
+                // address registers only accept movea/suba, not clr or moveq
+                when (value) {
+                    0 -> emitLine("suba.l  $hwReg, $hwReg")
+                    else -> emitLine("movea.l  #$value, $hwReg")
+                }
+            } else {
+                // moveq is faster than clr on a data register with identical flags;
+                // the full-long clear is a safe superset for byte/word arguments.
+                if (value == 0)
+                    emitLine("moveq  #0, $hwReg")
+                else {
+                    // use moveq (2 bytes, 4 cycles) when the value fits its signed 8-bit range; bytes 128-255 map to -128..-1
+                    val moveqValue = if (immediate.type == IRDataType.BYTE && value in 128..255) value - 256 else value
+                    if (moveqValue in -128..127)
+                        emitLine("moveq  #$moveqValue, $hwReg")
+                    else
+                        emitLine("move$s  #$value, $hwReg")
+                }
             }
         }
     }

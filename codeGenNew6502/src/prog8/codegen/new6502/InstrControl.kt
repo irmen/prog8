@@ -582,45 +582,83 @@ fun IRProgram.findInlineAsmSub(label: String): IRAsmSubroutine? {
 }
 
 private fun AsmGen.translateArgument(arg: CallArgument, argIndex: Int = -1, fnLabel: String? = null) {
-    val source = arg.source
-    val regNum = source.register.num
-
     when (arg.hardwareSlot?.value) {
         0 -> {
-            emitLine("lda  ${regAddrLo(regNum)}")
+            when (arg.source) {
+                is ImmediateCallSource -> {
+                    when (val imm = arg.immediateSource) {
+                        is ImmediateOperand.Integer -> emitLine("lda  #${imm.value}")
+                        is ImmediateOperand.SymbolAddress -> emitLine("lda  #<${imm.symbol}")
+                        is ImmediateOperand.FloatValue -> error("float immediate cannot be loaded directly into A")
+                    }
+                }
+                is RegisterCallSource -> emitLine("lda  ${regAddrLo(arg.registerSource.registerNumber)}")
+            }
         }
         1 -> {
-            emitLine("ldx  ${regAddrLo(regNum)}")
+            when (arg.source) {
+                is ImmediateCallSource -> {
+                    when (val imm = arg.immediateSource) {
+                        is ImmediateOperand.Integer -> emitLine("ldx  #${imm.value}")
+                        is ImmediateOperand.SymbolAddress -> emitLine("ldx  #<${imm.symbol}")
+                        is ImmediateOperand.FloatValue -> error("float immediate cannot be loaded directly into X")
+                    }
+                }
+                is RegisterCallSource -> emitLine("ldx  ${regAddrLo(arg.registerSource.registerNumber)}")
+            }
         }
         2 -> {
-            emitLine("ldy  ${regAddrLo(regNum)}")
+            when (arg.source) {
+                is ImmediateCallSource -> {
+                    when (val imm = arg.immediateSource) {
+                        is ImmediateOperand.Integer -> emitLine("ldy  #${imm.value}")
+                        is ImmediateOperand.SymbolAddress -> emitLine("ldy  #<${imm.symbol}")
+                        is ImmediateOperand.FloatValue -> error("float immediate cannot be loaded directly into Y")
+                    }
+                }
+                is RegisterCallSource -> emitLine("ldy  ${regAddrLo(arg.registerSource.registerNumber)}")
+            }
         }
         3 -> {
+            require(arg.source is RegisterCallSource) { "AX slot does not support immediate call arguments" }
+            val regNum = arg.registerSource.registerNumber
             emitLine("lda  ${regAddrLo(regNum)}")
             emitLine("ldx  ${regAddrHi(regNum)}")
         }
         4 -> {
+            require(arg.source is RegisterCallSource) { "AY slot does not support immediate call arguments" }
+            val regNum = arg.registerSource.registerNumber
             emitLine("lda  ${regAddrLo(regNum)}")
             emitLine("ldy  ${regAddrHi(regNum)}")
         }
         5 -> {
+            require(arg.source is RegisterCallSource) { "XY slot does not support immediate call arguments" }
+            val regNum = arg.registerSource.registerNumber
             emitLine("ldx  ${regAddrLo(regNum)}")
             emitLine("ldy  ${regAddrHi(regNum)}")
         }
         6 -> {
             // slot s6 = FAC1: load fp register into FAC1
+            require(arg.source is RegisterCallSource) { "FAC1 slot does not support immediate call arguments" }
+            val regNum = arg.registerSource.registerNumber
             emitLine("lda  #<${fpRegAddr(regNum)}")
             emitLine("ldy  #>${fpRegAddr(regNum)}")
             emitLine("jsr  floats.MOVFM")
         }
         7 -> {
             // slot s7 = FAC2: load fp register into FAC2 via MOVFM + MOVAF
+            require(arg.source is RegisterCallSource) { "FAC2 slot does not support immediate call arguments" }
+            val regNum = arg.registerSource.registerNumber
             emitLine("lda  #<${fpRegAddr(regNum)}")
             emitLine("ldy  #>${fpRegAddr(regNum)}")
             emitLine("jsr  floats.MOVFM")
             emitLine("jsr  floats.MOVAF")
         }
         null -> {
+            // Non-hardware locations do not support immediate sources.
+            require(arg.source is RegisterCallSource) { "immediate call argument requires a hardware register location: $arg" }
+            val regNum = arg.registerSource.registerNumber
+            val sourceType = arg.registerSource.type
             when (val location = arg.location) {
                 is CallLocation.StatusFlag -> {
                     // Status flag argument - load value and set the appropriate flag
@@ -640,13 +678,13 @@ private fun AsmGen.translateArgument(arg: CallArgument, argIndex: Int = -1, fnLa
                 is CallLocation.ParameterMemory -> {
                     val address = location.address
                     if (address != null) {
-                        storeArgumentTo(address.toHex(), regNum, source.type)
+                        storeArgumentTo(address.toHex(), regNum, sourceType)
                     } else {
                         // Check if this argument maps to an asmsub's cx16 virtual register parameter
                         val asmTarget = if (fnLabel != null && argIndex >= 0)
                             this.asmSubParamTarget(fnLabel, argIndex) else null
                         if (asmTarget != null) {
-                            storeArgumentTo(asmTarget, regNum, source.type)
+                            storeArgumentTo(asmTarget, regNum, sourceType)
                         } else {
                             // The argument is not passed in a cpu hardware register, so this is NOT
                             // an extsub parameter (extsub parameters have a HardwareRegister location
@@ -662,7 +700,7 @@ private fun AsmGen.translateArgument(arg: CallArgument, argIndex: Int = -1, fnLa
                                 resolveSymbolRef(name)
                             else
                                 resolveSymbolRef(if (fnLabel != null) "$fnLabel.$name" else name)
-                            storeArgumentTo(target, regNum, source.type)
+                            storeArgumentTo(target, regNum, sourceType)
                         }
                     }
                 }
@@ -791,8 +829,11 @@ private fun AsmGen.translateReturnValue(ret: CallResult) {
 
 // === Syscall handling ===
 
-private fun CallSite.argumentOperand(index: Int, what: String): RegisterOperand =
-    arguments.getOrNull(index)?.source ?: error("syscall needs $what as argument $index")
+private fun CallSite.argumentOperand(index: Int, what: String): RegisterOperand {
+    val arg = arguments.getOrNull(index) ?: error("syscall needs $what as argument $index")
+    require(arg.source is RegisterCallSource) { "syscall argument must be a register" }
+    return arg.registerSource
+}
 
 private fun CallSite.argumentRegister(index: Int, what: String): Int =
     argumentOperand(index, what).register.num

@@ -30,8 +30,11 @@ internal fun AsmGen.translateSyscall(num: Int, site: CallSite) {
     }
 }
 
-private fun CallSite.argument(index: Int): RegisterOperand =
-    arguments.getOrNull(index)?.source ?: error("syscall is missing argument $index")
+private fun CallSite.argument(index: Int): RegisterOperand {
+    val arg = arguments.getOrNull(index) ?: error("syscall is missing argument $index")
+    require(arg.source is RegisterCallSource) { "syscall argument must be a register" }
+    return arg.registerSource
+}
 
 private fun CallSite.resultRegister(index: Int): RegisterOperand =
     results.getOrNull(index)?.destination ?: error("syscall is missing result $index")

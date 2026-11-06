@@ -204,6 +204,30 @@ class TestInstructionSelectionOptimizations : FunSpec({
         sub.count { it.startsWith("divs.w  ") && !it.operandIsHardwareRegister() } shouldBe 1
     }
 
+    test("immediate call arguments load directly into hardware registers") {
+        val lines = generateAsm(
+            tempRoot.resolve("test-m68k-call-immediate"),
+            listOf(
+                IRInstructions.call(
+                    Opcode.CALL,
+                    callSite(
+                        "main.foo",
+                        arguments = listOf(
+                            Calls.argument(ImmediateOperand.Integer(42, IRDataType.BYTE), CallLocation.HardwareRegister(CallingConventionSlot(10))),
+                            Calls.argument(ImmediateOperand.SymbolAddress("main.buffer"), CallLocation.HardwareRegister(CallingConventionSlot(18)))
+                        )
+                    )
+                )
+            )
+        )
+
+        val sub = lines.subroutineLines()
+        sub.any { it == "moveq  #42,d0" } shouldBe true
+        sub.any { it == "movea.l  #main.buffer,a0" } shouldBe true
+        sub.none { it.startsWith("move.b  p8_regfile") } shouldBe true
+        sub.none { it.startsWith("movea.l  a2,") } shouldBe true
+    }
+
     test("byte and word extraction uses direct register-file loads") {
         val lines = generateAsm(
             tempRoot.resolve("test-m68k-extract"),

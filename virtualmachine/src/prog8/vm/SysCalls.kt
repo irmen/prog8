@@ -4,6 +4,7 @@ import prog8.intermediate.CallArgument
 import prog8.intermediate.CallResult
 import prog8.intermediate.CallSite
 import prog8.intermediate.IRDataType
+import prog8.intermediate.RegisterCallSource
 import java.io.File
 import kotlin.io.path.*
 import kotlin.math.*
@@ -167,12 +168,13 @@ enum class Syscall {
 object SysCalls {
     private fun getArgValues(argspec: List<CallArgument>, vm: VirtualMachine): List<Comparable<Nothing>> {
         return argspec.map {
-            when(it.source.type) {
-                IRDataType.BYTE -> vm.registers.getUB(it.source.registerNumber)
-                IRDataType.WORD -> vm.registers.getUW(it.source.registerNumber)
-                IRDataType.POINTER -> vm.registers.getUL(it.source.registerNumber)
-                IRDataType.LONG -> vm.registers.getSL(it.source.registerNumber)
-                IRDataType.FLOAT -> vm.registers.getFloat(it.source.registerNumber)
+            val reg = (it.source as RegisterCallSource).register
+            when(reg.type) {
+                IRDataType.BYTE -> vm.registers.getUB(reg.registerNumber)
+                IRDataType.WORD -> vm.registers.getUW(reg.registerNumber)
+                IRDataType.POINTER -> vm.registers.getUL(reg.registerNumber)
+                IRDataType.LONG -> vm.registers.getSL(reg.registerNumber)
+                IRDataType.FLOAT -> vm.registers.getFloat(reg.registerNumber)
             }
         }
     }

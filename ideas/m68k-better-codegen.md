@@ -418,6 +418,25 @@ significantly reduces the expected benefit of 4.1-4.5:
   powers and the `0`/`1` identities are covered by the same code path in
   `optimizeAlgebraicIdentities`.
 
+### 3.7 Constant call arguments load straight into the hardware register slot [DONE]
+- **Where**: IR `CallArgument` (`intermediate/IRCalls.kt`, `IRTextCodec.kt`),
+  argument selection in `codeGenIntermediate/ExpressionGen.kt`, lowering in
+  `codeGenM68k/InstrControl.kt` and `codeGenNew6502/InstrControl.kt`.
+- A constant integer, float, or address-of-global argument passed to a call in
+  a CPU register slot is now a call-argument immediate (`#42.w@s0`,
+  `#main.items@s18`) instead of a virtual register that had to be materialized
+  and then moved into the slot. The vreg disappears entirely, so the backend
+  emits the constant into the slot register directly (`moveq #42,d0`,
+  `movea.l #main.items,a2`).
+- **Measured** (`examples/amiga/wavc.p8`, amiga500): `.text` 16428 -> 16268
+  bytes; `movea.l #...,a2` 84 -> 3; `movea.l a2,a0` 85 -> 1.
+- **Limits**: an immediate argument needs an explicit hardware-register call
+  location; stack and frame-slot arguments still take a register. Locals and
+  parameters are never folded to symbol immediates because their frame address
+  is not known at that point.
+- **Other targets**: new6502 passes immediates directly for slots s0-s2
+  (A/X/Y); the virtual target is unaffected (no hardware-register slots).
+
 ## Tier 4 - Register allocation & spilling (weeks)
 
 > **RE-MEASURED 2026-11-04 (30 programs, qemu68k + amiga1200):** The premise

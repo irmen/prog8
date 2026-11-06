@@ -85,8 +85,10 @@ The operands are written in the canonical slot order of the instruction's Opcode
     (r2.p)          an indirect code location (address in a register)
 
 Calls are written as:  call target(argument,...) : result,... !memory=effect,status=effect
-where an argument is [name=]register[@slot|@statusflag] and a result is
+where an argument is [name=]source[@slot|@statusflag] and a result is
 register[@slot|@statusflag] or just @slot / @statusflag when the result isn't captured.
+The source is a register or an immediate constant (#42.w, #main.items); an immediate
+argument always needs a cpu hardware register slot to be loaded into, for example #42.b@s0.
 The effect suffix is omitted only when both effects are UNKNOWN.
 
 
@@ -137,8 +139,10 @@ call   label(argument register list) [: resultreg.type]
                                         save current instruction location+1, continue execution at instruction nr of the label.
                                         the argument register list is positional and includes the datatype, ex.: r4.b,r5.w,fp1.f
                                         If the call is to a rom-routine, 'label' will be a hexadecimal address instead such as $ffd2
-                                        If the arguments should be passed in CPU registers, they'll have a @REGISTER postfix.
-                                        For example: call $ffd2(r5.b@A)
+                                        If the arguments should be passed in CPU registers, they'll have a @slot postfix.
+                                        For example: call $ffd2(r5.b@s0)
+                                        An argument passed in a CPU register may also be an immediate constant,
+                                        which avoids setting up a virtual register for it: call foo(#42.b@s0)
                                         Always preceded by parameter setup
 callfar             bank,  address      Call a subroutine at the given memory address, in the given RAM/ROM bank (switches both banks at the same time).
                                         On the amiga target, this is repurposed for automatic Amiga library LVO calls:

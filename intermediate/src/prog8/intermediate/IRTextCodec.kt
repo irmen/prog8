@@ -167,8 +167,21 @@ object IRTextCodec {
         else -> ""
     }
 
-    private fun printCallArgument(argument: CallArgument): String =
-        printCallLocationPrefix(argument.location) + printRegister(argument.source) + printCallLocationSuffix(argument.location)
+    private fun printCallArgument(argument: CallArgument): String {
+        val sourceText = when (argument.source) {
+            is RegisterCallSource -> printRegister(argument.registerSource)
+            is ImmediateCallSource -> {
+                val imm = argument.immediateSource
+                if (imm is ImmediateOperand.SymbolAddress && imm.type != IRDataType.POINTER) {
+                    val base = if (imm.offset == 0) imm.symbol else "${imm.symbol}+${imm.offset}"
+                    "#$base.${typeSuffix(imm.type)}"
+                } else {
+                    printImmediate(imm)
+                }
+            }
+        }
+        return printCallLocationPrefix(argument.location) + sourceText + printCallLocationSuffix(argument.location)
+    }
 
     private fun printCallResult(result: CallResult): String {
         val destination = result.destination?.let { printRegister(it) } ?: ""
@@ -655,9 +668,39 @@ object IRTextCodec {
         val (registerText, hardwareLocation) = parseCallLocationSuffix(remainder, opcode)
         if (parameterLocation != null && hardwareLocation != null)
             throw IRParseException("$opcode: call argument cannot have both parameter and hardware locations: $text")
-        val source = parseCallRegister(registerText, OperandRole.CALL_ARGUMENT, OperandDirection.USE, opcode)
         val location = hardwareLocation ?: parameterLocation ?: CallLocation.Default
+        val source = if (registerText.startsWith('#')) {
+            if (location == CallLocation.Default)
+                throw IRParseException("$opcode: immediate call argument requires an explicit location: $text")
+            ImmediateCallSource(parseCallImmediate(registerText, opcode))
+        } else {
+            RegisterCallSource(parseCallRegister(registerText, OperandRole.CALL_ARGUMENT, OperandDirection.USE, opcode))
+        }
         return CallArgument(source, location)
+    }
+
+    private fun parseCallImmediate(text: String, opcode: Opcode): ImmediateOperand {
+        val inner = text.drop(1).trim()
+        if (inner.isEmpty())
+            throw IRParseException("$opcode: empty immediate call argument")
+        if (inner[0].isLetter() || inner[0] == '_') {
+            val plus = inner.lastIndexOf('+')
+            val (symbolText, explicitType) = stripTypeSuffix(
+                if (plus > 0) inner.substring(0, plus) else inner
+            )
+            val offset = if (plus > 0) {
+                inner.substring(plus + 1).toIntOrNull()
+                    ?: throw IRParseException("$opcode: invalid symbol offset in $text")
+            } else 0
+            val type = explicitType ?: IRDataType.POINTER
+            return ImmediateOperand.SymbolAddress(symbolText, offset, type)
+        }
+        val (valueText, explicitType) = stripTypeSuffix(inner)
+        val type = explicitType ?: throw IRParseException("$opcode: immediate call argument needs an explicit type: $text")
+        if (type == IRDataType.FLOAT)
+            return ImmediateOperand.FloatValue(parseIRValue(valueText))
+        val value = parseInteger(valueText, "$opcode: invalid integer immediate")
+        return ImmediateOperand.Integer(value, type)
     }
 
     private fun parseCallResult(text: String, opcode: Opcode): CallResult {

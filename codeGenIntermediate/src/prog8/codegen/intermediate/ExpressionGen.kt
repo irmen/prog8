@@ -1076,7 +1076,6 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
                 val argRegisters = mutableListOf<CallArgument>()
                 for ((arg, parameter) in fcall.args.zip(callTarget.parameters)) {
                     val paramDt = codeGen.irType(parameter.type)
-                    val tr = translateExpression(arg)
                     val (slot, flag) = registerOrStatusflagToSlotAndFlag(parameter.register)
                     val argName = if(slot==null && flag==null) {
                         val reg = parameter.register.registerOrPair
@@ -1094,11 +1093,20 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
                         argName.isNotEmpty() -> CallLocation.ParameterMemory(argName)
                         else -> CallLocation.Default
                     }
-                    if(paramDt==IRDataType.FLOAT)
-                        argRegisters.add(Calls.argument(tr.resultFpReg, IRDataType.FLOAT, loc))
+                    val immediateArg = if (loc is CallLocation.HardwareRegister && slotSupportsImmediate(loc.slot))
+                        asImmediateCallArgument(arg, paramDt)
                     else
-                        argRegisters.add(Calls.argument(tr.resultReg, paramDt, loc))
-                    result += tr.chunks
+                        null
+                    if (immediateArg != null) {
+                        argRegisters.add(Calls.argument(immediateArg, loc))
+                    } else {
+                        val tr = translateExpression(arg)
+                        if(paramDt==IRDataType.FLOAT)
+                            argRegisters.add(Calls.argument(tr.resultFpReg, IRDataType.FLOAT, loc))
+                        else
+                            argRegisters.add(Calls.argument(tr.resultReg, paramDt, loc))
+                        result += tr.chunks
+                    }
                 }
 
                 if(callTarget.returns.size>1)
@@ -2060,7 +2068,57 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
             else -> throw AssemblyError("unsupported register $reg")
         }
     }
+
+    /**
+     * Returns true if the given calling-convention slot can accept an immediate argument
+     * on the current target. M68k data/address/float slots all do; 6502 only the single-byte
+     * A/X/Y slots (s0-s2) do.
+     */
+    private fun slotSupportsImmediate(slot: CallingConventionSlot): Boolean {
+        val cpu = codeGen.options.compTarget.cpu
+        return cpu.is68k || (cpu.is6502 && slot.value <= 2)
+    }
+
+    /**
+     * If [expr] is a constant that can be passed as an immediate hardware-register argument,
+     * return its immediate IR operand. Handles integer and float constants and simple symbol
+     * addresses (address-of a global identifier without indexing).
+     */
+    private fun asImmediateCallArgument(expr: PtExpression, paramDt: IRDataType): ImmediateOperand? {
+        return when {
+            expr is PtAddressOf -> {
+                val identifier = expr.identifier
+                // Only global symbols have a fixed address; locals and parameters live in a
+                // stack frame and must be loaded via the frame pointer rather than referenced
+                // by name. After symbol prefixing, subroutine-scoped names contain `.p8s_`.
+                if (identifier != null && identifier.name.isGlobalScopedSymbol &&
+                    expr.arrayIndexExpr == null && expr.dereference == null) {
+                    val name = identifier.name
+                    val symbol = when {
+                        expr.isMsbForSplitArray -> "${name}_msb"
+                        identifier.type.isSplitWordArray(codeGen.options.compTarget) -> "${name}_lsb"
+                        else -> name
+                    }
+                    ImmediateOperand.SymbolAddress(symbol, 0, paramDt)
+                } else null
+            }
+            paramDt == IRDataType.FLOAT -> {
+                val value = expr.asConstValue()
+                if (value != null) ImmediateOperand.FloatValue(value) else null
+            }
+            expr.asConstInteger() != null -> ImmediateOperand.Integer(expr.asConstInteger()!!, paramDt)
+            else -> null
+        }
+    }
 }
+
+
+/**
+ * True if [this] scoped symbol name refers to a global entity (block-level variable/constant,
+ * subroutine, label, etc.) that has a fixed assembly address. Names that contain a `.p8s_`
+ * subroutine scope before the variable part denote locals or parameters living in a stack frame.
+ */
+internal val String.isGlobalScopedSymbol: Boolean get() = !this.contains(".p8s_")
 
 
 internal fun addInstr(code: MutableList<IRCodeChunkBase>, instr: IRInstruction, label: String?) {

@@ -1424,7 +1424,8 @@ internal class AsmGen(val program: IRProgram, internal val target: ICompilationT
         val loads = mutableMapOf<VirtualRegister, IRInstruction>()
         // Find the most recent LOAD immediate defining each call argument, allowing gaps but no intervening write.
         for (arg in callSite.arguments) {
-            val register = arg.source.register
+            if (arg.source !is RegisterCallSource) continue
+            val register = arg.registerSource.register
             // Immediate forwarding applies to spilled operands only; register-resident args go through call marshalling.
             if (register in regAllocation) continue
             // search backwards for the defining LOAD immediate
@@ -1432,7 +1433,7 @@ internal class AsmGen(val program: IRProgram, internal val target: ICompilationT
                 val insn = instructions[idx]
                 // If this instruction writes to the same register, it's the defining write
                 if (insn.exclusiveDestination() == register) {
-                    if (insn.forwardableImmediateFor(register, arg.source.type) != null)
+                    if (insn.forwardableImmediateFor(register, arg.registerSource.type) != null)
                         loads[register] = insn
                     break // found the defining write, whether immediate or not
                 }

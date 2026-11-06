@@ -78,12 +78,40 @@ sealed interface CallLocation {
 }
 
 
+/** Source of a call argument: either a virtual register or an immediate constant. */
+sealed interface CallArgumentSource {
+    val type: IRDataType
+}
+
+/** A call argument that comes from a virtual register. */
+data class RegisterCallSource(val register: RegisterOperand) : CallArgumentSource {
+    override val type: IRDataType get() = register.type
+}
+
+/** A call argument that is an immediate constant. */
+data class ImmediateCallSource(val immediate: ImmediateOperand) : CallArgumentSource {
+    override val type: IRDataType get() = immediate.type
+}
+
+
 /** one argument of a call */
-data class CallArgument(val source: RegisterOperand, val location: CallLocation = CallLocation.Default) {
+data class CallArgument(val source: CallArgumentSource, val location: CallLocation = CallLocation.Default) {
     init {
-        require(source.role == OperandRole.CALL_ARGUMENT) { "call argument must have CALL_ARGUMENT role" }
-        require(source.direction == OperandDirection.USE) { "call argument must be a USE operand" }
+        when (source) {
+            is RegisterCallSource -> {
+                require(source.register.role == OperandRole.CALL_ARGUMENT) { "call argument register must have CALL_ARGUMENT role" }
+                require(source.register.direction == OperandDirection.USE) { "call argument register must be a USE operand" }
+            }
+            is ImmediateCallSource -> {
+                // immediates are valid as call arguments only when a concrete location is given
+                require(location != CallLocation.Default) { "immediate call argument must have an explicit location" }
+            }
+        }
     }
+
+    val isImmediate: Boolean get() = source is ImmediateCallSource
+    val registerSource: RegisterOperand get() = (source as RegisterCallSource).register
+    val immediateSource: ImmediateOperand get() = (source as ImmediateCallSource).immediate
 }
 
 
@@ -136,7 +164,7 @@ data class CallSite(
                 is CallTarget.AmigaLibrary -> {}
                 is CallTarget.SystemCall -> {}
             }
-            arguments.forEach { add(it.source) }
+            arguments.forEach { if (it.source is RegisterCallSource) add(it.registerSource) }
             results.forEach { r -> r.destination?.let { add(it) } }
         }
 
@@ -176,7 +204,12 @@ data class CallSite(
         }
         return copy(
             target = newTarget,
-            arguments = arguments.map { it.copy(source = it.source.withRegister(transform(it.source.register))) },
+            arguments = arguments.map {
+                when (it.source) {
+                    is RegisterCallSource -> it.copy(source = RegisterCallSource(it.registerSource.withRegister(transform(it.registerSource.register))))
+                    is ImmediateCallSource -> it
+                }
+            },
             results = results.map { r -> r.copy(destination = r.destination?.let { it.withRegister(transform(it.register)) }) }
         )
     }
@@ -200,13 +233,18 @@ object Calls {
         register: VirtualRegister,
         type: IRDataType,
         location: CallLocation = CallLocation.Default
-    ) = CallArgument(RegisterOperand(register, type, OperandRole.CALL_ARGUMENT, OperandDirection.USE), location)
+    ) = CallArgument(RegisterCallSource(RegisterOperand(register, type, OperandRole.CALL_ARGUMENT, OperandDirection.USE)), location)
 
     fun argument(
         registerNumber: Int,
         type: IRDataType,
         location: CallLocation = CallLocation.Default
     ) = argument(registerFor(registerNumber, type), type, location)
+
+    fun argument(
+        immediate: ImmediateOperand,
+        location: CallLocation
+    ) = CallArgument(ImmediateCallSource(immediate), location)
 
     fun result(
         register: VirtualRegister,

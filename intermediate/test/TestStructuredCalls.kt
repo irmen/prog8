@@ -113,7 +113,7 @@ class TestStructuredCalls: FunSpec({
             results = listOf(Calls.result(2, IRDataType.BYTE))
         )
         val mapped = site.mapRegisters { if(it == VirtualRegister.int(1)) VirtualRegister.int(9) else it }
-        mapped.arguments[0].source.registerNumber shouldBe 9
+        mapped.arguments[0].registerSource.registerNumber shouldBe 9
         mapped.results[0].destination!!.registerNumber shouldBe 2
         mapped.arguments[0].location shouldBe CallLocation.Default
     }

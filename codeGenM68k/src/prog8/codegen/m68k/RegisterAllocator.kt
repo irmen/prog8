@@ -349,8 +349,9 @@ class M68kRegisterAllocator(val program: IRProgram) {
                 for (arg in cs.arguments) {
                     val slot = (arg.location as? CallLocation.HardwareRegister)?.slot ?: continue
                     if (slot.value !in 18..24) continue
-                    if (arg.source.type != IRDataType.POINTER) continue
-                    val reg = arg.source.register
+                    if (arg.source !is RegisterCallSource) continue
+                    if (arg.registerSource.type != IRDataType.POINTER) continue
+                    val reg = arg.registerSource.register
                     if (accessCounts[reg] != 2) continue
                     hints[reg] = AllocationHint.PREFER_ADDRESS
                 }
@@ -544,12 +545,13 @@ class M68kRegisterAllocator(val program: IRProgram) {
                 if (call.opcode != Opcode.CALL || callSite.arguments.isEmpty() ||
                     callSite.arguments.any { it.location !is CallLocation.HardwareRegister }) continue
                 for (arg in callSite.arguments) {
-                    val reg = arg.source.register
+                    if (arg.source !is RegisterCallSource) continue
+                    val reg = arg.registerSource.register
                     if (accesses[reg] != 2) continue
                     val definition = (callIndex - 1 downTo 0).firstNotNullOfOrNull { idx ->
                         instructions[idx].takeIf { it.exclusiveDestination() == reg }
                     } ?: continue
-                    if (definition.forwardableImmediateFor(reg, arg.source.type) != null) forwarded.add(reg)
+                    if (definition.forwardableImmediateFor(reg, arg.registerSource.type) != null) forwarded.add(reg)
                 }
             }
         }

@@ -235,7 +235,7 @@ class TestRegisterPacker: FunSpec({
         val syscall = instrs.first { it.opcode == Opcode.SYSCALL }
         val remapped = syscall.requireCallSite()
         // Should have same packed register numbers
-        remapped.arguments.map { it.source.register }.toSet().size shouldBe 2
+        remapped.arguments.map { (it.source as RegisterCallSource).register.register }.toSet().size shouldBe 2
         remapped.results.single().destination!!.registerNumber shouldBe 3
     }
 
