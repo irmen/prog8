@@ -1035,18 +1035,20 @@ _after:
             val statements = mutableListOf<Statement>()
             val names = forLoop.loopVar.nameInSource
             val scope = forLoop.definingScope
-            val existing = if (names.size == 1) scope.lookup(names.single()) else null
-            if (existing !is VarDecl) {
+            val existing = scope.lookup(names)
+            // Only declare a fresh loop variable for a simple (unqualified) name; a
+            // qualified name such as a hardware register (cx16.r0L) already exists.
+            if (existing !is VarDecl && names.size == 1) {
                 val iterableType = forLoop.iterable.inferType(program).getOrUndef()
                 val effectiveType = forLoop.loopVarType ?: iterableType
                 val decl = VarDecl.builder(effectiveType, pos)
-                    .names(names.single())
+                    .names(names)
                     .type(VarDeclType.VAR)
                     .build()
                 statements.add(decl)
             }
             val uniq = "${pos.line}_${pos.startCol}"
-            val idxName = "ptr_idx_${names.single()}_$uniq"
+            val idxName = "ptr_idx_${names.last()}_$uniq"
             val idxVar = VarDecl(VarDeclType.VAR, VarDeclOrigin.USERCODE, DataType.UBYTE, ZeropageWish.DONTCARE, SplitWish.DONTCARE, null, null, idxName, emptyList(), null, false, 0u, false, null, pos)
             val idxInit = Assignment(AssignTarget(IdentifierReference(listOf(idxName), pos), null, null, null, false, position = pos), NumericLiteral.optimalInteger(0, pos), AssignmentOrigin.OPTIMIZER, pos)
             val cond = BinaryExpression(ArrayIndexedExpression(iterableRef.copy(), null, null, ArrayIndex(IdentifierReference(listOf(idxName), pos), pos), pos), "!=", NumericLiteral.optimalInteger(0, pos), pos)
@@ -1087,12 +1089,12 @@ _after:
         val statements = mutableListOf<Statement>()
         val names = forLoop.loopVar.nameInSource
         val scope = forLoop.definingScope
-        val existing = if (names.size == 1) scope.lookup(names.single()) else null
-        if (existing !is VarDecl) {
+        val existing = scope.lookup(names)
+        if (existing !is VarDecl && names.size == 1) {
             val iterableType = forLoop.iterable.inferType(program).getOrUndef()
             val effectiveType = forLoop.loopVarType ?: iterableType
             val decl = VarDecl.builder(effectiveType, pos)
-                .names(names.single())
+                .names(names)
                 .type(VarDeclType.VAR)
                 .build()
             statements.add(decl)
@@ -1133,10 +1135,10 @@ _after:
         val pos = forLoop.position
         // Create index variable - make unique per loop position to avoid hoisting collisions
         val uniqRev = "${pos.line}_${pos.startCol}"
-        val idxName = "rev_idx_${forLoop.loopVar.nameInSource.single()}_${uniqRev}"
+        val idxName = "rev_idx_${forLoop.loopVar.nameInSource.last()}_${uniqRev}"
         // Determine length: for array, use arraysize; for string, need runtime len? For now use while to find len for string via scanning (simplified: use 255 max? Better to use len via function? For now handle array only; for string fallback to not desugar and let IR handle? To keep simple, only handle array with known size; for string we generate scanning loop.
         // If array with known size, init idx = len-1
-        val syntheticIterableName = "rev_str_${forLoop.loopVar.nameInSource.single()}_${uniqRev}"
+        val syntheticIterableName = "rev_str_${forLoop.loopVar.nameInSource.last()}_${uniqRev}"
         val syntheticIterable: VarDecl?
         val iterableRef: IdentifierReference
         val arrayVar: VarDecl?
@@ -1188,7 +1190,7 @@ _after:
             // string reverse: need to compute len via scanning? Use while to find terminator length
             // For now generate similar index loop but compute len first:
             // word len=0; while s[len]!=0 { len++ }; len-- ; while len>=0 { c=s[len]; body; len-- }
-            val lenName = "str_len_${forLoop.loopVar.nameInSource.single()}_${uniqRev}"
+            val lenName = "str_len_${forLoop.loopVar.nameInSource.last()}_${uniqRev}"
             val strIdxType = if (target.cpu.is6502) DataType.UBYTE else DataType.UWORD
             val lenVar = VarDecl(VarDeclType.VAR, VarDeclOrigin.USERCODE, strIdxType, ZeropageWish.DONTCARE, SplitWish.DONTCARE, null, null, lenName, emptyList(), null, false, 0u, false, null, pos)
             val idxVarWord = VarDecl(VarDeclType.VAR, VarDeclOrigin.USERCODE, strIdxType, ZeropageWish.DONTCARE, SplitWish.DONTCARE, null, null, idxName, emptyList(), null, false, 0u, false, null, pos)
@@ -1672,7 +1674,7 @@ _after:
         var currentStruct: StructDecl = struct
         var fieldDt: DataType? = null
         for((index, field) in fields.withIndex()) {
-            val fieldName = field.nameInSource.single()
+            val fieldName = field.nameInSource.joinToString(".")
             fieldDt = currentStruct.getFieldType(fieldName)
             if(fieldDt==null) {
                 errors.err("no such field '$fieldName' in struct '${currentStruct.name}'", field.position)
