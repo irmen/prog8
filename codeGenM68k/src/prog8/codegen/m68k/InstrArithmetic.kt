@@ -63,6 +63,15 @@ internal fun AsmGen.translateArithmetic(insn: IRInstruction) {
                 invalidateD0CacheForSlot(dstReg)
                 return@translateArithmetic
             }
+            // address-register destination: the source operand feeds the add directly,
+            // a d0 bounce would only add instructions
+            if (allocatesToAddressReg(dstReg)) {
+                directAddrArithSource(srcReg, type)?.let { s ->
+                    emitLine("add${dtSuffix(type)}  $s, ${operand(dstReg)}")
+                    invalidateD0CacheForSlot(dstReg)
+                    return@translateArithmetic
+                }
+            }
             loadRegOrZeroExtendToD0(srcReg, type)
             emitLine("add${dtSuffix(type)}  $SCRATCH_D0, ${operand(dstReg)}")
             invalidateD0CacheForSlot(dstReg)

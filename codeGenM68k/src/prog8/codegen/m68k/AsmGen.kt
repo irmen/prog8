@@ -705,6 +705,19 @@ internal class AsmGen(val program: IRProgram, internal val target: ICompilationT
             emitLine("$op.s  $source, $dest")
     }
 
+    // Longword source form for address-register destinations: add.l/sub.l accept any
+    // Dn/An/memory source, so a full-width source needs no d0 bounce.
+    internal fun directAddrArithSource(srcReg: Int, type: IRDataType): String? {
+        if (type != IRDataType.LONG && type != IRDataType.POINTER) return null
+        val srcType = regType(srcReg)
+        if (srcType != IRDataType.LONG && srcType != IRDataType.POINTER) return null
+        return operand(srcReg)
+    }
+
+    // True when the vreg is resident in one of the address registers.
+    internal fun allocatesToAddressReg(reg: Int): Boolean =
+        regAllocation[VirtualRegister.int(reg)]?.startsWith("a") == true
+
     // Source form: only the source must be resident, for reg->mem ops
     // (add.w d3,(a0)) and d0-free moves. Same fallback rule as the pair form.
     internal fun directDataSrc(srcReg: Int, type: IRDataType): String? {
@@ -985,7 +998,7 @@ internal class AsmGen(val program: IRProgram, internal val target: ICompilationT
             if (options.optimize) {
                 CompilationTimings.measure("asm optimize") {
                     val asmLines = output.toString().lines().toMutableList()
-                    optimizeAssembly(asmLines)
+                    optimizeAssembly(asmLines, program.options.compTarget.cpu)
                     asmFile.toFile().writeText(asmLines.joinToString("\n") + "\n")
                 }
             } else {

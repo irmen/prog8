@@ -1,10 +1,12 @@
 package prog8.codegen.m68k
 
+import prog8.code.core.CpuType
+
 // M68k assembly-level peephole optimizer over a MutableList<String> of assembly lines: only
 // lines a peephole matches are modified or removed (comments stay intact), and all passes
 // re-run until a full pass makes no changes. Add a pass by registering it in optimizeAssembly().
 
-internal fun optimizeAssembly(lines: MutableList<String>) {
+internal fun optimizeAssembly(lines: MutableList<String>, cpu: CpuType = CpuType.M68000) {
     val pretrimmed = lines.map { it.trimStart() }.toMutableList()
 
     while (true) {
@@ -44,6 +46,24 @@ internal fun optimizeAssembly(lines: MutableList<String>) {
         val stagedMoveMods = optimizeRedundantStagedMove(lines, pretrimmed)
         if (stagedMoveMods.isNotEmpty()) {
             applyModifications(stagedMoveMods, lines, pretrimmed)
+            modified = true
+            by2 = getLinesBy(pretrimmed, lines, 2)
+        }
+        val stagedPairMods = optimizeStagedAddPair(lines, pretrimmed)
+        if (stagedPairMods.isNotEmpty()) {
+            applyModifications(stagedPairMods, lines, pretrimmed)
+            modified = true
+            by2 = getLinesBy(pretrimmed, lines, 2)
+        }
+        val loadCmpMods = optimizeLoadIntoCompare(lines, pretrimmed)
+        if (loadCmpMods.isNotEmpty()) {
+            applyModifications(loadCmpMods, lines, pretrimmed)
+            modified = true
+            by2 = getLinesBy(pretrimmed, lines, 2)
+        }
+        val indexedLeaMods = optimizeIndexedPointerLea(lines, pretrimmed, cpu)
+        if (indexedLeaMods.isNotEmpty()) {
+            applyModifications(indexedLeaMods, lines, pretrimmed)
             modified = true
             by2 = getLinesBy(pretrimmed, lines, 2)
         }
@@ -1346,6 +1366,259 @@ private fun optimizeStagedAddCollapse(lines: List<String>, allPretrimmed: List<S
         mods.add(Modification(filt[i].index, true, null))
         mods.add(Modification(filt[i + 1].index, true, null))
         mods.add(Modification(filt[i + 2].index, false, "$indent" + "add.l  ${src1},${dstAddr}"))
+    }
+    return mods
+}
+
+/**
+ * True when [reg] is provably not read after filtered position [pos]: either it is fully
+ * redefined before any read, or the basic block ends first. Conservative: any label,
+ * control transfer, operand-less instruction, or a bounded scan that runs out means alive.
+ */
+private fun provenDeadAfter(filt: List<IndexedValue<String>>, pos: Int, reg: String): Boolean {
+    var cur = pos
+    var steps = 0
+    while (cur < filt.size && steps < 24) {
+        val line = filt[cur].value
+        if (hasLabel(line) || line.isControlTransfer()) return false
+        val lops = line.operandsList()
+        if (lops != null && lops.isNotEmpty()) {
+            val dstTok = lops.last().lowercase()
+            val srcTok = lops.dropLast(1).joinToString(",").lowercase()
+            if (dstTok == reg && !srcTok.contains(reg)) return true
+            if (line.regTokensMention(reg)) return false
+        }
+        cur++
+        steps++
+    }
+    return false
+}
+
+/**
+ * Two-instruction form of the pointer-stage add collapse:
+ *
+ *     move.l  <src>,dY      ; pointer/offset staged into a data register
+ *     add.l   dY,aN         ->  add.l  <src>,aN
+ *
+ * `add.l` takes a Dn/An source directly, so the staged copy is dead weight whenever dY
+ * is dead after the add. Unlike the three-instruction form (which stages through the d0
+ * scratch bounce) only one register's liveness has to be proven, so this also folds when
+ * a conditional branch follows immediately - the usual case in pointer-indexed loops.
+ */
+private fun optimizeStagedAddPair(lines: List<String>, allPretrimmed: List<String>): List<Modification> {
+    val mods = mutableListOf<Modification>()
+    val filt = allPretrimmed.withIndex()
+        .filter { it.value.isNotBlank() && !it.value.startsWith(';') }
+        .map { IndexedValue(it.index, it.value.trimStart()) }
+
+    for (pos in 0 until filt.size - 1) {
+        val l1 = filt[pos].value
+        val l2 = filt[pos + 1].value
+        if (hasLabel(l2)) continue
+        val o1 = l1.operandsList() ?: continue
+        val o2 = l2.operandsList() ?: continue
+        if (o1.size != 2 || o2.size != 2) continue
+        val src = o1[0].lowercase()
+        val staged = o1[1].lowercase()
+        val stagedOk = when (l1.instructionName()) {
+            "move.l" -> staged.isDataReg()
+            "movea.l" -> staged.isAddressReg()
+            else -> false
+        }
+        if (!stagedOk) continue
+        if (!src.isAddressReg() && !src.isDataReg()) continue
+        if (src.contains(staged)) continue
+        if (l2.instructionName() != "add.l") continue
+        if (o2[0].lowercase() != staged || !o2[1].isAddressReg()) continue
+
+        // the staged register must be dead after the add
+        if (!provenDeadAfter(filt, pos + 2, staged)) continue
+
+        val indent = lines[filt[pos].index].takeWhile { it == ' ' }.ifEmpty { "        " }
+        val label = keepLabel(l1)
+        val labelPrefix = if (label.isNotEmpty()) "$label  " else ""
+        mods.add(Modification(filt[pos].index, false, "$indent$labelPrefix" + "add.l  $src,${o2[1].lowercase()}"))
+        mods.add(Modification(filt[pos + 1].index, true, null))
+    }
+    return mods
+}
+
+/**
+ * Folds a value load into the compare that is its only consumer:
+ *
+ *     move.<size> S,dK          move.<size> S,dK
+ *     cmp.<size>  dK,dM   ->    cmp.<size>  S,dM
+ *
+ *     move.<size> S,dK          move.<size> S,dK
+ *     cmpi.<size> #N,dK   ->    cmpi.<size> #N,S
+ *
+ * Both final forms set exactly the flags the pair set (the load's flag write was already
+ * overwritten by the compare), and dK must be dead after the compare.
+ */
+private fun optimizeLoadIntoCompare(lines: List<String>, allPretrimmed: List<String>): List<Modification> {
+    val mods = mutableListOf<Modification>()
+    val filt = allPretrimmed.withIndex()
+        .filter { it.value.isNotBlank() && !it.value.startsWith(';') }
+        .map { IndexedValue(it.index, it.value.trimStart()) }
+
+    for (pos in 0 until filt.size - 1) {
+        val l1 = filt[pos].value
+        val l2 = filt[pos + 1].value
+        if (hasLabel(l2)) continue
+        if (!l1.isMove()) continue
+        val size = l1.moveSize()
+        if (size !in setOf('b', 'w', 'l')) continue
+        val o1 = l1.operandsList() ?: continue
+        if (o1.size != 2) continue
+        val src = o1[0]
+        val loaded = o1[1].lowercase()
+        if (!loaded.isDataReg() || src.lowercase().contains(loaded)) continue
+        val cmpName = "cmp.$size"
+        val cmpiName = "cmpi.$size"
+        val o2 = l2.operandsList() ?: continue
+        if (o2.size != 2) continue
+
+        val replacement: String? = when {
+            l2.instructionName() == cmpName -> {
+                // cmp.<size> dK,dM  ->  cmp.<size> S,dM   (flags = dM - S either way)
+                if (o2[0].lowercase() != loaded || !o2[1].isDataReg()) null
+                else "cmp.$size  $src,${o2[1]}"
+            }
+            l2.instructionName() == cmpiName -> {
+                // cmpi.<size> #N,dK  ->  cmpi.<size> #N,S
+                if (o2[1].lowercase() != loaded || !src.isDataReg() && !src.contains('(')) null
+                else "cmpi.$size  ${o2[0]},$src"
+            }
+            else -> null
+        } ?: continue
+
+        // the loaded register must be dead after the compare
+        if (!provenDeadAfter(filt, pos + 2, loaded)) continue
+
+        val indent = lines[filt[pos].index].takeWhile { it == ' ' }.ifEmpty { "        " }
+        val label = keepLabel(l1)
+        val labelPrefix = if (label.isNotEmpty()) "$label  " else ""
+        mods.add(Modification(filt[pos].index, false, "$indent$labelPrefix$replacement"))
+        mods.add(Modification(filt[pos + 1].index, true, null))
+    }
+    return mods
+}
+
+/**
+ * Collapses the pointer-indexed element-address sequence
+ *
+ *     moveq   #0,dN            ; zero-extend word index to long
+ *     move.w  S,dN
+ *     add.l   dN,dN            ; (or lsl.l #1/#2) scale by element size 2 or 4
+ *     movea.l dN,aT
+ *     add.l   aP,aT            ; aP = base pointer, already in an address register
+ *
+ * into a single indexed lea. On 68020+ the scale folds into the index too:
+ *
+ *     lea  (aP,dN.l*scale),aT
+ *
+ * and on plain 68000 the scale instruction stays but the stage/add pair folds:
+ *
+ *     lea  (aP,dN.l),aT
+ *
+ * The .l index form is what makes this safe: the word index is properly zero-extended,
+ * so the full 32-bit index reaches the lea with no sign-extension surprises.
+ * A staged variant where the base pointer is first copied (through a data register or
+ * reloaded from memory) is folded likewise, provided the staged register dies at the add.
+ * The removed `add.l` set flags; the fold requires the very next instruction to set flags
+ * itself, so no consumer can observe them.
+ */
+private fun optimizeIndexedPointerLea(lines: List<String>, allPretrimmed: List<String>, cpu: CpuType): List<Modification> {
+    val mods = mutableListOf<Modification>()
+    val filt = allPretrimmed.withIndex()
+        .filter { it.value.isNotBlank() && !it.value.startsWith(';') }
+        .map { IndexedValue(it.index, it.value.trimStart()) }
+    val scaled = cpu >= CpuType.M68020
+
+    fun flagMaskAfter(pos: Int): Boolean {
+        // the line right after the removed add must set flags itself (a move to non-An)
+        if (pos >= filt.size) return false
+        val line = filt[pos].value
+        if (hasLabel(line) || !line.isMove()) return false
+        val ops = line.operandsList() ?: return false
+        return !ops.last().lowercase().isAddressReg()
+    }
+
+    var pos = 0
+    while (pos + 4 < filt.size) {
+        val l1 = filt[pos].value
+        val l2 = filt[pos + 1].value
+        val l3 = filt[pos + 2].value
+        val l4 = filt[pos + 3].value
+        val l5 = filt[pos + 4].value
+        if (hasLabel(l2) || hasLabel(l3) || hasLabel(l4) || hasLabel(l5)) { pos++; continue }
+        if (l1.instructionName() != "moveq") { pos++; continue }
+        val o1 = l1.operandsList() ?: run { pos++; continue }
+        if (o1.size != 2 || o1[0] != "#0" || !o1[1].lowercase().isDataReg()) { pos++; continue }
+        val idxReg = o1[1].lowercase()
+        if (!l2.isMove() || l2.moveSize() != 'w') { pos++; continue }
+        val o2 = l2.operandsList() ?: run { pos++; continue }
+        if (o2.size != 2 || o2[1].lowercase() != idxReg || o2[0].lowercase().contains(idxReg)) { pos++; continue }
+        val scale = when {
+            l3.instructionName() == "add.l" && l3.operandsList()?.let { it.size == 2 && it[0].lowercase() == idxReg && it[1].lowercase() == idxReg } == true -> 2
+            l3.instructionName() == "lsl.l" && l3.operandsList()?.let { it.size == 2 && it[0] == "#1" && it[1].lowercase() == idxReg } == true -> 2
+            l3.instructionName() == "lsl.l" && l3.operandsList()?.let { it.size == 2 && it[0] == "#2" && it[1].lowercase() == idxReg } == true -> 4
+            else -> 0
+        }
+        if (scale == 0) { pos++; continue }
+        if (l4.instructionName() != "movea.l") { pos++; continue }
+        val o4 = l4.operandsList() ?: run { pos++; continue }
+        if (o4.size != 2 || o4[0].lowercase() != idxReg || !o4[1].lowercase().isAddressReg()) { pos++; continue }
+        val addrT = o4[1].lowercase()
+
+        fun leaLine(base: String): String =
+            if (scaled) "lea  ($base,$idxReg.l*$scale),$addrT" else "lea  ($base,$idxReg.l),$addrT"
+
+        val indent = lines[filt[pos].index].takeWhile { it == ' ' }.ifEmpty { "        " }
+
+        // direct form: add.l aP,aT
+        if (l5.instructionName() == "add.l") {
+            val o5 = l5.operandsList()
+            if (o5 != null && o5.size == 2 && o5[0].lowercase().isAddressReg() && o5[1].lowercase() == addrT && o5[0].lowercase() != addrT && flagMaskAfter(pos + 5)) {
+                mods.add(Modification(filt[pos + 3].index, true, null))   // movea
+                mods.add(Modification(filt[pos + 4].index, false, "$indent" + leaLine(o5[0].lowercase())))
+                if (scaled) mods.add(Modification(filt[pos + 2].index, true, null))   // scale
+                pos += 5
+                continue
+            }
+        }
+
+        // staged form: move.l M,dK + add.l dK,aT, dK dead afterwards
+        if (pos + 5 < filt.size && l5.instructionName() == "move.l") {
+            val l6 = filt[pos + 5].value
+            val o5 = l5.operandsList()
+            val o6 = l6.operandsList()
+            if (!hasLabel(l6) && o5 != null && o6 != null && o5.size == 2 && o6.size == 2 &&
+                l6.instructionName() == "add.l" && o6[1].lowercase() == addrT) {
+                val base = o5[0].lowercase()
+                val staged = o5[1].lowercase()
+                if (staged.isDataReg() && staged != idxReg && o6[0].lowercase() == staged &&
+                    !base.contains(staged) && !base.contains(idxReg) && !base.contains(addrT) &&
+                    provenDeadAfter(filt, pos + 6, staged) && flagMaskAfter(pos + 6)) {
+                    if (base.isAddressReg()) {
+                        // base was staged through a data register: lea straight off the address register
+                        mods.add(Modification(filt[pos + 3].index, true, null))   // movea
+                        mods.add(Modification(filt[pos + 4].index, true, null))   // move.l aP,dK
+                        mods.add(Modification(filt[pos + 5].index, false, "$indent" + leaLine(base)))
+                        if (scaled) mods.add(Modification(filt[pos + 2].index, true, null))
+                    } else {
+                        // base reloaded from memory: load it into aT, then index off aT
+                        mods.add(Modification(filt[pos + 3].index, true, null))   // movea
+                        mods.add(Modification(filt[pos + 4].index, false, "$indent" + "movea.l  ${o5[0]},$addrT"))
+                        mods.add(Modification(filt[pos + 5].index, false, "$indent" + leaLine(addrT)))
+                        if (scaled) mods.add(Modification(filt[pos + 2].index, true, null))
+                    }
+                    pos += 6
+                    continue
+                }
+            }
+        }
+        pos++
     }
     return mods
 }

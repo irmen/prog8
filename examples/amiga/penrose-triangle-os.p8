@@ -77,10 +77,8 @@ main {
                 rotate_shape(angle)
                 draw_triangle()
                 angle += ANGLE_STEP
-                sys.waitvsync()
-                sys.waitvsync()
-                sys.waitvsync()
-                sys.waitvsync()
+
+                sys.wait(180)
             }
         }
     }
