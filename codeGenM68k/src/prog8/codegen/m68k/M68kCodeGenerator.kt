@@ -69,10 +69,14 @@ class M68kCodeGenerator(val retainSSA: Boolean): ICodeGeneratorBackend {
         for (sub in irProgram.allSubs()) {
             val calleeSaved = allocation.calleeSavedBySub[sub] ?: emptySet()
             val hasA5Asm = sub.chunks.filterIsInstance<IRInlineAsmChunk>().any {
-                StackFrameLayout.asmWritesFramePointerRegister(it.assembly)
+                StackFrameLayout.asmMentionsFramePointerRegister(it.assembly)
+            }
+            val hasStackOps = sub.chunks.flatMap { it.instructions }.any {
+                it.opcode == Opcode.PUSH || it.opcode == Opcode.POP ||
+                        it.opcode == Opcode.PUSHST || it.opcode == Opcode.POPST
             }
             if (sub.hasFrame && sub.frameSize == 0 && sub.incomingSize > 0 &&
-                sub.frameVregSlots.isEmpty() && !sub.noframe && calleeSaved.isEmpty() && !hasA5Asm) {
+                sub.frameVregSlots.isEmpty() && !sub.noframe && calleeSaved.isEmpty() && !hasA5Asm && !hasStackOps) {
                 sub.framePointerOmitted = true
             }
         }

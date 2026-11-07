@@ -1,6 +1,8 @@
 TODO
 ====
 
+- amiga: verify that adpcm decoding and regular 16 bit playback via AHI is working correctly (loudness/ byte ordering?)
+
 Future Things and Ideas
 ^^^^^^^^^^^^^^^^^^^^^^^
 - add a 'psg' module to the c64 that uses the vera module to interface to the Vera64X board, and add a music example that uses it.

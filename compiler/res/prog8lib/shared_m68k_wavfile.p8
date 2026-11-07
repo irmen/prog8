@@ -165,6 +165,27 @@ wavfile {
         }}
     }
 
+    asmsub deinterleave_16bit_stereo_be(pointer src @A0, pointer dst_left @A1, pointer dst_right @A2, long nframes @D0) {
+        ; Split interleaved 16-bit big-endian (native m68k) stereo samples into two
+        ; separate buffers without byte-swapping (for ADPCM decoder output, which is
+        ; already native order). nframes = number of (L,R) pairs; total bytes
+        ; consumed = nframes*4, each destination gets nframes*2 bytes.
+        ; Destination buffers must be distinct from src and from each other.
+        %asm {{
+            move.l  a2,-(sp)
+            tst.l   d0
+            beq.s   .done
+.loop:
+            move.w  (a0)+,(a1)+
+            move.w  (a0)+,(a2)+
+            subq.l  #1,d0
+            bne.s   .loop
+.done:
+            move.l  (sp)+,a2
+            rts
+        }}
+    }
+
     asmsub convert_16bit_mono(pointer buf @A0, long nwords @D0) {
         ; In-place: swap the two bytes of each 16-bit word, converting
         ; little-endian WAV sample data (on disk) to native big-endian m68k

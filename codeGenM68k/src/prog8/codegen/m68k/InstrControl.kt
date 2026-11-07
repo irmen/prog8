@@ -1067,12 +1067,13 @@ private fun AsmGen.emitImmediateToHardwareRegister(immediate: ImmediateOperand, 
     when (immediate) {
         is ImmediateOperand.FloatValue -> emitFloadConstantTo(hwReg, immediate.value)
         is ImmediateOperand.SymbolAddress -> {
+            val addr = if (immediate.offset != 0) "#${immediate.symbol}+${immediate.offset}" else "#${immediate.symbol}"
             // address registers only accept movea/suba, not clr or moveq
             if (hwReg.startsWith("a")) {
-                emitLine("movea.l  #${immediate.symbol}, $hwReg")
+                emitLine("movea.l  $addr, $hwReg")
             } else {
                 val s = dtSuffix(immediate.type)
-                emitLine("move$s  #${immediate.symbol}, $hwReg")
+                emitLine("move$s  $addr, $hwReg")
             }
         }
         is ImmediateOperand.Integer -> {

@@ -588,7 +588,10 @@ private fun AsmGen.translateArgument(arg: CallArgument, argIndex: Int = -1, fnLa
                 is ImmediateCallSource -> {
                     when (val imm = arg.immediateSource) {
                         is ImmediateOperand.Integer -> emitLine("lda  #${imm.value}")
-                        is ImmediateOperand.SymbolAddress -> emitLine("lda  #<${imm.symbol}")
+                        is ImmediateOperand.SymbolAddress -> {
+                            val addr = if (imm.offset != 0) "#<${imm.symbol}+${imm.offset}" else "#<${imm.symbol}"
+                            emitLine("lda  $addr")
+                        }
                         is ImmediateOperand.FloatValue -> error("float immediate cannot be loaded directly into A")
                     }
                 }
@@ -600,7 +603,10 @@ private fun AsmGen.translateArgument(arg: CallArgument, argIndex: Int = -1, fnLa
                 is ImmediateCallSource -> {
                     when (val imm = arg.immediateSource) {
                         is ImmediateOperand.Integer -> emitLine("ldx  #${imm.value}")
-                        is ImmediateOperand.SymbolAddress -> emitLine("ldx  #<${imm.symbol}")
+                        is ImmediateOperand.SymbolAddress -> {
+                            val addr = if (imm.offset != 0) "#<${imm.symbol}+${imm.offset}" else "#<${imm.symbol}"
+                            emitLine("ldx  $addr")
+                        }
                         is ImmediateOperand.FloatValue -> error("float immediate cannot be loaded directly into X")
                     }
                 }
@@ -612,7 +618,10 @@ private fun AsmGen.translateArgument(arg: CallArgument, argIndex: Int = -1, fnLa
                 is ImmediateCallSource -> {
                     when (val imm = arg.immediateSource) {
                         is ImmediateOperand.Integer -> emitLine("ldy  #${imm.value}")
-                        is ImmediateOperand.SymbolAddress -> emitLine("ldy  #<${imm.symbol}")
+                        is ImmediateOperand.SymbolAddress -> {
+                            val addr = if (imm.offset != 0) "#<${imm.symbol}+${imm.offset}" else "#<${imm.symbol}"
+                            emitLine("ldy  $addr")
+                        }
                         is ImmediateOperand.FloatValue -> error("float immediate cannot be loaded directly into Y")
                     }
                 }

@@ -821,6 +821,13 @@ private fun String.zeroExtendFlagDecision(): FlagDecision {
                 else -> FlagDecision.Overwritten
             }
         }
+        // ADDA/SUBA forms leave CCR untouched: treat like other flag-preserving ops.
+        base in setOf("add", "sub", "addq", "subq") -> {
+            val ops = splitOperands(operands)
+            if (ops.size == 2 && ops[1].trim().lowercase().isAddressReg()) FlagDecision.Continue
+            else if (base in nFlagOverwriters) FlagDecision.Overwritten
+            else FlagDecision.Unsafe
+        }
         base in nFlagOverwriters -> FlagDecision.Overwritten
         base in nFlagOpaque -> FlagDecision.Continue
         else -> FlagDecision.Unsafe
@@ -830,6 +837,9 @@ private fun String.zeroExtendFlagDecision(): FlagDecision {
 /**
  * True when the instruction defines N, Z, V and C from its own result without reading them.
  * `move` is checked separately because writing an address register does not touch the flags.
+ * `add`/`sub`/`addq`/`subq` are checked separately because their ADDA/SUBA forms
+ * (address-register destination) leave the CCR untouched, while their data-register forms
+ * overwrite all flags.
  */
 private fun String.overwritesAllFlags(): Boolean {
     val instr = substringBefore(';').trim().instructionPart().trim()
@@ -840,7 +850,71 @@ private fun String.overwritesAllFlags(): Boolean {
         if (ops.size != 2) return false
         return !ops[1].lowercase().isAddressReg()
     }
+    if (base in setOf("add", "sub", "addq", "subq")) {
+        val ops = instr.operandsList() ?: return false
+        if (ops.size == 2 && ops[1].trim().lowercase().isAddressReg()) return false
+        return true
+    }
     return base in allFlagOverwriters
+}
+
+/**
+ * True for Scc-style flag readers (sne, seq, smi, ...). `st`/`sf` do not read flags.
+ */
+private fun String.isFlagReadingScc(): Boolean {
+    val base = mnemonic()
+    if (!base.startsWith("s") || base.length < 2) return false
+    if (base in setOf("st", "sf")) return false
+    return base in setOf(
+        "scc", "scs", "seq", "sne", "svc", "svs", "shi", "sls", "shs", "slo",
+        "spl", "smi", "sge", "slt", "sgt", "sle"
+    )
+}
+
+/**
+ * Instructions that preserve the full CCR and do not read it: safe to skip when
+ * proving that removed flag writes are dead. Excludes Scc (reads flags) and
+ * bit ops (partially define flags).
+ */
+private fun String.isFlagPreservingOpaque(): Boolean {
+    val base = mnemonic()
+    if (base in setOf("lea", "movea", "adda", "suba", "exg", "link", "unlk", "nop", "movem")) return true
+    if (base.startsWith("f")) return base in setOf(
+        "fmove", "fadd", "fsub", "fmul", "fdiv", "ftst", "fcmp",
+        "fsqrt", "fabs", "fneg", "fintrz", "fgetexp", "fgetman"
+    )
+    if (base == "move") {
+        val ops = operandsList() ?: return false
+        if (ops.size != 2) return false
+        return ops[1].trim().lowercase().isAddressReg()
+    }
+    if (base == "pea") return true
+    return false
+}
+
+/**
+ * True when every fall-through path from filtered position [pos] overwrites N/Z/V/C
+ * (or returns/calls, which clobber them) before any flag reader. Labels and unknown
+ * transfers are conservative (not dead). Used when removing flag-setting moves whose
+ * replacement (ADDA/PEA) leaves the CCR untouched.
+ */
+private fun flagsDeadAfter(filt: List<IndexedValue<String>>, pos: Int): Boolean {
+    var cur = pos
+    var steps = 0
+    while (cur < filt.size && steps < 32) {
+        val line = filt[cur].value
+        if (hasLabel(line)) return false
+        val base = line.mnemonic()
+        if (base in conditionBranches || base in dbccBranches) return false
+        if (line.isFlagReadingScc()) return false
+        if (base in setOf("rts", "rtr", "rte")) return true
+        if (base in setOf("bsr", "jsr")) return true
+        if (base == "bra" || base == "jmp" || base == "trap" || base == "trapv" || base == "chk" || base == "illegal") return false
+        if (line.overwritesAllFlags()) return true
+        if (line.isFlagPreservingOpaque()) { cur++; steps++; continue }
+        return false
+    }
+    return false
 }
 
 
@@ -1413,6 +1487,8 @@ private fun optimizeStagedAddCollapse(lines: List<String>, allPretrimmed: List<S
             steps++
         }
         if (!safe || needY || needZ) continue
+        // the two removed moves set N/Z; the ADDA replacement sets no flags.
+        if (!flagsDeadAfter(filt, i + 3)) continue
 
         val indent = lines[filt[i + 2].index].takeWhile { it == ' ' }.ifEmpty { "        " }
         mods.add(Modification(filt[i].index, true, null))
@@ -1450,7 +1526,7 @@ private fun buildLabelMap(filt: List<IndexedValue<String>>): Map<String, Int> {
  * Branch-aware variant: a conditional branch is dead for [reg] only when [reg] is dead on
  * both of its successors. Unconditional transfers end the path (rts/rtr/rte count as dead;
  * bsr/jsr/jmp/trap stay conservative). Labels are stripped so a branch target's instruction
- * can be scanned. Bounded by [steps] and [depth] to avoid infinite loops.
+ * can be scanned. Bounded by steps and depth to avoid infinite loops.
  */
 private fun provenDeadAfter(
     filt: List<IndexedValue<String>>,
@@ -1510,12 +1586,24 @@ private fun String.fullyDefinesDataRegister(reg: String): Boolean {
 }
 
 private fun String.writesDataRegisterWithoutReading(reg: String): Boolean {
+    // Only full-long writes kill a staged long value. Partial byte/word writes
+    // leave the upper bytes live, so they must not count as redefinitions.
     val ops = operandsList() ?: return false
     return when (instructionName()) {
-        "move.b", "move.w", "move.l" ->
+        "move.l" ->
             ops.size == 2 && ops[1].lowercase() == reg && !ops[0].regTokensMention(reg)
         "moveq" -> ops.size == 2 && ops[1].lowercase() == reg
-        "clr.b", "clr.w", "clr.l" -> ops.size == 1 && ops[0].lowercase() == reg
+        "clr.l" -> ops.size == 1 && ops[0].lowercase() == reg
+        else -> false
+    }
+}
+
+private fun String.partiallyWritesDataRegisterWithoutReading(reg: String): Boolean {
+    val ops = operandsList() ?: return false
+    return when (instructionName()) {
+        "move.b", "move.w" ->
+            ops.size == 2 && ops[1].lowercase() == reg && !ops[0].regTokensMention(reg)
+        "clr.b", "clr.w" -> ops.size == 1 && ops[0].lowercase() == reg
         else -> false
     }
 }
@@ -1524,6 +1612,8 @@ private fun String.writesDataRegisterWithoutReading(reg: String): Boolean {
  * True when [reg] is redefined before any read on the fall-through path from filtered position
  * [pos]. Unlike [provenDeadAfter] this may cross labels and calls: a callee cannot read the
  * caller's register as an argument, and the caller's own read is what this scan looks for.
+ * Partial byte/word writes without reading the old value are neither kills nor reads:
+ * they are skipped, since only a later full read of the whole long would observe them.
  */
 private fun registerUnreadBeforeRedefinition(filt: List<IndexedValue<String>>, pos: Int, reg: String): Boolean {
     var cur = pos
@@ -1536,6 +1626,7 @@ private fun registerUnreadBeforeRedefinition(filt: List<IndexedValue<String>>, p
         val lops = line.operandsList()
         if (!lops.isNullOrEmpty()) {
             if (line.writesDataRegisterWithoutReading(reg)) return true
+            if (line.partiallyWritesDataRegisterWithoutReading(reg)) { cur++; steps++; continue }
             if (line.regTokensMention(reg)) return false
         }
         cur++
@@ -1728,6 +1819,8 @@ private fun optimizePeaForStackArgs(lines: List<String>, allPretrimmed: List<Str
         }
         if (push < 0 || !flagsOverwritten) continue
         if (!registerUnreadBeforeRedefinition(filt, push + 1, staged)) continue
+        // the push itself (move.l) sets N/Z while pea leaves CCR untouched.
+        if (!flagsDeadAfter(filt, push + 1)) continue
 
         val original = lines[filt[push].index]
         val indent = original.takeWhile { it == ' ' }.ifEmpty { "        " }
@@ -1778,9 +1871,14 @@ private fun optimizeStagedAddPair(lines: List<String>, allPretrimmed: List<Strin
         if (src.contains(staged)) continue
         if (l2.instructionName() != "add.l") continue
         if (o2[0].lowercase() != staged || !o2[1].isAddressReg()) continue
+        // self-add changes meaning: movea.l d0,a1 + add.l a1,a1 is a1=2*d0,
+        // while add.l d0,a1 is a1=old_a1+d0.
+        if (o2[1].lowercase() == staged) continue
 
         // the staged register must be dead after the add
         if (!provenDeadAfter(filt, pos + 2, staged)) continue
+        // the removed move set N/Z; the ADDA replacement sets no flags.
+        if (l1.instructionName() == "move.l" && !flagsDeadAfter(filt, pos + 2)) continue
 
         val indent = lines[filt[pos].index].takeWhile { it == ' ' }.ifEmpty { "        " }
         val label = keepLabel(l1)
@@ -1928,6 +2026,8 @@ private fun optimizeIndexedPointerLea(lines: List<String>, allPretrimmed: List<S
         if (l5.instructionName() == "add.l") {
             val o5 = l5.operandsList()
             if (o5 != null && o5.size == 2 && o5[0].lowercase().isAddressReg() && o5[1].lowercase() == addrT && o5[0].lowercase() != addrT && flagMaskAfter(pos + 5)) {
+                // removing the scale changes idxReg from scaled to unscaled for later readers.
+                if (scaled && !provenDeadAfter(filt, pos + 5, idxReg)) { pos++; continue }
                 mods.add(Modification(filt[pos + 3].index, true, null))   // movea
                 mods.add(Modification(filt[pos + 4].index, false, indent + leaLine(o5[0].lowercase())))
                 if (scaled) mods.add(Modification(filt[pos + 2].index, true, null))   // scale
@@ -1947,7 +2047,8 @@ private fun optimizeIndexedPointerLea(lines: List<String>, allPretrimmed: List<S
                 val staged = o5[1].lowercase()
                 if (staged.isDataReg() && staged != idxReg && o6[0].lowercase() == staged &&
                     !base.contains(staged) && !base.contains(idxReg) && !base.contains(addrT) &&
-                    provenDeadAfter(filt, pos + 6, staged) && flagMaskAfter(pos + 6)) {
+                    provenDeadAfter(filt, pos + 6, staged) && flagMaskAfter(pos + 6) &&
+                    (!scaled || provenDeadAfter(filt, pos + 6, idxReg))) {
                     if (base.isAddressReg()) {
                         // base was staged through a data register: lea straight off the address register
                         mods.add(Modification(filt[pos + 3].index, true, null))   // movea

@@ -58,6 +58,9 @@ class StackFrameLayout(
         /** Public entry point so the M68K backend can reuse the same A5-write detection. */
         fun asmWritesFramePointerRegister(asm: String): Boolean = writesFramePointerRegister(asm)
 
+        /** Any A5 mention (read or write): FPO must keep the frame when inline asm touches A5. */
+        fun asmMentionsFramePointerRegister(asm: String): Boolean = mentionsFramePointerRegister(asm)
+
         const val MAX_FRAME_SIZE = 16384      // §3: per-frame limit, far below the 16-bit displacement range
 
         /** virtual register numbers from here on are reserved for the runtime and cannot be relocated */
@@ -1519,6 +1522,22 @@ fun writesFramePointerRegister(asm: String): Boolean {
         }
         if (writesA5 && !saved)
             return true
+    }
+    return false
+}
+
+private val a5Token = Regex("""(?<![A-Za-z0-9_$])a5(?![A-Za-z0-9_$])""", RegexOption.IGNORE_CASE)
+
+fun mentionsFramePointerRegister(asm: String): Boolean {
+    for (rawLine in asm.lines()) {
+        val line = rawLine.substringBefore(';')
+        if (line.isBlank()) continue
+        val code = line.trim()
+        if (code.startsWith('.')) continue
+        // strip a leading label so `lab: move.l a5,d0` is still detected
+        val noLabel = code.replace(asmLabelPrefix, "").trim()
+        if (noLabel.isEmpty()) continue
+        if (a5Token.containsMatchIn(noLabel)) return true
     }
     return false
 }

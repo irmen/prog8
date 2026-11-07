@@ -357,8 +357,7 @@ main {
                     outputptr = &output_buffer
                 }
                 adpcm.decode_block_mono(chunkptr, outputptr)
-                ; decoder produces big-endian 16-bit; convert to native order
-                wavfile.convert_16bit_mono(outputptr, (decoded_size / 2) as long)
+                ; decoder output is already native big-endian; write directly.
                 output_offset += decoded_size
                 outputptr += decoded_size
                 chunkptr += ADPCM_BLOCK_SIZE as long
@@ -440,9 +439,8 @@ main {
             while block_in_chunk < blocks_in_chunk {
                 long decoded_size = 996 as long
                 adpcm.decode_block_stereo(chunkptr, &output_buffer)
-                ; decoder produces big-endian 16-bit; convert to native order
-                ; and deinterleave into left/right buffers
-                wavfile.convert_16bit_stereo(&output_buffer, &left_buffer, &right_buffer, (decoded_size / 4) as long)
+                ; decoder output is already native big-endian; deinterleave only.
+                wavfile.deinterleave_16bit_stereo_be(&output_buffer, &left_buffer, &right_buffer, (decoded_size / 4) as long)
                 long half = decoded_size / 2 as long
                 long wl = dos.Write(outl, &left_buffer, half)
                 long wr = dos.Write(outr, &right_buffer, half)

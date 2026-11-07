@@ -129,6 +129,8 @@ class TestIRTextCodec: FunSpec({
         roundtrip("call main.foo(#\$1234.w@s10)")
         roundtrip("call main.foo(#main.items@s18)")
         roundtrip("call main.foo(#main.items+4@s18)")
+        roundtrip("call main.foo(#main.items+4.l@s18)")
+        roundtrip("call main.foo(#main.items.l@s18)")
         val call = IRTextCodec.parse("call main.foo(#\$2a.b@s0)")
         val site = call.requireCallSite()
         site.arguments[0].isImmediate shouldBe true

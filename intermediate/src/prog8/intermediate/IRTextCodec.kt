@@ -684,12 +684,13 @@ object IRTextCodec {
         if (inner.isEmpty())
             throw IRParseException("$opcode: empty immediate call argument")
         if (inner[0].isLetter() || inner[0] == '_') {
-            val plus = inner.lastIndexOf('+')
-            val (symbolText, explicitType) = stripTypeSuffix(
-                if (plus > 0) inner.substring(0, plus) else inner
-            )
+            // Strip an optional .b/.w/.l/.p type suffix first, then split symbol+offset.
+            // Otherwise `#sym+4.l` tries to parse `4.l` as the offset.
+            val (withoutType, explicitType) = stripTypeSuffix(inner)
+            val plus = withoutType.lastIndexOf('+')
+            val symbolText = if (plus > 0) withoutType.substring(0, plus) else withoutType
             val offset = if (plus > 0) {
-                inner.substring(plus + 1).toIntOrNull()
+                withoutType.substring(plus + 1).toIntOrNull()
                     ?: throw IRParseException("$opcode: invalid symbol offset in $text")
             } else 0
             val type = explicitType ?: IRDataType.POINTER

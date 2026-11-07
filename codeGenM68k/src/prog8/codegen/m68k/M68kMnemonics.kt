@@ -41,10 +41,13 @@ internal val nFlagOverwriters = setOf(
 
 /** Instruction mnemonics that define all four condition flags (N, Z, V, C) from their own result
  *  on every CPU and do not read any of them, so an earlier flag write cannot be observed. `mulu`,
- *  `muls`, `divu`, `divs` and `chk` are excluded: N/Z are undefined for the multiplies on 68000. */
+ *  `muls`, `divu`, `divs` and `chk` are excluded: N/Z are undefined for the multiplies on 68000.
+ *  `add`/`sub`/`addq`/`subq` are excluded because their ADDA/SUBA forms (address-register
+ *  destination) leave the CCR untouched; their data-register forms are handled explicitly in
+ *  the callers that need operand-aware classification. */
 internal val allFlagOverwriters = setOf(
     "move", "moveq", "clr", "tst", "cmp", "cmpa", "cmpi", "cmpm",
-    "add", "sub", "addi", "subi", "addq", "subq", "addx", "subx",
+    "addi", "subi", "addx", "subx",
     "and", "andi", "or", "ori", "eor", "eori",
     "asl", "asr", "lsl", "lsr", "rol", "ror", "roxl", "roxr",
     "neg", "negx", "not", "ext", "swap", "tas"

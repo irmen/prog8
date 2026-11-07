@@ -553,4 +553,44 @@ class TestStackFrameEmission : FunSpec({
         lines.any { it == "fmove.s  -4(a5),fp0" } shouldBe true
     }
 
+    test("A5 mention detection rejects reads as well as writes") {
+        prog8.codegen.intermediate.StackFrameLayout.asmMentionsFramePointerRegister("    move.l  a5,d0") shouldBe true
+        prog8.codegen.intermediate.StackFrameLayout.asmMentionsFramePointerRegister("    move.l  8(a5),d0") shouldBe true
+        prog8.codegen.intermediate.StackFrameLayout.asmMentionsFramePointerRegister("mylabel:  move.l  a5,d0") shouldBe true
+        prog8.codegen.intermediate.StackFrameLayout.asmMentionsFramePointerRegister("    move.l  d0,d1") shouldBe false
+        prog8.codegen.intermediate.StackFrameLayout.asmMentionsFramePointerRegister("    move.l  p8v_a5,d0") shouldBe false
+    }
+
+    test("A5 write detection still distinguishes saves from clobbers") {
+        prog8.codegen.intermediate.StackFrameLayout.asmWritesFramePointerRegister("    move.l  a5,d0") shouldBe false
+        prog8.codegen.intermediate.StackFrameLayout.asmWritesFramePointerRegister("    move.l  d0,a5") shouldBe true
+    }
+
+    test("FPO rejects subroutines with explicit stack operations") {
+        val pushPop = generateAsmWithIncoming(
+            frameSize = 0,
+            instructions = listOf(
+                IRInstructions.push(IRDataType.WORD, 1),
+                IRInstructions.loadMemory(Opcode.LOADM, IRDataType.BYTE, 2, IRMemory.direct("test.var")),
+                IRInstructions.pop(IRDataType.WORD, 3),
+                IRInstructions.simple(Opcode.RETURN)
+            ),
+            incomingSize = 4
+        )
+        pushPop.any { it == "link  a5,#0" } shouldBe true
+        pushPop.any { it == "unlk  a5" } shouldBe true
+
+        val pushstPopst = generateAsmWithIncoming(
+            frameSize = 0,
+            instructions = listOf(
+                IRInstructions.simple(Opcode.PUSHST),
+                IRInstructions.loadMemory(Opcode.LOADM, IRDataType.BYTE, 2, IRMemory.direct("test.var")),
+                IRInstructions.simple(Opcode.POPST),
+                IRInstructions.simple(Opcode.RETURN)
+            ),
+            incomingSize = 4
+        )
+        pushstPopst.any { it == "link  a5,#0" } shouldBe true
+        pushstPopst.any { it == "unlk  a5" } shouldBe true
+    }
 })

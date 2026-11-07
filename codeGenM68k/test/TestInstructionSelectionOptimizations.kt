@@ -2460,4 +2460,122 @@ class TestInstructionSelectionOptimizations : FunSpec({
         lines.any { it.trim() == "move.l  #1234,d2" } shouldBe true
         lines.none { it.trim() == "pea 1234" } shouldBe true
     }
+
+    test("does not fold staged add when staged reg is also the add destination") {
+        val lines = mutableListOf(
+            "    movea.l  d0,a1",
+            "    add.l  a1,a1",
+            "    move.l  #0,d0",
+            "    rts"
+        )
+        optimizeAssembly(lines)
+        lines.any { it.trim() == "movea.l  d0,a1" } shouldBe true
+        lines.any { it.trim() == "add.l  a1,a1" } shouldBe true
+    }
+
+    test("does not fold staged add pair over a flag consumer") {
+        val lines = mutableListOf(
+            "    move.l  a0,d1",
+            "    add.l  d1,a2",
+            "    beq  L2",
+            "    move.l  #0,d1",
+            "    rts",
+            "L2:",
+            "    move.l  #1,d1",
+            "    rts"
+        )
+        optimizeAssembly(lines)
+        lines.any { it.trim() == "move.l  a0,d1" } shouldBe true
+        lines.any { it.trim() == "add.l  d1,a2" } shouldBe true
+    }
+
+    test("does not fold staged add collapse over a flag consumer") {
+        val lines = mutableListOf(
+            "    move.l  a0,d1",
+            "    move.l  d1,d2",
+            "    add.l  d2,a3",
+            "    beq  L2",
+            "    move.l  #0,d1",
+            "    rts",
+            "L2:",
+            "    move.l  #1,d1",
+            "    rts"
+        )
+        optimizeAssembly(lines)
+        lines.any { it.trim() == "move.l  d1,d2" } shouldBe true
+    }
+
+    test("keeps zero-extend writeback when home is only partially redefined") {
+        val lines = mutableListOf(
+            "    moveq  #0,d0",
+            "    move.b  src,d0",
+            "    move.l  d0,d2",
+            "    moveq  #1,d3",
+            "    move.b  #0,d2",
+            "    move.l  d2,d4",
+            "    rts"
+        )
+        optimizeAssembly(lines)
+        lines.any { it.trim() == "move.l  d0,d2" } shouldBe true
+    }
+
+    test("does not treat address-register add as a flag overwrite") {
+        val lines = mutableListOf(
+            "    moveq  #0,d0",
+            "    move.b  src,d0",
+            "    move.l  d0,d2",
+            "    addq.l  #1,a0",
+            "    smi  d3",
+            "    rts"
+        )
+        optimizeAssembly(lines)
+        lines.any { it.trim() == "move.l  d0,d2" } shouldBe true
+    }
+
+    test("does not use pea when push flags are read afterwards") {
+        val lines = mutableListOf(
+            "    move.l  #sym,d2",
+            "    moveq  #0,d0",
+            "    move.l  d2,-(sp)",
+            "    sne  d3",
+            "    move.l  #0,d2",
+            "    rts"
+        )
+        optimizeAssembly(lines)
+        lines.any { it.trim() == "move.l  #sym,d2" } shouldBe true
+        lines.none { it.trim() == "pea sym" } shouldBe true
+    }
+
+    test("does not fold indexed lea scale when index is read afterwards") {
+        val lines = mutableListOf(
+            "    moveq  #0,d0",
+            "    move.w  index,d0",
+            "    add.l  d0,d0",
+            "    movea.l  d0,a1",
+            "    add.l  a0,a1",
+            "    move.l  d0,d2",
+            "    rts"
+        )
+        optimizeAssembly(lines, CpuType.M68020)
+        lines.any { it.trim() == "add.l  d0,d0" } shouldBe true
+        lines.any { it.trim() == "move.l  d0,d2" } shouldBe true
+    }
+
+    test("symbol-offset immediate call argument preserves offset in address register") {
+        val site = CallSite(
+            CallTarget.Direct(codeLabel("test.sub")),
+            listOf(
+                Calls.argument(
+                    ImmediateOperand.SymbolAddress("main.items", 4, IRDataType.POINTER),
+                    CallLocation.HardwareRegister(CallingConventionSlot(18))
+                )
+            )
+        )
+        val lines = generateAsm(
+            tempRoot.resolve("test-m68k-sym-offset"),
+            listOf(IRInstructions.call(site)),
+            Qemu68kTarget()
+        )
+        lines.any { it == "movea.l  #main.items+4,a0" } shouldBe true
+    }
 })
