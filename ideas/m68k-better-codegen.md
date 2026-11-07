@@ -861,9 +861,15 @@ all.
 
 Open asm-level findings from the 2026-11-07 inspection of the amiga500 sorting
 benchmark (`examples/test.p8`, `.text` 4770 B; qemu68k 4669 B) after 5.3c.
-All are `AsmOptimizer.kt` work unless noted, and none is implemented. Counts are
-occurrences in that one program. Together A.1-A.5 are worth roughly 80 B and
+All are `AsmOptimizer.kt` work unless noted. A.2 and A.4 are implemented;
+A.1, A.3, A.5 and A.6 are not. Together A.1-A.5 were worth roughly 80 B and
 40-45 instructions there.
+
+After A.2 + A.4: amiga500 `.text` 4770 -> 4722, qemu68k 4669 -> 4621 (-48 B
+each). The passes remove 56 B of instructions; the difference is the
+layout-dependent `align 2` (4-byte) and `align 4` (16-byte) padding moving
+with the code. Verified with vasm (amiga500) and a qemu68k run of the sorting
+test.
 
 ### A.1 Branch-aware deadness in `provenDeadAfter` [OPEN, highest value]
 - The helper bails on any control transfer, but the dominant sort-loop shape is
@@ -892,7 +898,7 @@ occurrences in that one program. Together A.1-A.5 are worth roughly 80 B and
 - **Effort**: small. Also unlocks more of `optimizeStagedAddPair` and
   `optimizeLoadIntoCompare` in other programs with the same loop shape.
 
-### A.2 Dead zero-extend writeback [OPEN]
+### A.2 Dead zero-extend writeback [DONE]
 - 11x in the sorting test:
   ```
   moveq  #0,d0
@@ -903,15 +909,21 @@ occurrences in that one program. Together A.1-A.5 are worth roughly 80 B and
   `emitStoreD0` always writes the value back to the vreg's home register, even
   when the next instruction consumes it via the d0 cache (the vreg is live; it
   is the home-register copy that is dead). Dropping the third instruction saves
-  1 instruction / ~2 B per site. 10 of the 11 are provably dead with the
-  *existing* single-block scan, so this does not depend on A.1; all 11 are
-  followed by an instruction that sets flags.
+  1 instruction / 2 B per site. 10 of the 11 are dead; the live one is in
+  `print_l` and belongs to A.3. All 11 are followed by an instruction that sets
+  flags.
+- DONE: `optimizeDeadZeroExtendWriteback` matches `moveq #0,d0` /
+  `move.b|w S,d0` / `move.b|w|l d0,dK`, requires the next instruction to define
+  N/Z/V/C itself, and proves dK dead with a scan that may cross labels and
+  calls (`registerUnreadBeforeRedefinition`). The 7 main-loop sites sit on the
+  other side of a `bsr` before dK is redefined, which the plain single-block
+  scan (`provenDeadAfter`) refuses; the 3 shellsort sites fold with either scan.
+  Measured: 10 sites, 20 B of instructions.
 - Not to be confused with: 2.8's rejected `moveq`-drop (the `moveq` stays
   here), 5.1 (d0 cache validity - this elides the writeback instead), or the
   reverted 4.7.1 frame-slot pass (nothing is tracked across slots).
-- **Where**: a new pass in `AsmOptimizer.kt`. Skipping the writeback in
-  `emitStoreD0` would need liveness plumbed into the lowering, so the asm pass
-  is the cheaper route.
+- **Where**: `AsmOptimizer.kt`. Skipping the writeback in `emitStoreD0` would
+  need liveness plumbed into the lowering, so the asm pass is the cheaper route.
 - **Effort**: small.
 
 ### A.3 Source staging before a store [OPEN]
@@ -925,14 +937,19 @@ occurrences in that one program. Together A.1-A.5 are worth roughly 80 B and
   current scan, the other 3 need A.1.
 - **Effort**: small (same pass family as A.2).
 
-### A.4 `pea` for stack pointer arguments [OPEN]
+### A.4 `pea` for stack pointer arguments [DONE]
 - 9x in `main`'s call setup: `move.l #p8v_vals,d2` ... `move.l d2,-(sp)`
-  -> `pea p8v_vals`. 6 B instead of 8, one instruction fewer.
-- The `pea` must be emitted at the push position (not where the value was
-  materialized) to keep the argument push order, and the staged register must
-  be dead after the push (the value is not needed elsewhere).
+  -> `pea p8v_vals`. The assembler encodes the `pea` PC-relative (4 B), so a
+  site drops from 8 B to 4 B, one instruction fewer.
+- DONE: `optimizePeaForStackArgs` folds only when a symbol is pushed within
+  three instructions, no other instruction in between mentions the staged
+  register, an intervening instruction defines all flags the removed move set,
+  and the staged register is not read before its next definition. The `pea` is
+  emitted at the push position (not where the value was materialized), so the
+  argument push order is unchanged. Measured: all 9 sites, 36 B of instructions.
 - 3.7 deliberately covers hardware-register slots only and leaves stack args as
-  registers; this is that leftover. `pea` never appears in generated code.
+  registers; this is that leftover. `pea` never appeared in generated code
+  before this pass.
 - **Effort**: small.
 
 ### A.5 Branch-to-branch chain retargeting [OPEN, runtime only]

@@ -39,6 +39,17 @@ internal val nFlagOverwriters = setOf(
     "mulu", "muls", "mulsl", "divu", "divs", "divsl", "chk"
 )
 
+/** Instruction mnemonics that define all four condition flags (N, Z, V, C) from their own result
+ *  on every CPU and do not read any of them, so an earlier flag write cannot be observed. `mulu`,
+ *  `muls`, `divu`, `divs` and `chk` are excluded: N/Z are undefined for the multiplies on 68000. */
+internal val allFlagOverwriters = setOf(
+    "move", "moveq", "clr", "tst", "cmp", "cmpa", "cmpi", "cmpm",
+    "add", "sub", "addi", "subi", "addq", "subq", "addx", "subx",
+    "and", "andi", "or", "ori", "eor", "eori",
+    "asl", "asr", "lsl", "lsr", "rol", "ror", "roxl", "roxr",
+    "neg", "negx", "not", "ext", "swap", "tas"
+)
+
 /** Instruction mnemonics that leave the N flag untouched and do not read it: the fall-through
  *  path still sees the rewritten flags (which for Z/C are identical to before, and FPU ops only
  *  touch FPSR), so scanning may continue past them. */

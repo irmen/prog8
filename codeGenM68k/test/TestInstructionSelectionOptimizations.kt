@@ -2279,4 +2279,117 @@ class TestInstructionSelectionOptimizations : FunSpec({
         // every indented line the codegen emits starts with a lowercase mnemonic
         lines.filter { it.startsWith("    ") }.none { it[4].isUpperCase() } shouldBe true
     }
+
+    // === dead zero-extend writeback (A.2) and pea for stack args (A.4) ===
+
+    test("drops a dead zero-extend writeback when the next instruction sets flags") {
+        val lines = mutableListOf(
+            "    moveq  #0,d0",
+            "    move.b  -1(a5),d0",
+            "    move.w  d0,d2",
+            "    add.w  d0,d0",
+            "    move.b  -1(a5),d2",
+            "    rts"
+        )
+        optimizeAssembly(lines)
+        lines.none { it.trim() == "move.w  d0,d2" } shouldBe true
+        lines.any { it.trim() == "moveq  #0,d0" } shouldBe true
+    }
+
+    test("keeps a zero-extend writeback whose register is read first") {
+        val lines = mutableListOf(
+            "    moveq  #0,d0",
+            "    move.b  -1(a5),d0",
+            "    move.w  d0,d2",
+            "    add.w  d0,d0",
+            "    move.w  d2,-(sp)",
+            "    rts"
+        )
+        optimizeAssembly(lines)
+        lines.any { it.trim() == "move.w  d0,d2" } shouldBe true
+    }
+
+    test("keeps a zero-extend writeback when the next instruction does not set flags") {
+        val lines = mutableListOf(
+            "    moveq  #0,d0",
+            "    move.b  -1(a5),d0",
+            "    move.w  d0,d2",
+            "    lea  (a0,d0.w),a1",
+            "    move.b  -1(a5),d2",
+            "    rts"
+        )
+        optimizeAssembly(lines)
+        lines.any { it.trim() == "move.w  d0,d2" } shouldBe true
+    }
+
+    test("replaces a staged constant stack argument with pea") {
+        val lines = mutableListOf(
+            "    move.l  #p8v_vals,d2",
+            "    moveq  #16,d3",
+            "    move.l  d2,-(sp)",
+            "    bsr  f",
+            "    lea  4(sp),sp",
+            "    move.b  -1(a5),d2",
+            "    rts"
+        )
+        optimizeAssembly(lines)
+        lines.any { it.trim() == "pea p8v_vals" } shouldBe true
+        lines.none { it.trim() == "move.l  #p8v_vals,d2" } shouldBe true
+        lines.any { it.trim() == "move.l  d2,-(sp)" } shouldBe false
+    }
+
+    test("keeps the pea label and trailing comment") {
+        val lines = mutableListOf(
+            "    move.l  #p8v_vals,d2",
+            "    moveq  #16,d3",
+            "mypush:  move.l  d2,-(sp)    ; values",
+            "    bsr  f",
+            "    move.b  -1(a5),d2",
+            "    rts"
+        )
+        optimizeAssembly(lines)
+        lines.any { it.contains("mypush:") && it.contains("pea p8v_vals") } shouldBe true
+        lines.any { it.contains("; values") } shouldBe true
+    }
+
+    test("does not use pea when the staged register is still read") {
+        val lines = mutableListOf(
+            "    move.l  #p8v_vals,d2",
+            "    moveq  #16,d3",
+            "    move.l  d2,-(sp)",
+            "    bsr  f",
+            "    move.w  d2,d6",
+            "    rts"
+        )
+        optimizeAssembly(lines)
+        lines.any { it.trim() == "move.l  #p8v_vals,d2" } shouldBe true
+        lines.none { it.trim() == "pea p8v_vals" } shouldBe true
+    }
+
+    test("does not use pea without an intervening flag overwrite") {
+        val lines = mutableListOf(
+            "    move.l  #p8v_vals,d2",
+            "    move.l  d2,-(sp)",
+            "    bsr  f",
+            "    move.b  -1(a5),d2",
+            "    rts"
+        )
+        optimizeAssembly(lines)
+        lines.any { it.trim() == "move.l  #p8v_vals,d2" } shouldBe true
+        lines.none { it.trim() == "pea p8v_vals" } shouldBe true
+    }
+
+    test("does not use pea for a numeric immediate") {
+        val lines = mutableListOf(
+            "    move.l  #1234,d2",
+            "    moveq  #16,d3",
+            "    move.l  d2,-(sp)",
+            "    bsr  f",
+            "    move.b  -1(a5),d2",
+            "    rts"
+        )
+        optimizeAssembly(lines)
+        lines.any { it.trim() == "move.l  #1234,d2" } shouldBe true
+        lines.none { it.trim() == "pea 1234" } shouldBe true
+    }
 })
