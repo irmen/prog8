@@ -73,6 +73,12 @@ internal fun optimizeAssembly(lines: MutableList<String>, cpu: CpuType = CpuType
             modified = true
             by2 = getLinesBy(pretrimmed, lines, 2)
         }
+        val branchChainMods = optimizeBranchToBranchChain(lines, pretrimmed)
+        if (branchChainMods.isNotEmpty()) {
+            applyModifications(branchChainMods, lines, pretrimmed)
+            modified = true
+            by2 = getLinesBy(pretrimmed, lines, 2)
+        }
         val stagedStoreMods = optimizeSourceStagingBeforeStore(lines, pretrimmed)
         if (stagedStoreMods.isNotEmpty()) {
             applyModifications(stagedStoreMods, lines, pretrimmed)
@@ -1418,8 +1424,8 @@ private fun optimizeStagedAddCollapse(lines: List<String>, allPretrimmed: List<S
 
 /**
  * True when [reg] is provably not read after filtered position [pos]: either it is fully
- * redefined before any read, or the basic block ends first. Conservative: any label,
- * control transfer, operand-less instruction, or a bounded scan that runs out means alive.
+ * overwritten without reading its old value before any read, or every path exits first.
+ * Conservative: unknown writes, operand-less instructions, or a bounded scan that runs out mean alive.
  */
 private fun provenDeadAfter(filt: List<IndexedValue<String>>, pos: Int, reg: String): Boolean =
     provenDeadAfter(filt, pos, reg, buildLabelMap(filt), 0, mutableSetOf())
@@ -1485,17 +1491,33 @@ private fun provenDeadAfter(
         }
         if (base in setOf("rts", "rtr", "rte")) return true
         if (line.isControlTransfer()) return false
-        val lops = line.operandsList()
-        if (lops != null && lops.isNotEmpty()) {
-            val dstTok = lops.last().lowercase()
-            val srcTok = lops.dropLast(1).joinToString(",").lowercase()
-            if (dstTok == reg && !srcTok.contains(reg)) return true
-            if (line.regTokensMention(reg)) return false
-        }
+        if (line.fullyDefinesDataRegister(reg)) return true
+        if (line.regTokensMention(reg)) return false
         cur++
         steps++
     }
     return false
+}
+
+private fun String.fullyDefinesDataRegister(reg: String): Boolean {
+    val ops = operandsList() ?: return false
+    return when (instructionName()) {
+        "move.l" -> ops.size == 2 && ops[1].lowercase() == reg && !ops[0].regTokensMention(reg)
+        "moveq" -> ops.size == 2 && ops[1].lowercase() == reg
+        "clr.l" -> ops.size == 1 && ops[0].lowercase() == reg
+        else -> false
+    }
+}
+
+private fun String.writesDataRegisterWithoutReading(reg: String): Boolean {
+    val ops = operandsList() ?: return false
+    return when (instructionName()) {
+        "move.b", "move.w", "move.l" ->
+            ops.size == 2 && ops[1].lowercase() == reg && !ops[0].regTokensMention(reg)
+        "moveq" -> ops.size == 2 && ops[1].lowercase() == reg
+        "clr.b", "clr.w", "clr.l" -> ops.size == 1 && ops[0].lowercase() == reg
+        else -> false
+    }
 }
 
 /**
@@ -1513,15 +1535,62 @@ private fun registerUnreadBeforeRedefinition(filt: List<IndexedValue<String>>, p
         if (line.isControlTransfer() && base != "bsr" && base != "jsr") return false
         val lops = line.operandsList()
         if (!lops.isNullOrEmpty()) {
-            val dstTok = lops.last().lowercase()
-            val srcTok = lops.dropLast(1).joinToString(",").lowercase()
-            if (dstTok == reg && !srcTok.contains(reg)) return true
+            if (line.writesDataRegisterWithoutReading(reg)) return true
             if (line.regTokensMention(reg)) return false
         }
         cur++
         steps++
     }
     return false
+}
+
+/**
+ * Retargets a `bra` whose target block begins with another `bra` to the terminal
+ * target, removing intermediate branch hops in branch-to-branch chains. No bytes
+ * are saved (intermediate labels stay reachable by fall-through); this is a
+ * runtime-only win.
+ */
+private fun optimizeBranchToBranchChain(lines: List<String>, allPretrimmed: List<String>): List<Modification> {
+    val mods = mutableListOf<Modification>()
+    val filt = allPretrimmed.withIndex()
+        .filter { it.value.isNotBlank() && !it.value.startsWith(';') }
+        .map { IndexedValue(it.index, it.value.trimStart()) }
+    val labelMap = buildLabelMap(filt)
+
+    for (pos in filt.indices) {
+        val line = filt[pos].value
+        if (line.mnemonic() != "bra") continue
+        val ops = line.operandsList() ?: continue
+        if (ops.size != 1) continue
+        val original = ops[0].trim()
+        var target = original
+        val visited = mutableSetOf<String>()
+        var changed = false
+        while (target !in visited) {
+            visited.add(target)
+            var idx = labelMap[target] ?: break
+            while (idx < filt.size && filt[idx].value.instructionPart().trim().isEmpty()) idx++
+            if (idx >= filt.size) break
+            val firstInstr = filt[idx].value.instructionPart().trim()
+            if (firstInstr.mnemonic() != "bra") break
+            val nextOps = firstInstr.operandsList() ?: break
+            if (nextOps.size != 1) break
+            val next = nextOps[0].trim()
+            if (next == target) break
+            target = next
+            changed = true
+        }
+        if (changed && target != original) {
+            val originalLine = lines[filt[pos].index]
+            val indent = originalLine.takeWhile { it == ' ' }
+            val label = keepLabel(line)
+            val labelPrefix = if (label.isNotEmpty()) "$label  " else ""
+            val comment = originalLine.substringAfter(';', "").let { if (it.isEmpty()) "" else ";$it" }
+            val commentSuffix = if (comment.isEmpty()) "" else "  $comment"
+            mods.add(Modification(filt[pos].index, false, "$indent$labelPrefix" + "bra  $target$commentSuffix"))
+        }
+    }
+    return mods
 }
 
 /**

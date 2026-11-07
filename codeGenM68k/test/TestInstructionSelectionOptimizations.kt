@@ -1048,6 +1048,60 @@ class TestInstructionSelectionOptimizations : FunSpec({
         lines.count { it.trimStart().startsWith("cmp.") } shouldBe 1
     }
 
+    test("retargets branch chains through standalone labels") {
+        val lines = mutableListOf(
+            "    bra  first",
+            "    rts",
+            "first:",
+            "    bra  second",
+            "    rts",
+            "second:",
+            "    bra  done",
+            "    rts",
+            "done:",
+            "    rts"
+        )
+        optimizeAssembly(lines)
+        lines.filter { it.trimStart().startsWith("bra") }.map { it.trim() } shouldBe
+            listOf("bra  done", "bra  done", "bra  done")
+        lines.any { it == "first:" } shouldBe true
+        lines.any { it == "second:" } shouldBe true
+    }
+
+    test("keeps a loaded register across a branch when a later compare reads it") {
+        val lines = mutableListOf(
+            "    move.b  8(a5),d2",
+            "    cmpi.b  #1,d2",
+            "    beq  one",
+            "    cmpi.b  #2,d2",
+            "    beq  two",
+            "    rts",
+            "one:",
+            "    moveq  #1,d0",
+            "    rts",
+            "two:",
+            "    moveq  #2,d0",
+            "    rts"
+        )
+        optimizeAssembly(lines)
+        lines.any { it.trim() == "move.b  8(a5),d2" } shouldBe true
+    }
+
+    test("keeps a loaded register across a branch when a later arithmetic op reads it") {
+        val lines = mutableListOf(
+            "    move.l  8(a5),d2",
+            "    cmpi.l  #1,d2",
+            "    beq  one",
+            "    addq.l  #1,d2",
+            "    rts",
+            "one:",
+            "    moveq  #1,d0",
+            "    rts"
+        )
+        optimizeAssembly(lines)
+        lines.any { it.trim() == "move.l  8(a5),d2" } shouldBe true
+    }
+
     test("does not rewrite cmp register-register") {
         val lines = mutableListOf(
             "    cmp.b  d0,d1",
@@ -2303,6 +2357,20 @@ class TestInstructionSelectionOptimizations : FunSpec({
             "    move.w  d0,d2",
             "    add.w  d0,d0",
             "    move.w  d2,-(sp)",
+            "    rts"
+        )
+        optimizeAssembly(lines)
+        lines.any { it.trim() == "move.w  d0,d2" } shouldBe true
+    }
+
+    test("keeps a zero-extend writeback when a compare reads its home register") {
+        val lines = mutableListOf(
+            "    moveq  #0,d0",
+            "    move.b  -1(a5),d0",
+            "    move.w  d0,d2",
+            "    add.w  d0,d0",
+            "    cmpi.w  #1,d2",
+            "    move.b  -1(a5),d2",
             "    rts"
         )
         optimizeAssembly(lines)

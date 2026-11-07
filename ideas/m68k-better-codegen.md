@@ -862,7 +862,7 @@ all.
 Open asm-level findings from the 2026-11-07 inspection of the amiga500 sorting
 benchmark (`examples/test.p8`, `.text` 4770 B; qemu68k 4669 B) after 5.3c.
 All are `AsmOptimizer.kt` work unless noted. A.2 and A.4 are implemented;
-A.5 and A.6 are not. A.1, A.2, A.3 and A.4 are done. Together A.1-A.5 were worth roughly 80 B and
+Only A.6 remains (allocator work). A.1-A.5 are done. Together A.1-A.5 were worth roughly 80 B and
 40-45 instructions there.
 
 After A.2 + A.4: amiga500 `.text` 4770 -> 4722, qemu68k 4669 -> 4621 (-48 B
@@ -965,7 +965,7 @@ test.
   before this pass.
 - **Effort**: small.
 
-### A.5 Branch-to-branch chain retargeting [OPEN, runtime only]
+### A.5 Branch-to-branch chain retargeting [DONE, runtime only]
 - 6x, all in the gnomesort tail: `bra p8_label_gen_23` where that block is
   itself `bra p8_label_gen_21`, which is `bra <whileloop>` - 2 extra branch
   executions per inner-loop iteration. Retarget each `bra` to the terminal
@@ -976,7 +976,12 @@ test.
 - **Effort**: small (follow a `bra` target to a block whose first instruction is
   another `bra`; bounded).
 
-### A.6 Frame-slot traffic and the base-pointer clobber [measurement, feeds 4.3/5.2]
+- DONE: `optimizeBranchToBranchChain` retargets a `bra` whose target block
+  begins with another `bra` to the terminal target. No bytes saved (intermediate
+  labels stay reachable by fall-through); removes 2 branch hops per inner-loop
+  iteration in gnomesort. Sorting test still prints all lists correctly.
+
+### A.6 Frame-slot traffic and the base-pointer clobber [STILL TODO - high complexity, allocator/codegen work]
 - The six sorting routines contain 112 frame-slot loads and 15 stores; the hot
   ones are `-2(a5)`/`-4(a5)`/`-6(a5)` (loop position), `8(a5)`
   (`num_elements`) and the pointer arguments (`10(a5)`/`14(a5)`), reloaded per
@@ -995,6 +1000,16 @@ test.
   `move.w d3,d4` for the same vreg value, 3x) needs copy coalescing in the
   allocator, i.e. letting the two vregs share one register while their live
   ranges overlap and the value is untouched.
+
+
+**Status: STILL TODO.** This is not a peephole pass. It requires changes to the m68k
+code generator's register allocation and address computation: keep a base pointer
+in one address register while computing element addresses into another, plus
+value residency across statements (Tier 4.3 coloring heuristic / 5.2). Effort is
+  days-to-weeks and risks regressions across all m68k programs. The vbcc sorting
+  comparison (902 B vs 1580 B) suggests this is a substantial gap; the earlier
+  maze-core comparison must be rerun because A.1 had miscompiled `opposite()`.
+  This gap cannot be closed by AsmOptimizer passes alone.
 
 ## Measurement
 
