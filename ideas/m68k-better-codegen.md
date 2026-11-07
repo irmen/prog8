@@ -862,7 +862,7 @@ all.
 Open asm-level findings from the 2026-11-07 inspection of the amiga500 sorting
 benchmark (`examples/test.p8`, `.text` 4770 B; qemu68k 4669 B) after 5.3c.
 All are `AsmOptimizer.kt` work unless noted. A.2 and A.4 are implemented;
-A.3, A.5 and A.6 are not. A.1 and A.2 and A.4 are done. Together A.1-A.5 were worth roughly 80 B and
+A.5 and A.6 are not. A.1, A.2, A.3 and A.4 are done. Together A.1-A.5 were worth roughly 80 B and
 40-45 instructions there.
 
 After A.2 + A.4: amiga500 `.text` 4770 -> 4722, qemu68k 4669 -> 4621 (-48 B
@@ -933,7 +933,7 @@ test.
   need liveness plumbed into the lowering, so the asm pass is the cheaper route.
 - **Effort**: small.
 
-### A.3 Source staging before a store [OPEN]
+### A.3 Source staging before a store [DONE]
 - 4x:
   ```
   move.l d0,d2 / move.l d2,p8b_txt.p8v_fmt_value_l -> move.l d0,p8b_txt.p8v_fmt_value_l
@@ -943,6 +943,12 @@ test.
   2.6 is the opposite direction (store then reload). 1 of the 4 folds with the
   current scan, the other 3 need A.1.
 - **Effort**: small (same pass family as A.2).
+
+- DONE: `optimizeSourceStagingBeforeStore` collapses `move.<size> S,dK` /
+  `move.<size> dK,D` into `move.<size> S,D` when dK is dead after the store,
+  restricted to register sources and non-register destinations (memory/symbol/
+  stack). Measured on amiga1200 examples: 29 programs 207077 -> 206785 B
+  (-292 B).
 
 ### A.4 `pea` for stack pointer arguments [DONE]
 - 9x in `main`'s call setup: `move.l #p8v_vals,d2` ... `move.l d2,-(sp)`

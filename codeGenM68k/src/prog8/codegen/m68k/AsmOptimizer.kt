@@ -73,6 +73,12 @@ internal fun optimizeAssembly(lines: MutableList<String>, cpu: CpuType = CpuType
             modified = true
             by2 = getLinesBy(pretrimmed, lines, 2)
         }
+        val stagedStoreMods = optimizeSourceStagingBeforeStore(lines, pretrimmed)
+        if (stagedStoreMods.isNotEmpty()) {
+            applyModifications(stagedStoreMods, lines, pretrimmed)
+            modified = true
+            by2 = getLinesBy(pretrimmed, lines, 2)
+        }
         val indexedLeaMods = optimizeIndexedPointerLea(lines, pretrimmed, cpu)
         if (indexedLeaMods.isNotEmpty()) {
             applyModifications(indexedLeaMods, lines, pretrimmed)
@@ -1516,6 +1522,58 @@ private fun registerUnreadBeforeRedefinition(filt: List<IndexedValue<String>>, p
         steps++
     }
     return false
+}
+
+/**
+ * Collapses a staged source before a store:
+ *
+ *     move.<size> S,dK
+ *     move.<size> dK,D   ->   move.<size> S,D
+ *
+ * when the intermediate register dK is dead after the store. Covers both the
+ * symbol destination (`move.l d0,p8b_txt.p8v_fmt_value_l`) and the frame slot
+ * destination (`move.w d4,-4(a5)`).
+ */
+private fun optimizeSourceStagingBeforeStore(lines: List<String>, allPretrimmed: List<String>): List<Modification> {
+    val mods = mutableListOf<Modification>()
+    val filt = allPretrimmed.withIndex()
+        .filter { it.value.isNotBlank() && !it.value.startsWith(';') }
+        .map { IndexedValue(it.index, it.value.trimStart()) }
+
+    for (pos in 0 until filt.size - 1) {
+        val l1 = filt[pos].value
+        val l2 = filt[pos + 1].value
+        if (hasLabel(l2)) continue
+        if (!l1.isMove() || !l2.isMove()) continue
+        val size1 = l1.moveSize()
+        val size2 = l2.moveSize()
+        if (size1 != size2) continue
+        val size = size1
+        if (size !in setOf('b', 'w', 'l')) continue
+        val o1 = l1.operandsList() ?: continue
+        val o2 = l2.operandsList() ?: continue
+        if (o1.size != 2 || o2.size != 2) continue
+        val src = o1[0]
+        val staged = o1[1].lowercase()
+        if (!staged.isDataReg()) continue
+        // A.3 stages a value already in a (data/address) register into a temp before storing
+        if (!(src.lowercase().isDataReg() || src.lowercase().isAddressReg())) continue
+        if (o2[0].lowercase() != staged) continue
+        val dst = o2[1]
+        // A.3 only targets stores to memory/symbols/stack slots, not register-to-register moves
+        if (dst.lowercase().isDataReg() || dst.lowercase().isAddressReg()) continue
+        if (dst.lowercase().contains(staged)) continue
+        if (src.lowercase().contains(staged)) continue
+        // the staged register must be dead after the store
+        if (!provenDeadAfter(filt, pos + 2, staged)) continue
+
+        val indent = lines[filt[pos].index].takeWhile { it == ' ' }.ifEmpty { "        " }
+        val label = keepLabel(l1)
+        val labelPrefix = if (label.isNotEmpty()) "$label  " else ""
+        mods.add(Modification(filt[pos].index, false, "$indent$labelPrefix" + "move.$size  $src,$dst"))
+        mods.add(Modification(filt[pos + 1].index, true, null))
+    }
+    return mods
 }
 
 /**
