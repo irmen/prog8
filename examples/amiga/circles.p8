@@ -3,6 +3,7 @@
 %import graphics
 %import intuition
 %import math
+%import blitter
 %import textio
 %import utility
 
@@ -21,8 +22,6 @@ main {
         $400, $040, $004, $440, $404, $044, $444, $aaa,
         $200, $020, $002, $220, $202, $022, $222, $666
     ]
-    ubyte[8] leftMasks = [$ff, $7f, $3f, $1f, $0f, $07, $03, $01]
-    ubyte[8] rightMasks = [$80, $c0, $e0, $f0, $f8, $fc, $fe, $ff]
     ubyte[5] planeMasks = [1, 2, 4, 8, 16]
 
     sub start() {
@@ -67,6 +66,7 @@ main {
     }
 
     sub drawDiscs(^^graphics.BitMap bitmap) {
+        blitter.line_init(0, 0, $ffff, BYTES_PER_ROW)
         for index in 0 to 20 {
             uword x = DISC_RADIUS + math.rndw() % CENTER_RANGE_X
             uword y = DISC_RADIUS + math.rndw() % CENTER_RANGE_Y
@@ -113,44 +113,14 @@ main {
         }
     }
 
-    ; TODO: once blitter.horiz_line() exists (see ideas/amiga-baremetal-helpers.md), use it for
-    ; each plane instead of the byte loop below: mask-table edge bytes plus a movem.l word fill
-    ; for the interior. Keep it CPU-side - one blit per span and plane would cost more in blitter
-    ; setup than the fill itself.
     sub drawSpan(^^graphics.BitMap bitmap, uword left, uword y, uword length, ubyte color) {
-        uword firstByte = left >> 3
-        uword lastPixel = left + length - 1
-        uword lastByte = lastPixel >> 3
-        uword byteOffset = y*BYTES_PER_ROW + firstByte
+        uword x2 = left + length - 1
         for plane in 0 to SCREEN_DEPTH-1 {
-            pointer address = bitmap.Planes[plane] + byteOffset
             bool setPlane = (color & planeMasks[plane]) != 0
-            if firstByte == lastByte {
-                ubyte mask = leftMasks[lsb(left) & 7] & rightMasks[lsb(lastPixel) & 7]
-                if setPlane
-                    @(address) |= mask
-                else
-                    @(address) &= ~mask
-            } else {
-                if setPlane
-                    @(address) |= leftMasks[lsb(left) & 7]
-                else
-                    @(address) &= ~leftMasks[lsb(left) & 7]
-                address++
-                uword byteIndex = firstByte + 1
-                while byteIndex < lastByte {
-                    if setPlane
-                        @(address) = $ff
-                    else
-                        @(address) = 0
-                    address++
-                    byteIndex++
-                }
-                if setPlane
-                    @(address) |= rightMasks[lsb(lastPixel) & 7]
-                else
-                    @(address) &= ~rightMasks[lsb(lastPixel) & 7]
-            }
+            if setPlane
+                blitter.horiz_line(bitmap.Planes[plane], left, x2, y, $ffff, false)
+            else
+                blitter.horiz_line(bitmap.Planes[plane], left, x2, y, $ffff, true)
         }
     }
 }

@@ -38,9 +38,9 @@ main {
         ; Copy the generated monochrome message into the reserved bottom strip of BOTH bitplanes.
         pointer text_screen1 = playfield.bitmap.Planes[0] + (TEXT_Y * 40)
         pointer text_screen2 = playfield.back.Planes[0] + (TEXT_Y * 40)
-        blitter.copy_rect(textdata.text_bitmap_words, text_screen1, textdata.TEXT_WIDTH_WORDS, textdata.TEXT_HEIGHT, 0, 26, $f0, 0)
+        blitter.copy_rect(textdata.text_bitmap_words, text_screen1, textdata.TEXT_WIDTH_WORDS, textdata.TEXT_HEIGHT, 0, 26, blitter.MINTERM_A_ONLY, 0)
         blitter.wait()
-        blitter.copy_rect(textdata.text_bitmap_words, text_screen2, textdata.TEXT_WIDTH_WORDS, textdata.TEXT_HEIGHT, 0, 26, $f0, 0)
+        blitter.copy_rect(textdata.text_bitmap_words, text_screen2, textdata.TEXT_WIDTH_WORDS, textdata.TEXT_HEIGHT, 0, 26, blitter.MINTERM_A_ONLY, 0)
         blitter.wait()
 
         const ubyte EDGE_COUNT = 30
@@ -80,7 +80,7 @@ main {
             pointer backplane = playfield.back.Planes[0]
 
             ; Clear the back buffer and prepare for drawing.
-            blitter.clear_plane(backplane, 20, TEXT_Y)
+            blitter.fill_rect(backplane, 20, TEXT_Y, 0, 0)
 
             ; Build the fixed-point rotation matrix and rotate all vertices.
             word wcosa = cos8_fixed(angle_x)
@@ -132,7 +132,7 @@ main {
             for e in 0 to EDGE_COUNT - 1 {
                 ubyte v1 = edgesFrom[e]
                 ubyte v2 = edgesTo[e]
-                blitter.line_draw(px[v1] as uword, py[v1] as uword, px[v2] as uword, py[v2] as uword, backplane)
+                blitter.line_draw(px[v1] as uword, py[v1] as uword, px[v2] as uword, py[v2] as uword, backplane, false, false)
             }
 
             angle_x += ROT_X_SPEED

@@ -91,7 +91,7 @@ main {
 
         ; Enable DMA master and blitter DMA while preparing the plane.
         custom.DMACON = $8240
-        blitter.fill_plane(bitplane, 20, 256, %1000000010000000)
+        blitter.fill_rect(bitplane, 20, 256, %1000000010000000, 0)
         blitter.wait()
 
         word sprite_x = (SCREEN_WIDTH - SPRITE_SIZE) / 2

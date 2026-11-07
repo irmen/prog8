@@ -62,6 +62,13 @@ trackdisk {
     const ubyte TDERR_DriveInUse = 34
     const ubyte TDERR_PostReset = 35
 
+    ; Public-unit flags (AmigaOS V36+, see <devices/trackdisk.h>).
+    const ubyte TDPF_NOCLICK = 1
+
+    ; Offset of tdu_PubFlags in TDU_PublicUnit. The unit pointer is obtained
+    ; from io_Unit after opening trackdisk.device; tdu_PubFlags follows the
+    ; embedded struct Unit (38 bytes) plus six preceding fields.
+    const ubyte TDU_PUBFLAGS_OFFSET = 53
 
     struct DriveGeometry {
         ; layout returned by TD_GETGEOMETRY (see <devices/trackdisk.h>)
@@ -187,6 +194,31 @@ trackdisk {
         TrackIO.IOStdReq_Length = sizeof(trackdisk.DriveGeometry)
         void exec.DoIO(TrackIO)
         return TrackIO.Error
+    }
+
+    sub set_noclick(ubyte unit) {
+        ; -- Enable the TDPF_NOCLICK flag on a trackdisk unit (DF0:-DF3:).
+        ; Does nothing on Kickstart < V36 (trackdisk.device did not yet expose
+        ; tdu_PubFlags) or if the device cannot be opened.
+        if sys.exec_version() < 36
+            return
+        ^^exec.MsgPort port = exec.CreateMsgPort()
+        if port == 0
+            return
+        pointer ioreq = exec.CreateIORequest(port, sizeof(exec.IOStdReq))
+        if ioreq == 0 {
+            exec.DeleteMsgPort(port)
+            return
+        }
+        if exec.OpenDevice("trackdisk.device", unit, ioreq, 0) == 0 {
+            pointer unitptr = peekp(ioreq + 24)   ; io_Unit -> TDU_PublicUnit
+            exec.Forbid()
+            poke(unitptr + TDU_PUBFLAGS_OFFSET, peek(unitptr + TDU_PUBFLAGS_OFFSET) | TDPF_NOCLICK)
+            exec.Permit()
+            exec.CloseDevice(ioreq)
+        }
+        exec.DeleteIORequest(ioreq)
+        exec.DeleteMsgPort(port)
     }
 
 }

@@ -33,7 +33,7 @@ main {
         ; The region was cleared to zero by the previous fill_rect, so a solid
         ; fill produces the same visual result as inverting it used to.
         pointer bottom_quarter = bitplane + (192 * 40)  ; offset to line 192
-        blitter.fill_plane(bottom_quarter, 20, 64, $ffff) ; 20 words * 64 lines
+        blitter.fill_rect(bottom_quarter, 20, 64, $ffff, 0) ; 20 words * 64 lines
         blitter.wait()
 
         ; Fill a 112x100 square in the middle of the screen with pattern $1010
@@ -44,7 +44,7 @@ main {
 
         ; Copy the square to position (20,20) - note: 20px is not word-aligned, using 16px (1 word)
         pointer dest_square = bitplane + (20 * 40) + (1 * 2)  ; line 20, word 1
-        blitter.copy_rect(middle_square, dest_square, 7, 100, 26, 26, $F0, 0)
+        blitter.copy_rect(middle_square, dest_square, 7, 100, 26, 26, blitter.MINTERM_A_ONLY, 0)
         blitter.wait()
 
         ; Draw 16 lines from center (160, 128) to points evenly spaced
@@ -61,7 +61,7 @@ main {
             ; math.cos8/sin8 return -127..127, so scale to radius
             word x2 = 160 + (cs as word * RADIUS as word) / 127
             word y2 = 128 + (sn as word * RADIUS as word) / 127
-            blitter.line_draw(160, 128, x2 as uword, y2 as uword, bitplane)
+            blitter.line_draw(160, 128, x2 as uword, y2 as uword, bitplane, false, false)
         }
         blitter.wait()
 

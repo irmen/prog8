@@ -27,6 +27,7 @@ blitter {
 
     const uword MINTERM_MASKED = $CA    ; (A AND B) OR (NOT A AND C) - masked sprite blit
     const uword MINTERM_A_ONLY = $F0    ; channel A only (same as COPY)
+    const uword MINTERM_NOT_A = $0F     ; NOT A - invert source
     const uword MINTERM_B_ONLY = $CC    ; channel B only
     const uword MINTERM_A_XOR_C = $5A   ; A XOR C (erase/restore patterns)
     const uword MINTERM_MASKED_OR = $EA ; C OR (A AND B) - additive overlay with mask
@@ -66,6 +67,9 @@ blitter {
     }
 
     ; Copy a rectangular block from src to dst.
+    ; Only channels A and D are set up, so minterm must be A-only:
+    ; MINTERM_A_ONLY (copy), MINTERM_NOT_A (invert), MINTERM_CLEAR,
+    ; MINTERM_SET. Minterms referencing B or C read unset channels.
     ; Waits for blitter idle at start, returns immediately after triggering the blit.
     asmsub copy_rect(pointer src @A0, pointer dst @A1, uword width_words @D0, uword height @D1, uword src_mod @D2, uword dst_mod @D3, uword minterm @D4, ubyte descending @D5) {
         %asm {{
@@ -142,7 +146,7 @@ blitter {
         move.w  #$ffff,custom.BLTALWM
         move.w  d2,custom.BLTCDAT
         move.l  a0,custom.BLTDPT
-        move.w  #$01aa,custom.BLTCON0  ; USED=1, USEC=0, minterm=$AA (BLTCDAT -> D)
+        move.w  #(custom.BC0F_DEST|blitter.MINTERM_IDENTITY),custom.BLTCON0  ; DEST only, D=BLTCDAT
         move.w  #$0800,custom.BLTCON1 ; B32: AGA 32-bit blit mode
         move.w  d1,d1
         lsl.w   #6,d1
@@ -183,32 +187,6 @@ blitter {
         }}
     }
 
-    ; Draw a single line using the blitter's hardware Bresenham line mode.
-    ; Must be preceded by a call to line_init() with the appropriate parameters.
-    ; Uses the octant-lookup-table algorithm from coppershade.org
-    ; (see https://coppershade.org/asmskool/SOURCES/Developing-Demo-Effects/DDE4/LineVectors/).
-    ; x1, y1: starting coordinates (absolute, any direction supported)
-    ; x2, y2: ending coordinates
-    ; screen_mod: bytes per row of the destination bitplane (pitch)
-    ; screen_ptr: pointer to bitplane memory (CHIP RAM)
-    ; Waits for blitter idle at start, returns immediately after triggering the blit.
-    sub line_draw(uword x1, uword y1, uword x2, uword y2, pointer screen_ptr) {
-        line_draw_mode(x1, y1, x2, y2, screen_ptr, false)
-    }
-
-    ; Clear only the pixels of a line without disturbing other bits in its words.
-    sub line_erase(uword x1, uword y1, uword x2, uword y2, pointer screen_ptr) {
-        line_draw_mode(x1, y1, x2, y2, screen_ptr, true)
-    }
-
-    ; Draw a line with fill-compatible endpoint handling (SING inverted).
-    ; Use this instead of line_draw when the line is part of a polygon
-    ; outline that will be filled with area_fill. The inverted SING bits
-    ; ensure shared vertices are drawn exactly once.
-    sub line_draw_fill(uword x1, uword y1, uword x2, uword y2, pointer screen_ptr) {
-        line_draw_mode_fill(x1, y1, x2, y2, screen_ptr, false)
-    }
-
     ; Draw a line in an exact pen color on a multi-plane bit-mapped screen.
     ; For every bitplane of the bitmap, the plane's pixels along the line are
     ; drawn (set) when that bit of the pen is on, or erased (cleared) when it
@@ -223,13 +201,24 @@ blitter {
         for plane in 0 to depth-1 {
             bool isSet = ((pen >> plane) & 1) != 0
             if isSet
-                line_draw(x1, y1, x2, y2, planes[plane])
+                line_draw(x1, y1, x2, y2, planes[plane], false, false)
             else
-                line_erase(x1, y1, x2, y2, planes[plane])
+                line_draw(x1, y1, x2, y2, planes[plane], true, false)
         }
     }
 
-    asmsub line_draw_mode(uword x1 @D0, uword y1 @D1, uword x2 @D2, uword y2 @D3, pointer screen_ptr @A1, bool erase @D5) {
+    ; Draw a single line using the blitter's hardware Bresenham line mode.
+    ; Must be preceded by a call to line_init() with the appropriate parameters.
+    ; Uses the octant-lookup-table algorithm from coppershade.org
+    ; (see https://coppershade.org/asmskool/SOURCES/Developing-Demo-Effects/DDE4/LineVectors/).
+    ; x1, y1: starting coordinates (absolute, any direction supported)
+    ; x2, y2: ending coordinates
+    ; screen_ptr: pointer to bitplane memory (CHIP RAM)
+    ; erase: clear the line's pixels instead of setting them
+    ; fill: draw with ONEDOT set (one pixel per row), for polygon outlines
+    ;   later filled with area_fill
+    ; Waits for blitter idle at start, returns immediately after triggering the blit.
+    asmsub line_draw(uword x1 @D0, uword y1 @D1, uword x2 @D2, uword y2 @D3, pointer screen_ptr @A1, bool erase @D5, bool fill @D7) {
         %asm {{
         movem.l d2-d7/a2-a6,-(sp)
 
@@ -238,7 +227,7 @@ blitter {
         bne.s   .not_horiz_fast
         ; horizontal: y1 == y2
         move.w  blitter.line_pattern,d3
-        bsr     blitter.horiz_line_mode
+        bsr     blitter.horiz_line
         bra     .finish
 .not_horiz_fast:
         ; note: there is no faster vertical line case possible.
@@ -293,6 +282,10 @@ blitter {
         sub.b   d0,d6                ; add 1 (subtract -1) to octant lookup
         lea     OctTbl(pc),a0
         move.b  (a0,d6.w),d6         ; look up BLTCON bits for octant
+        tst.b   d7
+        beq.s   .no_onedot
+        ori.w   #$0002,d6            ; ONEDOT: one pixel per row for area-fill outlines
+.no_onedot:
 
         move.w  d5,d2                ; d2 low word = 2*SDelta - LDelta
         sub.w   d3,d2                ; d2 low word = 2*SDelta - 2*LDelta
@@ -333,106 +326,6 @@ OctTbl:
         }}
     }
 
-    ; Draw a line with fill-compatible endpoint handling (SING inverted).
-    ; Identical to line_draw_mode except the octant SING bits are inverted:
-    ; downward lines (dy >= 0) get SING=1, upward lines (dy < 0) get SING=0.
-    ; This ensures shared vertices in a polygon outline are drawn exactly once.
-    asmsub line_draw_mode_fill(uword x1 @D0, uword y1 @D1, uword x2 @D2, uword y2 @D3, pointer screen_ptr @A1, bool erase @D5) {
-        %asm {{
-        movem.l d2-d7/a2-a6,-(sp)
-
-        ; Axis-aligned fast path: dispatch horizontal spans to the CPU routine.
-        cmp.w   d1,d3
-        bne.s   .not_horiz_fast
-        ; horizontal: y1 == y2
-        move.w  blitter.line_pattern,d3
-        bsr     blitter.horiz_line_mode
-        bra     .finish
-.not_horiz_fast:
-        ; note: there is no faster vertical line case possible.
-
-        ; CPU setup (these would normally be done once in LineInit and
-        ; preserved across calls; we set them up here for self-containment).
-        move.w  #1*64+2,a3           ; add-value for BLTSIZE
-        ; minterm pack: $B0000000 | (minterm << 20) | $0f. After the
-        ; and.w/ror.l #4/octant dance below this yields
-        ; BLTCON0 = $xBRM (x = x1 & $f shift, B = SRCA|SRCC|SRCD, minterm)
-        ; and BLTCON1 high byte $00; the octant table fills BLTCON1's low byte.
-        move.l  #($B0000000)|(blitter.MINTERM_OR<<20)|$0000000f,a4    ; draw: D = A | C
-        tst.b   d5
-        beq.s   .minterm_ready
-        move.l  #($B0000000)|(blitter.MINTERM_ERASE<<20)|$0000000f,a4 ; erase: D = ~A & C
-.minterm_ready:
-
-        ; d0=x1, d1=y1, d2=x2, d3=y2, d4=screen_mod, a1=screen_ptr
-        move.l  a4,d6                ; minterm+mask
-        and.w   d0,d6                ; mask x 0..15
-        ror.l   #4,d6                ; shift it in at top, low word cleared
-
-        ; --- deltas ---
-        ; FILL MODE: inverted SING logic. SING=1 for downward lines (dy >= 0),
-        ; SING=0 for upward lines (dy < 0). This is the only difference from
-        ; line_draw_mode.
-        sub.w   d1,d3                ; d3 = y2 - y1
-        bmi.s   .dyneg
-        addq.b  #8,d6                ; SING=1 for downward lines
-        bra.s   .dydone
-.dyneg:
-        neg.w   d3                   ; dy < 0
-.dydone:
-        sub.w   d0,d2                ; d2 = x2 - x1
-        bgt.s   .dxplus
-        neg.w   d2
-        addq.b  #4,d6
-.dxplus:
-        cmp.w   d2,d3
-        bge.s   .dylarger
-        exg     d2,d3                ; d2=Small delta, d3=Large delta
-        addq.b  #2,d6
-.dylarger:
-
-        ; --- blit values ---
-        move.w  blitter.line_mod,d4
-        muls    d4,d1                ; d1 = y1 * screen_mod
-        asr.w   #3,d0                ; bit 0 ignored by Blitter
-        add.w   d0,d1                ; offset on screen
-        add.l   a1,d1                ; add current screen buffer ptr
-
-        add.w   d2,d2                ; d2 = 2*SDelta
-        move.w  d2,d5                ; d5 = 2*SDelta
-        swap    d2                   ; d2 high word = 2*SDelta
-        sub.w   d3,d5                ; d5 = 2*SDelta - LDelta
-        smi     d0                   ; if (2*Sdelta-Ldelta) < 0,
-        sub.b   d0,d6                ; add 1 (subtract -1) to octant lookup
-        lea     OctTbl(pc),a0
-        move.b  (a0,d6.w),d6         ; look up BLTCON bits for octant
-
-        move.w  d5,d2                ; d2 low word = 2*SDelta - LDelta
-        sub.w   d3,d2                ; d2 low word = 2*SDelta - 2*LDelta
-        asl.w   #6,d3                ; d3 = LDelta << 6
-        add.w   a3,d3                ; d3 = BLTSIZE
-
-        ; --- blit ---
-        bsr     .wait_blt
-        move.l  d6,custom.BLTCON0    ; shift, minterm, octant bits
-        move.w  d5,custom.BLTAPTL    ; 2*SDelta - LDelta
-        move.l  d2,custom.BLTBMOD    ; 2*SDelta | 2*SDelta - 2*LDelta
-        move.l  d1,custom.BLTCPT     ; source
-        move.l  d1,custom.BLTDPT     ; destination
-        move.w  d3,custom.BLTSIZE
-.finish:
-        movem.l (sp)+,d2-d7/a2-a6
-        rts
-
-.wait_blt:
-        btst.b  #6,custom.DMACONR
-        bne.s   .wait_blt
-        rts
-
-; !notreached!
-        }}
-    }
-
     ; Waits for blitter idle at start, returns immediately after triggering the blit.
     asmsub masked_blit(pointer src @A0, pointer mask @A1, pointer dst @A2, uword width_words @D0, uword height @D1, uword src_mod @D2, uword mask_mod @D3, uword dst_mod @D4) {
         %asm {{
@@ -448,7 +341,7 @@ OctTbl:
         move.l  a0,custom.BLTBPT
         move.l  a2,custom.BLTCPT
         move.l  a2,custom.BLTDPT
-        move.w  #$0fca,custom.BLTCON0
+        move.w  #(custom.BC0F_SRCA|custom.BC0F_SRCB|custom.BC0F_SRCC|custom.BC0F_DEST|blitter.MINTERM_MASKED),custom.BLTCON0
         move.w  #$0800,custom.BLTCON1 ; B32: AGA 32-bit blit mode
         move.w  d1,d1
         lsl.w   #6,d1
@@ -465,79 +358,40 @@ OctTbl:
 
     ; Clear a rectangular region of a bitplane to zero.
     ; Waits for blitter idle at start, returns immediately after triggering the blit.
-    asmsub clear_plane(pointer dst @A0, uword width_words @D0, uword height @D1) {
-        %asm {{
-        movem.l d2-d7/a2-a6,-(sp)
-        bsr     .wait_blt
-        move.w  #$ffff,custom.BLTAFWM
-        move.w  #$ffff,custom.BLTALWM
-        move.w  #$0000,custom.BLTCDAT
-        move.w  #$0000,custom.BLTDMOD
-        move.l  a0,custom.BLTDPT
-        move.w  #$01aa,custom.BLTCON0
-        move.w  #$0800,custom.BLTCON1 ; B32: AGA 32-bit blit mode
-        move.w  d1,d1
-        lsl.w   #6,d1
-        or.w    d0,d1
-        move.w  d1,custom.BLTSIZE
-        movem.l (sp)+,d2-d7/a2-a6
-        rts
-.wait_blt:
-        btst.b  #6,custom.DMACONR
-        bne.s   .wait_blt
-        rts
-        }}
-    }
 
     ; Fill an entire bitplane (or any width_words x height block) with a 16-bit pattern.
     ; pattern: the value written to every word of the destination (e.g. $0000 clears,
     ;          $ffff fills solid, $aaaa produces a vertical stripe pattern).
     ; Waits for blitter idle at start, returns immediately after triggering the blit.
-    asmsub fill_plane(pointer dst @A0, uword width_words @D0, uword height @D1, uword pattern @D2) {
-        %asm {{
-        movem.l d2-d7/a2-a6,-(sp)
-        bsr     .wait_blt
-        move.w  #$ffff,custom.BLTAFWM
-        move.w  #$ffff,custom.BLTALWM
-        move.w  d2,custom.BLTCDAT
-        move.l  a0,custom.BLTDPT
-        move.w  #$01aa,custom.BLTCON0  ; USED=1, USEC=0, minterm=$AA (BLTCDAT -> D)
-        move.w  #$0800,custom.BLTCON1 ; B32: AGA 32-bit blit mode
-        move.w  #$0000,custom.BLTDMOD
-        move.w  d1,d1
-        lsl.w   #6,d1
-        or.w    d0,d1
-        move.w  d1,custom.BLTSIZE
-        movem.l (sp)+,d2-d7/a2-a6
-        rts
-.wait_blt:
-        btst.b  #6,custom.DMACONR
-        bne.s   .wait_blt
-        rts
-        }}
-    }
 
     ; Hardware area fill: fill all scanlines between set source bits.
-    ; Uses the blitter's FILL mode (BLTCON1 bit 4). Read-modify-write:
-    ; source = destination = the bitplane. After drawing a polygon outline
-    ; with line_draw_fill, call this to fill the interior.
-    ; pattern: fill pattern in BLTBDAT ($ffff = solid, $aaaa = 50% dither).
+    ; Exclusive fill (FILL_XOR) in descending mode, as the HRM requires;
+    ; read-modify-write with source = destination. After drawing a polygon
+    ; outline with line_draw(..., fill=true), call this to fill it solid.
     ; Waits for blitter idle at start, returns immediately after triggering.
-    asmsub area_fill(pointer src @A0, uword width_words @D0, uword height @D1, uword mod @D2, uword pattern @D3) {
+    asmsub area_fill(pointer src @A0, uword width_words @D0, uword height @D1, uword mod @D2) {
         %asm {{
         movem.l d2-d7/a2-a6,-(sp)
         bsr     .wait_blt
+        ; Descending setup: point at the last fetched word, negate the modulos.
+        ; Last fetched word is (h-1)*(w+m)+(w-1): the modulo gap after the
+        ; final row is never fetched, so h*(w+m)-1 would overshoot for mod!=0.
+        move.w  d0,d4
+        add.w   d2,d4                ; words per row including modulo
+        mulu.w  d1,d4                ; h*(w+m)
+        sub.w   d2,d4                ; minus trailing modulo gap
+        subq.l  #1,d4                ; minus one = last fetched word index
+        add.l   d4,d4                ; total bytes
+        add.l   d4,a0                ; a0 = last word of region
+        move.l  a0,custom.BLTAPT
+        move.l  a0,custom.BLTDPT
+        neg.w   d2
         move.w  d2,custom.BLTAMOD
-        move.w  d2,custom.BLTCMOD
         move.w  d2,custom.BLTDMOD
         move.w  #$ffff,custom.BLTAFWM
         move.w  #$ffff,custom.BLTALWM
-        move.w  d3,custom.BLTBDAT
-        move.l  a0,custom.BLTAPT
-        move.l  a0,custom.BLTCPT
-        move.l  a0,custom.BLTDPT
-        move.w  #$0fca,custom.BLTCON0  ; USEA=1, USEC=1, USED=1, minterm=$CA
-        move.w  #$0810,custom.BLTCON1  ; FILL=1 (bit 4) | B32 (bit 11)
+        move.w  #(custom.BC0F_SRCA|custom.BC0F_DEST|blitter.MINTERM_A_ONLY),custom.BLTCON0  ; USEA=1, USED=1, D=A (solid copy)
+        move.w  #$0812,custom.BLTCON1  ; DESC (bit 1) | FILL_XOR (bit 4) | B32 (bit 11)
         move.w  d1,d1
         lsl.w   #6,d1
         or.w    d0,d1
@@ -554,7 +408,7 @@ OctTbl:
     ; Draw replaces covered pixels with pattern; erase clears pattern bits.
     ; (No faster vertical-line helper exists: a vertical blit has the same DMA
     ; traffic as the Bresenham line mode, so vertical segments stay on line_draw.)
-    private asmsub horiz_line_mode(pointer dst @A1, uword x1 @D0, uword x2 @D2, uword y @D1, uword pattern @D3, bool erase @D5) {
+    asmsub horiz_line(pointer dst @A1, uword x1 @D0, uword x2 @D2, uword y @D1, uword pattern @D3, bool erase @D5) {
         %asm {{
         movem.l d2-d7/a2-a3,-(sp)
         move.w  d5,a2            ; save erase flag

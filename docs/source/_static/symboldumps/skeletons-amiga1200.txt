@@ -1,9 +1,9 @@
 
 Prog8 compiler v14.0-BETA3 by Irmen de Jong (irmen@razorvine.net)
-Prerelease version from git commit a98938db in branch master
+Prerelease version from git commit 56932332 in branch master
 This software is licensed under the GNU GPL 3.0, see https://www.gnu.org/licenses/gpl.html
 
-Compiling program import-all-amiga1200.p8
+Compiling program docs/import-all-amiga1200.p8
 Compiler target: amiga1200
 
 
@@ -637,19 +637,15 @@ blitter  {
     const uword  MINTERM_IDENTITY
     const uword  MINTERM_MASKED
     const uword  MINTERM_MASKED_OR
+    const uword  MINTERM_NOT_A
     const uword  MINTERM_OR
     const uword  MINTERM_SET
-    area_fill  (long src @A0, uword width_words @D0, uword height @D1, uword mod @D2, uword pattern @D3)
-    clear_plane  (long dst @A0, uword width_words @D0, uword height @D1)
+    area_fill  (long src @A0, uword width_words @D0, uword height @D1, uword mod @D2)
     copy_rect  (long src @A0, long dst @A1, uword width_words @D0, uword height @D1, uword src_mod @D2, uword dst_mod @D3, uword minterm @D4, ubyte descending @D5)
-    fill_plane  (long dst @A0, uword width_words @D0, uword height @D1, uword pattern @D2)
     fill_rect  (long dst @A0, uword width_words @D0, uword height @D1, uword pattern @D2, uword modulo @D3)
+    horiz_line  (long dst @A1, uword x1 @D0, uword x2 @D2, uword y @D1, uword pattern @D3, bool erase @D5)
     line_color  (uword x1, uword y1, uword x2, uword y2, ubyte pen, ubyte depth, ^^pointer planes)
-    line_draw  (uword x1, uword y1, uword x2, uword y2, long screen_ptr)
-    line_draw_fill  (uword x1, uword y1, uword x2, uword y2, long screen_ptr)
-    line_draw_mode  (uword x1 @D0, uword y1 @D1, uword x2 @D2, uword y2 @D3, long screen_ptr @A1, bool erase @D5)
-    line_draw_mode_fill  (uword x1 @D0, uword y1 @D1, uword x2 @D2, uword y2 @D3, long screen_ptr @A1, bool erase @D5)
-    line_erase  (uword x1, uword y1, uword x2, uword y2, long screen_ptr)
+    line_draw  (uword x1 @D0, uword y1 @D1, uword x2 @D2, uword y2 @D3, long screen_ptr @A1, bool erase @D5, bool fill @D7)
     line_init  (uword mask @D0, uword pixel @D1, uword pattern @D2, uword screen_mod @D4)
     masked_blit  (long src @A0, long mask @A1, long dst @A2, uword width_words @D0, uword height @D1, uword src_mod @D2, uword mask_mod @D3, uword dst_mod @D4)
     set_blitpri  (bool hasprio @D0)
@@ -5741,6 +5737,8 @@ trackdisk  {
     const ubyte  TDERR_SeekError
     const ubyte  TDERR_TooFewSecs
     const ubyte  TDERR_WriteProt
+    const ubyte  TDPF_NOCLICK
+    const ubyte  TDU_PUBFLAGS_OFFSET
     const uword  TD_ADDCHANGEINT
     const uword  TD_CHANGENUM
     const uword  TD_CHANGESTATE
@@ -5771,6 +5769,7 @@ trackdisk  {
     protstatus  () -> bool
     read  (long buffer, long length, long offset) -> byte
     seek  (long offset) -> byte
+    set_noclick  (ubyte unit)
     update  () -> byte
     write  (long buffer, long length, long offset) -> byte
 }
@@ -5878,6 +5877,7 @@ wavfile  {
     convert_16bit_stereo  (long src @A0, long dst_left @A1, long dst_right @A2, long nframes @D0)
     convert_8bit_mono  (long buf @A0, long len @D0)
     convert_8bit_stereo  (long src @A0, long dst_left @A1, long dst_right @A2, long nframes @D0)
+    deinterleave_16bit_stereo_be  (long src @A0, long dst_left @A1, long dst_right @A2, long nframes @D0)
     parse_header  (^^ubyte wav_data) -> bool
     read_le_word  (long addr) -> uword
 }

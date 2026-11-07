@@ -127,20 +127,21 @@ proc_CLI = 172
 1$:
         }}
 
-        if sys.RexxSysBase != 0 exec.CloseLibrary(sys.RexxSysBase)
-        if sys.IFFParseBase != 0 exec.CloseLibrary(sys.IFFParseBase)
-        if sys.AsyncIOBase != 0 exec.CloseLibrary(sys.AsyncIOBase)
-        if sys.LowLevelBase != 0 exec.CloseLibrary(sys.LowLevelBase)
-        if sys.AslBase != 0 exec.CloseLibrary(sys.AslBase)
-        if sys.DataTypesBase != 0 exec.CloseLibrary(sys.DataTypesBase)
-        if sys.DiskfontBase != 0 exec.CloseLibrary(sys.DiskfontBase)
-        if sys.AHIBase != 0 exec.CloseLibrary(sys.AHIBase)
-        if sys.TimerBase != 0 exec.CloseLibrary(sys.TimerBase)
-        if sys.UtilityBase != 0 exec.CloseLibrary(sys.UtilityBase)
-        if sys.IconBase != 0 exec.CloseLibrary(sys.IconBase)
-        if sys.IntuitionBase != 0 exec.CloseLibrary(sys.IntuitionBase)
-        if sys.GfxBase != 0 exec.CloseLibrary(sys.GfxBase)
-        if sys.DOSBase != 0 exec.CloseLibrary(sys.DOSBase)
+
+        ; close all the possible opened libraries
+        ; Order of the entries should be preserved (matches the open order in init_system).
+        pointer[] bases = [
+            &sys.RexxSysBase, &sys.IFFParseBase, &sys.AsyncIOBase, &sys.LowLevelBase,
+            &sys.AslBase, &sys.DataTypesBase, &sys.DiskfontBase, &sys.AHIBase,
+            &sys.TimerBase, &sys.UtilityBase, &sys.IconBase, &sys.IntuitionBase,
+            &sys.GfxBase, &sys.DOSBase
+        ]
+        for baseptr in bases {
+            long baseval = peekl(baseptr)
+            if baseval != 0 {
+                exec.CloseLibrary(baseval)
+            }
+        }
 
         %asm {{
             movem.l  (sp)+,d0/d6    ; restore return code and d6

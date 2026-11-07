@@ -187,14 +187,14 @@ playfield {
     private inline sub clear() {
         ; Zero the front bitmap, row by row (a whole plane may exceed a uword).
         ; Setup-time helper for create(); per-frame clears should use
-        ; blitter.clear_plane() instead.
+        ; blitter.fill_rect(..., 0, 0) instead.
         clear_bitmap(bitmap)
     }
 
     private inline sub clear_backplane() {
         ; Zero the back buffer, row by row. Call it on both sides of
         ; flip() to clear both buffers. This is a CPU fill: fine at setup
-        ; time, but for per-frame clears prefer blitter.clear_plane(),
+        ; time, but for per-frame clears prefer blitter.fill_rect(..., 0, 0),
         ; which is faster and runs in parallel with the CPU.
         clear_bitmap(back)
     }

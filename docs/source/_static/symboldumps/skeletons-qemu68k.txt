@@ -1,9 +1,9 @@
 
 Prog8 compiler v14.0-BETA3 by Irmen de Jong (irmen@razorvine.net)
-Prerelease version from git commit a98938db in branch master
+Prerelease version from git commit 47726440 in branch master
 This software is licensed under the GNU GPL 3.0, see https://www.gnu.org/licenses/gpl.html
 
-Compiling program import-all-qemu68k.p8
+Compiling program docs/import-all-qemu68k.p8
 Compiler target: qemu68k
 
 
@@ -560,6 +560,7 @@ wavfile  {
     convert_16bit_stereo  (long src @A0, long dst_left @A1, long dst_right @A2, long nframes @D0)
     convert_8bit_mono  (long buf @A0, long len @D0)
     convert_8bit_stereo  (long src @A0, long dst_left @A1, long dst_right @A2, long nframes @D0)
+    deinterleave_16bit_stereo_be  (long src @A0, long dst_left @A1, long dst_right @A2, long nframes @D0)
     parse_header  (^^ubyte wav_data) -> bool
     read_le_word  (long addr) -> uword
 }
