@@ -449,6 +449,34 @@ significantly reduces the expected benefit of 4.1-4.5:
 - **Other targets**: new6502 passes immediates directly for slots s0-s2
   (A/X/Y); the virtual target is unaffected (no hardware-register slots).
 
+### 3.8 Move scheduler for hardware-register call arguments [STILL TODO - correctness hardening]
+- **Where**: `codeGenM68k/InstrControl.kt`, `translateCall`.
+- **Problem**: when two call arguments both pass in data-register slots but
+  their source vregs are allocated to each other's target registers, the naive
+  sequential move sequence can clobber one value before it reaches its slot.
+  Example: arg0 wants `d2` but its source vreg lives in `d3`; arg1 wants `d3`
+  but its source vreg lives in `d2`. Emitting `move.l d3,d2` then
+  `move.l d2,d3` destroys arg1's original value.
+- **Current fix**: the register allocator (`RegisterAllocator.kt`,
+  `fixedBoundaryEffects`) forbids an argument source vreg from occupying any
+  other argument's hardware target slot, and `translateCall` already hoists
+  address-slot arguments before data-slot arguments. Together these prevent
+  the reachable cases today.
+- **Better fix**: replace the ad-hoc sequencing in `translateCall` with a small
+  move scheduler. Treat each hardware-slot move as a node; an edge exists when
+  one move's destination register is another move's source register.
+  Topologically sort the moves and emit them in dependency order. Cycles
+  (e.g. the d2<->d3 swap above) are broken by moving one source to a scratch
+  register first; `d0`/`d1` are usable scratch because argument sources are
+  never allocated there.
+- **Benefit**: makes `translateCall` correct independent of allocation choices,
+  removing the need for the allocator constraint that currently papers over the
+  issue. Also opens the door to scheduling larger immediate forms or stack
+  pushes more cheaply.
+- **Effort**: small-medium.
+- **Note**: more invasive than the allocator constraint, so it is recorded here
+  as future work rather than implemented now.
+
 ## Tier 4 - Register allocation & spilling (weeks)
 
 > **RE-MEASURED 2026-11-04 (30 programs, qemu68k + amiga1200):** The premise

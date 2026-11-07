@@ -19,7 +19,7 @@ class TestInstructionSelectionOptimizations : FunSpec({
 
     val tempRoot = tempdir().toPath()
 
-    fun generateAsmChunks(outputDir: Path, chunks: List<IRCodeChunkBase>, target: ICompilationTarget = Qemu68kTarget(), irComments: Boolean = false): List<String> {
+    fun generateAsmChunks(outputDir: Path, chunks: List<IRCodeChunkBase>, target: ICompilationTarget = Qemu68kTarget(), irComments: Boolean = false, regAllocation: Map<VirtualRegister, String> = emptyMap()): List<String> {
         val options = CompilationOptions.builder(target)
             .output(OutputType.RAW)
             .zeropage(ZeropageType.FLOATSAFE)
@@ -40,16 +40,18 @@ class TestInstructionSelectionOptimizations : FunSpec({
         val output = outputDir.toFile()
         output.deleteRecursively()
         output.mkdirs()
-        AsmGen(program, target).generate()
+        val asmGen = AsmGen(program, target)
+        asmGen.regAllocation.putAll(regAllocation)
+        asmGen.generate()
         val asmFile = outputDir.resolve("test.asm")
         check(asmFile.exists()) { "Assembly file not written: $asmFile" }
         return asmFile.readText().lines().map { it.trim() }
     }
 
-    fun generateAsm(outputDir: Path, instructions: List<IRInstruction>, target: ICompilationTarget = Qemu68kTarget(), irComments: Boolean = false): List<String> {
+    fun generateAsm(outputDir: Path, instructions: List<IRInstruction>, target: ICompilationTarget = Qemu68kTarget(), irComments: Boolean = false, regAllocation: Map<VirtualRegister, String> = emptyMap()): List<String> {
         val chunk = IRCodeChunk(null, null)
         chunk.instructions.addAll(instructions)
-        return generateAsmChunks(outputDir, listOf(chunk), target, irComments)
+        return generateAsmChunks(outputDir, listOf(chunk), target, irComments, regAllocation)
     }
 
     fun hwArg(register: Int, type: IRDataType, slot: Int): CallArgument =
@@ -345,6 +347,43 @@ class TestInstructionSelectionOptimizations : FunSpec({
         val sub = lines.subroutineLines()
         sub.count { it == "move.w  #384,d0" } shouldBe 1
         sub.count { it.startsWith("move.w  ") && it.endsWith(",d0") } shouldBe 1
+    }
+
+    test("address-slot argument staged through a data register moves before clobbering loads") {
+        // Pointer vreg 4 lives in D2; x2's slot is also D2. The movea.l d2,a1
+        // transfer must precede x2's load or the pointer is destroyed first.
+        // Mirrors blitter.line_draw(x1,y1,x2,y2,screen_ptr,erase,fill) calls.
+        fun immArg(value: Int, type: IRDataType, slot: Int): CallArgument =
+            Calls.argument(ImmediateOperand.Integer(value, type), CallLocation.HardwareRegister(CallingConventionSlot(slot)))
+        val site = callSite(
+            "blitter.line_draw",
+            arguments = listOf(
+                immArg(80, IRDataType.WORD, 10),
+                immArg(40, IRDataType.WORD, 11),
+                immArg(130, IRDataType.WORD, 12),
+                immArg(128, IRDataType.WORD, 13),
+                hwArg(4, IRDataType.POINTER, 19),
+                immArg(0, IRDataType.BYTE, 15),
+                immArg(1, IRDataType.BYTE, 17)
+            )
+        )
+        val lines = generateAsm(
+            tempRoot.resolve("test-m68k-call-anslot-hoist"),
+            listOf(
+                IRInstructions.loadMemory(Opcode.LOADM, IRDataType.POINTER, 4, IRMemory.direct("p8b_test.p8v_ptr")),
+                IRInstructions.call(site)
+            ),
+            regAllocation = mapOf(VirtualRegister.int(4) to "d2")
+        )
+
+        val sub2 = lines.subroutineLines()
+        val loadIdx = sub2.indexOfFirst { it.startsWith("move.l") && it.endsWith(",d2") }
+        val moveaIdx = sub2.indexOfFirst { it == "movea.l  d2,a1" }
+        (loadIdx >= 0) shouldBe true
+        (moveaIdx > loadIdx) shouldBe true
+        // no write to the staging register may sit between the load and its move
+        val clobbered = sub2.subList(loadIdx + 1, moveaIdx).any { it.endsWith(",d2") }
+        clobbered shouldBe false
     }
 
     test("retains immediate loads for named call arguments") {

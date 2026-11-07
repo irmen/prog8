@@ -861,7 +861,43 @@ private fun AsmGen.translateCall(fnLabel: String, callSite: CallSite, forwardedI
     fun paramNameFor(index: Int): String? =
         paramNames.getOrNull(index)?.substringAfterLast('.')?.removePrefix("p8v_")
     val forwardedRegs = forwardedImmediateCall?.loads?.keys ?: emptySet()
+    fun slotTargetReg(arg: CallArgument): String? {
+        val slot = (arg.location as? CallLocation.HardwareRegister)?.slot ?: return null
+        return m68kSlotRegister(slot)
+    }
+    fun sourcePhysReg(arg: CallArgument): String? {
+        val regSource = arg.source as? RegisterCallSource ?: return null
+        return regAllocation[regSource.register.register]
+    }
+    // Address-slot arguments staged through a data register (or reloaded from memory)
+    // must move before any data-slot load: an earlier-indexed data load would otherwise
+    // destroy the staged value first (e.g. a pointer staged in D2 bound for A1, with x2's
+    // slot also D2). Hoisted moves only write their own slot and movea leaves CCR alone,
+    // so this preserves every working order; skip any argumentTuple whose target is read by a
+    // later argumentTuple.
+    //
+    // Register-to-data-slot swaps (where arg i's target is arg j's source and vice versa)
+    // are prevented by the register allocator: it forbids an argument source vreg from
+    // occupying any other argument's hardware target slot.
+    val hoisted = mutableSetOf<Int>()
     for ((index, arg) in callSite.arguments.withIndex()) {
+        // Only staged register reads need hoisting; immediates read nothing.
+        // Stack-slot pushes keep their order (layout!), other locations too.
+        val regSource = arg.source as? RegisterCallSource ?: continue
+        if (regSource.register.register in forwardedRegs) continue
+        val target = slotTargetReg(arg) ?: continue
+        if (!target.lowercase().startsWith("d") && !target.lowercase().startsWith("a")) continue
+        val source = sourcePhysReg(arg)
+        if (source != null && !source.lowercase().startsWith("d")) continue
+        val targetReadLater = ((index + 1) until callSite.arguments.size).any { later ->
+            sourcePhysReg(callSite.arguments[later])?.lowercase() == target.lowercase()
+        }
+        if (!targetReadLater) hoisted.add(index)
+    }
+    for (index in hoisted)
+        translateArgument(callSite.arguments[index], fnLabel, forwardedImmediateCall, paramNameFor(index))
+    for ((index, arg) in callSite.arguments.withIndex()) {
+        if (index in hoisted) continue
         if (arg.source is RegisterCallSource && arg.registerSource.register in forwardedRegs) continue
         translateArgument(arg, fnLabel, forwardedImmediateCall, paramNameFor(index))
     }
