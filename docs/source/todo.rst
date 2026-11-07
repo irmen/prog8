@@ -72,28 +72,6 @@ Optimizations
 - m68k/Amiga codegen: omit the A5 frame pointer in leaf functions and other routines that do not need it. vbcc defaults to SP-relative locals and only uses a frame pointer with ``-use-framepointer``; Prog8 currently sets up ``link a5,#0`` / ``unlk a5`` in every subroutine. See ``ideas/m68k-frame-pointer-omission.md`` for a plan.
 
 
-Compiler (amiga500/m68k): nested helper subroutines crash at runtime
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-- While filtering artifacts in the ``star-blit``/blitter probe session (Nov 2026), a prog8 program
-  on the ``amiga500`` target crashed partway through execution when drawing was structured with a
-  helper chain ``start() -> draw_patterns(pointer) -> band(pointer plane, uword y)``, where the
-  innermost routine called the ``blitter.horiz_line`` asmsub. The final displayed frame only
-  contained the first couple of blitted dots; execution must have died during the nested calls
-  (blit progress markers that were drawn after the calls never appeared on screen).
-- The *identical* version with the same sequence fully inlined in ``start()`` (same literal
-  arguments, same number of ``horiz_line`` calls, extra progress markers) ran to completion.
-  So the machine code and hardware setup are fine and the difference is the nested-call structure.
-- Possible causes to investigate: M68K stack-parameter passing for computed arguments across two
-  call frames (e.g. ``dot(plane, 60, y+16)`` style expressions passed into a sub that itself
-  receives a ``pointer`` and ``uword`` parameter), word-vs-long argument slot packing when an
-  argument is produced in a register beforehand, or A5 frame pointer corruption in a nested call.
-- To reproduce: write a small ``amiga500`` prog8 that (1) sets up a single 1-bit-plane screen,
-  (2) calls a two-level-nested helper to draw a few dots via ``blitter.horiz_line`` with a
-  computed ``uword`` argument such as ``y+16``, with a soon-frozen frame, and (3) the same
-  program with the calls inlined. Run both under ``prog8c -target amiga500 -emu`` and compare.
-  The working/failed variants that demonstrated the crash are the pattern used in
-  ``filltest5``/``filltest3`` (fails) vs ``filltest7`` (works) from that session.
-
 Dead Code Elimination bug in 64tass, for nested subroutines
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 - When a subroutine contains a nested ``asmsub`` (or possibly a nested ``sub()``), 64tass cannot properly eliminate

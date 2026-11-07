@@ -404,6 +404,7 @@ class M68kRegisterAllocator(val program: IRProgram) {
         // Instruction-level interference: chunk-granular liveness misses conflicts, a coarser clique forbids valid coalescing.
         val forbiddenByVreg = mutableMapOf<VirtualRegister, MutableSet<String>>()
         val subCallEffects = mutableMapOf<Int, CallSiteRegisterEffects>()
+        val callModifiedPool = mutableSetOf<String>()
         // Ordinary-call targets -> vregs this caller keeps live across the call (mapped to physical regs later).
         val liveAcrossByTarget = mutableMapOf<String, MutableList<Set<VirtualRegister>>>()
         // Ordinals count every instruction carrying a callSite, in flattened chunk order.
@@ -475,6 +476,7 @@ class M68kRegisterAllocator(val program: IRProgram) {
                         val clobberedPool = if (unknownCallee) allocatablePool
                             else (effects.reads + effects.defined + effects.destroys).intersect(allocatablePool)
                         if (clobberedPool.isNotEmpty()) {
+                            callModifiedPool.addAll(clobberedPool)
                             for (v in live - defs) {
                                 forbiddenByVreg.getOrPut(v) { mutableSetOf() }.addAll(clobberedPool)
                             }
@@ -519,7 +521,8 @@ class M68kRegisterAllocator(val program: IRProgram) {
         }
 
         for ((v, p) in color) mapBySub.getOrPut(sub) { mutableMapOf() }[v] = p
-        calleeSavedBySub[sub] = color.values.toSet()
+        // Fixed-register calls can modify pool registers not holding this sub's vregs.
+        calleeSavedBySub[sub] = color.values.toSet() + callModifiedPool
         // The caller's demand is what it actually placed in registers across each call; spilled values need nothing.
         for ((targetLabel, liveSets) in liveAcrossByTarget) {
             val demanded = demandedByCallee.getOrPut(targetLabel) { mutableSetOf() }

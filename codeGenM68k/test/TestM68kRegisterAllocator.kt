@@ -3,10 +3,7 @@ package prog8tests.codegen.m68k
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.shouldNotBe
-import prog8.code.core.CompilationOptions
-import prog8.code.core.OutputType
-import prog8.code.core.Position
-import prog8.code.core.ZeropageType
+import prog8.code.core.*
 import prog8.code.target.Qemu68kTarget
 import prog8.codegen.m68k.M68kRegisterAllocator
 import prog8.codegen.m68k.renumberVregsPerSubroutine
@@ -259,6 +256,43 @@ class TestM68kRegisterAllocator : FunSpec({
         calleeColored shouldBe setOf("d2", "d3", "d4", "d5", "d6")
         (liveReg in calleeColored) shouldBe true
         result.calleeSavedBySub[callee] shouldBe setOf(liveReg)
+    }
+
+    test("callee preserves caller-live registers used for outgoing asmsub arguments") {
+        val options = CompilationOptions.builder(Qemu68kTarget())
+            .output(OutputType.RAW).zeropage(ZeropageType.FLOATSAFE)
+            .compilerVersion("test").memtopAddress(0xffffu).optimize(true).build()
+        val program = IRProgram("test", IRSymbolTable(), options, DummyStringEncoder)
+        val callerChunk = IRCodeChunk(null, null)
+        callerChunk.instructions.add(IRInstructions.load(IRDataType.WORD, 1, 5))
+        callerChunk.instructions.add(IRInstructions.call(Opcode.CALL, CallSite(CallTarget.Direct(CodeReference.Label("test.callee", 0)))))
+        callerChunk.instructions.add(IRInstructions.storeMemory(Opcode.STOREM, IRDataType.WORD, 1, IRMemory.direct("p8b_test.p8v_out")))
+        val caller = IRSubroutine("test.start", emptyList(), emptyList(), Position.DUMMY)
+        caller.chunks.add(callerChunk)
+
+        val calleeChunk = IRCodeChunk(null, null)
+        calleeChunk.instructions.add(IRInstructions.load(IRDataType.WORD, 2, 42))
+        calleeChunk.instructions.add(IRInstructions.call(Opcode.CALL, CallSite(
+            CallTarget.Direct(CodeReference.Label("test.leaf", 0)),
+            arguments = listOf(Calls.argument(2, IRDataType.WORD, CallLocation.HardwareRegister(CallingConventionSlot(12))))
+        )))
+        val callee = IRSubroutine("test.callee", emptyList(), emptyList(), Position.DUMMY)
+        callee.chunks.add(calleeChunk)
+
+        val block = IRBlock("test", false, IRBlock.Options(), Position.DUMMY)
+        block.children.add(caller)
+        block.children.add(callee)
+        block.children.add(IRAsmSubroutine(
+            "test.leaf", null, emptySet(), true,
+            listOf(IRAsmSubroutine.IRAsmParam(RegisterOrStatusflag(RegisterOrPair.D2, null), DataType.WORD)),
+            emptyList(), IRInlineAsmChunk("test.leaf", "rts", false, null), Position.DUMMY
+        ))
+        program.blocks.add(block)
+
+        val result = M68kRegisterAllocator(program).allocate()
+        val liveReg = result.mapBySub[caller]!![VirtualRegister.int(1)]!!
+        liveReg shouldBe "d2"
+        result.calleeSavedBySub[callee]?.contains(liveReg) shouldBe true
     }
 
     test("callee with its address taken keeps all its colored registers") {
