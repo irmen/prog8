@@ -498,130 +498,80 @@ pattern and composes cleanly with the existing `copy_rect`/`soft_blit`.
 ## Filled polygon support (blitter line/polygon helpers, not BOB helpers)
 
 The Amiga blitter has a **hardware area-fill mode** (BLTCON1 FILL bit). When
-enabled, the blitter scans each scanline left-to-right, toggling a fill state
-when it encounters a set bit in the source. While fill state is on, it writes
-the fill pattern to the destination. This produces a filled polygon from an
-outline in a single blit pass.
+enabled, each scanline is processed right-to-left starting from the fill
+carry-in state, toggling the fill state on every set bit; while fill state
+is on, ones are written. This produces a filled polygon from an outline in
+a single blit pass. Fill mode only works in descending mode (HRM: "Area fill
+only works correctly in descending mode").
 
-**No-seams strategy (exclusive endpoints):**
+**Endpoint handling:**
 
-The core problem with polygon filling is shared vertices. When two edges meet
-at a vertex, that pixel gets drawn by both lines. This causes the fill toggle
-to fire at the wrong position, creating thin gaps or overlaps ("seams")
-between adjacent filled polygons.
-
-The solution is **exclusive endpoints**: every line draws its first pixel but
-skips its last. This ensures shared vertices are drawn exactly once. The
-blitter's SING bit controls this:
-- SING=0: skip the last pixel (exclusive)
-- SING=1: draw the last pixel (inclusive)
-
-For fill mode, the convention is inverted from normal line drawing:
-- **Lines going down** (dy >= 0): SING=1 (inclusive — draw last pixel)
-- **Lines going up** (dy < 0): SING=0 (exclusive — skip last pixel)
-
-This way, at a shared vertex between a downward edge and an upward edge, only
-the downward edge draws the vertex. Each scanline ends up with an even number
-of set pixels (left/right edge pairs), and the fill toggles correctly.
-
-When two polygons share an edge, polygon A draws it with SING=1 on downward
-lines and polygon B draws the same edge with SING=0 on upward lines. The shared
-pixels are drawn exactly once — no overlapping, no gaps.
+The core problem with polygon filling is shared vertices. The blitter draws
+all dx+1 pixels of every line, so a shared vertex is drawn by both meeting
+edges — but with the OR minterm used for outlines a twice-drawn pixel is
+still a single set pixel, so overlaps are harmless. What breaks fills are
+gaps: every row needs an even number of edge pixels for the toggle to pair
+up. Since both endpoints are always drawn, shared vertices are always
+covered and no special endpoint convention is needed.
 
 **Two-part requirement:**
 
 1. **Outline drawing in fill-compatible mode.** The polygon edges must be
-   drawn with specific endpoint handling so each scanline has an even number
-   of set pixels (left/right edge pairs). The blitter's line mode has an
-   `SING` (single) bit in BLTCON1 that controls whether the first/last pixel
-   of each line is drawn.
-
-   The existing `line_draw` sets SING based on line direction:
-   - dy >= 0 (going down): SING=0 (exclusive — skip last pixel)
-   - dy < 0 (going up): SING=1 (inclusive — draw last pixel)
-
-   For fill mode, this must be **inverted**:
-   - dy >= 0 (going down): SING=1 (inclusive — draw last pixel)
-   - dy < 0 (going up): SING=0 (exclusive — skip last pixel)
-
-   This ensures shared vertices are drawn exactly once: when two edges meet
-   at a vertex, the downward edge draws it and the upward edge skips it.
-
-   **Implementation:** The change is 3 lines in the octant computation. The
-   current code does `addq.b #8,d6` when dy < 0 (selecting SING=1 entries
-   in OctTbl). For fill mode, move this to the dy >= 0 branch instead:
+   drawn so each scanline holds exactly one pixel per edge crossing. The
+   blitter's line mode has a `SING` bit (BLTCON1 bit 1: single bit per
+   horizontal row, for use with subsequent area fill). The `OctTbl` pairs
+   (`x`, `x+64`) are *not* SING variants — the +64 selects SIGNFLAG, which
+   is derived per line from the sign of 2*S-L and stays identical in both
+   modes. Fill-compatible lines use the exact same octant computation as
+   normal lines, plus one instruction setting SING after the lookup:
 
    ```
-   ; Current (normal lines):
-   sub.w   d1,d3                ; d3 = y2 - y1
-   bpl.s   .dyplus              ; if dy >= 0
-   neg.w   d3                   ; dy < 0
-   addq.b  #8,d6                ; SING=1 for upward lines
-   .dyplus:
-
-   ; Fill mode (inverted):
-   sub.w   d1,d3                ; d3 = y2 - y1
-   bmi.s   .dyneg               ; if dy < 0
-   addq.b  #8,d6                ; SING=1 for downward lines
-   bra.s   .dydone
-   .dyneg:
-   neg.w   d3                   ; dy < 0
-   .dydone:
+   lea     OctTbl(pc),a0
+   move.b  (a0,d6.w),d6         ; look up BLTCON bits for octant
+   ori.w   #$0002,d6            ; SING: one pixel per row for area-fill outlines
    ```
 
-   All other octant adjustments (dx sign, slope, sign bit) remain identical.
-   The OctTbl already has both SING variants (16 entries = 8 octants x 2).
-
-   A separate `line_draw_fill` function is cleanest — it's identical to
-   `line_draw` except for these 3 lines. Alternatively, a `fill_mode` flag
-   stored by `line_init` could select between them at runtime, but a separate
-   function avoids the branch overhead.
+   In the library this is `line_draw(..., fill=true)`; horizontal lines
+   take the CPU span path, which needs no SING.
 
 2. **Scanline fill blit.** After the outline is drawn, a single blit with
    FILL enabled fills all scanlines between the leftmost and rightmost set
    pixels. This is a read-modify-write: source = destination = the bitplane.
 
    Registers:
-   - BLTCON0: USEA=1, USEC=1, USED=1, minterm=$CA (masked)
-   - BLTCON1: FILL=1 (bit 4)
+   - BLTCON0: USEA=1, USED=1, minterm=$F0 (D=A, solid copy)
+   - BLTCON1: DESC (bit 1) | FILL_OR/FILL_XOR (bit 3/4) | B32 (bit 11)
    - BLTAFWM/BLTALWM: $ffff
-   - BLTBDAT: pattern (default $ffff = solid; $aaaa = 50% dither, etc.)
-   - BLTAMOD/BLTCMOD/BLTDMOD: mod
-   - BLTAPT/BLTCPT/BLTDPT: src (same as dst for read-modify-write)
+   - BLTAPT/BLTDPT: last fetched word, (h-1)*(w+m)+(w-1) words from src
+   - BLTAMOD/BLTDMOD: -mod (subtracted in descending mode)
    - BLTSIZE: w x h
 
-   The fill pattern comes from BLTBDAT. Set to $ffff for solid fill, $aaaa
-   for 50% checkerboard dither, $cccc for 25% dots, etc. The pattern is
-   applied per-word during the fill, aligned to word boundaries (affected by
-   BLTCON0 shift bits). No extra passes needed — stippled fills are free.
+   Single-blit fills are solid-only: the fill wraps the logic output, so a
+   pattern in the logic would break the edge-toggle pairing. (Stippled fills
+   need a second pass and a pattern source in chip RAM.)
 
-   Proposed function signature:
+   Implemented signature:
    ```
-   blitter.area_fill(src, w, h, mod, pattern)     ; pattern in BLTBDAT
+   blitter.area_fill(src, w, h, mod)
    ```
-   Always pass a pattern. Use $ffff for solid fills, $aaaa for 50% dither,
-   $cccc for 25% dots, etc. No optional parameter — simpler API, caller always
-   specifies intent.
 
-   **Naming (decided):** keep `fill_rect` / `fill_plane` unchanged and name
-   the new routine `area_fill`. Rationale: the existing names are already in
-   use, and "area fill" is the Amiga hardware term for the BLTCON1 FILL mode,
-   so the odd one out is named for what it actually is. The distinction is
-   documented instead of encoded in a rename: `fill_rect`/`fill_plane` write a
-   repeating 16-bit pattern (pattern fill), while `area_fill` toggles a fill
-   state on set source bits and fills between the edges (hardware area fill).
+   **Naming (decided):** `fill_rect` writes a repeating 16-bit pattern
+   (pattern fill; `clear_plane`/`fill_plane` were folded into it), while
+   `area_fill` toggles a fill state on set source bits and fills between
+   the edges (hardware area fill).
 
 **Standard filled polygon workflow:**
-1. Clear the target bitplane region (`clear_plane`)
-2. Draw polygon outline with fill-compatible lines (`line_draw_fill`)
+1. Clear the target bitplane region (`fill_rect(..., 0, 0)`)
+2. Draw polygon outline with fill-compatible lines (`line_draw(..., fill=true)`)
 3. Call `area_fill` to fill all scanlines between edges
 4. Result: filled polygon in the bitplane
 
 **Limitations:**
 - The outline must be a closed polygon with no self-intersections
-- Lines must be drawn with correct endpoint handling (inclusive/exclusive)
-- The fill is horizontal (scanline-based) — works for any polygon but the
-  outline quality affects fill correctness
+- Every row must hold an even number of edge pixels; rows with an odd count
+  leak fill to the row end (e.g. rows through the folds of an impossible
+  object). Avoid horizontal outline edges: a solid run of N set pixels
+  toggles N times, so odd-length runs leak their row
 - Only fills one bitplane at a time (call per plane for multi-plane BOBs)
 
 **Note:** This is a well-known Amiga technique. The blitter's fill mode is

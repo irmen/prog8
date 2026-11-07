@@ -294,6 +294,7 @@ blitter {
 
         ; --- blit ---
         bsr     .wait_blt
+        move.w  #$8000,custom.BLTADAT    ; reseed: A-channel blits (e.g. area_fill) leave garbage here
         move.l  d6,custom.BLTCON0    ; shift, minterm, octant bits
         move.w  d5,custom.BLTAPTL    ; 2*SDelta - LDelta
         move.l  d2,custom.BLTBMOD    ; 2*SDelta | 2*SDelta - 2*LDelta
@@ -365,33 +366,40 @@ OctTbl:
     ; Waits for blitter idle at start, returns immediately after triggering the blit.
 
     ; Hardware area fill: fill all scanlines between set source bits.
-    ; Exclusive fill (FILL_XOR) in descending mode, as the HRM requires;
-    ; read-modify-write with source = destination. After drawing a polygon
-    ; outline with line_draw(..., fill=true), call this to fill it solid.
+    ; Inclusive fill (FILL_OR) in descending mode, as the HRM requires;
+    ; read-modify-write with source = destination, outlines left intact.
+    ; mod is the row modulo in bytes (bitplane pitch minus region width).
+    ; After drawing a polygon outline with line_draw(..., fill=true),
+    ; call this to fill it solid.
     ; Waits for blitter idle at start, returns immediately after triggering.
     asmsub area_fill(pointer src @A0, uword width_words @D0, uword height @D1, uword mod @D2) {
         %asm {{
         movem.l d2-d7/a2-a6,-(sp)
         bsr     .wait_blt
-        ; Descending setup: point at the last fetched word, negate the modulos.
+        ; Descending setup: point at the last fetched word. The hardware
+        ; SUBTRACTS the modulos in descending mode (HRM), so the positive
+        ; per-row skip is passed unchanged; negating it would push the
+        ; pointer down out of the region instead of stepping up each row.
         ; Last fetched word is (h-1)*(w+m)+(w-1): the modulo gap after the
         ; final row is never fetched, so h*(w+m)-1 would overshoot for mod!=0.
+        ; mod arrives in bytes (like fill_rect); halve it for word counting.
         move.w  d0,d4
-        add.w   d2,d4                ; words per row including modulo
+        move.w  d2,d5
+        asr.w   #1,d5                ; modulo bytes -> words
+        add.w   d5,d4                ; words per row including modulo
         mulu.w  d1,d4                ; h*(w+m)
-        sub.w   d2,d4                ; minus trailing modulo gap
+        sub.w   d5,d4                ; minus trailing modulo gap
         subq.l  #1,d4                ; minus one = last fetched word index
         add.l   d4,d4                ; total bytes
         add.l   d4,a0                ; a0 = last word of region
         move.l  a0,custom.BLTAPT
         move.l  a0,custom.BLTDPT
-        neg.w   d2
         move.w  d2,custom.BLTAMOD
         move.w  d2,custom.BLTDMOD
         move.w  #$ffff,custom.BLTAFWM
         move.w  #$ffff,custom.BLTALWM
         move.w  #(custom.BC0F_SRCA|custom.BC0F_DEST|blitter.MINTERM_A_ONLY),custom.BLTCON0  ; USEA=1, USED=1, D=A (solid copy)
-        move.w  #$0812,custom.BLTCON1  ; DESC (bit 1) | FILL_XOR (bit 4) | B32 (bit 11)
+        move.w  #$000a,custom.BLTCON1  ; DESC (bit 1) | FILL_OR (bit 3)
         move.w  d1,d1
         lsl.w   #6,d1
         or.w    d0,d1

@@ -1,7 +1,10 @@
-; Penrose impossible triangle - bare-metal blitter version.
-; No OS draw routines: outlines via blitter.line_draw with fill=true (ONEDOT
-; lines), interior via blitter.area_fill.
-; Rotates ~20 degrees per frame around the figure center; ESC or left click exits.
+; Rotating five-point star with a smaller rectangle in its center -
+; bare-metal blitter version.
+; No OS draw routines: star and rectangle outlines via blitter.line_draw
+; with fill=true (ONEDOT lines), interior via one blitter.area_fill; the
+; fill's parity rule makes the star solid and leaves the rectangle empty.
+; The pentagon radius is 120, so the fill region is 256x256 centered on
+; the plane. Click or ESC exits.
 
 %import custom
 %import playfield
@@ -15,24 +18,20 @@ main {
     const word CY = 128
     const ubyte ANGLE_STEP = 1
 
-    const ubyte V_TOP_LEFT = 0
-    const ubyte V_TOP_RIGHT = 1
-    const ubyte V_RIGHT = 2
-    const ubyte V_BOTTOM_RIGHT = 3
-    const ubyte V_BOTTOM_LEFT = 4
-    const ubyte V_LEFT = 5
-    const ubyte V_MID_EAST = 6
-    const ubyte V_MID_WEST = 7
-    const ubyte V_INNER_SOUTH = 8
-    const ubyte V_INNER_NORTH = 9
-    const ubyte V_FOLD_NORTH = 10
-    const ubyte V_FOLD_SOUTH = 11
+    ; Fill region: 256 px wide, word aligned, covering the rotating
+    ; radius-120 shape (worst-case x extent: 40..280).
+    const uword FILL_WIDTH = 256
+    const uword FILL_HEIGHT = 256
+    const uword FILL_MODULO = (320-FILL_WIDTH)/8
+    const uword FILL_START = (320/2 - FILL_WIDTH/2)/8
 
-    word[24] base_vertices = [151, 29, 169, 29, 250, 169,
-                              241, 185, 79, 185, 70, 169,
-                              205, 154, 97, 154, 115, 154,
-                              169, 60, 160, 76, 214, 169]
-    word[24] vertices
+    ; Star: 5 outer points (pentagon radius 120, inner radius 48)
+    ; alternating with 5 inner corners; then the 32x32 center rectangle.
+    word[28] base_vertices = [
+        160, 8,    188, 89,   274, 91,   206, 143,  231, 225,
+        160, 176,  89, 225,   114, 143,  46, 91,    132, 89,
+        144, 112,  176, 112,  176, 144,  144, 144]
+    word[28] vertices
 
     sub start() {
         if not playfield.create(320, 256, 320, 256, 1, custom.DISPLAY_DEFAULT, 0)
@@ -67,7 +66,16 @@ main {
                 break
 
             rotate_shape(angle)
-            draw_wireframe(bitplane)
+
+            ; Clear the region.
+            blitter.fill_rect(bitplane+FILL_START, FILL_WIDTH/16, FILL_HEIGHT, $0000, FILL_MODULO)
+
+            ; Outline star and rectangle (absolute screen coordinates).
+            draw_outlines(bitplane)
+
+            ; Fill: star solid, rectangle stays empty.
+            blitter.area_fill(bitplane+FILL_START, FILL_WIDTH/16, FILL_HEIGHT, FILL_MODULO)
+
             custom.waitvsync()
             angle += ANGLE_STEP
         }
@@ -82,7 +90,7 @@ main {
         byte cs = math.cos8(angle)
         word snw = sn as word
         word csw = cs as word
-        for i in 0 to 11 {
+        for i in 0 to 13 {
             uword voff = (i as uword) * 2
             word dx = base_vertices[voff] - CX
             word dy = base_vertices[voff+1] - CY
@@ -91,27 +99,23 @@ main {
         }
     }
 
-    sub draw_wireframe(pointer bitplane) {
-        blitter.fill_rect(bitplane, 20, 256, 0, 0)
-        blitter.wait()
-
-        draw_edge(V_TOP_LEFT, V_TOP_RIGHT, bitplane)
-        draw_edge(V_TOP_RIGHT, V_RIGHT, bitplane)
-        draw_edge(V_RIGHT, V_BOTTOM_RIGHT, bitplane)
-        draw_edge(V_BOTTOM_RIGHT, V_BOTTOM_LEFT, bitplane)
-        draw_edge(V_BOTTOM_LEFT, V_LEFT, bitplane)
-        draw_edge(V_LEFT, V_TOP_LEFT, bitplane)
-        draw_edge(V_MID_WEST, V_MID_EAST, bitplane)
-        draw_edge(V_FOLD_SOUTH, V_LEFT, bitplane)
-        draw_edge(V_MID_WEST, V_TOP_RIGHT, bitplane)
-        draw_edge(V_INNER_SOUTH, V_INNER_NORTH, bitplane)
-        draw_edge(V_INNER_NORTH, V_BOTTOM_RIGHT, bitplane)
-        draw_edge(V_FOLD_NORTH, V_FOLD_SOUTH, bitplane)
-        blitter.wait()
-
-        ; Fill the interior between the outline edges.
-        blitter.fill_rect(bitplane, 20, 256, $1010, 0)
-        blitter.wait()
+    sub draw_outlines(pointer bitplane) {
+        ; star chain
+        draw_edge(0, 1, bitplane)
+        draw_edge(1, 2, bitplane)
+        draw_edge(2, 3, bitplane)
+        draw_edge(3, 4, bitplane)
+        draw_edge(4, 5, bitplane)
+        draw_edge(5, 6, bitplane)
+        draw_edge(6, 7, bitplane)
+        draw_edge(7, 8, bitplane)
+        draw_edge(8, 9, bitplane)
+        draw_edge(9, 0, bitplane)
+        ; rectangle
+        draw_edge(10, 11, bitplane)
+        draw_edge(11, 12, bitplane)
+        draw_edge(12, 13, bitplane)
+        draw_edge(13, 10, bitplane)
     }
 
     sub draw_edge(ubyte first, ubyte second, pointer bitplane) {
