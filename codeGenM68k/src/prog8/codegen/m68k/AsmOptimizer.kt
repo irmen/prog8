@@ -43,7 +43,7 @@ internal fun optimizeAssembly(lines: MutableList<String>, cpu: CpuType = CpuType
             modified = true
             by2 = getLinesBy(pretrimmed, lines, 2)
         }
-        val stagedMoveMods = optimizeRedundantStagedMove(lines, pretrimmed)
+        val stagedMoveMods = optimizeRedundantStagedMove(pretrimmed)
         if (stagedMoveMods.isNotEmpty()) {
             applyModifications(stagedMoveMods, lines, pretrimmed)
             modified = true
@@ -61,7 +61,7 @@ internal fun optimizeAssembly(lines: MutableList<String>, cpu: CpuType = CpuType
             modified = true
             by2 = getLinesBy(pretrimmed, lines, 2)
         }
-        val deadWritebackMods = optimizeDeadZeroExtendWriteback(lines, pretrimmed)
+        val deadWritebackMods = optimizeDeadZeroExtendWriteback(pretrimmed)
         if (deadWritebackMods.isNotEmpty()) {
             applyModifications(deadWritebackMods, lines, pretrimmed)
             modified = true
@@ -1294,12 +1294,11 @@ private fun isRegisterNameChar(c: Char): Boolean =
  * labels and control transfers, where an outside jump could enter with register expectations
  * we cannot see.
  */
-private fun optimizeRedundantStagedMove(lines: List<String>, allPretrimmed: List<String>): List<Modification> {
+private fun optimizeRedundantStagedMove(allPretrimmed: List<String>): List<Modification> {
     val mods = mutableListOf<Modification>()
     val filt = allPretrimmed.withIndex()
         .filter { it.value.isNotBlank() && !it.value.startsWith(';') }
         .map { IndexedValue(it.index, it.value.trimStart()) }
-    val positions = filt.withIndex().associate { it.value.index to it.index }   // file index -> filtered position
 
     for ((pos, entry) in filt.withIndex()) {
         val stage = entry.value
@@ -1353,7 +1352,6 @@ private fun optimizeStagedAddCollapse(lines: List<String>, allPretrimmed: List<S
     val filt = allPretrimmed.withIndex()
         .filter { it.value.isNotBlank() && !it.value.startsWith(';') }
         .map { IndexedValue(it.index, it.value.trimStart()) }
-    val fileIdxToPos = filt.withIndex().associate { it.value.index to it.index }
 
     for (i in 0 until filt.size - 2) {
         val l1 = filt[i].value
@@ -1407,7 +1405,7 @@ private fun optimizeStagedAddCollapse(lines: List<String>, allPretrimmed: List<S
         val indent = lines[filt[i + 2].index].takeWhile { it == ' ' }.ifEmpty { "        " }
         mods.add(Modification(filt[i].index, true, null))
         mods.add(Modification(filt[i + 1].index, true, null))
-        mods.add(Modification(filt[i + 2].index, false, "$indent" + "add.l  ${src1},${dstAddr}"))
+        mods.add(Modification(filt[i + 2].index, false, indent + "add.l  ${src1},${dstAddr}"))
     }
     return mods
 }
@@ -1417,12 +1415,70 @@ private fun optimizeStagedAddCollapse(lines: List<String>, allPretrimmed: List<S
  * redefined before any read, or the basic block ends first. Conservative: any label,
  * control transfer, operand-less instruction, or a bounded scan that runs out means alive.
  */
-private fun provenDeadAfter(filt: List<IndexedValue<String>>, pos: Int, reg: String): Boolean {
+private fun provenDeadAfter(filt: List<IndexedValue<String>>, pos: Int, reg: String): Boolean =
+    provenDeadAfter(filt, pos, reg, buildLabelMap(filt), 0, mutableSetOf())
+
+private fun buildLabelMap(filt: List<IndexedValue<String>>): Map<String, Int> {
+    val map = linkedMapOf<String, Int>()
+    for (i in filt.indices) {
+        val line = filt[i].value
+        if (hasLabel(line)) {
+            val labelPart = line.substringBefore(';').trimStart()
+            val colon = labelPart.indexOf(':')
+            if (colon >= 0) {
+                val name = labelPart.substring(0, colon).trim()
+                if (name.isNotEmpty() && name !in map) map[name] = i
+            }
+        }
+    }
+    return map
+}
+
+/**
+ * Branch-aware variant: a conditional branch is dead for [reg] only when [reg] is dead on
+ * both of its successors. Unconditional transfers end the path (rts/rtr/rte count as dead;
+ * bsr/jsr/jmp/trap stay conservative). Labels are stripped so a branch target's instruction
+ * can be scanned. Bounded by [steps] and [depth] to avoid infinite loops.
+ */
+private fun provenDeadAfter(
+    filt: List<IndexedValue<String>>,
+    pos: Int,
+    reg: String,
+    labelMap: Map<String, Int>,
+    depth: Int,
+    visited: MutableSet<Int>
+): Boolean {
+    if (depth > 6) return false
     var cur = pos
     var steps = 0
     while (cur < filt.size && steps < 24) {
+        if (!visited.add(cur + depth * 100000)) return false
         val line = filt[cur].value
-        if (hasLabel(line) || line.isControlTransfer()) return false
+        val instr = line.instructionPart().trim()
+        if (instr.isEmpty()) { cur++; steps++; continue }
+        val base = line.mnemonic()
+        if (base in conditionBranches) {
+            val ops = line.operandsList()
+            val targetName = ops?.lastOrNull()?.trim()
+            val targetIdx = if (targetName != null) labelMap[targetName] else null
+            if (targetIdx == null) return false
+            // fall-through successor
+            if (!provenDeadAfter(filt, cur + 1, reg, labelMap, depth + 1, visited)) return false
+            // branch target successor
+            if (!provenDeadAfter(filt, targetIdx, reg, labelMap, depth + 1, visited)) return false
+            return true
+        }
+        if (base == "bra") {
+            val ops = line.operandsList()
+            val targetName = ops?.lastOrNull()?.trim()
+            val targetIdx = if (targetName != null) labelMap[targetName] else null
+            if (targetIdx == null) return false
+            cur = targetIdx
+            steps++
+            continue
+        }
+        if (base in setOf("rts", "rtr", "rte")) return true
+        if (line.isControlTransfer()) return false
         val lops = line.operandsList()
         if (lops != null && lops.isNotEmpty()) {
             val dstTok = lops.last().lowercase()
@@ -1450,7 +1506,7 @@ private fun registerUnreadBeforeRedefinition(filt: List<IndexedValue<String>>, p
         if (base == "rts" || base == "rtr" || base == "rte") return true
         if (line.isControlTransfer() && base != "bsr" && base != "jsr") return false
         val lops = line.operandsList()
-        if (lops != null && lops.isNotEmpty()) {
+        if (!lops.isNullOrEmpty()) {
             val dstTok = lops.last().lowercase()
             val srcTok = lops.dropLast(1).joinToString(",").lowercase()
             if (dstTok == reg && !srcTok.contains(reg)) return true
@@ -1472,7 +1528,7 @@ private fun registerUnreadBeforeRedefinition(filt: List<IndexedValue<String>>, p
  *     move.w d0,dK        <- removed
  *     add.w  d0,d0        ; reads d0 directly and defines N/Z/V/C
  */
-private fun optimizeDeadZeroExtendWriteback(lines: List<String>, allPretrimmed: List<String>): List<Modification> {
+private fun optimizeDeadZeroExtendWriteback(allPretrimmed: List<String>): List<Modification> {
     val mods = mutableListOf<Modification>()
     val filt = allPretrimmed.withIndex()
         .filter { it.value.isNotBlank() && !it.value.startsWith(';') }
@@ -1643,7 +1699,7 @@ private fun optimizeLoadIntoCompare(lines: List<String>, allPretrimmed: List<Str
         val o2 = l2.operandsList() ?: continue
         if (o2.size != 2) continue
 
-        val replacement: String? = when {
+        val replacement: String = when {
             l2.instructionName() == cmpName -> {
                 // cmp.<size> dK,dM  ->  cmp.<size> S,dM   (flags = dM - S either way)
                 if (o2[0].lowercase() != loaded || !o2[1].isDataReg()) null
@@ -1746,7 +1802,7 @@ private fun optimizeIndexedPointerLea(lines: List<String>, allPretrimmed: List<S
             val o5 = l5.operandsList()
             if (o5 != null && o5.size == 2 && o5[0].lowercase().isAddressReg() && o5[1].lowercase() == addrT && o5[0].lowercase() != addrT && flagMaskAfter(pos + 5)) {
                 mods.add(Modification(filt[pos + 3].index, true, null))   // movea
-                mods.add(Modification(filt[pos + 4].index, false, "$indent" + leaLine(o5[0].lowercase())))
+                mods.add(Modification(filt[pos + 4].index, false, indent + leaLine(o5[0].lowercase())))
                 if (scaled) mods.add(Modification(filt[pos + 2].index, true, null))   // scale
                 pos += 5
                 continue
@@ -1769,13 +1825,13 @@ private fun optimizeIndexedPointerLea(lines: List<String>, allPretrimmed: List<S
                         // base was staged through a data register: lea straight off the address register
                         mods.add(Modification(filt[pos + 3].index, true, null))   // movea
                         mods.add(Modification(filt[pos + 4].index, true, null))   // move.l aP,dK
-                        mods.add(Modification(filt[pos + 5].index, false, "$indent" + leaLine(base)))
+                        mods.add(Modification(filt[pos + 5].index, false, indent + leaLine(base)))
                         if (scaled) mods.add(Modification(filt[pos + 2].index, true, null))
                     } else {
                         // base reloaded from memory: load it into aT, then index off aT
                         mods.add(Modification(filt[pos + 3].index, true, null))   // movea
-                        mods.add(Modification(filt[pos + 4].index, false, "$indent" + "movea.l  ${o5[0]},$addrT"))
-                        mods.add(Modification(filt[pos + 5].index, false, "$indent" + leaLine(addrT)))
+                        mods.add(Modification(filt[pos + 4].index, false, indent + "movea.l  ${o5[0]},$addrT"))
+                        mods.add(Modification(filt[pos + 5].index, false, indent + leaLine(addrT)))
                         if (scaled) mods.add(Modification(filt[pos + 2].index, true, null))
                     }
                     pos += 6

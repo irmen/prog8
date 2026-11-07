@@ -862,7 +862,7 @@ all.
 Open asm-level findings from the 2026-11-07 inspection of the amiga500 sorting
 benchmark (`examples/test.p8`, `.text` 4770 B; qemu68k 4669 B) after 5.3c.
 All are `AsmOptimizer.kt` work unless noted. A.2 and A.4 are implemented;
-A.1, A.3, A.5 and A.6 are not. Together A.1-A.5 were worth roughly 80 B and
+A.3, A.5 and A.6 are not. A.1 and A.2 and A.4 are done. Together A.1-A.5 were worth roughly 80 B and
 40-45 instructions there.
 
 After A.2 + A.4: amiga500 `.text` 4770 -> 4722, qemu68k 4669 -> 4621 (-48 B
@@ -871,7 +871,7 @@ layout-dependent `align 2` (4-byte) and `align 4` (16-byte) padding moving
 with the code. Verified with vasm (amiga500) and a qemu68k run of the sorting
 test.
 
-### A.1 Branch-aware deadness in `provenDeadAfter` [OPEN, highest value]
+### A.1 Branch-aware deadness in `provenDeadAfter` [DONE]
 - The helper bails on any control transfer, but the dominant sort-loop shape is
   `load / cmp / b<cond>` where the loaded register is dead on *both*
   successors. Extending the scan to follow a conditional branch's two
@@ -897,6 +897,13 @@ test.
   is bounded by the same step cap.
 - **Effort**: small. Also unlocks more of `optimizeStagedAddPair` and
   `optimizeLoadIntoCompare` in other programs with the same loop shape.
+
+- DONE: `provenDeadAfter` now follows conditional branches (dead only if dead on
+  both successors) and unconditional `bra` (follows target); `rts`/`rtr`/`rte`
+  end a path as dead. Label stripping lets branch targets be scanned. Measured
+  on the sorting benchmark: amiga500 `.text` 4722 -> 4690, qemu68k 4621 -> 4589
+  (-32 B each), matching the predicted ~30 B (10 move.w->cmp.w folds) plus
+  cascades. Sorting test still prints all eight lists correctly.
 
 ### A.2 Dead zero-extend writeback [DONE]
 - 11x in the sorting test:
