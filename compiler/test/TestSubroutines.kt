@@ -492,7 +492,7 @@ main {
         errors.errors[0] shouldContain "can't dispatch to a subroutine that takes parameters: task2"
     }
 
-    test("jmptable entry with parameters is an error") {
+    test("jmptable entry with parameters is allowed (caller sets up arguments)") {
         val text = """
             main {
                 %jmptable (task1, task2)
@@ -503,10 +503,11 @@ main {
                 sub task2(ubyte param) {
                 }
             }"""
-        val errors = ErrorReporterForTests()
-        compileText(C64Target(), false, text, outputDir, errors=errors, writeAssembly = false) shouldBe null
-        errors.errors.size shouldBe 1
-        errors.errors[0] shouldContain "can't dispatch to a subroutine that takes parameters: task2"
+        val errors = ErrorReporterForTests(keepMessagesAfterReporting = true)
+        compileText(C64Target(), false, text, outputDir, errors=errors, writeAssembly = false).shouldNotBeNull()
+        errors.errors.size shouldBe 0
+        errors.warnings.size shouldBe 1
+        errors.warnings[0] shouldContain "takes parameters"
     }
 
     test("dispatch to subroutines without parameters is allowed") {
