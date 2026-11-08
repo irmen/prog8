@@ -215,35 +215,64 @@ blitter {
     ; x2, y2: ending coordinates
     ; screen_ptr: pointer to bitplane memory (CHIP RAM)
     ; erase: clear the line's pixels instead of setting them
-    ; fill: draw with ONEDOT set (one pixel per row), for polygon outlines
-    ;   later filled with area_fill
+    ; fill: draw a top-to-bottom XOR boundary with ONEDOT set; horizontal
+    ;   edges are skipped and should be drawn after area_fill. fill overrides erase.
     ; Waits for blitter idle at start, returns immediately after triggering the blit.
     asmsub line_draw(uword x1 @D0, uword y1 @D1, uword x2 @D2, uword y2 @D3, pointer screen_ptr @A1, bool erase @D5, bool fill @D7) {
         %asm {{
         movem.l d2-d7/a2-a6,-(sp)
 
+        tst.b   d7
+        beq.s   .not_fill_line
+        cmp.w   d1,d3
+        bge.s   .fill_down
+        exg     d0,d2
+        exg     d1,d3
+.fill_down:
+        cmp.w   d1,d3
+        beq     .finish
+        bra.s   .line_setup
+.not_fill_line:
+
         ; Axis-aligned fast path: dispatch horizontal spans to the CPU routine.
         cmp.w   d1,d3
-        bne.s   .not_horiz_fast
+        bne.s   .line_setup
         ; horizontal: y1 == y2
         move.w  blitter.line_pattern,d3
         bsr     blitter.horiz_line
         bra     .finish
-.not_horiz_fast:
-        ; note: there is no faster vertical line case possible.
 
+.line_setup:
         ; CPU setup (these would normally be done once in LineInit and
         ; preserved across calls; we set them up here for self-containment).
-        move.w  #1*64+2,a3           ; add-value for BLTSIZE
         ; minterm pack: $B0000000 | (minterm << 20) | $0f. After the
         ; and.w/ror.l #4/octant dance below this yields
         ; BLTCON0 = $xBRM (x = x1 & $f shift, B = SRCA|SRCC|SRCD, minterm)
         ; and BLTCON1 high byte $00; the octant table fills BLTCON1's low byte.
         move.l  #($B0000000)|(blitter.MINTERM_OR<<20)|$0000000f,a4    ; draw: D = A | C
         tst.b   d5
-        beq.s   .minterm_ready
+        beq.s   .not_erase
         move.l  #($B0000000)|(blitter.MINTERM_ERASE<<20)|$0000000f,a4 ; erase: D = ~A & C
+.not_erase:
+        tst.b   d7
+        beq.s   .minterm_ready
+        move.l  #($B0000000)|(blitter.MINTERM_A_XOR_C<<20)|$0000000f,a4 ; fill: D = A XOR C
 .minterm_ready:
+
+        tst.b   d7
+        beq.s   .fill_start_ready
+        movea.l a1,a2
+        move.w  d1,d4
+        mulu.w  blitter.line_mod,d4
+        adda.l  d4,a2
+        move.w  d0,d4
+        lsr.w   #3,d4
+        adda.w  d4,a2
+        move.w  d0,d4
+        and.w   #$000f,d4
+        eor.w   #$000f,d4
+        move.w  d4,a3
+.fill_start_ready:
 
         ; d0=x1, d1=y1, d2=x2, d3=y2, d4=screen_mod, a1=screen_ptr
         move.l  a4,d6                ; minterm+mask
@@ -290,10 +319,15 @@ blitter {
         move.w  d5,d2                ; d2 low word = 2*SDelta - LDelta
         sub.w   d3,d2                ; d2 low word = 2*SDelta - 2*LDelta
         asl.w   #6,d3                ; d3 = LDelta << 6
-        add.w   a3,d3                ; d3 = BLTSIZE
+        add.w   #66,d3               ; d3 = BLTSIZE
 
         ; --- blit ---
         bsr     .wait_blt
+        tst.b   d7
+        beq.s   .no_fill_start
+        move.w  a3,d0
+        bchg    d0,(a2)
+.no_fill_start:
         move.w  #$8000,custom.BLTADAT    ; reseed: A-channel blits (e.g. area_fill) leave garbage here
         move.l  d6,custom.BLTCON0    ; shift, minterm, octant bits
         move.w  d5,custom.BLTAPTL    ; 2*SDelta - LDelta
@@ -313,7 +347,7 @@ blitter {
 ; Octant lookup table placed right after the rts so it is reachable via
 ; PC-relative addressing from the move.b OctTbl(PC,d6.w) instruction above.
 ; Each pair of entries encodes BLTCON1 octant bits for one of the 8 octants.
-; First byte has SING=0, second has SING=1 (descending mode).
+; First byte has SIGN=0, second has SIGN=1.
 OctTbl:
         dc.b 0*4+1,0*4+1+64    ;7
         dc.b 4*4+1,4*4+1+64    ;6

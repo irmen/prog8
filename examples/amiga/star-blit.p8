@@ -1,8 +1,8 @@
 ; Rotating five-point star with a smaller rectangle in its center -
-; bare-metal blitter version.
-; No OS draw routines: star and rectangle outlines via blitter.line_draw
-; with fill=true (ONEDOT lines), interior via one blitter.area_fill; the
-; fill's parity rule makes the star solid and leaves the rectangle empty.
+; double-buffered bare-metal blitter version.
+; No OS draw routines: fill-compatible XOR edges and one blitter.area_fill
+; make the star solid while leaving the rectangle empty. The outline is
+; redrawn normally afterward.
 ; The pentagon radius is 120, so the fill region is 256x256 centered on
 ; the plane. Click or ESC exits.
 
@@ -24,6 +24,16 @@ main {
     const uword FILL_HEIGHT = 256
     const uword FILL_MODULO = (320-FILL_WIDTH)/8
     const uword FILL_START = (320/2 - FILL_WIDTH/2)/8
+    ; Static COLOR01 ramp from line 48 through line 299.
+    const ubyte COLOR1_RAMP_STEPS = 16
+    uword[COLOR1_RAMP_STEPS] color1_slots
+    ; Copper vertical positions wrap at 256; the last waits are lines 266, 282, and 299.
+    ubyte[COLOR1_RAMP_STEPS] color1_wait_lines = [
+        48, 65, 81, 98, 115, 132, 148, 165,
+        181, 198, 215, 232, 249, 10, 26, 43]
+    uword[COLOR1_RAMP_STEPS] color1_gradient = [
+        $0004, $0114, $0225, $0336, $0446, $0557, $0668, $0779,
+        $0889, $099a, $0aab, $0bbc, $0ccc, $0ddd, $0eee, $0fff]
 
     ; Star: 5 outer points (pentagon radius 120, inner radius 48)
     ; alternating with 5 inner corners; then the 32x32 center rectangle.
@@ -36,11 +46,13 @@ main {
     sub start() {
         if not playfield.create(320, 256, 320, 256, 1, custom.DISPLAY_DEFAULT, 0)
             return
+        if not playfield.create_backplane() {
+            playfield.destroy()
+            return
+        }
         ^^custom.DisplayRegs regs = playfield.regs
         custom.grab_system(true)
         custom.DMACON = $83C0
-
-        pointer bitplane = playfield.bitmap.Planes[0]
 
         blitter.line_init($ffff, $8000, $ffff, 40)
 
@@ -65,21 +77,30 @@ main {
             if done
                 break
 
+            custom.waitvsync()
+            blitter.wait()
+            playfield.flip()
+            playfield.patch_copper(copper.list, planeBase)
+            pointer bitplane = playfield.back.Planes[0]
+
             rotate_shape(angle)
 
             ; Clear the region.
             blitter.fill_rect(bitplane+FILL_START, FILL_WIDTH/16, FILL_HEIGHT, $0000, FILL_MODULO)
 
-            ; Outline star and rectangle (absolute screen coordinates).
-            draw_outlines(bitplane)
+            ; Draw one XOR crossing per scanline, excluding horizontal edges.
+            draw_outlines(bitplane, true)
 
             ; Fill: star solid, rectangle stays empty.
             blitter.area_fill(bitplane+FILL_START, FILL_WIDTH/16, FILL_HEIGHT, FILL_MODULO)
 
-            custom.waitvsync()
+            ; Restore complete edges, including horizontal spans.
+            ;; draw_outlines(bitplane, false)
+
             angle += ANGLE_STEP
         }
 
+        blitter.wait()
         custom.FMODE = $0000
         custom.restore_system()
         playfield.destroy()
@@ -99,31 +120,31 @@ main {
         }
     }
 
-    sub draw_outlines(pointer bitplane) {
+    sub draw_outlines(pointer bitplane, bool fill) {
         ; star chain
-        draw_edge(0, 1, bitplane)
-        draw_edge(1, 2, bitplane)
-        draw_edge(2, 3, bitplane)
-        draw_edge(3, 4, bitplane)
-        draw_edge(4, 5, bitplane)
-        draw_edge(5, 6, bitplane)
-        draw_edge(6, 7, bitplane)
-        draw_edge(7, 8, bitplane)
-        draw_edge(8, 9, bitplane)
-        draw_edge(9, 0, bitplane)
+        draw_edge(0, 1, bitplane, fill)
+        draw_edge(1, 2, bitplane, fill)
+        draw_edge(2, 3, bitplane, fill)
+        draw_edge(3, 4, bitplane, fill)
+        draw_edge(4, 5, bitplane, fill)
+        draw_edge(5, 6, bitplane, fill)
+        draw_edge(6, 7, bitplane, fill)
+        draw_edge(7, 8, bitplane, fill)
+        draw_edge(8, 9, bitplane, fill)
+        draw_edge(9, 0, bitplane, fill)
         ; rectangle
-        draw_edge(10, 11, bitplane)
-        draw_edge(11, 12, bitplane)
-        draw_edge(12, 13, bitplane)
-        draw_edge(13, 10, bitplane)
+        draw_edge(10, 11, bitplane, fill)
+        draw_edge(11, 12, bitplane, fill)
+        draw_edge(12, 13, bitplane, fill)
+        draw_edge(13, 10, bitplane, fill)
     }
 
-    sub draw_edge(ubyte first, ubyte second, pointer bitplane) {
+    sub draw_edge(ubyte first, ubyte second, pointer bitplane, bool fill) {
         uword first_offset = (first as uword) * 2
         uword second_offset = (second as uword) * 2
         blitter.line_draw(vertices[first_offset] as uword, vertices[first_offset+1] as uword,
                                vertices[second_offset] as uword, vertices[second_offset+1] as uword,
-                               bitplane, false, true)
+                               bitplane, false, fill)
     }
 
     sub build_copperlist(^^custom.DisplayRegs display) -> uword {
@@ -138,7 +159,14 @@ main {
         void copper.move($0094, display.ddfstop)
         void copper.move($0108, display.bpl1mod)
         void copper.move($0180, 0)        ; COLOR00 = black (background)
-        void copper.move($0182, $0fff)    ; COLOR01 = white (foreground)
+        void copper.move($0182, $0004)    ; COLOR01 = dark blue (foreground)
+        for i in 0 to COLOR1_RAMP_STEPS-1 {
+            if i == 13
+                copper.wait($ff, 0)    ; vertical position wraps after line 255
+            copper.wait(color1_wait_lines[i], 0)
+            color1_slots[i] = copper.move($0182, 0)
+            copper.set(color1_slots[i], color1_gradient[i])
+        }
         copper.end()
         return planeBase
     }

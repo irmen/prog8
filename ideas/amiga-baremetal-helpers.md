@@ -506,20 +506,21 @@ only works correctly in descending mode").
 
 **Endpoint handling:**
 
-The core problem with polygon filling is shared vertices. The blitter draws
-all dx+1 pixels of every line, so a shared vertex is drawn by both meeting
-edges — but with the OR minterm used for outlines a twice-drawn pixel is
-still a single set pixel, so overlaps are harmless. What breaks fills are
-gaps: every row needs an even number of edge pixels for the toggle to pair
-up. Since both endpoints are always drawn, shared vertices are always
-covered and no special endpoint convention is needed.
+Fill-compatible edges use XOR, not OR, so overlapping edge pixels cancel.
+Normalize every edge to run downward and XOR the first point before starting
+the blit. The blitter then draws a half-open edge: the top endpoint is omitted
+and the bottom endpoint is included. A through-vertex is counted once; extrema
+are excluded by the paired toggles. Horizontal edges are not scanline
+crossings and are skipped in the fill mask.
 
 **Two-part requirement:**
 
 1. **Outline drawing in fill-compatible mode.** The polygon edges must be
-   drawn so each scanline holds exactly one pixel per edge crossing. The
-   blitter's line mode has a `SING` bit (BLTCON1 bit 1: single bit per
-   horizontal row, for use with subsequent area fill). The `OctTbl` pairs
+   drawn so each scanline holds exactly one pixel per edge crossing. Use the
+   XOR minterm, normalize edges downward, omit each edge's first pixel, and
+   skip horizontal edges. The blitter's line mode has a `SING` bit (BLTCON1
+   bit 1: single bit per horizontal row, for use with subsequent area fill).
+   The `OctTbl` pairs
    (`x`, `x+64`) are *not* SING variants — the +64 selects SIGNFLAG, which
    is derived per line from the sign of 2*S-L and stays identical in both
    modes. Fill-compatible lines use the exact same octant computation as
@@ -531,8 +532,9 @@ covered and no special endpoint convention is needed.
    ori.w   #$0002,d6            ; SING: one pixel per row for area-fill outlines
    ```
 
-   In the library this is `line_draw(..., fill=true)`; horizontal lines
-   take the CPU span path, which needs no SING.
+   In the library this is `line_draw(..., fill=true)`. Draw the complete
+   visible outline again with `fill=false` after `area_fill` so horizontal
+   spans and omitted endpoints are visible without changing fill parity.
 
 2. **Scanline fill blit.** After the outline is drawn, a single blit with
    FILL enabled fills all scanlines between the leftmost and rightmost set
@@ -562,21 +564,21 @@ covered and no special endpoint convention is needed.
 
 **Standard filled polygon workflow:**
 1. Clear the target bitplane region (`fill_rect(..., 0, 0)`)
-2. Draw polygon outline with fill-compatible lines (`line_draw(..., fill=true)`)
+2. Draw fill-compatible edges (`line_draw(..., fill=true)`)
 3. Call `area_fill` to fill all scanlines between edges
-4. Result: filled polygon in the bitplane
+4. Redraw the complete visible outline (`line_draw(..., fill=false)`)
+5. Result: filled polygon in the bitplane
 
 **Limitations:**
 - The outline must be a closed polygon with no self-intersections
-- Every row must hold an even number of edge pixels; rows with an odd count
-  leak fill to the row end (e.g. rows through the folds of an impossible
-  object). Avoid horizontal outline edges: a solid run of N set pixels
-  toggles N times, so odd-length runs leak their row
+- Each scanline must have an even number of fill-boundary crossings; an odd
+  count leaks fill to the row end. Horizontal edges are omitted from the fill
+  mask and restored by the outline pass.
 - Only fills one bitplane at a time (call per plane for multi-plane BOBs)
 
 **Note:** This is a well-known Amiga technique. The blitter's fill mode is
-specifically designed for this purpose. The main work is getting the line
-endpoint handling right; the fill blit itself is a single blitter operation.
+specifically designed for this purpose. The fill blit itself is a single
+blitter operation; the line pass must preserve crossing parity.
 
 - **Composable, not constraining.** Same philosophy as the sprite helpers: the
   BOB primitives must not prevent or complicate higher-level usage. Specifically:

@@ -605,11 +605,14 @@ modules. Import them the same way as any other library::
 
 ``blitter``
     Bare-metal blitter programming, no OS calls: ``copy_rect()`` and
-    ``fill_rect()``, ``masked_blit()``, ``clear_plane()``/``fill_plane()``,
-    and the line drawer (``line_init()``, ``line_draw()``, ``line_erase()``,
-    ``line_draw_fill()``, ``line_color()``, with a fast horizontal-segment
-    path). ``area_fill()`` fills all scanlines between set source bits using
-    the blitter's hardware FILL mode. ``set_blitpri()``
+    ``fill_rect()`` (use pattern ``$0000`` to clear or ``$ffff`` to fill),
+    ``masked_blit()``, and the line drawer (``line_init()``, ``line_draw()``,
+    ``line_color()``).
+    For polygon filling, ``line_draw(..., fill=true)`` draws top-to-bottom
+    XOR boundaries, omits each edge's first pixel, and skips horizontal edges.
+    Call ``area_fill()`` and then redraw the complete outline with
+    ``fill=false``. ``area_fill()`` fills all scanlines between set source bits
+    using the blitter's hardware FILL mode. ``set_blitpri()``
     sets the blitter DMA priority, ``wait()`` busy-waits until the blitter is
     idle. All pointers must be in CHIP RAM, width is limited to 64 words per
     operation, and every operation waits for the blitter at entry but not for
