@@ -31,6 +31,7 @@ main {
         txt.print("Example 1: L=sine wave rising freq, R=noise fade volume down.\n")
 
         sound.init()
+        custom.filter_off()     ; disable the muffled lowpass filter for crisp audio
         const uword start_rate = TONE_MIN_HZ*SINE_SAMPLES/SINE_CYCLES
         const uword start_period = (sound.CLOCK_PAL/start_rate) as uword
         pointer sine_loop = &waveforms.sine + 2

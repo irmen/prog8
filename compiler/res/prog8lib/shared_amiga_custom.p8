@@ -182,24 +182,39 @@ IRQ7 = $7C
 
     asmsub waitvsync() {
         %asm {{
-; synchronize to the screen's vsync, this routine doesn't require the OS to be active (sys.waitvsync is the OS-compatible version of this routine)
-; Wait until the raster beam reaches line 300
+; synchronize near the start of vertical blank, on PAL and NTSC
+GfxVBlankFrequency = $212
+            move.l  sys.GfxBase,a0
+            move.l  a0,d0
+            beq.s   .WaitLine250
+            cmpi.b  #50,GfxVBlankFrequency(a0)
+            beq.s   .WaitLine300
+.WaitLine250:
+            move.l  $DFF004,d0
+            lsr.l   #8,d0
+            and.w   #$01FF,d0
+            cmp.w   #250,d0
+            bne.s   .WaitLine250
+.WaitLineNext250:
+            move.l  $DFF004,d0
+            lsr.l   #8,d0
+            and.w   #$01FF,d0
+            cmp.w   #250,d0
+            beq.s   .WaitLineNext250
+            rts
 .WaitLine300:
-    MOVE.L  $DFF004, D0     ; Read VPOSR + VHPOSR simultaneously
-    LSR.L   #8, D0          ; Shift vertical position bits into low word
-    AND.W   #$01FF, D0      ; Mask out horizontal beam bits (get 9-bit line #)
-    CMP.W   #300, D0        ; Are we at raster line 300?
-    BNE.S   .WaitLine300
-
-    ; Wait until the beam MOVES PAST line 300
-    ; (Prevents fast CPUs like 030/040/060 from executing twice on the same line)
-.WaitLineNext:
-    MOVE.L  $DFF004, D0
-    LSR.L   #8, D0
-    AND.W   #$01FF, D0
-    CMP.W   #300, D0
-    BEQ.S   .WaitLineNext
-    rts
+            move.l  $DFF004,d0
+            lsr.l   #8,d0
+            and.w   #$01FF,d0
+            cmp.w   #300,d0
+            bne.s   .WaitLine300
+.WaitLineNext300:
+            move.l  $DFF004,d0
+            lsr.l   #8,d0
+            and.w   #$01FF,d0
+            cmp.w   #300,d0
+            beq.s   .WaitLineNext300
+            rts
         }}
     }
 

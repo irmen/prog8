@@ -20,6 +20,7 @@
 %import exec
 %import trackdisk
 %import audio
+%import custom
 %import textio
 
 main {
@@ -54,6 +55,7 @@ main {
             sys.exit(1)
         }
         defer audio.closedown()
+        custom.filter_off()     ; disable the muffled lowpass filter for crisp audio
 
         ubyte back = 0
         uword chunk = 0
