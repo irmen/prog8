@@ -114,7 +114,7 @@ Language :index:`Features`
 - Identifiers can contain Unicode Letters, so ``knäckebröd``, ``приблизительно``, ``見せしめ`` and ``π`` are all valid identifiers.
 - Subroutines can return more than one result value
 - Advanced code optimizations to make the resulting program smaller and faster
-- Supports the sixteen 'virtual' 16-bit registers R0 to R15 as defined on the Commander X16. You can look at them as general purpose global variables. These are also available on the other compilation targets!
+- Supports the sixteen 'virtual' 16-bit registers R0 to R15 as defined on the Commander X16. Several 6502-family and virtual-target libraries expose them as general-purpose global variables; availability is target-specific, and they are not provided by the M68K libraries.
 - On the Commander X16: Support for low level system features such as Vera Fx, which includes 16x16 bits multiplication in hardware and fast memory copy and fill.
 - 50 Kb of available program RAM size on the C64 by default; because Basic ROM is banked out altogether
 - 41 Kb of available program RAM size on the C128 by default; because Basic ROM is banked out altogether

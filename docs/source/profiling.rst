@@ -194,7 +194,7 @@ Limitations
 ^^^^^^^^^^^
 
 - Profiling only works on the cx16 target with the x16emu emulator
-- Only subroutine call *statements* are instrumented, and *some* function call *expressions* (extsubs)
+- Subroutine entry points are instrumented. Calls to ``extsub`` routines are instrumented only when used as call statements; ``extsub`` calls used as expressions are not instrumented.
 - The profiler measures cumulative time (time in the routine plus all routines it calls)
 - Very short routines may have measurement overhead that skews results
 - Recursive routines are supported but may be hard to interpret in the output

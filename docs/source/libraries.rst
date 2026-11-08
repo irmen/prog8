@@ -422,281 +422,20 @@ caller-provided memory buffer instead:
 ``sub decode_block_mono(pointer nibblesptr, pointer outptr)``
     Decodes one 256 byte block of adpcm data into the memory buffer at ``outptr``.
     The output buffer must hold at least 1010 bytes; the decoder does not bounds-check its writes.
-    Decoded data is 16 bit mono PCM, 505 samples = 1010 bytes (little-endian).
+    Decoded data is 16 bit mono PCM, 505 samples = 1010 bytes (big-endian).
 
 ``sub decode_block_stereo(pointer nibblesptr, pointer outptr)``
     Decodes one 256 byte block of adpcm data into the memory buffer at ``outptr``.
     The output buffer must hold at least 996 bytes; the decoder does not bounds-check its writes.
-    Decoded data is 16 bit stereo PCM, 498 samples = 996 bytes (little-endian, interleaved).
+    Decoded data is 16 bit stereo PCM, 498 samples = 996 bytes (big-endian, interleaved).
 
 If you just want to decode the data in memory you can use a few low-level routines directly to decode single nibbles etc.
 Look at the :source:`adpcm source code <compiler/res/prog8lib/cx16/adpcm.p8>` (cx16)
 or :source:`m68k adpcm source code <compiler/res/prog8lib/shared_m68k_adpcm.p8>` to find out what other routines are available.
 
-
-amigaos libraries  (amiga500, amiga1200)
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-.. index:: pair: Libraries; amigaos libraries
-.. index:: single: Targets; AmigaOS library modules
-
-The Amiga targets bind a number of AmigaOS libraries and device drivers as Prog8 library
-modules. Import them the same way as any other library::
-
-    %import graphics
-    %import intuition
-
 .. note::
-    The bindings are generated from the Amiga NDK include files and are therefore
-    complete for those libraries. Many AmigaOS library calls take structures that Prog8
-    does not have a type for; those appear as ``pointer``. See the
-    :source:`library source code <compiler/res/prog8lib>` for the exact signatures.
-
-**AmigaOS libraries**
-
-.. note::
-    The startup code of the amiga500 and amiga1200 targets already opens ``dos``,
-    ``graphics``, ``intuition``, ``icon`` and ``utility`` for you, so their modules are
-    ready to use without doing anything. (``exec`` needs no opening at all: ExecBase always
-    lives at 4.w and is available as ``sys.SysBase``.) The remaining libraries below -
-    ``iffparse``, ``lowlevel``, ``arexx``, ``asyncio``, ``asllib``, ``datatypes`` (amiga1200
-    only, kickstart 3.0+) and ``diskfont`` - must be opened on demand by calling their
-    ``openlib()`` subroutine, and closed again with ``closelib()``. You do not have to call
-    ``closelib()`` yourself: the startup code closes every library that was actually opened
-    (including the on-demand ones) automatically when the program exits. Calling ``closelib()``
-    manually is still fine and recommended when you are done with a library well before the
-    program ends, to free its resources early.
-
-``exec`` (``exec.library``)
-    Memory allocation, message ports, interrupts, device and resource management. Also the
-    base for everything else: ``exec.OpenLibrary()`` is what opens the optional libraries.
-    The ``exec`` module is always available, ``sys.SysBase`` is the ExecBase at 4.w.
-    In addition to the library bindings it provides ``exec.NewList(list)`` to initialize
-    an Exec list header in place. The portable ``lists`` module's ``init()`` calls this
-    on the Amiga targets; see the :ref:`linked-list-iteration` section for the header
-    layout and iteration rules.
-
-``dos`` (``dos.library``)
-    File and directory handling, locking, IOStreams, requesters and the DOS error codes.
-    Text output goes through the ``textio`` module, which is built on top of ``dos``.
-
-``graphics`` (``graphics.library``)
-    Bitmaps, rastports, fonts, regions, sprites and the ``Blt*`` blitter calls.
-
-``intuition`` (``intuition.library``)
-    Screens, windows, gadgets and menus. Requires ``graphics``.
-    Next to the library bindings it provides three inline helper routines that read the
-    standard structures embedded in a ``Screen``: ``GetScreenViewPort(screen) -> pointer``,
-    ``GetScreenRastPort(screen) -> ^^graphics.RastPort`` and
-    ``GetScreenBitMap(screen) -> ^^graphics.BitMap``.
-
-``utility`` (``utility.library``)
-    Tag item handling (tags, tag lists) and the other small helpers from the utility library.
-
-``icon`` (``icon.library``)
-    Disk objects, free lists and tooltypes. 
-
-``iffparse`` (``iffparse.library``)
-    Parsing IFF files. Requires Kickstart 2.0 or newer.
-
-``lowlevel`` (``lowlevel.library``)
-    Cache control, interrupt and timer related calls. Requires Kickstart 2.0 or newer.
-
-``arexx`` (``rexxsyslib.library``)
-    ARexx scripting support. Requires Kickstart 2.0 or newer.
-
-``asyncio`` (``asyncio.library``)
-    Asynchronous file IO.
-
-``asllib`` (``asl.library``)
-    Standard requesters: file, font and screen-mode. Requires Kickstart 2.0 or newer.
-    See ``examples/amiga/aslfile.p8``.
-
-``diskfont`` (``diskfont.library``)
-    Loading and using fonts from disk. Opened on demand.
-
-``datatypes`` (``datatypes.library``, **amiga1200 only**, AmigaOS 3.1 / V40)
-    Essentials subset for loading and inspecting media (images, sounds, text) via DataType
-    objects: object lifecycle and attribute queries (``GetDTAttrsA``),
-    8SVX playback via ``DoDTMethodA`` / ``DTM_TRIGGER``, and picture rendering in
-    Intuition windows via ``AddDTObject``. It includes ``DataType`` / ``DataTypeHeader``
-    metadata and ``BitMapHeader``, the
-    ``GID_*`` / ``DTF_*`` classification constants, and ``DTA_*`` / ``PDTA_*`` /
-    ``SDTA_*`` / ``TDTA_*`` / ``ADTA_*`` tags.
-    On OS 3.1, sound metadata includes sample length, period, volume and cycles; exact sample
-    rate is not exposed by the V40 sound datatype.
-    See ``examples/amiga/datatype.p8``.
-
-**Devices and hardware**
-
-``trackdisk`` (``trackdisk.device``)
-    Raw floppy disk access: motor control, seeking, raw read and write, and drive geometry.
-    Also exposes the ``TD_*`` driver command codes for anything the module doesn't wrap.
-
-``audio`` (``audio.device``)
-    Playback of 8 bit signed samples, per channel, in the background or synchronous.
-    Exposes the ``ADCMD_*`` IO commands.
-
-``timer`` (``timer.device``)
-    Timing via IO requests: microhertz, vblank and eclock units, plus the
-    ``TR_ADDREQUEST`` based wait-until. Exposes the ``TR_*`` driver command codes.
-
-``ahi`` (``ahi.device``, **amiga1200 only**)
-    Higher quality multi-channel sample playback. AHI v4 compatible, so only 8 and 16 bit
-    sample types are available. Open a unit with ``ahi.open()`` (pass 0 for the system
-    default output) and close it with ``ahi.close()``. Requires a system with ahi.device
-    installed (real hardware or full emulation), so it does not work under vamos.
-
-``custom``
-    Direct access to the custom chipset, with no library involved. Contains
-    ``grab_system(replace_view)``/``restore_system()`` to take over the whole system and interrupt
-    handlers for hardware banging programs (games, demos); pass true to load
-    a blank NULL view first, false to leave the currently active View untouched
-    (display DMA stays on). ``compute_display()`` accepts a vertical offset
-    in scanlines (positive moves the display down) and computes shadow display
-    register values (``DisplayRegs``) for a bare-metal playfield without
-    Intuition or View/ViewPort setup. ``view_width``/``view_height`` are the
-    visible viewport; ``bitmap_width`` sets the backing bitplane row pitch.
-    The caller can allocate extra bitmap rows and update plane pointers for
-    vertical scrolling. The shared ``isPAL`` boolean (set by ``grab_system()``)
-    reports the machine's TV standard. ``waitvsync()``,
-    AGA colour register writes, and controller input routines. Canonical
-    ``$00RRGGBB`` palette helpers ``load_colors()``/``set_color()``/
-    ``cycle_forward()`` and ``pack12()`` load the bare-metal palette AGA-aware,
-    and ``load_colors_ocs()`` takes raw 12-bit ``$0RGB`` words;
-    ``load_iff_cmap()`` loads an IFF/ILBM CMAP chunk (packed RGB888 triples)
-    and converts per chipset (exact 24-bit on AGA, quantised to 4 bits per
-    channel on OCS/ECS)
-    (``graphics`` has the matching ``ViewPort`` loaders
-    ``load_palette()``/``set_palette_color()``/``load_iff_cmap()``, which go
-    through graphics.library instead of poking the registers). ``detect_chipset()`` returns
-    ``custom.CHIPSET::OCS``, ``custom.CHIPSET::ECS`` or
-    ``custom.CHIPSET::AGA`` using the Denise ID and VPOSR hardware registers.
-    ``joystick_axes(port)`` returns signed x/y values in -1..1.
-    ``joystick_fire(port)`` and ``joystick_fire2(port)`` return true when the
-    respective button is pressed. ``joystick_state(port)`` combines directions
-    and both fire buttons into bit flags such as ``custom.JOY_UP`` and
-    ``custom.JOY_FIRE2``; combine these flags with bitwise OR.
-    ``get_button_states()`` samples the input registers once each and returns a
-    ``uword`` mask with set bits for pressed buttons. Test a button with
-    bitwise AND, for example
-    ``(custom.get_button_states() & custom.BTN_JOY_FIRE) != 0``. The ``BTN_*``
-    constants identify these physical inputs:
-
-    * ``BTN_MOUSE_LEFT`` (``$0040``): connector 1 button 1, also joystick port 0 fire.
-    * ``BTN_JOY_FIRE`` (``$0080``): connector 2 button 1 (joystick port 1 fire).
-    * ``BTN_MOUSE_MIDDLE`` (``$0100``): connector 1 middle button.
-    * ``BTN_MOUSE_RIGHT`` (``$0400``): connector 1 button 2, also joystick port 0 second fire.
-    * ``BTN_JOY_FIRE2`` (``$4000``): connector 2 button 2 (joystick port 1 second fire).
-
-    ``mouse_delta(port)`` returns signed, scaled x/y movement since its previous call.
-    ``left_button()``, ``middle_button()`` and ``right_button()`` read the three
-    mouse buttons on connector 1 and return true when pressed. Joystick ports are
-    zero-based: 0 is JOY0DAT / connector 1, 1 is JOY1DAT / connector 2. The first
-    fire input is read from CIA-A; the second is on pin 9 via POTGOR.
-    Use the joystick routines with a digital joystick and the mouse routines with
-    a mouse or trackball; these are direct hardware readers, not gameport.device calls.
-    Call ``mouse_init(port, scale_divisor)`` before polling to set the sensitivity:
-    a divisor of 4 returns about one movement unit per four hardware counts, with
-    fractional counts accumulated between calls. Supported divisors are 1, 2, 4 and 8;
-    1 returns raw counts, and other values are treated as 1.
-    If ``mouse_init`` is not called, the first ``mouse_delta`` call initializes
-    with a divisor of 1 and returns zero.
-    Poll mouse deltas once per frame because each hardware counter is 8-bit.
-
-``blitter``
-    Bare-metal blitter programming, no OS calls: ``copy_rect()`` and
-    ``fill_rect()`` (use pattern ``$0000`` to clear or ``$ffff`` to fill),
-    ``masked_blit()``, and the line drawer (``line_init()``, ``line_draw()``,
-    ``line_color()``).
-    For polygon filling, ``line_draw(..., fill=true)`` draws top-to-bottom
-    XOR boundaries, omits each edge's first pixel, and skips horizontal edges.
-    Call ``area_fill()`` and then redraw the complete outline with
-    ``fill=false``. ``area_fill()`` fills all scanlines between set source bits
-    using the blitter's hardware FILL mode. ``set_blitpri()``
-    sets the blitter DMA priority, ``wait()`` busy-waits until the blitter is
-    idle. All pointers must be in CHIP RAM, width is limited to 64 words per
-    operation, and every operation waits for the blitter at entry but not for
-    its completion on return. The ``MINTERM_*`` constants select the logic
-    function.
-
-``playfield``
-    Bare-metal bitplane manager to pair with ``custom.compute_display()``:
-    ``create()`` accepts viewport and backing bitmap dimensions plus the same
-    vertical offset, allocates chip-RAM bitplanes, and computes the shadow
-    display registers. Larger bitmap dimensions provide scrolling room; callers
-    move plane pointers to select the viewport.
-    ``show()`` installs plane addresses into ``BPLxPT``,
-    ``apply_registers()`` writes the rest of the shadow registers once per
-    setup, ``patch_copper()`` patches plane addresses into a copper list, and
-    ``set_scroll()`` sets fine horizontal scroll. For hardware scrolling
-    within a larger backing bitmap, ``scroll_to()`` positions a
-    register-driven display (and returns the fine value), while
-    ``patch_copper_at()`` patches scrolled plane addresses into a copper
-    list. ``waitvsync()`` aliases the frame pacer. For double buffering,
-    ``create_backplane()`` allocates a matching second buffer, ``flip()`` swaps
-    the two, and ``clear_backplane()``/``destroy_backplane()`` manage it
-    (see ``examples/amiga/3d.p8``). Kickstart 1.3 compatible
-    (the ``AllocBitMap`` fast path is only
-    used on 3.0+). See ``examples/amiga/custominputs.p8`` for
-    the equivalent manual setup (raw copper words and ``AllocMem`` bitplanes).
-
-``copper``
-    Bare-metal copper list builder: emits raw copper words into a caller-owned
-    chip-RAM buffer, for use with or without the OS. ``move()`` returns the value
-    word's index so the main loop patches values in place instead of
-    rebuilding; ``wait()``/``skip()`` hide the instruction encoding,
-    ``attach_planes()`` emits ``BPLxPT`` slots for ``playfield.patch_copper()``,
-    ``rasterbar()`` builds a patchable per-scanline color skeleton, and
-    ``aga_move()``/``aga_set()`` encapsulate the four-MOVE 24-bit AGA color
-    sequence behind a single slot handle.
-    Emissions beyond capacity are dropped and counted in ``overflows``.
-
-``text``
-    Bare-metal 8x8 text renderer: ``init()`` caches pitch, depth and plane
-    pointers, ``char()`` draws one glyph and ``print()`` draws a string with
-    LF handling and reverse video (bit 7 of the character byte). CPU-only, no
-    OS calls, transparent glyph background, exact foreground color including 0.
-    Limited to the embedded 8x8 font; no clipping is performed.
-
-``sound``
-    Direct Paula audio: hardware-banging 4-channel 8-bit PCM playback with no
-    OS involved, to be used after ``custom.grab_system()``. Plays samples once,
-    looped, as 14-bit channel pairs, or as double-buffered gapless streams.
-    All sample data must be in CHIP RAM. One-shot samples must start with a
-    single zero word; after the sample ends Paula loops on that word, so the
-    channel falls silent. ``is_playing`` and ``stream_ready`` poll the audio
-    interrupt request flag to notice the end, so no interrupt handler is
-    installed. ``set_freqvol()`` takes a sample rate in hertz and converts it
-    to the Paula playback period using the machine's PAL or NTSC chip clock
-    (the other ``set_period()`` variant takes the raw period value directly).
-
-``ptplayer``
-    ProTracker module (MOD) player: load and play Amiga ProTracker modules via
-    the ptplayer playroutine. Install the player with ``ptplayer.install()``,
-    start playback with ``ptplayer.play()`` / ``ptplayer.stop()`` and query
-    status with the module's routines. See ``examples/amiga/modplay.p8``.
-
-``easygfx``
-    Friendly OS graphics wrapper in the style of the ``gfx_*`` pixel modules:
-    per-call pen, client-relative coordinates, no structs or tag lists to manage.
-    ``fullscreen()`` opens a custom screen with a backdrop window (an empty title
-    hides the screen bar, otherwise it stays), ``windowed()`` opens a fixed-size
-    window on the Workbench screen, ``close()`` tears it all down again.
-    Use ``fullscreen()`` when you need your own resolution, depth or palette;
-    ``windowed()`` inherits all three from the Workbench.
-    Primitives (``clear/plot/line/rect/fillrect/circle/oval/disc/filled_oval/text``),
-    ``scroll/readpixel/textwidth``, ``palette/setcolor``, ``drawmode`` and bucket
-    or boundary ``fill/fillto`` are all plain ``graphics.library`` calls, so they
-    clip to the window. The ``rastport`` and ``window`` variables expose the handles
-    for direct library calls and IDCMP message handling. Kickstart 1.3 compatible.
-
-``emudbg``
-    Emulator debug output for the Copperline emulator (with partial WinUAE support):
-    ``console_write``, ``console_nl`` and ``exitemu()`` use the WinUAE-compatible uaelib trap
-    and work on both WinUAE and Copperline. The remaining routines (``console_chrout``,
-    ``console_value_*``, ``console_hex_*``, ``debug_arg``, ``debug_arg_str``, ``debug_printf``)
-    use Copperline-specific debug ports and only work on Copperline. See :ref:`library-emudbg`
-    for details. Not usable on real hardware or FS-UAE.
+    Libraries that only exist on the Amiga targets (``amiga500`` and ``amiga1200``)
+    are documented separately in :doc:`amigalibraries`.
 
 
 arena
@@ -933,12 +672,12 @@ Read the :source:`coroutines source code <compiler/res/prog8lib/coroutines.p8>`
 to see what's in there. And look at the ``multitasking`` example to see how it can be used.
 Better docs will be written here in the manual, at some point, but until then: here is a minimal example::
 
-    %import coroutine
+    %import coroutines
 
     main {
         sub start() {
             coroutines.killall()
-            coroutines.add(&some_task, 1111)
+            void coroutines.add(&some_task, 1111)
             ; ... add more tasks here or later
             coroutines.run(0)
         }
@@ -1146,9 +885,6 @@ Provides definitions for the ROM/Kernal subroutines and utility routines dealing
 ``log2 (x)``
     Base 2 logarithm.
 
-``log2l (x)``
-    Base 2 logarithm for long values.
-
 ``minf (x, y)``
     returns the smallest of x and y.
 
@@ -1165,6 +901,13 @@ Provides definitions for the ROM/Kernal subroutines and utility routines dealing
 
 ``pow (base, power)``
     Raises the base to the given power.
+
+``lerp (float v0, float v1, float t) -> float``
+    Linear interpolation for t in the interval [0, 1]; guarantees the result is v1 when t is 1.
+
+``lerp_fast (float v0, float v1, float t) -> float``
+    Faster, less precise linear interpolation for t in the interval [0, 1]; does not guarantee the
+    result is v1 when t is 1.
 
 ``print (x)``
     Prints the floating point number x as a string.
@@ -1427,15 +1170,13 @@ interpolation
 ~~~~~~~~~~~~~
 .. index:: pair: Libraries; interpolation
 
+The ``floats`` library also provides floating-point versions of ``lerp``, ``lerp_fast`` and ``interpolate``.
+
 ``lerp(v0, v1, t)``
     Linear interpolation routine for unsigned byte values.
     Returns an interpolation between two inputs (v0, v1) for a parameter t in the interval [0, 255]
     Guarantees v = v1 when t = 255. Also works if v0 > v1.
     **Clobbers:** X and Y (the result is returned in A).
-
-``lerp_fast(v0, v1, t)``
-    Linear interpolation routine for unsigned byte values.
-    Faster but less precise than ``lerp``; does not guarantee v = v1 when t = 255.
 
 ``lerpw(v0, v1, t)``
     Linear interpolation routine for unsigned word values.
@@ -1570,12 +1311,14 @@ random numbers
 ``ctzl (long v)``
     Returns the number of trailing zero bits in the long value v.
     Returns 32 if v is 0.
+    Available on m68k and virtual targets.
 
 ``reverse (uword v)``
     Returns the value v with its bit order reversed.
 
 ``reversel (long v)``
     Returns the value v with its bit order reversed.
+    Available on m68k and virtual targets.
 
 trigonometry
 ~~~~~~~~~~~~
@@ -1637,7 +1380,7 @@ monogfx  (cx16 and virtual)
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^
 .. index:: pair: Libraries; monogfx
 
-Full-screen lores or hires monochrome bitmap graphics routines, available on the X16 machine only.
+Full-screen lores or hires monochrome bitmap graphics routines for the X16 and virtual targets.
 
 - two resolutions: lores 320*240 or hires 640*480 bitmap mode
 - optimized routines for monochrome (2-color) graphics
@@ -1852,8 +1595,8 @@ Generic UART routines:
 
 ZiModem wifi routines:
 
-``sub zi_initialize(uword uart_addr)``
-    Initializes the ZiModem on the given UART address.
+``sub zi_initialize(uword uart_addr, uword baud_divisor)``
+    Initializes the ZiModem on the given UART address with the specified baud divisor.
 
 ``sub zi_reset()``
     Resets the ZiModem connection (``atz``).
@@ -1896,8 +1639,9 @@ sorting
 ^^^^^^^
 .. index:: pair: Libraries; sorting
 
-Various sorting routines (gnome sort and shell sort variants) for byte, word and string arrays.
-**NOTE:** all word and str arrays have to be @nosplit! Words and pointers need to be consecutive in memory for now.
+On 6502 targets, the module has gnome sort and shell sort variants for byte, word, and pointer arrays.
+String-pointer arrays can be sorted with the pointer sorting routine and a string comparison callback.
+**NOTE:** On 6502 targets, word and pointer arrays must be @nosplit; words and pointers need to be consecutive in memory.
 **NOTE:** sorting is done in ascending order.
 On the m68k targets (amiga500, amiga1200, qemu68k) the ``sorting`` module provides word (``uw``) and long (``ul``) variants
 (gnome sort and shell sort, including the ``by_uw``/``by_ul`` key-value forms); there are no byte variants there.
@@ -1974,16 +1718,16 @@ miscellaneous
 ~~~~~~~~~~~~~
 .. index:: pair: Libraries; miscellaneous
 
-``compare (string1, string2) -> ubyte result``
+``compare (string1, string2) -> byte result``
     Returns -1, 0 or 1 depending on whether string1 sorts before, equal or after string2 (case-sensitively)
     Note that you can also directly compare strings and string values with each other
     using ``==``, ``<`` etcetera (it will use strings.compare for you under water automatically).
     This even works when dealing with uword (pointer) variables when comparing them to a string type.
 
-``compare_nocase (string1, string2) -> ubyte result``
+``compare_nocase (string1, string2) -> byte result``
     Returns -1, 0 or 1 depending on whether string1 sorts before, equal or after string2 (case-insensitively, for petscii strings).
 
-``compare_nocase_iso (string1, string2) -> ubyte result``
+``compare_nocase_iso (string1, string2) -> byte result``
     Returns -1, 0 or 1 depending on whether string1 sorts before, equal or after string2 (case-insensitively, for iso strings).
 
 ``length (str) -> ubyte length``
@@ -2228,7 +1972,10 @@ miscellaneous
     - 16 = Commander X16
     - 25 = Foenix F256 family
     - 32 = Commodore PET
+    - 50 = Amiga 500
     - 64 = Commodore 64
+    - 68 = Qemu m68k
+    - 120 = Amiga 1200
     - 128 = Commodore 128
     - 255 = Virtual machine
 

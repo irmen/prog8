@@ -5,9 +5,9 @@ Target system specification
 
 Prog8 targets the following hardware:
 
-- 8 bit MOS 6502/65c02/6510 CPU
-- 32 bit Motorola 68000 CPU
-- 64 Kb addressable memory (RAM or ROM) on 6502 targets, 16 Mb on m68k and virtual targets
+- 8 bit MOS 6502-family CPUs (6502, 6510, 65C02)
+- 32 bit Motorola 68000/68020-family CPUs
+- 64 KB address space on 6502 targets; much larger on M68K and virtual targets
 - optional use of memory-mapped I/O registers
 - optional use of system ROM routines
 
@@ -99,16 +99,18 @@ The exact spelling matters, because the value is the name of the enum value: wri
 not ``68020``. The 6502 CPUs are spelled ``6502``, ``65C02`` and ``virtual``, and those are tried
 both with and without a ``CPU`` prefix, so ``6502`` and ``CPU6502`` both work.
 
-An m68k target needs a much smaller configuration file than a 6502 one, because the m68k has no
-zero page and uses real CPU registers instead of the compiler's virtual registers. This means the
-zeropage related properties are not applicable, and you can simply leave them out of the file:
+An m68k target needs a much smaller configuration file than a 6502 one because it has no zeropage.
+The M68K backend still uses compiler virtual registers internally, allocates them to hardware
+registers, and spills values to memory when needed; this allocation is not configured in the target
+file. The following zeropage-specific properties are not applicable and can be omitted:
 
 * ``zp_scratch_ptr``, ``zp_scratch_b1``, ``zp_scratch_reg``, ``zp_scratch_w1``, ``zp_scratch_w2``
 * ``zp_fullsafe``, ``zp_kernalsafe``, ``zp_basicsafe``
 * ``virtual_registers``
 
-They are only ignored for an m68k CPU; a 6502 target still requires them, and a typo there is still
-reported as a missing property. Set ``pointer_size = 4``, since m68k pointers are 32 bit.
+These properties describe the 6502 zeropage layout and are ignored for an m68k CPU; a 6502 target
+still requires them, and a typo there is still reported as a missing property. Set
+``pointer_size = 4``, since m68k pointers are 32 bit.
 
 Use ``output_type = ELF``. This is the only output type that links, and therefore the only one a
 custom m68k target can use; the ``AMIGAHUNK`` output type assembles straight to an Amiga hunk
@@ -183,20 +185,23 @@ Pointer size
 The size of a pointer (memory address) depends on the target's CPU architecture:
 
 - **6502-family targets** (c64, cx16, c128, pet32): **2 bytes** (16-bit address space, 64 KB)
-- **m68k targets** (amiga500, amiga1200, qemu68k): **4 bytes** (32-bit address space, 16 MB)
-- **virtual target**: **4 bytes** (32-bit address space, 16 MB)
+- **m68k targets** (amiga500, amiga1200, qemu68k): **4 bytes** (32-bit pointers; available memory depends on the target)
+- **virtual target**: **4 bytes** (32-bit pointers, 16 MB modeled memory)
 
 The ``pointer`` type keyword automatically takes the correct size for the target,
 making it the natural choice for variables that hold a memory address in portable code.
 On 6502 targets it is equivalent to ``uword``; on m68k and virtual targets it is equivalent to ``long``.
+Amiga hardware has a 24-bit physical address space, while the ``qemu68k`` target is configured for
+1 MB of RAM. A 32-bit pointer does not imply that the target has a full 4 GB of memory.
 Alternatively, you can use ``uword`` or ``long`` directly if you know the target in advance.
 
 Generic 6502 Physical address space layout
 ------------------------------------------
 
-The 6502 CPU can address 64 kilobyte of memory.
-Most of the 64 kilobyte address space can be used by Prog8 programs.
-This is a hard limit: there is no support for RAM expansions or bank switching built natively into the language.
+The 6502 CPU can address 64 kilobytes of memory at a time.
+Most of this address space can be used by Prog8 programs. Some built-in targets support
+target-specific banked calls; see :ref:`banking`. This is not a portable abstraction for arbitrary
+RAM expansions or banks.
 
 ======================  ==================  ========
 memory area             type                note

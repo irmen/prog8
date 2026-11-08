@@ -8,7 +8,7 @@ Prog8 Compiler Release History
 A condensed timeline of major releases and significant changes in the Prog8 programming language compiler.
 
 .. note::
-    **Python to Kotlin Transition:** The original Prog8 compiler (pre-1.0) was written in **Python**. In early 2022, the compiler was completely rewritten in **Kotlin** starting with v1.0 Beta. The Kotlin rewrite brought significant improvements in performance, IDE support, type safety, and maintainability. This document covers the Kotlin-era releases.
+    The original Prog8 compiler was written in Python. The compiler was already implemented in Kotlin by the first public v1.0 beta release in January 2019. This document covers the Kotlin-era releases.
 
 
 Summary of Major Language Milestones
@@ -89,55 +89,54 @@ Major breaking changes that require code modifications when upgrading:
 - **v14.0**: ``list`` module renamed to ``lists``, ``-expericodegen`` option renamed to ``-newcodegen``, virtual target VM switched to 32-bit registers
 
 
-2019–2022 — Early Development (Python to Kotlin Transition)
------------------------------------------------------------
+2019 - Early Development
+------------------------
 
-**v1.0–v1.2 Beta** — January–February 2022
-    - **First public Kotlin release** (v1.0, 26 Jan)
-    - **MAJOR: Compiler rewritten from Python to Kotlin** — complete implementation language change
+**v1.0-v1.2 Beta** - January-February 2019
+    - **First public release** (v1.0 beta, 26 Jan)
     - Zeropage variable allocation and block-level variable initialization
     - Gradle build system, math optimizations, ``floatsafe`` zeropage mode
 
-**v1.3–v1.6** — March–April 2022
+**v1.3-v1.6** - March-April 2019
     - ``asmsub`` routines can return values in expressions
     - **Address-of operator ``&`` implemented** — replaces ``memory`` keyword
     - For loops can iterate over literal collections
     - New builtins: ``strlen()``, ``sqrt16()``, ``pow()``, ``powf()``
 
-**v1.7–v1.11** — July 2022
+**v1.7-v1.11** - April-July 2019
     - **Array size optional** with initializer
     - **``%asmbinary`` directive** for assembly inclusion
     - **AST-based Virtual Machine** with optimization passes
     - **``when`` statement** — new multi-way control flow
     - **Structs added** — composite datatype feature
 
-**v1.20** — July 2023
+**v1.20** - July 2019
     - **Struct literals** — inline struct initialization
 
 
-2023 — Language Maturation
+2020 - Language Maturation
 --------------------------
 
-**v2.0–v2.3** — May–July 2023
+**v2.0-v2.3** - May-July 2020
     - Major compiler speedup (scope lookups, code generation)
     - Stricter type checking, optimized ``swap()``
     - **String value reassignment**, new string functions (``leftstr``, ``rightstr``, ``substr``)
     - Subroutine inlining optimization
 
-**v3.0–v3.2** — July–August 2023
+**v3.0-v3.2** - July-August 2020
     - **CPU register variables (A, X, Y) removed** — use inline assembly
     - **Loop syntax changes**: ``repeat-until`` to ``do-until``, new ``repeat X {}``, ``forever {}`` removed
     - **``continue`` statement removed**
     - **``sizeof()`` function added**
     - Optimized in-place/augmented assignments — major performance boost
 
-**v4.0–v4.1** — August–September 2023
+**v4.0-v4.1** - August 2020
     - **CommanderX16 target added** — major platform expansion
     - **Floating point support for CX16**, VERA registers, 65c02 features
     - **``lsl()``/``lsr()`` removed** — use ``<<=1``/``>>=1``
     - Module renames (``c64scr`` to ``txt``), ``mkword()`` parameter order flipped
 
-**v4.2–v4.6** — September–October 2023
+**v4.2-v4.6** - September-October 2020
     - **Cross-platform C64/CX16 compatibility**
     - **``.w`` postfix removed** — breaking syntax change
     - **``%option no_sysinit`` directive** — skip system initialization
@@ -145,7 +144,7 @@ Major breaking changes that require code modifications when upgrading:
     - **``diskio`` module introduced** — file I/O routines
     - **Automatic string comparisons** by value
 
-**v5.0–v5.4** — November 2023–January 2024
+**v5.0-v5.4** - November-December 2020
     - **Calling convention overhaul**: args via variables, returns via registers
     - **Explicit ``&`` required** for string/array pointer assignments
     - **``in`` containment operator**: ``if xx in [1,2,3]``
@@ -155,10 +154,10 @@ Major breaking changes that require code modifications when upgrading:
     - **Rewritten variable allocation** — large program size savings
 
 
-2024 — Advanced Features
-------------------------
+2021-2023 - Advanced Features
+-----------------------------
 
-**v6.0–v6.4** — January–March 2024
+**v6.0-v6.4** - January-March 2021
     - **Virtual registers ``cx16.r0..r15``** for CX16 and C64
     - **New builtins**: ``target()``, ``offsetof()``, ``memory()``, ``cmp()``
     - **``gfx2`` module** — enhanced graphics with highres modes
@@ -167,16 +166,14 @@ Major breaking changes that require code modifications when upgrading:
     - **Improved RNG** with seeded variants (``rndseed``, ``rndseedf``)
     - **Assembly new6502codegen completed** — all expression types supported
 
-**v7.0–v7.8** — June 2024–February 2025
+**v7.0-v7.9** - June 2021-March 2022
     - **Struct feature removed** — rewrite as separate variables
     - **``%target`` directive removed** — use CLI options only
-    - **Software evaluation stack removed** — frees memory page and X register
     - **PET32 target** — Commodore PET 4032 support
     - **2x faster multiplication** and square root operations
-    - **New modules**: ``verafx``, ``emudbg``, ``monogfx``, ``sprites``
     - **Builtins**: ``setlsb()``, ``setmsb()``, ``math.diff()``, ``math.diffw()``
 
-**v8.0–v8.13** — April 2024–May 2025
+**v8.0-v8.14** - April 2022-May 2023
     - **R39 CX16 ROM support**
     - **``**`` operator removed** — use ``floats.pow()``
     - **Experimental VM target** with ``syscall`` builtin
@@ -186,7 +183,7 @@ Major breaking changes that require code modifications when upgrading:
     - **``divmod()``, ``divmodw()`` builtins**
     - **Major new6502codegen optimizations** — significantly smaller and faster code
 
-**v9.0–v9.7** — June–December 2024
+**v9.0-v9.7** - June-December 2023
     - **``-target`` now required** (c64 no longer default)
     - **New builtins**: ``min()``, ``max()``, ``clamp()``
     - **``@split`` storage class** — efficient LSB/MSB array storage
@@ -198,6 +195,7 @@ Major breaking changes that require code modifications when upgrading:
     - **Unicode identifiers**: ``knäckebröd``, ``π``
     - **Negative array indexing** (Python-style)
     - **Range containment**: ``if x in 10 to 100``
+    - **New modules**: ``sprites`` (v9.4.1), ``verafx``, ``emudbg`` and ``monogfx`` (v9.5)
 
 
 2024–2026 — Modern Prog8
@@ -225,13 +223,13 @@ Major breaking changes that require code modifications when upgrading:
     - **``%option romable``** — ROM-compatible code warnings
     - **ROMABLE programs** — no inline variables or self-modifying code
     - **Range choices in ``when`` statements**
-    - **Foenix256 target**
+    - **Foenix F256 custom-target configuration example**
     - **Boolean virtual registers**: ``cx16.r0bL``, ``cx16.r0bH``
     - **``on .. goto`` / ``on .. call``** — efficient jump tables
     - **Float to int casts** (truncating)
     - **Double buffering** in monogfx module
 
-**v12.0–v12.1** — November 2024–February 2026
+**v12.0-v12.1** - November 2025-February 2026
     - **``long`` datatype** — native 32-bit signed integers
     - **Structs reintroduced** — grouping multiple fields together
     - **Typed pointers** — can point to structs and specific types (not just ``uword`` addresses)
@@ -241,7 +239,7 @@ Major breaking changes that require code modifications when upgrading:
     - **String operations**: case-insensitive comparison, ``strings.split()``, ``strings.next_token()``
     - **Virtual target improvements**: ``f_seek()``, ``f_tell()``, ``diskname()``, ``loadlib()``
 
-**v12.2** — May 2026
+**v12.2** - June 2026
     - **Long loop support** — for-loops with long counters on 6502, long math (division, sqrt, min/max/clamp/abs)
     - **``private`` keyword** — for structs, enums, aliases, variables, and subroutines
     - **Const pointers** — compile-time constant-folding for const pointers
@@ -256,7 +254,6 @@ Major breaking changes that require code modifications when upgrading:
 
 **v12.3** — August 2026
     - **Module search order rework** — replaced alphabetical search with a deterministic, prioritized list; filesystem now searched before internal libraries. 
-    - **New experimental 6502 code generator** based on the IR, enabled with ``-newcodegen`` (experimental, generates pretty bad/buggy code still!)
     - **Embedded arrays in structs** — structs can now contain arrays as fields.
     - **``@bank`` accepts a subroutine name** — for dynamic / overlay banking with a bank manager
     - **``%option private_symbols`` and ``public`` keyword** — new option to make all symbols private by default; use ``public`` to selectively expose them. See :ref:`private-symbols`.
@@ -264,9 +261,10 @@ Major breaking changes that require code modifications when upgrading:
     - **Breaking changes** — ``-nostdlib`` removed; ``bankmanager`` renamed to ``bankselector``; ``swap`` is now a statement.
 
 
-**v14.0** — upcoming
-    - **32-bit Motorola 68000/68020 (m68k) support** — a brand new, IR-based code generator targeting the 68000 CPU family. This brings 32-bit compilation targets to Prog8 for the first time.
+**v14.0** - beta releases from September 2026
+    - **Motorola 68000/68020 (m68k) support** - a new, IR-based backend adds native compilation for the 68000 CPU family.
     - **New compilation targets** — ``amiga500`` (68000), ``amiga1200`` (68020 with optional FPU), and ``qemu68k`` (Qemu m68k simulator). These targets are experimental and still under active development.
+    - **Experimental IR-based 6502 code generator option renamed** from ``-expericodegen`` to ``-newcodegen``.
     - **Amiga library suite** — the new targets ship far more than raw OS bindings: ``custom`` (hardware register access, chipset detection, display calculation, palette helpers, keyboard/mouse/joystick), the bare-metal ``blitter``/``copper``/``playfield``/``trackdisk`` helper modules, the OS-friendly ``easygfx`` wrapper, ``ptplayer``/``sound`` audio, and on-demand bindings for ``iffparse``, ``datatype``, ``asl``, ``arexx``, ``asyncio``, ``icon`` and ``diskfont``.
     - **M68K stack frames and register allocation** — ordinary subroutine locals and parameters now live in activation records on the CPU stack (A5 frame pointer), making subroutines recursive and re-entrant. An intraprocedural register allocator keeps hot values in hardware registers. ``asmsub`` routines must preserve ``D2-D6``/``A2-A4``/``FP2-FP7`` (no ``clobbers()`` list); use ``%option noframe`` for subroutines that manipulate the stack themselves. Clean locals are zero-initialized on every call.
     - **32-bit virtual machine** — the ``virtual`` target's VM has been upgraded from its 8-bit origins to use 32-bit registers (m68k style), aligning it with the new m68k targets and making it a suitable execution platform for testing 32-bit code.

@@ -446,7 +446,7 @@ In case of *multiple* return values:
     just as for a single return value.
   - for regular subroutines, the compiler will return the first of the return values via the cpu register ``A``` (or ``A + Y``` if it's a word value),
     just like for subroutines that only return a single value.
-    The remainder of the return values are returned via the "virtual registers" cx16.r16-cx16.r0 (using R15 first and counting down to R0).
+    The remainder of the return values are returned via the "virtual registers" cx16.r15-cx16.r0 (using R15 first and counting down to R0).
     Long values will take a pair of those "virtual registers" that combined make up a single 32 bits value.
     A floating point value is passed via FAC1. Multiple float return values are supported on the virtual target,
     but limited to a single float on 6502 targets (because the ROM float routines use FAC1/FAC2 as operand registers
@@ -521,8 +521,9 @@ Some notes and references into the compiler's source code modules:
    The built-in Virtual Machine strips these prefixes automatically when loading an IR program.
 #. The code generator backends all implement a common interface ``ICodeGeneratorBackend`` defined in the ``codeCore`` module.
    Currently they get handed the program Ast, Symboltable and several other things.
-   If the code generator wants it can use the ``IRCodeGen`` class from the ``codeGenIntermediate`` module
-   to convert the Ast into IR first. The VM target uses this, but the 6502 codegen doesn't right now.
+   The default 6502 code generator consumes the simplified AST directly. The experimental ``-newcodegen``
+   6502 backend, the M68K backend, and the VM use the ``IRCodeGen`` class from ``codeGenIntermediate``
+   to convert the AST into IR first.
 
 
 .. _romable:

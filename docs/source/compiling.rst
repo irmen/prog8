@@ -215,6 +215,9 @@ One or more .p8 module files
 ``-dumpsymbols``
     print a dump of the variable declarations and subroutine signatures
 
+``-gendoc``
+    Print AST nodes that have documentation comments.
+
 ``-dumpvars``
     print a dump of the variables in the program
 

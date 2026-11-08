@@ -28,12 +28,12 @@ The language
 - A trailing comma is allowed optionally in array literals:  [1,2,3,]  is a valid array of values 1, 2 and 3.
 
 
-No linker
----------
-- Even though your programs can consist of many separate module files, the compiler always outputs a single program file. There is no separate linker step.
-  Currently, it's not easily possible to integrate object files created elsewhere. If the object file has a fixed load location and fixed entrypoints,
-  it can be loaded explicitly and accessed easily using extsub definitions though.
-- The prog8 compiler is self-contained in a single jar file. You do need 1 external tool namely 64tass, which performs the assembler step.
+Building programs
+-----------------
+- Even though your programs can consist of many separate module files, the compiler combines them into one program. It is not generally possible to link arbitrary object files.
+  An object file with a fixed load location and entry points can instead be loaded explicitly and accessed using ``extsub`` definitions.
+- Assembling requires an external tool for native targets: 64tass for 6502 targets, and vasm for m68k targets (plus vlink for ``qemu68k``).
+  The ``virtual`` target writes an IR file and does not need an external assembler.
 
 
 Data types
@@ -41,7 +41,7 @@ Data types
 .. index:: single: Data Types; Overview
 
 - There are byte, word (16 bits), long (32 bits) and float datatypes for numbers.
-- floats are available as native data type on most cbm-compatible systems.
+- Floating-point math is available on most CBM-compatible targets, M68K targets with an FPU, and the virtual target.
 - **There is no automatic type enlargement:** all calculations remain within the data type of the operands. Any overflow silently wraps or truncates.
   You'll have to add explicit casts to increase the size of the value if required.
   For example when adding two byte variables having values 100 and 200, the result won't be 300, because that doesn't fit in a byte. It will be 44.
@@ -52,9 +52,9 @@ Data types
 - strings and arrays are mutable: you can change their contents, but always keep the original storage size in mind to avoid overwriting memory outside of the buffer.
 - maximum string length is 255 characters + a trailing 0 byte.
 - word arrays are split into 2 separate arrays by default (this is configurable): one for the LSBs and one for the MSBs of the words. This enables efficient 6502 instructions to access the words.
-- maximum storage size for arrays is 256 bytes (512 for split word arrays) , the maximum number of elements in the array depends on the size of a single element value.
-  you can use larger "arrays" via pointer indexing, see below at Pointers.  One way of obtaining a piece of memory to store
-  such an "array" is by using  ``memory()`` builtin function.
+- On 6502 targets, arrays are limited to 256 bytes (512 bytes for split word arrays); the maximum number of elements depends on the element size.
+  M68K arrays are limited to 32768 bytes and virtual-target arrays to 65535 bytes. You can use larger "arrays" via pointer indexing, see below at Pointers.
+  One way of obtaining memory to store such an "array" is by using the ``memory()`` builtin function.
 - there is limited support for structs and typed pointers, see below at "Pointers and Structs".
 
 

@@ -291,13 +291,13 @@ type identifier     type                     storage size            example var
 ``uword``           unsigned word            2 bytes = 16 bits       ``uword myvar = $8fee``
 ``long``            signed 32 bits integer   4 bytes                 ``long large = $12345678``
                                                                       there is no unsigned long type at the moment.
-``float``           floating-point           5 bytes = 40 bits       ``float myvar = 1.2345``
-                                                                      stored in 5-byte cbm MFLPT format
+``float``           floating-point           target-dependent        ``float myvar = 1.2345``
+                                                                      5-byte CBM MFLPT, 4-byte M68K, 8-byte virtual
 ``byte[x]``         signed byte array        x bytes                 ``byte[4] myvar``
 ``ubyte[x]``        unsigned byte array      x bytes                 ``ubyte[4] myvar``
 ``word[x]``         signed word array        2*x bytes               ``word[4] myvar``
 ``uword[x]``        unsigned word array      2*x bytes               ``uword[4] myvar``
-``float[x]``        floating-point array     5*x bytes               ``float[4] myvar``.   The 5 bytes per float is on CBM targets.
+``float[x]``        floating-point array     x * target float size   ``float[4] myvar``
 ``bool[x]``         boolean array            x bytes                 ``bool[4] myvar``  note: consider using bit flags in a byte or word instead to save space
 ``byte[]``          signed byte array        depends on value        ``byte[] myvar = [1, 2, 3, 4]``
 ``ubyte[]``         unsigned byte array      depends on value        ``ubyte[] myvar = [1, 2, 3, 4]``
@@ -305,7 +305,7 @@ type identifier     type                     storage size            example var
 ``uword[]``         unsigned word array      depends on value        ``uword[] myvar = [1, 2, 3, 4]``
 ``float[]``         floating-point array     depends on value        ``float[] myvar = [1.1, 2.2, 3.3, 4.4]``
 ``bool[]``          boolean array            depends on value        ``bool[] myvar = [true, false, true]``  note: consider using bit flags in a byte or word instead to save space
-``str[]``           array with string ptrs   2*x bytes + strs        ``str[] names = ["ally", "pete"]``  note: equivalent to a uword array.
+``str[]``           string ptrs              varies                  ``str[]``
 ``str``             string                   varies                  ``str myvar = "hello."``
                                                                       implicitly terminated by a 0-byte
 ``StructType[x]``   array of struct inst.    x * sizeof(struct)      ``Enemy[10] enemies``  see :ref:`structarrays`
@@ -316,6 +316,8 @@ type identifier     type                     storage size            example var
 .. note::
     The actual size of pointer types (``^^type`` and ``pointer``) depends on the target's
     :ref:`pointer size <pointer_size>`: 2 bytes on 6502 targets, 4 bytes on m68k and virtual targets.
+    Each element of a ``str[]`` is a pointer, so the array uses 2 or 4 bytes per element plus the
+    pointed-to strings.
 
 Integers (bytes, words, longs)
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -398,20 +400,22 @@ Floating point numbers
 ^^^^^^^^^^^^^^^^^^^^^^
 .. index:: pair: Data Types; Floating point
 
-Floats are stored in the 5-byte 'MFLPT' format that is used on CBM machines.
-Floating point support is available on the c64 and cx16 (and virtual) compiler targets.
-On the cbm-compatible systems, the rom routines are used for floating point operations,
-so on both systems the correct rom banks have to be banked in to make this work.
-Although the C128 shares the same floating point format, Prog8 currently doesn't support
-using floating point on that system. The c128 fp routines require the fp variables to be in
-another ram bank than the program, which Prog8 doesn't support yet.
+Floating-point storage is target-dependent: CBM targets use the 5-byte MFLPT format, M68K targets
+use 4-byte values, and the virtual target uses 8-byte values.
+Floating-point support is available on the c64, cx16, pet32, M68K and virtual targets. M68K targets
+require a compatible FPU; see the :doc:`libraries` chapter for details. Although the C128 shares the
+CBM floating-point format, Prog8 does not currently support floating point on that target because
+its routines require the variables to be in a separate RAM bank.
+
+On CBM targets, the ROM routines are used for floating-point operations. The C64 BASIC ROM must
+remain banked in, and CX16 ROM bank 4 must remain selected. PET32 uses its BASIC 4.0 ROM routines.
 
 Also your code needs to import the ``floats`` library to enable floating point support
 in the compiler, and to gain access to the floating point routines.
 (this library contains the directive to enable floating points, you don't have
 to worry about this yourself)
 
-The largest 5-byte MFLPT float that can be stored is: **1.7014118345e+38**   (negative: **-1.7014118345e+38**)
+On CBM targets, the largest 5-byte MFLPT float that can be stored is **1.7014118345e+38** (negative: **-1.7014118345e+38**).
 
 You can use underscores to group digits in floating point literals to make long numbers more readable:
 any underscores in the number are ignored by the compiler.
@@ -452,19 +456,25 @@ or when adding more stuff to the array later. Here are some examples of arrays::
     char = string[-2]           ; the second-to-last character in the string (Python-style indexing from the end)
 
 .. note::
-    On the 6502-family targets (c64, c128, cx16, pet32, virtual) the 8-bit index register limits an array to be
+    On the 6502-family targets (c64, c128, cx16, pet32) the 8-bit index register limits an array to be
     indexable by a single byte. This means:
 
     - byte/string arrays are limited to 256 elements (255 characters for a string, because of the
       terminating null byte)
     - word arrays to 256 elements as well, if split (which is the default); when not split the maximum
       length is 128. See below for details about this distinction.
+    - long arrays to 64 elements
     - float arrays to 51 elements
 
     On the m68k targets (amiga500, amiga1200, qemu68k) the total array size limit is **32768 bytes**. There the
     byte/bool array limit is 32768 elements, the word array limit is 16384 elements, and the long, float and
     string array limits are 8192 elements each (a ``str`` array holds 4-byte pointers on these targets).
     Split word arrays are not supported on the m68k targets.
+
+    The virtual target is not limited by an 8-bit index register. Its contiguous array size limit is
+    65535 bytes: byte arrays can have up to 65535 elements, each half of a split word array can hold
+    up to 65535 elements, regular word arrays up to 32767, long arrays up to 16383, and float arrays
+    up to 8191 elements.
 
 Arrays can be initialized with a range expression or an array literal value.
 You can write out such an initializer value over several lines if you want to improve readability.
@@ -532,6 +542,10 @@ These limits apply to the 6502-family targets. On the m68k targets (amiga500, am
 element count is 32768 bytes: byte/bool arrays up to 32768 elements, sequential word arrays up to 16384, and
 long, float and str arrays up to 8192 elements (str arrays hold 4-byte pointers there). Split word arrays are
 not supported on the m68k targets.
+
+On the virtual target the contiguous array size limit is 65535 bytes: byte/bool arrays up to 65535
+elements, each half of a split word array up to 65535 elements, sequential word arrays up to 32767,
+long arrays up to 16383, float arrays up to 8191, and string-pointer arrays up to 16383 elements.
 
 **Not supported:**
 

@@ -42,6 +42,7 @@ Open source Software :index:`License`
     structpointers.rst
     binlibrary.rst
     libraries.rst
+    amigalibraries.rst
     targetsystem.rst
     technical.rst
     profiling.rst

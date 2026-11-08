@@ -9,25 +9,24 @@ Porting Guide
 Here is a guide for making Prog8 work for other compilation targets.
 Answers to the questions below are used to configure the new target and supporting libraries.
 
-**It is not required to change the compiler itself to make it support new compilation targets.**
-A few of the most commonly used ones are built-in (such as c64, cx16), but you can use
-separate configuration files to create new targets that the compiler can use.
-See :ref:`customizable_target` for details about this. You still need to provide most of the
-information asked for in this porting guide and code that into the configuration file.
+New 6502-family machine targets can be added without changing the compiler by using a separate
+configuration file. See :ref:`customizable_target` for details. The built-in M68K backend also
+supports custom target configurations, but adding support for a new CPU family requires compiler
+changes. You still need to provide most of the information asked for in this guide and put it in
+the configuration file.
 
 .. note::
-    The assembly code that prog8 generates is not suitable to be put into ROM. (It contains
-    embedded variables, and self-modifying code).
-    If the target system is designed to run programs from ROM, and has just a little bit of RAM
-    intended for variables, prog8 is likely not a feasible language for such a system right now.
+    By default, generated code may use embedded variables and self-modifying code, which are not
+    suitable for ROM. The experimental ``%option romable`` avoids these techniques, but ROM
+    execution is not yet guaranteed for every program or target.
 
 
 CPU
 ---
 .. index:: pair: Porting; CPU
 
-#. 6502 or 65C02? (or strictly compatible with one of these)
-#. can the **64tass** cross assembler create programs for the system?  (if not, bad luck atm)
+#. For a 6502-family target, is the CPU a 6502 or 65C02 (or strictly compatible with one of these)?
+#. Can **64tass** assemble programs for the system? The M68K backend instead uses **vasm**.
 
 Memory Map
 ----------
@@ -37,13 +36,13 @@ Zeropage
 ========
 .. index:: pair: Porting; Zeropage
 
-#. *Absolute requirement:* Provide four words (16 bit byte pairs) in the zeropage that are free to use at all times.
+#. For 6502-family targets, provide four words (16-bit byte pairs) in zeropage that are free to use at all times.
 #. Provide list of any additional free zeropage locations for a normal running system (BASIC + Kernal enabled)
 #. Provide list of any additional free zeropage locations when BASIC is off, but floating point routines should still work
 #. Provide list of any additional free zeropage locations when only the Kernal remains enabled
 
-Only the four 16-bit zero page words are absolutely required to be able to use prog8 on the system.
-But more known available zeropage locations mean smaller and faster programs.
+For 6502-family targets, four 16-bit zeropage words are the minimum required by Prog8. More known
+available zeropage locations mean smaller and faster programs. M68K targets have no zeropage.
 
 
 RAM, ROM, I/O
