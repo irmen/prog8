@@ -3,8 +3,8 @@ TODO
 
 Future Things and Ideas
 ^^^^^^^^^^^^^^^^^^^^^^^
-- port a few cx16 example programs to the c64+vera64X such as starszoom, bobs, kefrenbars, balloonflight (the x16 edition - maybe extend it with a 256c background color fade and parallax layer)
-- make %option verafxmuls work on c64 targets too (but with a warning that it requires the Vera64X board): enabling it is a small, well-defined task: port muls/muls16/mult16 into the c64 verafx block with those fixes, then relax the checker to also allow C64Target.NAME. No codegen changes needed. One documented caveat to carry over: FX mult is signed-only; mult16 is valid only for the low 16 bits of unsigned results - same semantics as on cx16, so the option keeps identical behavior.  
+- port a few cx16 example programs to the c64+vera64X such as kefrenbars, balloonflight (the x16 edition - maybe extend it with a 256c background color fade and parallax layer)
+- make %option verafxmuls work on c64 targets too: the C64 verafx block already provides muls/muls16/mult16, so this only requires allowing C64Target.NAME in the checker. The option still requires the Vera64X board. One documented caveat to carry over: FX mult is signed-only; mult16 is valid only for the low 16 bits of unsigned results - same semantics as on cx16, so the option keeps identical behavior.
 - extend the ``-gendoc`` command to generate user reference documentation from Markdown docstrings; see ``ideas/markdown-docstrings-and-reference-docs.md`` for the plan.
 - add documentation for more library modules instead of just linking to the source code
 - add float support to the configurable compiler targets. Restrictions: just have "cbm-style floats" as an option (to that it can slot into the current float codegen), where "all" you have to specify is the addresses of AYINT and GIVAYF and FADDT and all their friends.

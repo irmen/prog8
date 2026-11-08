@@ -1,4 +1,4 @@
-; a preliminary demo for the VERA64 support libraries
+; a preliminary demo for the Vera64X support libraries
 
 %import math
 %import textio

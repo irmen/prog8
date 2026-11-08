@@ -1213,10 +1213,10 @@ vera  {
     vpoke_mask  (ubyte bank @A, uword address @R0, ubyte mask @X, ubyte value @Y) clobbers (A)
     vpoke_or  (ubyte bank @A, uword address @R0, ubyte value @Y) clobbers (A)
     vpoke_xor  (ubyte bank @A, uword address @R0, ubyte value @Y) clobbers (A)
+    waitvsync  ()
 }
 
 verafx  {
-    available  () -> bool
     clear  (ubyte vbank, uword vaddr, ubyte data, uword num_longwords)
     copy  (ubyte srcbank, uword srcaddr, ubyte tgtbank, uword tgtaddr, uword num_longwords)
     line  (uword x1, ubyte y1, uword x2, ubyte y2, ubyte color)

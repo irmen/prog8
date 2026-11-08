@@ -149,7 +149,7 @@ class TestCompilerOnExamplesC64: FunSpec({
             ExampleSizes("banking", c64SizeOptimized=680, c64SizeUnoptimized=1356),
             ExampleSizes("bdmusic-irq", c64SizeOptimized=1001, c64SizeUnoptimized=1019),
             ExampleSizes("bdmusic", c64SizeOptimized=938, c64SizeUnoptimized=1011),
-            ExampleSizes("bdmusic-verapsg", c64SizeOptimized=2375, c64SizeUnoptimized=2487),
+            ExampleSizes("vera64-bdmusic", c64SizeOptimized=2375, c64SizeUnoptimized=2487),
             ExampleSizes("charset", c64SizeOptimized=835, c64SizeUnoptimized=860),
             ExampleSizes("cube3d-sprites", c64SizeOptimized=2846, c64SizeUnoptimized=4075),
             ExampleSizes("fileselector", c64SizeOptimized=3523, c64SizeUnoptimized=4510),
@@ -161,6 +161,7 @@ class TestCompilerOnExamplesC64: FunSpec({
             ExampleSizes("simplemultiplexer", c64SizeOptimized=924, c64SizeUnoptimized=986),
             ExampleSizes("sprites", c64SizeOptimized=959, c64SizeUnoptimized=2826),
             ExampleSizes("starfield", c64SizeOptimized=737, c64SizeUnoptimized=758),
+            ExampleSizes("vera64-bobs", c64SizeOptimized=2707, c64SizeUnoptimized=4387),
             ExampleSizes("turtle-gfx", c64SizeOptimized=2701, c64SizeUnoptimized=2812),
             ExampleSizes("wizzine", c64SizeOptimized=1055, c64SizeUnoptimized=2653),
             // boingball, cube3d, tehtriz are in BothC64andCx16

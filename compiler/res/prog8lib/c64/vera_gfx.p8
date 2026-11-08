@@ -7,6 +7,7 @@
 vera_gfx {
     ; optimized graphics routines for just the single screen mode: lores 320*240, 256c  (8bpp)
     ; bitmap image needs to start at VRAM address $00000.
+    ; C64 Vera64X programs can rely on VERA FX for the accelerated clear routine.
 
     %option ignore_unused
 
@@ -58,55 +59,35 @@ vera_gfx {
     private bool eor_mode
 
     sub clear_screen(ubyte color) {
-        if verafx.available() {
-            ; use verafx cache writes to quickly clear the screen
-            const ubyte vbank = 0
-            const uword vaddr = 0
-            vera.VERA_CTRL = 0
-            vera.VERA_ADDR_H = vbank | %00110000       ; 4-byte increment
-            vera.VERA_ADDR_M = msb(vaddr)
-            vera.VERA_ADDR_L = lsb(vaddr)
-            vera.VERA_CTRL = 6<<1       ; dcsel = 6, fill the 32 bits cache
-            vera.VERA_FX_CACHE_L = color
-            vera.VERA_FX_CACHE_M = color
-            vera.VERA_FX_CACHE_H = color
-            vera.VERA_FX_CACHE_U = color
-            vera.VERA_CTRL = 2<<1       ; dcsel = 2
-            vera.VERA_FX_MULT = 0
-            vera.VERA_FX_CTRL = %01000000    ; cache write enable
-            repeat 320/4/4 {
-                %asm {{
-                    ldy  #240
-                    lda  #0
--                   sta  vera.VERA_DATA0
-                    sta  vera.VERA_DATA0
-                    sta  vera.VERA_DATA0
-                    sta  vera.VERA_DATA0
-                    dey
-                    bne  -
-                }}
-            }
-            vera.VERA_FX_CTRL = 0       ; cache write disable
-            vera.VERA_CTRL = 0
-            return
-        }
-        ; fallback to cpu clear
-        vera.VERA_CTRL=0
-        vera.VERA_ADDR=0
-        vera.VERA_ADDR_H = 1<<4    ; 1 pixel auto increment
-        repeat HEIGHT {
+        ; use verafx cache writes to quickly clear the screen
+        const ubyte vbank = 0
+        const uword vaddr = 0
+        vera.VERA_CTRL = 0
+        vera.VERA_ADDR_H = vbank | %00110000       ; 4-byte increment
+        vera.VERA_ADDR_M = msb(vaddr)
+        vera.VERA_ADDR_L = lsb(vaddr)
+        vera.VERA_CTRL = 6<<1       ; dcsel = 6, fill the 32 bits cache
+        vera.VERA_FX_CACHE_L = color
+        vera.VERA_FX_CACHE_M = color
+        vera.VERA_FX_CACHE_H = color
+        vera.VERA_FX_CACHE_U = color
+        vera.VERA_CTRL = 2<<1       ; dcsel = 2
+        vera.VERA_FX_MULT = 0
+        vera.VERA_FX_CTRL = %01000000    ; cache write enable
+        repeat 320/4/4 {
             %asm {{
-                lda  p8v_color
-                ldy  #p8c_WIDTH/8
--               .rept 8
+                ldy  #240
+                lda  #0
+-               sta  vera.VERA_DATA0
                 sta  vera.VERA_DATA0
-                .endrept
+                sta  vera.VERA_DATA0
+                sta  vera.VERA_DATA0
                 dey
                 bne  -
             }}
         }
-        vera.VERA_ADDR=0
-        vera.VERA_ADDR_H = 0
+        vera.VERA_FX_CTRL = 0       ; cache write disable
+        vera.VERA_CTRL = 0
     }
 
     sub rect(uword xx, ubyte yy, uword rwidth, ubyte rheight, ubyte color) {

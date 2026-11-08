@@ -1560,6 +1560,18 @@ See the :source:`examples/cx16/bdmusic.p8` program for ideas how to use it.
 Read the :source:`psg2 source code <compiler/res/prog8lib/cx16/psg2.p8>` to see everything that's in there.
 
 
+vera (C64 + Vera64X)
+^^^^^^^^^^^^^^^^^^^^
+.. index:: pair: Libraries; vera
+
+The C64 ``vera`` block provides register definitions and helpers for the Vera64X board. Its VERA registers have the same function as on the CX16, but are accessed through the C64 board's I/O window. The C64 ``verafx`` block is defined in the same source module.
+
+``waitvsync ()``
+    Wait for the next VERA vertical blank. Unlike ``sys.waitvsync()``, this synchronizes to VERA rather than the C64's VIC-II.
+
+Read the :source:`C64 vera source code <compiler/res/prog8lib/c64/vera.p8>` and the :source:`Vera64X Bobs example <examples/c64/vera64-bobs.p8>` to see it in use.
+
+
 psg (C64 + Vera64X)
 ^^^^^^^^^^^^^^^^^^^
 .. index:: pair: Libraries; psg
@@ -1568,7 +1580,7 @@ Available for the C64 target when using the Vera64X board. This module has the s
 
 Install ``psg.update`` as the C64 IRQ handler with ``sys.set_irq(&psg.update)`` to advance envelopes and apply voice changes regularly. The handler chains to the KERNAL IRQ, keeping the jiffy clock available for ``sys.wait``.
 
-See the :source:`Vera64X PSG Boulderdash example <examples/c64/bdmusic-verapsg.p8>` and the :source:`C64 PSG source code <compiler/res/prog8lib/c64/psg.p8>`.
+See the :source:`Vera64X PSG example <examples/c64/vera64-bdmusic.p8>` and the :source:`C64 PSG source code <compiler/res/prog8lib/c64/psg.p8>`.
 
 
 serial  (cx16 only)
@@ -2094,8 +2106,9 @@ verafx
 Available for the CX16 target and for C64 programs using the VERA64X board.
 These routines use VERA FX to accelerate certain operations.
 
-``available``
-    Returns true if Vera FX is available, false if not (that would be an older Vera chip)
+``available`` (CX16 only)
+    Returns true if Vera FX is available, false if not (that would be an older Vera chip).
+    The Vera64X always provides Vera FX, so the C64 ``verafx`` block has no availability check.
 
 ``clear``
     Very quickly clear a piece of vram to a given byte value (it writes 4 bytes at a time).
@@ -2145,8 +2158,7 @@ These routines use VERA FX to accelerate certain operations.
     Set transparent write mode for VeraFX cached writes and also for normal writes to DATA0/DATA.
     If enabled, pixels with value 0 do not modify VRAM when written (so they are "transparent")
 
-Read the :source:`verafx source code <compiler/res/prog8lib/cx16/verafx.p8>`
-to see what's in there.
+Read the :source:`CX16 verafx source code <compiler/res/prog8lib/cx16/verafx.p8>` or the :source:`C64 Vera and verafx source code <compiler/res/prog8lib/c64/vera.p8>` to see what's in there.
 
 
 wavfile

@@ -1,7 +1,7 @@
 %option ignore_unused
 
 vera {
-    ; VERA register definitions and helper routines for the 'VERA 64' board for the C64
+    ; VERA register definitions and helper routines for the Vera64X board for the C64
 
     %option ignore_unused, no_symbol_prefixing
 
@@ -96,6 +96,13 @@ vera {
             }
         }
         VERA_CTRL = 0
+    }
+
+    sub waitvsync() {
+        ; Wait for the next VERA VBlank; sys.waitvsync() waits on the VIC-II.
+        VERA_ISR = %00000001
+        while (VERA_ISR & %00000001)==0 {}
+        VERA_ISR = %00000001
     }
 
 asmsub vpeek(ubyte bank @A, uword address @XY) -> ubyte @A {
@@ -439,7 +446,7 @@ asmsub restore_vera_context() clobbers(A) {
 }
 
 verafx {
-    ; Partial Vera FX support:
+    ; Vera FX support (always available on the Vera64X board):
     ; - fast 32 bit cached writes (clear, copy)
     ; - transparent write setting
     ; - hardware 16 bits multiplications
@@ -450,22 +457,6 @@ verafx {
     ; https://docs.google.com/document/d/1q34uWOiM3Be2pnaHRVgSdHySI-qsiQWPTo_gfE54PTg
 
     %option no_symbol_prefixing, ignore_unused
-
-    sub available() -> bool {
-        ; returns true if Vera FX is available (Vera V0.3.1 or later), false if not.
-        cx16.r0L = vera.VERA_CTRL
-        cx16.r0H = 0
-        vera.VERA_CTRL = $7e
-        if vera.VERA_DC_VER0 == $56 {
-            ; Vera version number is valid. Vera fx is available on Vera version 0.3.1 and later.
-            if vera.VERA_DC_VER1>0
-                cx16.r0H = 1
-            else
-                cx16.r0H = mkword(vera.VERA_DC_VER2, vera.VERA_DC_VER3) >= $0301 as ubyte
-        }
-        vera.VERA_CTRL = cx16.r0L
-        return cx16.r0H as bool
-    }
 
     sub clear(ubyte vbank, uword vaddr, ubyte data, uword num_longwords) {
         ; use cached 4-byte write to quickly clear a portion of the video memory to a given byte value
