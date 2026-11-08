@@ -167,7 +167,7 @@ main {
     sub draw_starburst() {
         ; 255 radial lines, one per pen (1..255), pen 0 skipped because it
         ; is the black background. sin8/cos8 give a signed -127..127 vector.
-        for i in 0 to cust-1 {
+        for i in 0 to NUM_LINES-1 {
             word dx = math.cos8(i)
             word dy = math.sin8(i)
             word x2 = (CX as word) + dx*STAR_RADIUS/127

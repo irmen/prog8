@@ -1437,7 +1437,7 @@ internal class AstChecker(private val program: Program,
                 if(directive.args[0].int!! >= 64u)
                     errors.info("large alignment might waste a lot of memory (check Gaps in assembler output)", directive.position)
                 val prev = directive.previousSibling()
-                if (prev !=null && prev !is Block && prev !is Break && prev !is Continue && prev !is Jump && prev !is Return && prev !is Subroutine && prev !is VarDecl)
+                if (prev != null && prev.emitsFallThroughCode())
                     errors.warn("dangerous location for %align, after a regular statement it will likely corrupt the program", directive.position)
             }
             "%output" -> {
@@ -1607,6 +1607,18 @@ internal class AstChecker(private val program: Program,
             else -> throw SyntaxError("invalid directive ${directive.directive}", directive.position)
         }
         super.visit(directive)
+    }
+
+    // %align padding only corrupts the output if it lands between executable
+    // statements that fall through; declarations, directives, labels and
+    // terminating control flow (return/break/continue/goto) are all safe.
+    private fun Statement.emitsFallThroughCode(): Boolean = when (this) {
+        is Assignment, is ChainedAssignment, is Swap,
+        is FunctionCallStatement, is InlineAssembly,
+        is IfElse, is ConditionalBranch, is ForLoop, is WhileLoop,
+        is RepeatLoop, is UntilLoop, is UnrollLoop, is When, is OnGoto,
+        is AnonymousScope, is Defer -> true
+        else -> false
     }
 
     private fun checkFileExists(directive: Directive, filename: String) {

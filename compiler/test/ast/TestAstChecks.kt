@@ -1055,4 +1055,71 @@ main {
         compileText(C64Target(), false, text, outputDir, errors = errors, writeAssembly = false) shouldNotBe null
         errors.errors.size shouldBe 0
     }
+
+    test("%align after a directive at block scope is safe") {
+        val text = """
+            main {
+                %option force_output
+                %align 4
+            blob:
+                uword[4] data
+                sub start() {
+                }
+            }
+            """
+        val errors = ErrorReporterForTests(keepMessagesAfterReporting = true)
+        compileText(C64Target(), false, text, outputDir, errors = errors, writeAssembly = false) shouldNotBe null
+        errors.errors.size shouldBe 0
+        errors.warnings.none { "dangerous location for %align" in it } shouldBe true
+    }
+
+    test("%align after a label at block scope is safe") {
+        val text = """
+            main {
+            first:
+                %align 4
+            second:
+                uword[4] data
+                sub start() {
+                }
+            }
+            """
+        val errors = ErrorReporterForTests(keepMessagesAfterReporting = true)
+        compileText(C64Target(), false, text, outputDir, errors = errors, writeAssembly = false) shouldNotBe null
+        errors.errors.size shouldBe 0
+        errors.warnings.none { "dangerous location for %align" in it } shouldBe true
+    }
+
+    test("%align after a regular code statement still warns") {
+        val text = """
+            main {
+                sub start() {
+                    ubyte xx
+                    xx = 1
+                    %align 4
+                    xx = 2
+                }
+            }
+            """
+        val errors = ErrorReporterForTests(keepMessagesAfterReporting = true)
+        compileText(C64Target(), false, text, outputDir, errors = errors, writeAssembly = false) shouldNotBe null
+        errors.errors.size shouldBe 0
+        errors.warnings.any { "dangerous location for %align" in it } shouldBe true
+    }
+
+    test("%align at start of a subroutine or after a return is safe") {
+        val text = """
+            main {
+                sub start() {
+                    %align 4
+                    return
+                    %align 4
+                }
+            }
+            """
+        val errors = ErrorReporterForTests(keepMessagesAfterReporting = true)
+        compileText(C64Target(), false, text, outputDir, errors = errors, writeAssembly = false) shouldNotBe null
+        errors.errors.size shouldBe 0
+        errors.warnings.none { "dangerous location for %align" in it } shouldBe true
+    }
 })

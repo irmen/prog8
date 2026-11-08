@@ -55,6 +55,11 @@ folded at compile time when the arguments are constant. Check this list before
 writing a loop or an if-chain for something it already covers (e.g. use
 `min(a, b)`, not `if a < b ... else ...`).
 
+Constant folding is only an optimization: built-in functions also have runtime
+code generation when their arguments are not constant. Do not assume a builtin
+is compile-time-only just because constant arguments are folded; use it with
+runtime values unless its documented argument constraints say otherwise.
+
 - Math: `abs`, `clamp(value, min, max)`, `divmod` (one division, two results),
   `gcd`, `max`, `min`, `sgn`, `sqrt`.
 - Bytes and words: `lsb`, `lsw`, `msb`, `msw`, `lmh` (low/mid/high bytes of a
