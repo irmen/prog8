@@ -1,10 +1,6 @@
 TODO
 ====
 
-Amiga: why does grab_system(false) still result in a blank screen? what's the difference with grab_system(true)?
-
-
-
 Future Things and Ideas
 ^^^^^^^^^^^^^^^^^^^^^^^
 - add a 'psg' module to the c64 that uses the vera module to interface to the Vera64X board, and add a music example that uses it.

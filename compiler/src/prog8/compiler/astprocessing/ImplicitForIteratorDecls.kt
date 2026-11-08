@@ -4,12 +4,16 @@ import prog8.ast.INameScope
 import prog8.ast.IStatementContainer
 import prog8.ast.Node
 import prog8.ast.Program
+import prog8.ast.expressions.BinaryExpression
+import prog8.ast.expressions.Expression
+import prog8.ast.expressions.IdentifierReference
 import prog8.ast.expressions.RangeExpression
 import prog8.ast.statements.ForLoop
 import prog8.ast.statements.VarDecl
 import prog8.ast.statements.VarDeclType
 import prog8.ast.walk.AstInsert
 import prog8.ast.walk.AstModification
+import prog8.ast.walk.AstWalker
 import prog8.code.core.DataType
 import prog8.code.core.IErrorReporter
 import prog8.code.core.Position
@@ -31,8 +35,6 @@ class ImplicitForIteratorDecls(
     fun before(forLoop: ForLoop, parent: Node): Iterable<AstModification> {
         val names = forLoop.loopVar.nameInSource
         val inferredIterableType = forLoop.iterable.inferType(program)
-        if (!inferredIterableType.isKnown)
-            return emptyList()
         val iterableType = inferredIterableType.getOrUndef()
 
         val isLinked = forLoop.linkedVia != null
@@ -41,8 +43,16 @@ class ImplicitForIteratorDecls(
 
         val elementType = if (isLinked) {
             iterableType.takeIf { it.isPointer } ?: return emptyList()
-        } else {
+        } else if (inferredIterableType.isKnown) {
             iterableType.elementType()
+        } else {
+            val range = forLoop.iterable as? RangeExpression ?: return emptyList()
+            if (!hasUnresolvedIdentifier(range.from, range) && !hasUnresolvedIdentifier(range.to, range))
+                return emptyList()
+            val boundType = listOf(range.from, range.to).firstNotNullOfOrNull {
+                it.inferType(program).takeIf { type -> type.isKnown }?.getOrUndef()
+            }
+            boundType?.elementToArray(program.target)?.elementType() ?: forLoop.loopVarType ?: return emptyList()
         }
 
         if (isLinked) {
@@ -124,6 +134,24 @@ class ImplicitForIteratorDecls(
         return listOf(AstInsert.before(forLoop, declaration, container))
     }
 
+    private fun hasUnresolvedIdentifier(expression: Expression, parent: Node): Boolean {
+        var unresolved = false
+        expression.accept(object : AstWalker() {
+            override fun before(identifier: IdentifierReference, parent: Node): Iterable<AstModification> {
+                if (identifier.nameInSource.size != 1)
+                    return emptyList()
+                if ((parent as? BinaryExpression)?.operator == ".") {
+                    if (parent.left === identifier && identifier.firstTarget(program.builtinFunctions) == null)
+                        unresolved = true
+                    return emptyList()
+                }
+                if (identifier.firstTarget(program.builtinFunctions) == null)
+                    unresolved = true
+                return emptyList()
+            }
+        }, parent)
+        return unresolved
+    }
 
     private fun resolveDt(dt: DataType, scope: INameScope, position: Position): DataType {
         val antlrName = dt.subTypeFromAntlr ?: return dt

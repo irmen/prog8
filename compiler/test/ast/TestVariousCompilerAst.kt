@@ -708,6 +708,22 @@ main {
             statements.indexOf(declaration) shouldBe statements.indexOfFirst { it is ForLoop } - 1
         }
 
+        test("undefined range bound does not report implicit iterator as undefined") {
+            val src = """
+main {
+    sub start() {
+        for i in 0 to undefined {
+            i++
+        }
+    }
+}
+"""
+            val errors = ErrorReporterForTests()
+            compileText(C64Target(), optimize = false, src, outputDir, writeAssembly = false, errors = errors) shouldBe null
+            errors.errors.any { "undefined symbol: undefined" in it } shouldBe true
+            errors.errors.none { "undefined symbol: i" in it } shouldBe true
+        }
+
         test("for loop reuses an existing iterator declaration") {
             val src = """
 main {
