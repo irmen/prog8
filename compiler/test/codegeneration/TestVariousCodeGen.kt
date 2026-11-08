@@ -833,6 +833,39 @@ main {
         lines.any { it.startsWith("jsr") && it.contains("p8s_PlayVideo_STD") } shouldBe true
     }
 
+    test("forwarding wrapper with register-mapped parameters is not inlined") {
+        val src= $$"""
+%zeropage basicsafe
+%option no_sysinit
+main {
+    sub start() {
+        word @shared xorg = 123
+        word @shared yorg = 45
+        setup_SpriteGrid(xorg, yorg)
+    }
+
+    sub setup_SpriteGrid(word X @R7, word Y @R9) {
+        TrampCallSTD($a000)
+    }
+
+    asmsub TrampCallSTD(uword addr @AY) clobbers(A, Y) {
+        %asm {{
+            rts
+        }}
+    }
+}"""
+        val result = compileText(Cx16Target(), false, src, outputDir, writeAssembly = true)!!
+        val asm = result.compilationOptions.outputDir.resolve(result.compilerAst.name + ".asm").readText()
+        val lines = asm.lines().map { it.trim() }
+        // register-bound argument setup must be preserved
+        lines.any { it == "sta  cx16.r7s" } shouldBe true
+        lines.any { it == "sty  cx16.r7s+1" } shouldBe true
+        lines.any { it == "sta  cx16.r9s" } shouldBe true
+        lines.any { it == "sty  cx16.r9s+1" } shouldBe true
+        // wrapper must remain a real subroutine
+        lines.any { it.startsWith("jsr") && it.contains("p8s_setup_SpriteGrid") } shouldBe true
+    }
+
     test("if not without else is not swapped") {
         val src="""
 main {
