@@ -3,7 +3,7 @@ TODO
 
 Future Things and Ideas
 ^^^^^^^^^^^^^^^^^^^^^^^
-- port a few cx16 example programs to the c64+vera64X such as kefrenbars, balloonflight (the x16 edition - maybe extend it with a 256c background color fade and parallax layer)
+- port a few cx16 example programs to the c64+vera64X such as balloonflight (the x16 edition - maybe extend it with a 256c background color fade and parallax layer)
 - make %option verafxmuls work on c64 targets too: the C64 verafx block already provides muls/muls16/mult16, so this only requires allowing C64Target.NAME in the checker. The option still requires the Vera64X board. One documented caveat to carry over: FX mult is signed-only; mult16 is valid only for the low 16 bits of unsigned results - same semantics as on cx16, so the option keeps identical behavior.
 - extend the ``-gendoc`` command to generate user reference documentation from Markdown docstrings; see ``ideas/markdown-docstrings-and-reference-docs.md`` for the plan.
 - add documentation for more library modules instead of just linking to the source code
@@ -56,6 +56,25 @@ Libraries
 - add an IFF ANIM5 playback helper module for the Amiga targets (a separate concern from the bare-metal hardware helpers): in-memory IFF chunk walker (BMHD/CMAP/CAMG/BODY plus per-frame ANHD/DLTA), ByteRun1 decoder, op5 byte-vertical delta decoder (unvscomp-style), and a small double-buffer/interleave state machine with ANHD ``reltime`` pacing via vblank waits. CMAP loading is already covered by ``custom.load_iff_cmap()`` (bare metal) and ``graphics.load_iff_cmap()`` (Intuition screens). Usable both OS-friendly (drawing into a ``playfield``) and bare-metal (chip-RAM planes plus ``copper.set_planes`` for the flip). A working C reference implementation is in ``ideas/anim5player.c``: SDL2 + libiff, but structured the way an on-system player must work (two screens, page flip per frame, op5 deltas decoded on demand, no frame cache), so the decode loop and the double-buffer/interleave recipe can be ported from it directly.
 - implement the remaining Amiga bare-metal hardware helpers; see ``ideas/amiga-baremetal-helpers.md`` for the designs and status. Still open: the sprite helper module (packing control words, setting sprite pointers, AGA ``FMODE`` fetch width), the BOB helper (``soft_blit``), and IRQ/VERTB/CIA/TOD handling. ``horiz_line`` is implemented and ``line_draw`` dispatches horizontal segments to it; ``area_fill`` and fill-compatible ``line_draw(..., fill=true)`` are implemented. The bare-metal ``text`` module is implemented as well.
 - make a list of all floats.* routines that the compiler expects for full float support?
+- Inline asmsub with register-bound parameters: `inline asmsub foo(word x @R7)` is not emitted as a subroutine (the body is inlined at the call site) but the argument stores to the bound registers must still happen. Note: `Inliner.canInlineAtCallSiteWithReason` returns the internal reason "asmsub with parameters cannot be inlined" (not a user-facing error) and skips AST-level inlining; the actual inlining happens later in the codegen via `findInlineAsmSub`/`translateCall` (new6502) or `FunctionCallAsmGen` (old 6502). If that codegen path fails to handle the case, the only user-visible symptom is an assembler error ("not defined symbol 'p8s_...'"), not a compiler crash or syntax error. Keep the normal-sub guard (`registerOrPair != null` check in `DetermineInlineSubs` and `canInlineAtCallSiteWithReason`) so a normal `sub` whose parameters are register-bound is never inlined (its register setup would be dropped). Repro (cx16):
+  ```
+  %zeropage basicsafe
+  %option no_sysinit
+  main {
+      sub start() {
+          word @shared xorg = 123
+          word @shared yorg = 45
+          setup_SpriteGrid(xorg, yorg)
+      }
+      sub setup_SpriteGrid(word X @R7, word Y @R9) {
+          TrampCallSTD($a000)
+      }
+      asmsub TrampCallSTD(uword addr @AY) clobbers(A, Y) {
+          %asm {{ rts }}
+      }
+  }
+  ```
+  Expected: `sta/sty cx16.r7s` and `sta/sty cx16.r9s` survive at the call site and `jsr p8s_setup_SpriteGrid` is emitted.
 
 
 Optimizations

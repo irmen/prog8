@@ -1569,7 +1569,7 @@ The C64 ``vera`` block provides register definitions and helpers for the Vera64X
 ``waitvsync ()``
     Wait for the next VERA vertical blank. Unlike ``sys.waitvsync()``, this synchronizes to VERA rather than the C64's VIC-II.
 
-Read the :source:`C64 vera source code <compiler/res/prog8lib/c64/vera.p8>` and the :source:`Vera64X Bobs example <examples/c64/vera64-bobs.p8>` to see it in use.
+Read the :source:`C64 vera source code <compiler/res/prog8lib/c64/vera.p8>` and the :source:`Vera64X Bobs example <examples/c64/vera64-bobs.p8>` and :source:`Kefrenbars example <examples/c64/vera64-kefrenbars.p8>` to see it in use.
 
 
 psg (C64 + Vera64X)
