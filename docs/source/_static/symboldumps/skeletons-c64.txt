@@ -496,6 +496,36 @@ petgfx  {
 }
 
 
+LIBRARY MODULE NAME: psg
+------------------------
+
+psg  {
+    struct Voice
+    const ubyte  BOTH
+    const ubyte  DISABLED
+    const ubyte  EnvelopeState::ATTACK
+    const ubyte  EnvelopeState::OFF
+    const ubyte  EnvelopeState::RELEASE
+    const ubyte  EnvelopeState::SUSTAIN
+    const ubyte  LEFT
+    const ubyte  NOISE
+    const ubyte  PULSE
+    const ubyte  RIGHT
+    const ubyte  SAWTOOTH
+    const ubyte  SQUARE
+    const ubyte  TRIANGLE
+    ^^psg.Voice  voices
+    envelope  (ubyte voice_num, ubyte attack, ubyte sustain, ubyte release)
+    frequency  (ubyte voice_num, uword freq)
+    getvoice  (ubyte voice_num) -> ^^psg.Voice
+    init  ()
+    off  ()
+    update  () -> bool
+    voice  (ubyte voice_num, ubyte channels, ubyte volume, ubyte waveform, ubyte pulsewidth)
+    volume  (ubyte voice_num, ubyte vol)
+}
+
+
 LIBRARY MODULE NAME: sorting
 ----------------------------
 
@@ -1164,6 +1194,7 @@ vera  {
     &uword  VERA_L1_VSCROLL
     &ubyte  VERA_L1_VSCROLL_H
     &ubyte  VERA_L1_VSCROLL_L
+    const long  VERA_PSG_BASE
     &ubyte  VERA_SCANLINE_L
     &ubyte  VERA_SPI_CTRL
     &ubyte  VERA_SPI_DATA

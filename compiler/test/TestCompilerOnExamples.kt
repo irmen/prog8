@@ -149,6 +149,7 @@ class TestCompilerOnExamplesC64: FunSpec({
             ExampleSizes("banking", c64SizeOptimized=680, c64SizeUnoptimized=1356),
             ExampleSizes("bdmusic-irq", c64SizeOptimized=1001, c64SizeUnoptimized=1019),
             ExampleSizes("bdmusic", c64SizeOptimized=938, c64SizeUnoptimized=1011),
+            ExampleSizes("bdmusic-verapsg", c64SizeOptimized=2336, c64SizeUnoptimized=2487),
             ExampleSizes("charset", c64SizeOptimized=835, c64SizeUnoptimized=860),
             ExampleSizes("cube3d-sprites", c64SizeOptimized=2846, c64SizeUnoptimized=4075),
             ExampleSizes("fileselector", c64SizeOptimized=3523, c64SizeUnoptimized=4510),

@@ -1560,6 +1560,17 @@ See the :source:`examples/cx16/bdmusic.p8` program for ideas how to use it.
 Read the :source:`psg2 source code <compiler/res/prog8lib/cx16/psg2.p8>` to see everything that's in there.
 
 
+psg (C64 + Vera64X)
+^^^^^^^^^^^^^^^^^^^
+.. index:: pair: Libraries; psg
+
+Available for the C64 target when using the Vera64X board. This module has the same API as ``psg2`` above, including its voice parameters, ASR envelopes, and ``update()`` routine. It accesses the PSG through the C64 ``vera`` module.
+
+Install ``psg.update`` as the C64 IRQ handler with ``sys.set_irq(&psg.update)`` to advance envelopes and apply voice changes regularly. The handler chains to the KERNAL IRQ, keeping the jiffy clock available for ``sys.wait``.
+
+See the :source:`Vera64X PSG Boulderdash example <examples/c64/bdmusic-verapsg.p8>` and the :source:`C64 PSG source code <compiler/res/prog8lib/c64/psg.p8>`.
+
+
 serial  (cx16 only)
 ^^^^^^^^^^^^^^^^^^^
 .. index:: pair: Libraries; serial
@@ -2080,7 +2091,7 @@ verafx
 ^^^^^^
 .. index:: pair: Libraries; verafx
 
-Available for the CX16 target and for C64 programs using the VERA64 board.
+Available for the CX16 target and for C64 programs using the VERA64X board.
 These routines use VERA FX to accelerate certain operations.
 
 ``available``

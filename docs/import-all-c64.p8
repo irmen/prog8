@@ -14,6 +14,7 @@
 %import math
 %import petgfx
 %import prog8_lib
+%import psg
 %import sorting
 %import strings
 %import syslib

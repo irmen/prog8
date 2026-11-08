@@ -6,6 +6,7 @@ vera {
     %option ignore_unused, no_symbol_prefixing
 
     const uword VERA_BASE       = $DE00     ; TODO to be decided?
+    const long  VERA_PSG_BASE   = $1F9C0    ; start of the 16 psg voice register blocks in video memory
 
     &ubyte  VERA_ADDR_L         = VERA_BASE + $0000
     &ubyte  VERA_ADDR_M         = VERA_BASE + $0001

@@ -1,0 +1,304 @@
+; Vera PSG abstraction module for the Vera64X board on the C64.
+; This is a port of the cx16 psg2 module; the PSG is accessed through the
+; VERA registers of the vera module instead of the CX16's mapped VERA registers.
+;
+; This module requires setting up the voice parameters in their Voice structure,
+; and then calling the update() routine periodically to apply the changes.
+; You can read and write all parameters in the Voice structure as desired.
+; For efficiency reasons, the volume envelope state is not kept in there though.
+;
+; Envelope timing (ASR - Attack, Sustain, Release):
+;   The envelope advances by one tick each time update() is called.
+;   The actual real-time duration depends on how often you call update().
+;   If you call it every irq (60Hz on NTSC, 50Hz on PAL), 1 tick = 16.7ms or 20ms.
+;   Attack and Release produce linear volume ramps.
+;   Higher speed = faster ramp (shorter duration).
+;   Timing formula:  duration_ticks = ceil(256 / speed)
+;     speed=1   -> 256 ticks
+;     speed=4   -> 64 ticks
+;     speed=64  -> 4 ticks
+;     speed=255 -> 1 tick (instant envelope change on next update() call)
+;   Even speed=255 applies on the *next* call to ``update()`` - there is always at least ~1 frame of delay if you depend on the normal update cycle.
+;   For truly immediate changes (0ms), set the voice struct fields and call ``update()`` directly.
+;   Sustain holds for speed ticks (0-255) then transitions to release.
+;   If speed=0 the envelope stalls at that phase (no progression - useful for infinite sustain).
+;   The envelope volume is tracked internally as 8.8 fixed point.
+
+; Vera PSG registers:
+; $1F9C0 - $1F9FF     16 blocks of 4 PSG registers (16 voices)
+; 00  frequency word LSB
+; 01  frequency word MSB.    freqword = HERZ / 0.3725290298461914
+; 02  bit 7 =right, bit 6 = left, bits 5-0 = volume 0-63 levels
+; 03  bit 7,6 = waveform, bits 5-0 = Pulse width 0-63
+; waveform: 0=pulse, 1=sawtooth, 2=triangle, 3=noise
+
+%import syslib
+%import vera
+
+%option ignore_unused
+
+psg {
+    %option ignore_unused
+
+    ; waveform options:
+    const ubyte PULSE    = %00000000
+    const ubyte SQUARE   = %00000000        ; same as PULSE
+    const ubyte SAWTOOTH = %01000000
+    const ubyte TRIANGLE = %10000000
+    const ubyte NOISE    = %11000000
+
+    ; channels:
+    const ubyte LEFT     = %01000000
+    const ubyte RIGHT    = %10000000
+    const ubyte BOTH     = %11000000
+    const ubyte DISABLED = %00000000
+
+    ; envelope states:
+    enum EnvelopeState {
+        OFF,
+        ATTACK,
+        SUSTAIN,
+        RELEASE
+    }
+
+    struct Voice {
+        ubyte channels          ; LEFT,RIGHT,BOTH or DISABLED
+        ubyte volume            ; 0-63, use volume() to adjust this if you are also using ADSR envelope
+        ubyte waveform          ; PULSE/SQUARE,SAWTOOTH,TRIANGLE,NOISE
+        ubyte pulsewidth        ; 0-63
+        uword frequency         ; direct VERA PSG register value (no scaling): freqword = HERZ(Hz) / 0.3725290298461914
+    }
+
+
+    ; envelope parameters are kept in arrays for maximum efficiency
+    private ubyte[16] envelope_states
+    private ubyte[16] envelope_attacks
+    private ubyte[16] envelope_sustains
+    private ubyte[16] envelope_releases
+    private ubyte[16] envelope_maxvolumes
+    private uword[16] envelope_volumes         ; 8.8 fixed point (scaled by 256)
+
+    ; private VERA context save buffer, so we don't clobber the global _vera_storage in vera
+    ; (which is shared with vera.save_vera_context and would cause a race condition
+    ;  if update() is interrupted by a routine that also saves the VERA context)
+    private ubyte[8] @shared vera_storage
+
+    ^^Voice voices = memory("psg_voices", 16*sizeof(Voice), 0)      ; can't use array of structs so use mem block
+    private ^^Voice vptr
+
+    sub init() {
+        ; -- required before using this module; initializes all registers to default (off) values
+        sys.irqsafe_set_irqd()
+        sys.memset(voices, 16*sizeof(Voice), 0)
+        sys.irqsafe_clear_irqd()
+        for cx16.r0L in 0 to 15
+            envelope_states[cx16.r0L] = EnvelopeState::OFF
+    }
+
+    sub off() {
+        ; -- turn off all voices immediately
+        sys.irqsafe_set_irqd()
+        vptr = voices
+        for cx16.r0L in 0 to 15 {
+            vptr.channels = DISABLED
+            vptr++
+            envelope_states[cx16.r0L] = EnvelopeState::OFF
+        }
+        sys.irqsafe_clear_irqd()
+        void update()
+    }
+
+    sub voice(ubyte voice_num, ubyte channels, ubyte volume, ubyte waveform, ubyte pulsewidth) {
+        ; -- sets all parameters for a single voice (frequency is unchanged - set that separately)
+        if voice_num > 15
+            return
+        volume &= %00111111
+        envelope_states[voice_num] = EnvelopeState::OFF
+        sys.irqsafe_set_irqd()
+        vptr = &voices[voice_num]
+        vptr.channels = channels
+        vptr.volume = volume
+        vptr.waveform = waveform
+        vptr.pulsewidth = pulsewidth & %00111111
+        ; do not change frequency, user is expected to call frequency() separately
+        sys.irqsafe_clear_irqd()
+        envelope_volumes[voice_num] = mkword(volume, 0)
+        envelope_maxvolumes[voice_num] = volume
+    }
+
+    sub frequency(ubyte voice_num, uword @nozp freq) {
+        ; -- sets a new frequency for this voice
+        vptr = &voices[voice_num]
+        vptr.frequency = freq
+    }
+
+    sub volume(ubyte voice_num, ubyte @nozp vol) {
+        ; -- Modifies the volume of this voice, adjusting the envelope as needed.
+        ;    voice_num = 0-15, vol = 0-63 where 0=silent, 63=loudest.
+        envelope_states[voice_num] = EnvelopeState::OFF
+        vptr = &voices[voice_num]
+        vptr.volume = vol
+        envelope_volumes[voice_num] = mkword(vol, 0)
+        envelope_maxvolumes[voice_num] = vol
+    }
+
+    sub envelope(ubyte voice_num, ubyte @nozp attack, ubyte @nozp sustain, ubyte @nozp release) {
+        ; -- sets ASR envelope parameters for this voice
+        envelope_states[voice_num] = EnvelopeState::OFF
+        vptr = &voices[voice_num]
+        vptr.volume = 0
+        envelope_attacks[voice_num] = attack
+        envelope_sustains[voice_num] = sustain
+        envelope_releases[voice_num] = release
+        envelope_volumes[voice_num] = 0
+        envelope_states[voice_num] = EnvelopeState::ATTACK
+    }
+
+    sub getvoice(ubyte @nozp voice_num) -> ^^Voice {
+        ; -- returns pointer to voice parameters
+        return &voices[voice_num]
+    }
+
+    sub update() -> bool {
+        ; -- update adsr envelopes, then write all 16 voices to Vera PSG. This call is IRQ-safe!
+        ; This has to be called every time you want to apply changed psg voice parameters.
+        ; If you want to use real-time volume envelopes (Attack-Sustain-Release),
+        ; you have to call this routine regularly, for example once per frame from your irq handler.
+        ; Or just install this routine as the only irq handler if you don't have to do other things there:
+        ;   sys.set_irq(&psg.update)
+        ; Note: it returns true, so the c64 system irq handler will chain to the kernal irq routine
+        ; (which is required to keep the jiffy clock running).
+
+        push(cx16.r0L)
+        pushw(cx16.r1)
+        pushw(cx16.r2)
+        pushw(cx16.r3)
+
+        vptr = voices
+        alias voice = cx16.r0L
+        alias maxvolume = cx16.r1
+        alias newvolume = cx16.r2
+        alias currentvolume = cx16.r3
+
+        ; update active envelopes
+        for voice in 0 to 15 {
+            when envelope_states[voice] {
+                EnvelopeState::ATTACK -> {
+                    ; while current volume is less than max volume, increase volume by maxvolume * (attackspeed /256.0)
+                    ; special case: speed=255 jumps directly to max volume (instant)
+                    maxvolume = mkword(envelope_maxvolumes[voice], 0)
+                    currentvolume = envelope_volumes[voice]
+                    if currentvolume < maxvolume {
+                        if envelope_attacks[voice] == 255
+                            newvolume = maxvolume
+                        else {
+                            newvolume = currentvolume + (maxvolume >> 8)*envelope_attacks[voice]
+                            newvolume = min(newvolume, maxvolume)
+                        }
+                        envelope_volumes[voice] = newvolume
+                        vptr.volume = msb(newvolume)
+                    } else
+                        envelope_states[voice] = EnvelopeState::SUSTAIN
+                }
+                EnvelopeState::SUSTAIN -> {
+                    if envelope_sustains[voice] > 0
+                        envelope_sustains[voice]--
+                    else
+                        envelope_states[voice] = EnvelopeState::RELEASE
+                }
+                EnvelopeState::RELEASE -> {
+                    ; while current volume is not zero, decrease volume by maxvolume * (releasespeed /256.0)
+                    ; special case: speed=255 jumps directly to zero (instant)
+                    currentvolume = envelope_volumes[voice]
+                    if currentvolume > 0 {
+                        if envelope_releases[voice] == 255
+                            newvolume = 0
+                        else {
+                            uword subtraction = (envelope_maxvolumes[voice] as uword) * envelope_releases[voice]
+                            if subtraction > currentvolume
+                                newvolume = 0
+                            else
+                                newvolume = currentvolume - subtraction
+                        }
+                        envelope_volumes[voice] = newvolume
+                        vptr.volume = msb(newvolume)
+                    } else
+                        envelope_states[voice] = EnvelopeState::OFF
+                }
+            }
+
+            vptr++
+        }
+
+        psg_save_vera_context()
+        vera.VERA_CTRL = 0
+        vera.VERA_ADDR = lsw(vera.VERA_PSG_BASE)
+        vera.VERA_ADDR_H = %00010000 | msw(vera.VERA_PSG_BASE)
+
+        vptr = voices
+        repeat 16 {
+            if vptr.channels != DISABLED {
+                vera.VERA_DATA0 = lsb(vptr.frequency)
+                vera.VERA_DATA0 = msb(vptr.frequency)
+                vera.VERA_DATA0 = vptr.channels | (vptr.volume & %00111111)
+                vera.VERA_DATA0 = vptr.waveform | (vptr.pulsewidth & %00111111)
+            } else {
+                unroll 4 vera.VERA_DATA0 = 0
+            }
+            vptr++
+        }
+        psg_restore_vera_context()
+        cx16.r3 = popw()
+        cx16.r2 = popw()
+        cx16.r1 = popw()
+        cx16.r0L = pop()
+
+        return true
+    }
+
+    private asmsub psg_save_vera_context() clobbers(A) {
+        %asm {{
+            ; save VERA registers to our own private storage (not clobbering vera's global _vera_storage)
+            lda  vera.VERA_ADDR_L
+            sta  p8b_psg.p8v_vera_storage
+            lda  vera.VERA_ADDR_M
+            sta  p8b_psg.p8v_vera_storage+1
+            lda  vera.VERA_ADDR_H
+            sta  p8b_psg.p8v_vera_storage+2
+            lda  vera.VERA_CTRL
+            sta  p8b_psg.p8v_vera_storage+3
+            eor  #1
+            sta  p8b_psg.p8v_vera_storage+7
+            sta  vera.VERA_CTRL
+            lda  vera.VERA_ADDR_L
+            sta  p8b_psg.p8v_vera_storage+4
+            lda  vera.VERA_ADDR_M
+            sta  p8b_psg.p8v_vera_storage+5
+            lda  vera.VERA_ADDR_H
+            sta  p8b_psg.p8v_vera_storage+6
+            rts
+        }}
+    }
+
+    private asmsub psg_restore_vera_context() clobbers(A) {
+        %asm {{
+            lda  p8b_psg.p8v_vera_storage+7
+            sta  vera.VERA_CTRL
+            lda  p8b_psg.p8v_vera_storage+6
+            sta  vera.VERA_ADDR_H
+            lda  p8b_psg.p8v_vera_storage+5
+            sta  vera.VERA_ADDR_M
+            lda  p8b_psg.p8v_vera_storage+4
+            sta  vera.VERA_ADDR_L
+            lda  p8b_psg.p8v_vera_storage+3
+            sta  vera.VERA_CTRL
+            lda  p8b_psg.p8v_vera_storage+2
+            sta  vera.VERA_ADDR_H
+            lda  p8b_psg.p8v_vera_storage+1
+            sta  vera.VERA_ADDR_M
+            lda  p8b_psg.p8v_vera_storage+0
+            sta  vera.VERA_ADDR_L
+            rts
+        }}
+    }
+}
