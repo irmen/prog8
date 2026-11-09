@@ -1571,8 +1571,8 @@ internal class AstChecker(private val program: Program,
                     if(directive.args.any {it.string !in setOf("enable_floats", "no_sysinit", "no_symbol_prefixing", "ignore_unused", "romable", "private_symbols")})
                         err("using an option that is not valid for modules")
                 }
-                if(directive.args.any { it.string=="verafxmuls" } && options.compTarget.name != Cx16Target.NAME)
-                    err("verafx option is only valid on cx16 target")
+                if(directive.args.any { it.string=="verafxmuls" } && options.compTarget.name !in setOf(Cx16Target.NAME, C64Target.NAME))
+                    err("verafx option is only valid on cx16 or c64 targets")
                 if(directive.args.any { it.string=="amiga_chipram" } && options.compTarget.name != Amiga500Target.NAME && options.compTarget.name != Amiga1200Target.NAME)
                     err("amiga_chipram option is only valid on amiga targets")
             }

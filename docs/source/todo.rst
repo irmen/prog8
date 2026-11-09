@@ -3,16 +3,13 @@ TODO
 
 Future Things and Ideas
 ^^^^^^^^^^^^^^^^^^^^^^^
-- make %option verafxmuls work on c64 targets too: the C64 verafx block already provides muls/muls16/mult16, so this only requires allowing C64Target.NAME in the checker. The option still requires the Vera64X board. One documented caveat to carry over: FX mult is signed-only; mult16 is valid only for the low 16 bits of unsigned results - same semantics as on cx16, so the option keeps identical behavior.
 - extend the ``-gendoc`` command to generate user reference documentation from Markdown docstrings; see ``ideas/markdown-docstrings-and-reference-docs.md`` for the plan.
-- add documentation for more library modules instead of just linking to the source code
 - add float support to the configurable compiler targets. Restrictions: just have "cbm-style floats" as an option (to that it can slot into the current float codegen), where "all" you have to specify is the addresses of AYINT and GIVAYF and FADDT and all their friends.
 - Change scoping rules for qualified symbols so that they don't always start from the root but behave like other programming languages (look in local scope first), maybe only when qualified symbol starts with '.' such as: .local.value = 33, or the other way around? i.e. require new syntax to explicitly look up from global scope. That would give a backwards compatible solution. See ideas/scoping-qualified-symbols.md for a brevity-focused exploration (opt-in `.a.b` local-first, `a.b` stays global; `::a.b` reserved for future flip).
 - implement the signed remainder byte and word routines on 6502 old codegen (virtual, m68k and IR-based codegens already have them working)
 - implement the signed divmod byte and word routines on 6502 old codegen (virtual, m68k and IR-based codegens already have them working)
 - add automated validation for m68k ``asmsub`` clobber declarations, including user and third-party assembly bodies. The stdlib declarations have been audited, so declared asmsubs now use precise per-call forbidding; bodies without usable metadata still conservatively destroy the whole allocatable pool.
 - the c64 sprite multiplexer still needs adjustments to make it smooth, it lacks a proper raster event scheduler.
-- investigate VERA64X scanline polling on C64 vera64x: the scanline-based background split in ``examples/c64/vera64-balloonflight.p8`` remains all pink, while the CX16 equivalent works. The reference documents ``SCANLINE_L`` at ``$DE08`` and scanline bit 8 in ``IEN`` bit 6; verify these semantics on the C64 VERA64X target and determine whether the issue is in the code, the C64 emulator, or VERA64X hardware/firmware compatibility.
 
 Won't do's or deferred
 ^^^^^^^^^^^^^^^^^^^^^^
