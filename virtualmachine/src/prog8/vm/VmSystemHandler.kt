@@ -67,9 +67,16 @@ internal fun VirtualMachine.randomSeedFloat(seed: Double) {
     randomGeneratorFloats = Random(seed.toBits())
 }
 
+internal fun VirtualMachine.resolveVmFile(name: String): java.io.File {
+    // Resolve a VM program path the way a real target would after chdir():
+    // absolute paths pass through, relative ones go against the virtual CWD.
+    val f = java.io.File(name)
+    return if (f.isAbsolute) f else java.io.File(virtualCwd, name)
+}
+
 internal fun VirtualMachine.open_file_read(name: String): Int {
     try {
-        fileInputStream = java.io.RandomAccessFile(name, "r")
+        fileInputStream = java.io.RandomAccessFile(resolveVmFile(name), "r")
     } catch (_: IOException) {
         return 0
     }
@@ -78,7 +85,7 @@ internal fun VirtualMachine.open_file_read(name: String): Int {
 
 internal fun VirtualMachine.open_file_write(name: String): Int {
     try {
-        fileOutputStream = java.io.RandomAccessFile(name, "rw")
+        fileOutputStream = java.io.RandomAccessFile(resolveVmFile(name), "rw")
     } catch (_: IOException) {
         return 0
     }

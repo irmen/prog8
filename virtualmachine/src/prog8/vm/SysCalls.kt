@@ -584,8 +584,9 @@ object SysCalls {
             Syscall.LOAD -> {
                 val (filenameA, addrA) = getArgValues(callspec.arguments, vm)
                 val filename = vm.memory.getString((filenameA as Int).toUInt())
-                if (File(filename).exists()) {
-                    val data = File(filename).readBytes()
+                val file = vm.resolveVmFile(filename)
+                if (file.exists()) {
+                    val data = file.readBytes()
                     val addr: UInt = if ((addrA as Int).toUInt() == 0u) data[0].toUInt() + data[1].toUInt() * 256u else addrA.toUInt()
                     for (i in 0..<data.size - 2) {
                         vm.memory.setUB(addr + i.toUInt(), data[i + 2].toUByte())
@@ -598,8 +599,9 @@ object SysCalls {
             Syscall.LOAD_RAW -> {
                 val (filenameA, addrA) = getArgValues(callspec.arguments, vm)
                 val filename = vm.memory.getString((filenameA as Int).toUInt())
-                if (File(filename).exists()) {
-                    val data = File(filename).readBytes()
+                val file = vm.resolveVmFile(filename)
+                if (file.exists()) {
+                    val data = file.readBytes()
                     val addr: UInt = if ((addrA as Int).toUInt() == 0u) data[0].toUInt() + data[1].toUInt() * 256u else addrA.toUInt()
                     for (i in data.indices) {
                         vm.memory.setUB(addr + i.toUInt(), data[i].toUByte())
@@ -631,27 +633,28 @@ object SysCalls {
                     }
                 }
                 val filename = vm.memory.getString((filenamePtr as Int).toUInt())
-                if (File(filename).exists())
+                val file = vm.resolveVmFile(filename)
+                if (file.exists())
                     returnValue(callspec.results.single(), 0u, vm)
                 else {
-                    File(filename).writeBytes(data)
+                    file.writeBytes(data)
                     returnValue(callspec.results.single(), 1u, vm)
                 }
             }
             Syscall.DELETE -> {
                 val filenamePtr = getArgValues(callspec.arguments, vm).single() as Int
                 val filename = vm.memory.getString(filenamePtr.toUInt())
-                File(filename).delete()
+                vm.resolveVmFile(filename).delete()
             }
             Syscall.RENAME -> {
                 val (origFilenamePtr, newFilenamePtr) = getArgValues(callspec.arguments, vm)
                 val origFilename = vm.memory.getString((origFilenamePtr as Int).toUInt())
                 val newFilename = vm.memory.getString((newFilenamePtr as Int).toUInt())
-                File(origFilename).renameTo(File(newFilename))
+                vm.resolveVmFile(origFilename).renameTo(vm.resolveVmFile(newFilename))
             }
             Syscall.DIRECTORY -> {
                 // no arguments
-                val directory = Path("")
+                val directory = vm.virtualCwd.toPath()
                 println("Directory listing for $directory")
                 directory.listDirectoryEntries().sorted().forEach {
                     println("${it.toFile().length()}\t${it.normalize()}")
@@ -688,21 +691,29 @@ object SysCalls {
             }
 
             Syscall.CURDIR -> {
-                val curdir = Path("").absolute().toString()
-                vm.memory.setString(0xfe00u, curdir, true)
+                vm.memory.setString(0xfe00u, vm.virtualCwd.absolutePath, true)
                 return returnValue(callspec.results.single(), 0xfe00u, vm)
             }
             Syscall.MKDIR -> {
                 val namePtr = getArgValues(callspec.arguments, vm).single() as Int
                 val name = vm.memory.getString(namePtr.toUInt())
-                Path(name).createDirectory()
+                vm.resolveVmFile(name).toPath().createDirectory()
             }
             Syscall.RMDIR -> {
                 val namePtr = getArgValues(callspec.arguments, vm).single() as Int
                 val name = vm.memory.getString(namePtr.toUInt())
-                Path(name).deleteIfExists()
+                vm.resolveVmFile(name).toPath().deleteIfExists()
             }
-            Syscall.CHDIR -> throw NotImplementedError("chdir is not possible in java/kotlin")
+            Syscall.CHDIR -> {
+                // The JVM process CWD cannot be changed, so chdir retargets the
+                // VM's virtual CWD instead; all relative file syscalls resolve
+                // against it. Non-directory targets leave the CWD unchanged.
+                val namePtr = getArgValues(callspec.arguments, vm).single() as Int
+                val name = vm.memory.getString(namePtr.toUInt())
+                val dir = vm.resolveVmFile(name)
+                if (dir.isDirectory)
+                    vm.virtualCwd = dir.canonicalFile
+            }
             Syscall.OPEN_FILE -> {
                 val namePtr = getArgValues(callspec.arguments, vm).single() as Int
                 val name = vm.memory.getString(namePtr.toUInt())
