@@ -153,7 +153,7 @@ class VirtualMachine(private val irProgram: IRProgram) {
 //                    Thread.sleep(1)  // avoid 100% cpu core usage
 //                }
 
-                if(stepCount and MIPS_COUNTER_MASK == 0) {
+                if(!quiet && (stepCount and MIPS_COUNTER_MASK == 0)) {
                     val now = System.nanoTime()
                     val duration = now-before
                     before = now

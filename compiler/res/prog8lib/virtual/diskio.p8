@@ -119,7 +119,7 @@ diskio {
                 @(bufptr) = cx16.r0L
                 bufptr++
                 size++
-                if_z {
+                if size == 0 {
                     @(bufptr) = 0
                     return 255
                 }

@@ -166,6 +166,10 @@ enum class Syscall {
 }
 
 object SysCalls {
+    // Set once stdin is exhausted; further INPUT syscalls exit cleanly
+    // instead of throwing the internal ReadAfterEOFException.
+    private var stdinExhausted = false
+
     private fun getArgValues(argspec: List<CallArgument>, vm: VirtualMachine): List<Comparable<Nothing>> {
         return argspec.map {
             val reg = (it.source as RegisterCallSource).register
@@ -242,12 +246,30 @@ object SysCalls {
             }
             Syscall.INPUT -> {
                 val (address, maxlen) = getArgValues(callspec.arguments, vm)
-                var input = readln()
+                if (stdinExhausted)
+                    throw ProgramExitException(0)
+                var input: String? = null
+                try {
+                    input = readlnOrNull()
+                } catch (e: java.io.IOException) {
+                    input = null
+                } catch (e: RuntimeException) {
+                    // kotlin.io.ReadAfterEOFException is internal so it cannot
+                    // be referenced here; match it by name instead. It means
+                    // stdin was already exhausted by an earlier read.
+                    if (e.javaClass.name != "kotlin.io.ReadAfterEOFException") throw e
+                    input = null
+                }
+                if (input == null) {
+                    stdinExhausted = true
+                    throw ProgramExitException(0)
+                }
+                var text = input
                 val maxlenvalue = (maxlen as UByte).toInt()
                 if(maxlenvalue>0)
-                    input = input.take(min(input.length, maxlenvalue))
-                vm.memory.setString((address as Int).toUInt(), input, true)
-                returnValue(callspec.results.single(), input.length, vm)
+                    text = text.take(min(text.length, maxlenvalue))
+                vm.memory.setString((address as Int).toUInt(), text, true)
+                returnValue(callspec.results.single(), text.length, vm)
             }
             Syscall.SLEEP -> {
                 val duration = getArgValues(callspec.arguments, vm).single() as UShort
