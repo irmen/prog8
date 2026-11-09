@@ -150,6 +150,9 @@ Prog8 supports `if`/`else`, `when`, `for`, `while`, `do`/`until`, `repeat`,
 constant-count body at compile time and does not support `break` or `continue`.
 `repeat` is usually more efficient than `for` when no loop variable is needed.
 Replace a `for` loop with a `repeat` loop when the loop variable is not used in the loop body.
+Never hardcode array bounds in `for` loops: use `len(array)-1` (or
+`sizeof(thing)-1` where `len()` doesn't apply) as the upper bound instead of
+a magic number, so the loop stays correct if the size changes.
 Use `if_cs`, `if_cc`, `if_z`, and `if_nz` for direct CPU-flag branches.
 
 ## Subroutines and Assembly
