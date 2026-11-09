@@ -1,6 +1,6 @@
 %import textio
 %import syslib
-%import psg
+%import vera_psg
 %import vera
 
 main {
@@ -16,25 +16,25 @@ main {
         void cbm.CHRIN()
         txt.nl()
 
-        psg.init()
-        psg.voice(0, psg.LEFT, 63, psg.TRIANGLE, 0)
-        psg.voice(1, psg.RIGHT, 63, psg.TRIANGLE, 0)
+        vera_psg.init()
+        vera_psg.voice(0, vera_psg.LEFT, 63, vera_psg.TRIANGLE, 0)
+        vera_psg.voice(1, vera_psg.RIGHT, 63, vera_psg.TRIANGLE, 0)
 
-        sys.set_irq(&psg.update)        ; apply the voice changes every irq (jiffy clock keeps running)
+        sys.set_irq(&vera_psg.update)        ; apply the voice changes every irq (jiffy clock keeps running)
 
         for note in notes {
             ubyte note0 = lsb(note)
             ubyte note1 = msb(note)
-            psg.frequency(0, vera_freqs[note0])
-            psg.frequency(1, vera_freqs[note1])
-            psg.envelope(0, 255, 0, 6)
-            psg.envelope(1, 255, 0, 6)
+            vera_psg.frequency(0, vera_freqs[note0])
+            vera_psg.frequency(1, vera_freqs[note1])
+            vera_psg.envelope(0, 255, 0, 6)
+            vera_psg.envelope(1, 255, 0, 6)
             print_notes(note0, note1)
             sys.wait(10)
         }
 
         sys.restore_irq()
-        psg.off()
+        vera_psg.off()
     }
 
     sub print_notes(ubyte n1, ubyte n2) {

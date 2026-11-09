@@ -496,36 +496,6 @@ petgfx  {
 }
 
 
-LIBRARY MODULE NAME: psg
-------------------------
-
-psg  {
-    struct Voice
-    const ubyte  BOTH
-    const ubyte  DISABLED
-    const ubyte  EnvelopeState::ATTACK
-    const ubyte  EnvelopeState::OFF
-    const ubyte  EnvelopeState::RELEASE
-    const ubyte  EnvelopeState::SUSTAIN
-    const ubyte  LEFT
-    const ubyte  NOISE
-    const ubyte  PULSE
-    const ubyte  RIGHT
-    const ubyte  SAWTOOTH
-    const ubyte  SQUARE
-    const ubyte  TRIANGLE
-    ^^psg.Voice  voices
-    envelope  (ubyte voice_num, ubyte attack, ubyte sustain, ubyte release)
-    frequency  (ubyte voice_num, uword freq)
-    getvoice  (ubyte voice_num) -> ^^psg.Voice
-    init  ()
-    off  ()
-    update  () -> bool
-    voice  (ubyte voice_num, ubyte channels, ubyte volume, ubyte waveform, ubyte pulsewidth)
-    volume  (ubyte voice_num, ubyte vol)
-}
-
-
 LIBRARY MODULE NAME: sorting
 ----------------------------
 
@@ -1290,6 +1260,36 @@ vera_palette  {
 }
 
 
+LIBRARY MODULE NAME: vera_psg
+-----------------------------
+
+vera_psg  {
+    struct Voice
+    const ubyte  BOTH
+    const ubyte  DISABLED
+    const ubyte  EnvelopeState::ATTACK
+    const ubyte  EnvelopeState::OFF
+    const ubyte  EnvelopeState::RELEASE
+    const ubyte  EnvelopeState::SUSTAIN
+    const ubyte  LEFT
+    const ubyte  NOISE
+    const ubyte  PULSE
+    const ubyte  RIGHT
+    const ubyte  SAWTOOTH
+    const ubyte  SQUARE
+    const ubyte  TRIANGLE
+    ^^vera_psg.Voice  voices
+    envelope  (ubyte voice_num, ubyte attack, ubyte sustain, ubyte release)
+    frequency  (ubyte voice_num, uword freq)
+    getvoice  (ubyte voice_num) -> ^^vera_psg.Voice
+    init  ()
+    off  ()
+    update  () -> bool
+    voice  (ubyte voice_num, ubyte channels, ubyte volume, ubyte waveform, ubyte pulsewidth)
+    volume  (ubyte voice_num, ubyte vol)
+}
+
+
 LIBRARY MODULE NAME: vera_sprites
 ---------------------------------
 
@@ -1322,6 +1322,28 @@ vera_sprites  {
     sety  (ubyte spritenum, word ypos)
     show  (ubyte spritenum)
     zdepth  (ubyte spritenum, ubyte depth)
+}
+
+
+LIBRARY MODULE NAME: vera_text
+------------------------------
+
+vera_text  {
+    const ubyte  DEFAULT_HEIGHT
+    const ubyte  DEFAULT_WIDTH
+    const long  VERA_TEXTMATRIX
+    chrout  (ubyte character)
+    clear_screen  ()
+    color  (ubyte txtcol)
+    color2  (ubyte txtcol, ubyte bgcol)
+    home  ()
+    init  ()
+    plot  (ubyte col, ubyte row)
+    print  (str text)
+    setcc  (ubyte col, ubyte row, ubyte character, ubyte charcolor)
+    setcc2  (ubyte col, ubyte row, ubyte character, ubyte colors)
+    setchr  (ubyte col @X, ubyte row @Y, ubyte character @A) clobbers (A)
+    setclr  (ubyte col @X, ubyte row @Y, ubyte colors @A) clobbers (A)
 }
 
 

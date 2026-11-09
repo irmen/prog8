@@ -161,6 +161,7 @@ class TestCompilerOnExamplesC64: FunSpec({
             ExampleSizes("simplemultiplexer", c64SizeOptimized=924, c64SizeUnoptimized=986),
             ExampleSizes("sprites", c64SizeOptimized=959, c64SizeUnoptimized=2826),
             ExampleSizes("starfield", c64SizeOptimized=737, c64SizeUnoptimized=758),
+            ExampleSizes("vera64-balloonflight", c64SizeOptimized=4450, c64SizeUnoptimized=9185),
             ExampleSizes("vera64-bobs", c64SizeOptimized=2707, c64SizeUnoptimized=4387),
             ExampleSizes("vera64-kefrenbars", c64SizeOptimized=2592, c64SizeUnoptimized=6076),
             ExampleSizes("turtle-gfx", c64SizeOptimized=2701, c64SizeUnoptimized=2812),

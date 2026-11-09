@@ -1572,15 +1572,82 @@ The C64 ``vera`` block provides register definitions and helpers for the Vera64X
 Read the :source:`C64 vera source code <compiler/res/prog8lib/c64/vera.p8>` and the :source:`Vera64X Bobs example <examples/c64/vera64-bobs.p8>` and :source:`Kefrenbars example <examples/c64/vera64-kefrenbars.p8>` to see it in use.
 
 
-psg (C64 + Vera64X)
-^^^^^^^^^^^^^^^^^^^
-.. index:: pair: Libraries; psg
+vera_psg (C64 + Vera64X)
+^^^^^^^^^^^^^^^^^^^^^^^^
+.. index:: pair: Libraries; vera_psg
 
 Available for the C64 target when using the Vera64X board. This module has the same API as ``psg2`` above, including its voice parameters, ASR envelopes, and ``update()`` routine. It accesses the PSG through the C64 ``vera`` module.
 
-Install ``psg.update`` as the C64 IRQ handler with ``sys.set_irq(&psg.update)`` to advance envelopes and apply voice changes regularly. The handler chains to the KERNAL IRQ, keeping the jiffy clock available for ``sys.wait``.
+Install ``vera_psg.update`` as the C64 IRQ handler with ``sys.set_irq(&vera_psg.update)`` to advance envelopes and apply voice changes regularly. The handler chains to the KERNAL IRQ, keeping the jiffy clock available for ``sys.wait``.
 
-See the :source:`Vera64X PSG example <examples/c64/vera64-bdmusic.p8>` and the :source:`C64 PSG source code <compiler/res/prog8lib/c64/psg.p8>`.
+See the :source:`Vera64X PSG example <examples/c64/vera64-bdmusic.p8>` and the :source:`C64 vera_psg source code <compiler/res/prog8lib/c64/vera_psg.p8>`.
+
+
+vera_gfx (C64 + Vera64X)
+^^^^^^^^^^^^^^^^^^^^^^^^
+.. index:: pair: Libraries; vera_gfx
+
+Available for the C64 target when using the Vera64X board. Optimized drawing routines for a single screen mode: 320x240, 256 colors (8bpp), with the bitmap starting at VRAM address $00000. It is the C64 counterpart of the cx16 ``gfx_lores`` module, and accesses VERA through the ``vera`` module.
+
+``init ()``
+    Enable the 320x240 8bpp bitmap on layer 1 and clear the screen. Vera64X always provides Vera FX, so ``clear_screen`` uses the accelerated cache writes.
+
+The module provides ``plot``, ``pget``, ``line``, ``horizontal_line``, ``vertical_line``, ``rect``, ``fillrect``, ``circle``, ``disc``, ``fill`` and ``text``, most with a ``safe_*`` variant that does bounds checking. For sequential pixel writes there are ``position``, ``next_pixel``, ``next_pixels`` and ``set_8_pixels_from_bits``. ``drawmode_eor(bool)`` switches to non-destructive XOR drawing, and ``copy_petscii_charset()`` copies the C64 character ROM into VRAM so that ``text`` works.
+
+Read the :source:`C64 vera_gfx source code <compiler/res/prog8lib/c64/vera_gfx.p8>` and the :source:`Vera64X demo <examples/c64/vera64-demo.p8>` and :source:`Kefrenbars example <examples/c64/vera64-kefrenbars.p8>` to see it in use.
+
+
+vera_palette (C64 + Vera64X)
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+.. index:: pair: Libraries; vera_palette
+
+Available for the C64 target when using the Vera64X board. Routines to read and write the VERA display palette. It is the C64 counterpart of the cx16 ``palette`` module and accesses VERA through the ``vera`` module.
+
+``set_color(ubyte index, uword color)`` and ``get_color(ubyte index) -> uword``
+    Read or write a single palette entry.
+
+``set_rgb`` and its ``set_rgb8``, ``set_rgb_be``, ``set_rgb_nosplit`` and ``set_rgb_be_nosplit`` variants write a range of entries from a color table. The ``fade_step``, ``fade_step_multi`` and ``fade_step_colors`` routines fade entries towards a target color. Presets include ``set_default16()``, ``set_c64ntsc()``, ``set_c64pepto()``, ``set_grayscale()``, ``set_all_black()`` and ``set_all_white()``.
+
+Note: routines in this module clobber the ``cx16.r0``, ``cx16.r1`` and ``cx16.r2`` virtual registers.
+
+Read the :source:`C64 vera_palette source code <compiler/res/prog8lib/c64/vera_palette.p8>` and the :source:`Vera64X demo <examples/c64/vera64-demo.p8>` and :source:`Bobs example <examples/c64/vera64-bobs.p8>` to see it in use.
+
+
+vera_sprites (C64 + Vera64X)
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+.. index:: pair: Libraries; vera_sprites
+
+Available for the C64 target when using the Vera64X board. Simple routines to control VERA sprites. It has the same API as the cx16 ``sprites`` module, but accesses the sprite registers through the ``vera`` module.
+
+They're not written for high performance, but for simplicity, so they control one sprite at a time. The exceptions are ``pos_batch`` and ``pos_batch_nosplit``, which update the positions of several sprites in one call.
+
+``init(spritenum, databank, dataaddr, width_flag, height_flag, colors_flag, palette_offset)``
+    Configure a sprite. Use the ``SIZE_8``, ``SIZE_16``, ``SIZE_32``, ``SIZE_64`` and ``COLORS_16``, ``COLORS_256`` constants for the dimension and color depth flags.
+
+Other routines: ``data``, ``pos``, ``setx``, ``sety``, ``movex``, ``movey``, ``move``, ``getx``, ``gety``, ``getxy``, ``get_data_ptr``, ``hide``, ``show``, ``flipx``, ``flipy``, ``zdepth``, ``set_palette_offset`` and ``reset``. Sprites are always in front of all layers; collision masks are not supported.
+
+Read the :source:`C64 vera_sprites source code <compiler/res/prog8lib/c64/vera_sprites.p8>` and the :source:`Vera64X demo <examples/c64/vera64-demo.p8>` to see it in use.
+
+
+vera_text (C64 + Vera64X)
+^^^^^^^^^^^^^^^^^^^^^^^^^
+.. index:: pair: Libraries; vera_text
+
+Available for the C64 target when using the Vera64X board. Configures VERA layer 1 as an 80x60 text layer with an 8x8 tile set loaded from the C64 character ROM, using the same 128x64 text matrix layout as the CX16 text mode. The caller must call ``vera.reset()`` first; ``init()`` does not reset VERA.
+
+``init ()``
+    Set up the text layer, copy the C64 character ROM into VRAM, restore the default first 16 palette colors, clear the text matrix and home the cursor.
+
+``clear_screen()``, ``home()`` and ``plot(col,row)``
+    Clear the 128x60 text matrix, home the software cursor, or move the software cursor.
+
+``chrout(ubyte)`` and ``print(str)``
+    Output PETSCII at the software cursor, with wrapping at 80 columns and scrolling at the bottom. The control codes for return (13), home (19) and clear screen (147) are handled; other control codes are ignored. Use ``color(fg)`` and ``color2(fg,bg)`` to set the attribute used for output.
+
+``setchr(col,row,character)``, ``setclr(col,row,colors)``, ``setcc(col,row,character,charcolor)`` and ``setcc2(col,row,character,colors)``
+    Write directly to a screen cell. Characters are screencodes. ``setcc`` sets only the foreground color and preserves the background; ``setcc2`` and ``setclr`` take the full packed attribute byte (high nybble background, low nybble foreground), as on the CX16.
+
+See the :source:`C64 vera_text source code <compiler/res/prog8lib/c64/vera_text.p8>` and the :source:`Vera64X Balloonflight example <examples/c64/vera64-balloonflight.p8>`.
 
 
 serial  (cx16 only)
@@ -2163,6 +2230,7 @@ Read the :source:`CX16 verafx source code <compiler/res/prog8lib/cx16/verafx.p8>
 
 wavfile
 ^^^^^^^
+.. index:: pair: Libraries; wavfile
 
 ``sub parse_header(^^ubyte wav_data) -> bool``
     Parses the header of a .wav file. Returns true if it's a valid wav file, false if is invalid.

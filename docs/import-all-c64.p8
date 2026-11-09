@@ -14,7 +14,6 @@
 %import math
 %import petgfx
 %import prog8_lib
-%import psg
 %import sorting
 %import strings
 %import syslib
@@ -23,6 +22,8 @@
 %import vera
 %import vera_gfx
 %import vera_palette
+%import vera_psg
 %import vera_sprites
+%import vera_text
 %import wavfile
 

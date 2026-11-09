@@ -37,7 +37,7 @@
 
 %option ignore_unused
 
-psg {
+vera_psg {
     %option ignore_unused
 
     ; waveform options:
@@ -165,7 +165,7 @@ psg {
         ; If you want to use real-time volume envelopes (Attack-Sustain-Release),
         ; you have to call this routine regularly, for example once per frame from your irq handler.
         ; Or just install this routine as the only irq handler if you don't have to do other things there:
-        ;   sys.set_irq(&psg.update)
+        ;   sys.set_irq(&vera_psg.update)
         ; Note: it returns true, so the c64 system irq handler will chain to the kernal irq routine
         ; (which is required to keep the jiffy clock running).
 
@@ -260,43 +260,43 @@ psg {
         %asm {{
             ; save VERA registers to our own private storage (not clobbering vera's global _vera_storage)
             lda  vera.VERA_ADDR_L
-            sta  p8b_psg.p8v_vera_storage
+            sta  p8b_vera_psg.p8v_vera_storage
             lda  vera.VERA_ADDR_M
-            sta  p8b_psg.p8v_vera_storage+1
+            sta  p8b_vera_psg.p8v_vera_storage+1
             lda  vera.VERA_ADDR_H
-            sta  p8b_psg.p8v_vera_storage+2
+            sta  p8b_vera_psg.p8v_vera_storage+2
             lda  vera.VERA_CTRL
-            sta  p8b_psg.p8v_vera_storage+3
+            sta  p8b_vera_psg.p8v_vera_storage+3
             eor  #1
-            sta  p8b_psg.p8v_vera_storage+7
+            sta  p8b_vera_psg.p8v_vera_storage+7
             sta  vera.VERA_CTRL
             lda  vera.VERA_ADDR_L
-            sta  p8b_psg.p8v_vera_storage+4
+            sta  p8b_vera_psg.p8v_vera_storage+4
             lda  vera.VERA_ADDR_M
-            sta  p8b_psg.p8v_vera_storage+5
+            sta  p8b_vera_psg.p8v_vera_storage+5
             lda  vera.VERA_ADDR_H
-            sta  p8b_psg.p8v_vera_storage+6
+            sta  p8b_vera_psg.p8v_vera_storage+6
             rts
         }}
     }
 
     private asmsub psg_restore_vera_context() clobbers(A) {
         %asm {{
-            lda  p8b_psg.p8v_vera_storage+7
+            lda  p8b_vera_psg.p8v_vera_storage+7
             sta  vera.VERA_CTRL
-            lda  p8b_psg.p8v_vera_storage+6
+            lda  p8b_vera_psg.p8v_vera_storage+6
             sta  vera.VERA_ADDR_H
-            lda  p8b_psg.p8v_vera_storage+5
+            lda  p8b_vera_psg.p8v_vera_storage+5
             sta  vera.VERA_ADDR_M
-            lda  p8b_psg.p8v_vera_storage+4
+            lda  p8b_vera_psg.p8v_vera_storage+4
             sta  vera.VERA_ADDR_L
-            lda  p8b_psg.p8v_vera_storage+3
+            lda  p8b_vera_psg.p8v_vera_storage+3
             sta  vera.VERA_CTRL
-            lda  p8b_psg.p8v_vera_storage+2
+            lda  p8b_vera_psg.p8v_vera_storage+2
             sta  vera.VERA_ADDR_H
-            lda  p8b_psg.p8v_vera_storage+1
+            lda  p8b_vera_psg.p8v_vera_storage+1
             sta  vera.VERA_ADDR_M
-            lda  p8b_psg.p8v_vera_storage+0
+            lda  p8b_vera_psg.p8v_vera_storage+0
             sta  vera.VERA_ADDR_L
             rts
         }}

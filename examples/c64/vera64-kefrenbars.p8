@@ -3,12 +3,10 @@
 ;
 ; A Vera64X is the same VERA chip as the X16 has, so the effect works the same way:
 ; a 320x240 8bpp bitmap whose first line is stretched over the full screen height,
-; and a wide bar drawn into that first line between consecutive VERA line interrupts.
+; and a wide bar drawn into that first line at consecutive VERA scanline positions.
 ;
-; There is no VERA irq handler setup on the C64: the line-compare flag in VERA_ISR is polled
-; instead (the flag latches even while the line interrupt enable bit is off), so no CPU irq
-; is involved. Note that sys.waitvsync() waits for the VIC-II, not for VERA - the bars need
-; VERA's own line timing, not the VIC-II's.
+; There is no VERA irq handler setup on the C64: the current VERA scanline is polled directly.
+; Scanline bit 8 is read from bit 6 of VERA_IEN, so this works across all 480 visible lines.
 ;
 ; A 1 MHz 6502 needs more time between two bar updates than the X16's 5 scanlines,
 ; hence the bigger (and thus fewer, wider) bands.
@@ -40,27 +38,27 @@ main {
         vera_gfx.init()                 ; lores 320x240 8bpp bitmap on layer 1, bitmap at vram $00000
         vera.VERA_DC_VSCALE = 0         ; display trick spoiler.......: stretch 1 line of display all the way to the bottom
 
-        set_line(0)
-        vera.VERA_ISR = %00000010       ; drop a possibly stale line flag
-
         repeat {
-            while (vera.VERA_ISR & %00000010)==0 {}
-            vera.VERA_ISR = %00000010   ; acknowledge the line flag
+            wait_for_scanline(next_line)
             next_bar()
         }
     }
 
-    const ubyte BAR_Y_OFFSET = 25       ; scanlines between two bar updates
+    const ubyte BAR_Y_OFFSET = 20       ; scanlines between two bar updates
     uword next_line = 0
     ubyte anim1 = 0
     ubyte anim2 = 0
     ubyte av1 = 0
     ubyte av2 = 0
 
-    sub set_line(uword line) {
-        ; line compare low byte in IRQLINE_L, its bit 8 in IEN bit 7; the line irq enable (bit 1) stays off
-        vera.VERA_IRQLINE_L = lsb(line)
-        vera.VERA_IEN = if msb(line)!=0 then %10000000 else 0
+    sub wait_for_scanline(uword line) {
+        if line == 0 {
+            while (vera.VERA_IEN & %01000000)!=0 or vera.VERA_SCANLINE_L > 1 {}
+        } else if msb(line)==0 {
+            while (vera.VERA_IEN & %01000000)!=0 or vera.VERA_SCANLINE_L < lsb(line) {}
+        } else {
+            while (vera.VERA_IEN & %01000000)==0 or vera.VERA_SCANLINE_L < lsb(line) {}
+        }
     }
 
     sub next_bar() {
@@ -73,11 +71,9 @@ main {
             anim1 = av1
             anim2 = av2
             next_line = 0
-            set_line(next_line)
             ; erase the bars: only bitmap line 0 (320 pixels) has to be cleared
             verafx.clear(0, 0, 3, 80)
         } else {
-            set_line(next_line)
             ; add new bar on top
             vera_gfx.position(math.sin8u(anim1)/2 + math.cos8u(anim2)/2 + $0010, 0)
             draw_bar()

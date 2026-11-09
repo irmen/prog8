@@ -23,19 +23,31 @@ main {
             cx16.VERA_DATA0 = sc:' '
             cx16.VERA_DATA0 = $00
         }
+        stars.init()
 
         ; activate balloon and moon sprites
         sprites.init(1, 0, $0000, sprites.SIZE_32, sprites.SIZE_64, sprites.COLORS_16, 1)
         sprites.init(2, 0, $0400, sprites.SIZE_32, sprites.SIZE_32, sprites.COLORS_16, 2)
         spritedata.copy_to_vram()
 
+        ; copperlist-style sunset gradient on the background, via scanline IRQs
+        irq.make_gradient()
+        cx16.enable_irq_handlers(true)
+        cx16.set_line_irq_handler(0, &irq.irqhandler)
+        cx16.set_vsync_irq_handler(&irq.vsynchandler)
+
         ; Scroll!
         ; Unlike the C64 version, there is no need to copy the whole text matrix 1 character to the left
         ; every 8 pixels. The X16 has a much larger soft scroll register and the displayed tiles wrap around.
 
         repeat {
-            sys.waitvsync()
+            do {
+                sys.waitirq()
+            } until irq.vsync_flag
+            irq.vsync_flag = false
             cx16.VERA_L1_HSCROLL ++
+            if cx16.VERA_L1_HSCROLL & 1 == 0
+                cx16.VERA_L0_HSCROLL ++
 
             if cx16.VERA_L1_HSCROLL & 7 == 0 {
 
@@ -87,10 +99,6 @@ main {
                 }
 
                 ubyte clutter = math.rnd()
-                if clutter > 100 {
-                    ; draw a star
-                    txt.setcc(draw_column, clutter % (active_height-1), sc:'.', math.rnd())
-                }
 
                 if clutter > 200 {
                     ; draw a tree
@@ -110,6 +118,84 @@ main {
                     txt.setcc(draw_column, active_height, sc:'π', 9)
                 }
             }
+        }
+    }
+}
+
+stars {
+    const uword MAP_ADDRESS = $8000
+
+    sub init() {
+        cx16.VERA_L0_CONFIG = %01100000
+        cx16.VERA_L0_MAPBASE = $40
+        cx16.VERA_L0_TILEBASE = $f8
+        cx16.VERA_L0_HSCROLL = 0
+        cx16.VERA_L0_VSCROLL = 0
+        cx16.VERA_DC_VIDEO |= %00010000
+
+        cx16.vaddr(0, MAP_ADDRESS, 0, 1)
+        repeat 128 * 64 {
+            cx16.VERA_DATA0 = sc:' '
+            cx16.VERA_DATA0 = 1
+        }
+
+        repeat 96 {
+            ubyte col = math.rnd() & 127
+            ubyte row = math.rnd() & 63
+            ubyte color = 1 + math.rnd() % 15
+            set_star(col, row, color)
+        }
+    }
+
+    sub set_star(ubyte col, ubyte row, ubyte color) {
+        uword address = MAP_ADDRESS + (((row as uword) * 128 + col) * 2)
+        cx16.vaddr(0, address, 0, 1)
+        cx16.VERA_DATA0 = sc:'.'
+        cx16.VERA_DATA0 = color
+    }
+}
+
+irq {
+    const ubyte NUM_BANDS = 16     ; 480 scanlines / 30 (16 color steps)
+    ubyte band = 0
+    uword next_line = 0
+    uword[NUM_BANDS] gradient
+    bool vsync_flag = false
+
+    sub vsynchandler() -> bool {
+        cx16.save_vera_context()
+        palette.set_color(0, gradient[0])
+        cx16.restore_vera_context()
+        vsync_flag = true
+        return true
+    }
+
+    sub irqhandler() -> bool {
+        cx16.save_vera_context()
+        palette.set_color(0, gradient[band])
+        cx16.restore_vera_context()
+
+        band++
+        if band == NUM_BANDS {
+            band = 0
+            next_line = 0
+        } else {
+            next_line += 30
+        }
+        sys.set_rasterline(next_line)
+        return false
+    }
+
+    sub make_gradient() {
+        ; very late sunset: black at the top, deep red/purple at the bottom
+        const ubyte tr = 15
+        const ubyte tg = 2
+        const ubyte tb = 9
+        for i in 0 to NUM_BANDS - 1 {
+            ubyte r = (((i as uword) * tr) / (NUM_BANDS - 1)) as ubyte
+            ubyte g = (((i as uword) * tg) / (NUM_BANDS - 1)) as ubyte
+            ubyte b = (((i as uword) * tb) / (NUM_BANDS - 1)) as ubyte
+            gradient[i] = mkword(r, (g << 4) | b)
         }
     }
 }

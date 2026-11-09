@@ -491,25 +491,21 @@ class Prog8TextDocumentService: TextDocumentService {
                         Position(lineNum, endCol)
                     )
                     
-                    // Check if it's a built-in library module
-                    // These are the module names users actually use in %import statements
-                    // The compiler resolves these to target-specific versions automatically
+                    // Built-in library module names, derived from the .p8 files in
+                    // compiler/res/prog8lib, excluding shared_* implementation fragments.
+                    // TestLibraryModuleNames in the compiler module checks this list for drift.
                     val builtinModules = setOf(
-                        // Core libraries (available on all targets)
-                        "bcd", "buffers", "compression", "conv", "coroutines", "lineclip",
-                        "math", "prog8_lib", "prog8_math", "sorting", "strings",
-                        "test_stack", "wavfile",
-                        
-                        // Target-specific modules (compiler resolves to correct version)
-                        "diskio", "floats", "graphics", "syslib", "textio", "sys",
-                        "petsnd", "petgfx",
-                        
-                        // CX16 specific modules
-                        "adpcm", "bmx", "emudbg", "gfx_hires", "gfx_lores",
-                        "monogfx", "palette", "psg", "psg2", "serial", "sprites", "verafx",
-                        
-                        // Common aliases
-                        "cbm", "memory", "txt"
+                        "adpcm", "ahi", "arena", "arexx", "asllib", "asyncio",
+                        "audio", "bcd", "blitter", "bmx", "buffers", "compression",
+                        "conv", "copper", "coroutines", "custom", "cx16logo", "datatypes",
+                        "diskfont", "diskio", "dos", "easygfx", "emudbg", "exec",
+                        "floats", "gfx_hires", "gfx_lores", "graphics", "icon", "iffparse",
+                        "intuition", "lineclip", "lists", "lowlevel", "math", "monogfx",
+                        "palette", "petgfx", "petsnd", "playfield", "prog8_lib", "prog8_math",
+                        "psg", "psg2", "ptplayer", "serial", "sorting", "sound",
+                        "sprites", "strings", "syslib", "test_stack", "text", "textio",
+                        "timer", "trackdisk", "utility", "vera", "vera_gfx", "vera_palette",
+                        "vera_psg", "vera_sprites", "vera_text", "verafx", "wavfile"
                     )
                     
                     val link = if (moduleName in builtinModules) {
