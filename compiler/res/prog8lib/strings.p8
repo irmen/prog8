@@ -511,7 +511,7 @@ _done       rts
         %asm{{
             cmp #97
             bcc +
-            cmp #121
+            cmp #123
             bcs +
             and #%11011111
 +           rts
