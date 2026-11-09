@@ -92,10 +92,13 @@ main {
         val withpSub = IRFileReader().read(ir).allSubs().first { it.label.endsWith("p8s_withp") }
         val withpAsm = subAssembly(lines, "p8b_main.p8s_withp")
         withpSub.hasFrame shouldBe true
-        // With no locals and only incoming arguments, the backend omits the frame pointer.
-        withpSub.framePointerOmitted shouldBe true
-        withpAsm.any { it.contains("frame pointer omitted") } shouldBe true
-        withpAsm.none { "(a5)" in it } shouldBe true
+        // The body allocates callee-saved registers, so the frame pointer is kept
+        // to address the incoming arguments and the movem save/restore pair.
+        withpSub.framePointerOmitted shouldBe false
+        withpAsm.any { it == "link  a5,#0" } shouldBe true
+        withpAsm.any { it.startsWith("movem.l  ") && it.endsWith(",-(sp)") } shouldBe true
+        withpAsm.any { it == "unlk  a5" } shouldBe true
+        withpAsm.any { "(a5)" in it } shouldBe true
         // word-packed slots (IR offsets): long at 8, word slot at 12, byte slot at 14.
         // parameters are no longer static storage
         lines.none { "p8v_a:" in it || "p8v_b:" in it || "p8v_c:" in it } shouldBe true
@@ -134,9 +137,12 @@ main {
         val sub = IRFileReader().read(ir).allSubs().first { it.label.endsWith("p8s_five") }
         val fiveAsm = subAssembly(lines, "p8b_main.p8s_five")
         sub.hasFrame shouldBe true
-        sub.framePointerOmitted shouldBe true
-        fiveAsm.any { it.contains("frame pointer omitted") } shouldBe true
-        fiveAsm.none { "(a5)" in it } shouldBe true
+        // The body allocates callee-saved registers, so the frame pointer is kept.
+        sub.framePointerOmitted shouldBe false
+        fiveAsm.any { it == "link  a5,#0" } shouldBe true
+        fiveAsm.any { it.startsWith("movem.l  ") && it.endsWith(",-(sp)") } shouldBe true
+        fiveAsm.any { it == "unlk  a5" } shouldBe true
+        fiveAsm.any { "(a5)" in it } shouldBe true
         // 5 parameters, word-packed slots, accumulated right-to-left: byte slot at 18,
         // word slot at 16, long slot at 12, byte slot at 10, word slot at 8.
         ir.contains("INCOMING=\"12\"") shouldBe true
@@ -817,9 +823,13 @@ main {
         val rec = subAssembly(lines, "p8b_main.p8s_rec")
         val sub = IRFileReader().read(ir).allSubs().first { it.label.endsWith("p8s_rec") }
         sub.hasFrame shouldBe true
-        sub.framePointerOmitted shouldBe true
-        rec.any { it.contains("frame pointer omitted") } shouldBe true
-        rec.none { "(a5)" in it } shouldBe true
+        // The body allocates a callee-saved register, so the frame pointer is kept
+        // and the incoming argument is addressed relative to a5.
+        sub.framePointerOmitted shouldBe false
+        rec.any { it == "link  a5,#0" } shouldBe true
+        rec.any { it.startsWith("movem.l  ") && it.endsWith(",-(sp)") } shouldBe true
+        rec.any { it == "unlk  a5" } shouldBe true
+        rec.any { "(a5)" in it } shouldBe true
         rec.any { it.contains("p8b_main.p8s_rec.p8v_x") } shouldBe true
         // the static cell is kept for the assembly reference; the body itself also uses the
         // static cell (the entry-time copy-in made it the current value)
@@ -846,9 +856,12 @@ main {
         val leaf = subAssembly(lines, "p8b_main.p8s_leaf")
         val sub = IRFileReader().read(ir).allSubs().first { it.label.endsWith("p8s_leaf") }
         sub.hasFrame shouldBe true
-        sub.framePointerOmitted shouldBe true
-        leaf.any { it.contains("frame pointer omitted") } shouldBe true
-        leaf.none { "(a5)" in it } shouldBe true
+        // The body allocates a callee-saved register, so the frame pointer is kept.
+        sub.framePointerOmitted shouldBe false
+        leaf.any { it == "link  a5,#0" } shouldBe true
+        leaf.any { it.startsWith("movem.l  ") && it.endsWith(",-(sp)") } shouldBe true
+        leaf.any { it == "unlk  a5" } shouldBe true
+        leaf.any { "(a5)" in it } shouldBe true
     }
 
     test("inline assembly subroutine with %option noframe keeps the static convention") {
@@ -1175,10 +1188,12 @@ main {
         val pick = subAssembly(lines, "p8b_main.p8s_pick")
         val sub = IRFileReader().read(ir).allSubs().first { it.label.endsWith("p8s_pick") }
         sub.hasFrame shouldBe true
-        // The only argument is passed on the stack; with no locals the frame pointer is omitted.
-        sub.framePointerOmitted shouldBe true
-        pick.any { it.contains("frame pointer omitted") } shouldBe true
-        pick.none { "(a5)" in it } shouldBe true
+        // The jump-table dispatch allocates callee-saved registers, so the frame pointer is kept.
+        sub.framePointerOmitted shouldBe false
+        pick.any { it == "link  a5,#0" } shouldBe true
+        pick.any { it.startsWith("movem.l  ") && it.endsWith(",-(sp)") } shouldBe true
+        pick.any { it == "unlk  a5" } shouldBe true
+        pick.any { "(a5)" in it } shouldBe true
         // the jump table auto-variable keeps static storage on purpose: it is read-only
         // constant data, and framing it would add an initialization store on every call
         ir.contains("auto_heap_value") shouldBe true
@@ -1519,13 +1534,15 @@ main {
             sub.hasFrame shouldBe true
             subAssembly(lines, subName).any { it.startsWith("link") } shouldBe true
         }
-        // helper has no locals and only an incoming argument, so the frame pointer is omitted
+        // helper allocates a callee-saved register, so the frame pointer is kept
         val helper = program.allSubs().first { it.label == "p8b_main.p8s_helper" }
         val helperAsm = subAssembly(lines, "p8b_main.p8s_helper")
         helper.hasFrame shouldBe true
-        helper.framePointerOmitted shouldBe true
-        helperAsm.any { it.contains("frame pointer omitted") } shouldBe true
-        helperAsm.none { "(a5)" in it } shouldBe true
+        helper.framePointerOmitted shouldBe false
+        helperAsm.any { it == "link  a5,#0" } shouldBe true
+        helperAsm.any { it.startsWith("movem.l  ") && it.endsWith(",-(sp)") } shouldBe true
+        helperAsm.any { it == "unlk  a5" } shouldBe true
+        helperAsm.any { "(a5)" in it } shouldBe true
     }
 
     test("%option with a non-noframe argument is rejected in a subroutine") {

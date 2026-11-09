@@ -58,9 +58,6 @@ class M68kRegisterAllocator(val program: IRProgram) {
 
     private val allocatablePool = (dataRegs + addrRegs + fpRegs).toSet()
 
-    private val ASM_WORD = Regex("[A-Za-z0-9_.]+")
-    private val ASM_SIZE_SUFFIXES = setOf('b', 'w', 'l', 's')
-
     // IRAsmSubroutines by label, for fixed-register call boundary lookup.
     private val asmSubByLabel: Map<String, IRAsmSubroutine> by lazy {
         program.allAsmSubs().associateBy { it.label }
@@ -79,69 +76,6 @@ class M68kRegisterAllocator(val program: IRProgram) {
         val label = (target.reference as? CodeReference.Label)?.name ?: return null
         if (label !in subByLabel || label in asmSubByLabel) return null
         return label
-    }
-
-    // Subroutines that can be entered other than through a known ordinary direct call.
-    // These keep their full callee-saved set: the caller's demand is not observable.
-    private fun externalEntryLabels(): Set<String> {
-        val subLabels = subByLabel.keys
-        val subSymbols = subLabels.associateWith { setOf(it, M68kRegisterConvention.asmSymbolName(it)) }
-        val external = mutableSetOf<String>()
-        // Fixed-address blocks may be entered from outside the compiled program.
-        for (block in program.blocks) {
-            if (block.options.address != null)
-                block.children.filterIsInstance<IRSubroutine>().forEach { external.add(it.label) }
-        }
-        program.forEachChunk { chunk ->
-            if (chunk is IRInlineAsmChunk) {
-                // raw asm can call or take the address of a subroutine symbol
-                val words = asmSymbolWords(chunk.assembly)
-                for ((label, symbols) in subSymbols) if (symbols.any { it in words }) external.add(label)
-            } else {
-                for (ins in chunk.instructions) {
-                    // a branch/jump to a subroutine label is an entry that is not a known call
-                    (ins.target as? CodeReference.Label)?.name?.let { if (it in subLabels) external.add(it) }
-                    (ins.immediate as? ImmediateOperand.SymbolAddress)?.symbol?.let { if (it in subLabels) external.add(it) }
-                    val base = when (val mem = ins.memory) {
-                        is MemoryReference.Direct -> mem.base
-                        is MemoryReference.Indexed -> mem.base
-                        is MemoryReference.Indirect, null -> null
-                    }
-                    (base as? AddressBase.Symbol)?.name?.let { if (it in subLabels) external.add(it) }
-                    val cs = ins.callSite
-                    if (cs != null) {
-                        val ref = cs.codeReference
-                        if (ref is CodeReference.Label && ref.name in subLabels && ordinaryCallLabel(cs) == null)
-                            external.add(ref.name)
-                    }
-                }
-            }
-        }
-        // Mirrors AsmOptimizer.optimizeTailCall (bsr/jsr + rts -> bra): such a callee returns on our behalf.
-        for (sub in program.allSubs()) {
-            val instructions = allChunks(sub).flatMap { it.instructions }
-            for (index in 0 until instructions.lastIndex) {
-                val call = instructions[index]
-                val callSite = call.callSite
-                if (callSite == null || instructions[index + 1].opcode != Opcode.RETURN)
-                    continue
-                ordinaryCallLabel(callSite)?.let { external.add(it) }
-            }
-        }
-        return external
-    }
-
-    // Symbol-like words of raw assembly text; a size-suffixed word such as "label.w" also yields "label".
-    private fun asmSymbolWords(text: String): Set<String> {
-        val words = mutableSetOf<String>()
-        for (match in ASM_WORD.findAll(text)) {
-            val word = match.value
-            words.add(word)
-            val dot = word.lastIndexOf('.')
-            if (dot > 0 && word.length - dot == 2 && word[dot + 1].lowercaseChar() in ASM_SIZE_SUFFIXES)
-                words.add(word.substring(0, dot))
-        }
-        return words
     }
 
     // Per-call-site fixed-register boundary metadata, or null for ordinary Prog8
@@ -254,21 +188,12 @@ class M68kRegisterAllocator(val program: IRProgram) {
         val spilledVregsBySub = mutableMapOf<IRSubroutine, List<VirtualRegister>>()
         val callSiteEffects = mutableMapOf<IRSubroutine, MutableMap<Int, CallSiteRegisterEffects>>()
         val statsBySub = mutableMapOf<IRSubroutine, SubAllocStats>()
-        // Physical registers each ordinary callee must preserve, demanded by its known ordinary callers.
-        val demandedByCallee = mutableMapOf<String, MutableSet<String>>()
         for (block in program.blocks) {
             for (child in block.children) {
                 if (child is IRSubroutine)
                     allocateSubroutine(child, mapBySub, calleeSavedBySub, spillDemandBySub, spilledVregsBySub,
-                        callSiteEffects, statsBySub, demandedByCallee)
+                        callSiteEffects, statsBySub)
             }
-        }
-        // Second pass: a callee with only known ordinary callers preserves just what they keep live; any other entry keeps its full set.
-        val externalEntries = externalEntryLabels()
-        for (sub in program.allSubs()) {
-            val colored = calleeSavedBySub[sub] ?: continue
-            if (sub.label in externalEntries || sub.label !in demandedByCallee) continue
-            calleeSavedBySub[sub] = colored.intersect(demandedByCallee[sub.label] ?: emptySet())
         }
         // global inits chunk (treat as a subroutine-less scope) - skip for now
         return AllocationResult(mapBySub, calleeSavedBySub, spillDemandBySub, spilledVregsBySub, callSiteEffects, statsBySub)
@@ -281,8 +206,7 @@ class M68kRegisterAllocator(val program: IRProgram) {
         spillDemandBySub: MutableMap<IRSubroutine, Int>,
         spilledVregsBySub: MutableMap<IRSubroutine, List<VirtualRegister>>,
         callSiteEffects: MutableMap<IRSubroutine, MutableMap<Int, CallSiteRegisterEffects>>,
-        statsBySub: MutableMap<IRSubroutine, SubAllocStats>,
-        demandedByCallee: MutableMap<String, MutableSet<String>>
+        statsBySub: MutableMap<IRSubroutine, SubAllocStats>
     ) {
         val chunks = allChunks(sub)
         if (chunks.isEmpty()) return
@@ -405,8 +329,6 @@ class M68kRegisterAllocator(val program: IRProgram) {
         val forbiddenByVreg = mutableMapOf<VirtualRegister, MutableSet<String>>()
         val subCallEffects = mutableMapOf<Int, CallSiteRegisterEffects>()
         val callModifiedPool = mutableSetOf<String>()
-        // Ordinary-call targets -> vregs this caller keeps live across the call (mapped to physical regs later).
-        val liveAcrossByTarget = mutableMapOf<String, MutableList<Set<VirtualRegister>>>()
         // Ordinals count every instruction carrying a callSite, in flattened chunk order.
         val callOrdinal = java.util.IdentityHashMap<IRInstruction, Int>()
         var nextOrdinal = 0
@@ -456,12 +378,6 @@ class M68kRegisterAllocator(val program: IRProgram) {
                 // Fixed-register call boundaries: values surviving the call cannot sit in registers it touches.
                 ins.callSite?.let { cs ->
                     val ordinaryTarget = ordinaryCallLabel(cs)
-                    if (ordinaryTarget != null) {
-                        demandedByCallee.getOrPut(ordinaryTarget) { mutableSetOf() }
-                        val liveAcross = (live - defs).toSet()
-                        if (liveAcross.isNotEmpty())
-                            liveAcrossByTarget.getOrPut(ordinaryTarget) { mutableListOf() }.add(liveAcross)
-                    }
                     val effects = fixedBoundaryEffects(cs)
                     if (effects != null) {
                         subCallEffects[callOrdinal[ins]!!] = effects
@@ -522,13 +438,8 @@ class M68kRegisterAllocator(val program: IRProgram) {
 
         for ((v, p) in color) mapBySub.getOrPut(sub) { mutableMapOf() }[v] = p
         // Fixed-register calls can modify pool registers not holding this sub's vregs.
+        // Allocated registers must be saved regardless of current callers' liveness to honor the ABI.
         calleeSavedBySub[sub] = color.values.toSet() + callModifiedPool
-        // The caller's demand is what it actually placed in registers across each call; spilled values need nothing.
-        for ((targetLabel, liveSets) in liveAcrossByTarget) {
-            val demanded = demandedByCallee.getOrPut(targetLabel) { mutableSetOf() }
-            for (liveSet in liveSets)
-                for (v in liveSet) color[v]?.let { demanded.add(it) }
-        }
         spillDemandBySub[sub] = spills
         val spilled = vregs.filter { it !in color && it !in forwarded }.toList()
         spilledVregsBySub[sub] = spilled

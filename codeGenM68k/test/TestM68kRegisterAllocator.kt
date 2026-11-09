@@ -162,6 +162,41 @@ class TestM68kRegisterAllocator : FunSpec({
         (used!!.size > 0) shouldBe true
     }
 
+    test("ordinary callees save allocated registers even when callers have no live values") {
+        val options = CompilationOptions.builder(Qemu68kTarget())
+            .output(OutputType.RAW).zeropage(ZeropageType.FLOATSAFE)
+            .compilerVersion("test").memtopAddress(0xffffu).optimize(true).build()
+        val program = IRProgram("test", IRSymbolTable(), options, DummyStringEncoder)
+        val callerChunk = IRCodeChunk(null, null)
+        callerChunk.instructions.add(IRInstruction(
+            Opcode.CALL,
+            null,
+            callSite = CallSite(CallTarget.Direct(CodeReference.Label("test.callee", 0)))
+        ))
+        callerChunk.instructions.add(IRInstructions.simple(Opcode.RETURN))
+        val caller = IRSubroutine("test.caller", emptyList(), emptyList(), Position.DUMMY)
+        caller.chunks.add(callerChunk)
+
+        val calleeChunk = IRCodeChunk(null, null)
+        calleeChunk.instructions.add(IRInstructions.load(IRDataType.WORD, 1, 5))
+        calleeChunk.instructions.add(IRInstructions.load(IRDataType.WORD, 2, 6))
+        calleeChunk.instructions.add(IRInstructions.binary(Opcode.MULR, IRDataType.WORD, 1, 2))
+        calleeChunk.instructions.add(IRInstructions.storeMemory(Opcode.STOREM, IRDataType.WORD, 1, IRMemory.direct("p8b_test.p8v_result")))
+        calleeChunk.instructions.add(IRInstructions.simple(Opcode.RETURN))
+        val callee = IRSubroutine("test.callee", emptyList(), emptyList(), Position.DUMMY)
+        callee.chunks.add(calleeChunk)
+
+        val block = IRBlock("test", false, IRBlock.Options(), Position.DUMMY)
+        block.children.add(caller)
+        block.children.add(callee)
+        program.blocks.add(block)
+
+        val result = M68kRegisterAllocator(program).allocate()
+        val allocated = result.mapBySub[callee]!!.values.toSet()
+        allocated.isNotEmpty() shouldBe true
+        result.calleeSavedBySub[callee] shouldBe allocated
+    }
+
     test("spill demand is reported when register pressure exceeds the data pool") {
         val options = CompilationOptions.builder(Qemu68kTarget())
             .output(OutputType.RAW).zeropage(ZeropageType.FLOATSAFE)
@@ -223,13 +258,12 @@ class TestM68kRegisterAllocator : FunSpec({
         result.callSiteEffects[sub] shouldBe null
     }
 
-    test("ordinary callee preserves only the registers its known callers require") {
+    test("ordinary callee preserves every register it uses") {
         val options = CompilationOptions.builder(Qemu68kTarget())
             .output(OutputType.RAW).zeropage(ZeropageType.FLOATSAFE)
             .compilerVersion("test").memtopAddress(0xffffu).optimize(true).build()
         val program = IRProgram("test", IRSymbolTable(), options, DummyStringEncoder)
-        // caller: r1 is live across the call to test.callee, so the callee must
-        // preserve exactly the register r1 is colored to.
+        // caller: r1 is live across the call to test.callee.
         val callerChunk = IRCodeChunk(null, null)
         callerChunk.instructions.add(IRInstructions.load(IRDataType.WORD, 1, 5))
         val callSite = CallSite(CallTarget.Direct(CodeReference.Label("test.callee", 0)))
@@ -255,7 +289,7 @@ class TestM68kRegisterAllocator : FunSpec({
         val calleeColored = result.mapBySub[callee]!!.values.toSet()
         calleeColored shouldBe setOf("d2", "d3", "d4", "d5", "d6")
         (liveReg in calleeColored) shouldBe true
-        result.calleeSavedBySub[callee] shouldBe setOf(liveReg)
+        result.calleeSavedBySub[callee] shouldBe calleeColored
     }
 
     test("callee preserves caller-live registers used for outgoing asmsub arguments") {
