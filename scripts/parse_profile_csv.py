@@ -59,7 +59,12 @@ def _is_profile_data_row(row: list) -> bool:
 def _read_profile_data(csv_path: str) -> list:
     """Read profile data from CSV, skipping any header/garbage."""
     calls = []
-    with open(csv_path, 'r') as f:
+    try:
+        f = open(csv_path, 'r')
+    except OSError as e:
+        print(f"error: cannot read '{csv_path}': {e.strerror or e}")
+        return []
+    with f:
         reader = csv.reader(f)
         data_started = False
         for row in reader:
@@ -177,14 +182,11 @@ def generate_flame_graph(csv_path: str, output_path: str) -> None:
     if not calls:
         print("No calls found in profile.csv")
         return
-    
-    # Find max depth (shallowest = root)
-    max_depth = max(c[0] for c in calls)
-    
+
     # Build folded stack format for flamegraph.pl
     # Format: "func1;func2;func3 count"
     # We need to track stack at each point and output when a call ends
-    
+
     # Stack holds (depth, routine, start_timestamp)
     stack: list[tuple[int, str, int]] = []
     
@@ -210,17 +212,15 @@ def generate_flame_graph(csv_path: str, output_path: str) -> None:
         # Push current onto stack
         stack.append((depth, routine, timestamp))
     
-    # Handle remaining items on stack
+    # Handle remaining items on stack: each still-open frame gets the time
+    # from its own start until the last timestamp, attributed to its own
+    # stack (ancestors up to and including itself) - not the whole stack.
     if stack:
         final_time = calls[-1][1]
-        for ended_depth, ended_routine, start_time in stack:
-            stack_routines = [r for (_, r, _) in stack] + [ended_routine]
-            stack_str = ";".join(stack_routines)
+        for i, (ended_depth, ended_routine, start_time) in enumerate(stack):
+            stack_str = ";".join(r for (_, r, _) in stack[:i + 1])
             elapsed = final_time - start_time
-            
-            if stack_str not in folded_stacks:
-                folded_stacks[stack_str] = 0
-            folded_stacks[stack_str] += elapsed
+            folded_stacks[stack_str] = folded_stacks.get(stack_str, 0) + elapsed
     
     # Write folded stacks to temp file
     import tempfile
@@ -232,10 +232,10 @@ def generate_flame_graph(csv_path: str, output_path: str) -> None:
     # Run flamegraph.pl to generate SVG
     output_file = f"{output_path}.svg"
     try:
-        with open(output_file, 'w') as out:
+        with open(folded_file, 'r') as folded, open(output_file, 'w') as out:
             subprocess.run(
                 ['flamegraph.pl', '--title', 'Prog8 Flame Graph', '--width', '1024'],
-                stdin=open(folded_file, 'r'),
+                stdin=folded,
                 stdout=out,
                 stderr=subprocess.PIPE,
                 check=True

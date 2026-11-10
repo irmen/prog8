@@ -5,7 +5,6 @@
 %import easygfx
 %import graphics
 %import intuition
-%import exec
 %import math
 
 main {
@@ -57,7 +56,7 @@ main {
             bool done = false
             while not done {
                 ; Non-blocking message pump so the animation keeps running.
-                ^^intuition.IntuiMessage msg = exec.GetMsg(easygfx.window.UserPort) as ^^intuition.IntuiMessage
+                ^^intuition.IntuiMessage msg = easygfx.imsg_poll()
                 while msg != 0 {
                     when msg.Class {
                         intuition.IDCMP_RAWKEY -> {
@@ -69,8 +68,7 @@ main {
                                 done = true
                         }
                     }
-                    exec.ReplyMsg(msg as ^^exec.Message)
-                    msg = exec.GetMsg(easygfx.window.UserPort) as ^^intuition.IntuiMessage
+                    msg = easygfx.imsg_reply(msg)
                 }
                 if done
                     break

@@ -4,7 +4,6 @@
 %import intuition
 %import math
 %import blitter
-%import textio
 %import utility
 
 main {

@@ -8,7 +8,7 @@ and prints out what assembly lines and variables were read from and written to t
 These may indicate hot paths or even bottlenecks in your program,
 and what variables in system ram might be better placed in Zeropage.
 
-Also see https://prog8.readthedocs.io/en/latest/technical.html#run-time-memory-profiling-with-the-x16-emulator
+Also see https://prog8.readthedocs.io/en/latest/profiling.html#run-time-memory-profiling-with-the-x16-emulator
 for an example of how to use this tool together with the X16 emulator.
 """
 

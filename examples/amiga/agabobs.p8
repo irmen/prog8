@@ -148,18 +148,7 @@ main {
     sub build_copperlist() -> uword {
         copper.init(&copperdata.copper_list, len(copperdata.copper_list))
         void copper.move($0096, $83c0)   ; DMACON: SET | DMAEN | BPLEN | COPEN | BLTEN
-        uword planeBase = copper.attach_planes(DEPTH)
-        void copper.move($0100, regs.bplcon0)
-        void copper.move($008e, regs.diwstrt)
-        void copper.move($0090, regs.diwstop)
-        void copper.move($0092, regs.ddfstrt)
-        void copper.move($0094, regs.ddfstop)
-        void copper.move($01fc, regs.fmode)
-        void copper.move($0108, regs.bpl1mod)
-        void copper.move($010a, regs.bpl2mod)
-        void copper.move($0102, 0)       ; BPLCON1: no fine scroll
-        void copper.move($01e4, regs.diwhigh)
-        void copper.move($0104, 0)       ; BPLCON2: single playfield
+        uword planeBase = copper.base_list(regs, DEPTH)
         copper.end()
         return planeBase
     }

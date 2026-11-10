@@ -1,4 +1,4 @@
-; Amiga windowing exmple
+; Amiga windowing example
 ; works on any amiga
 
 %import textio
@@ -6,8 +6,6 @@
 %import graphics
 %import exec
 %import dos
-%import custom
-%import strings
 
 main {
 
@@ -58,10 +56,6 @@ main {
             void graphics.Text(rp, message, len(message))
         }
 
-        ;; set a screen color:
-        ;; ^^intuition.Screen screen = win.WScreen
-        ;; graphics.SetRGB4(&screen.emb_ViewPort, 0, $2, $8, $f)
-
         ; Message pump / animation loop
         bool running = true
         while running {
@@ -108,7 +102,7 @@ main {
             }
 
             ; Cycle color: 1 -> 2 -> 3 -> 1 -> ...
-            color_idx++ ; = (color_idx % 3) + 1
+            color_idx = (color_idx % 3) + 1
 
             drawText()
             dos.Delay(1)

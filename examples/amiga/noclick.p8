@@ -7,7 +7,6 @@
 ; Compile: prog8c -target amiga1200 noclick.p8
 ; Usage:   run from Shell or add to Startup-Sequence/User-Startup.
 
-%import exec
 %import trackdisk
 %import textio
 

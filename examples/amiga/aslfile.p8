@@ -3,7 +3,6 @@
 
 %import asllib
 %import textio
-%import exec
 
 main {
     sub start() {

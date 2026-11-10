@@ -303,6 +303,17 @@ easygfx {
         return exec.GetMsg(window.UserPort) as ^^intuition.IntuiMessage
     }
 
+    sub imsg_poll() -> ^^intuition.IntuiMessage {
+        ; non-blocking fetch of the next IDCMP message on our window
+        ; (0 when the queue is drained). Use for animation loops:
+        ; drain with imsg_poll()/imsg_reply() each frame, then render.
+        ; Use imsg_wait() instead when the program has nothing to do
+        ; until the next message arrives.
+        if window == 0
+            return 0
+        return exec.GetMsg(window.UserPort) as ^^intuition.IntuiMessage
+    }
+
     sub imsg_reply(^^intuition.IntuiMessage msg) -> ^^intuition.IntuiMessage {
         ; reply the message and fetch the next one (0 when drained)
         exec.ReplyMsg(msg as ^^exec.Message)

@@ -107,8 +107,45 @@ copper {
         list[slot] = value
     }
 
-    sub attach_planes(ubyte depth) -> uword {
-        ; Emit empty BPLxPT MOVE slots for depth planes and return the base
+    sub base_list(^^custom.DisplayRegs display, ubyte depth) -> uword {
+        ; Emit the common copper-list prefix for a compute_display() mode:
+        ; empty BPLxPT MOVE slots for depth planes, then the shadow
+        ; display registers (FMODE, BPLCON0, DIWSTRT/STOP, DDFSTRT/STOP,
+        ; BPL1MOD/2, DIWHIGH, plus BPLCON1/2 reset to 0 for no fine
+        ; scroll and single-playfield priorities). Returns the base
+        ; value-word index of the plane slots, ready to pass to
+        ; playfield.patch_copper() or copper.set_planes().
+        ; Returns $ffff on a null display pointer, invalid depth, or a
+        ; full list (partially emitted).
+        ;
+        ; display is the pointer returned by custom.compute_display();
+        ; select the mode there with the DISPLAY_ flags (DISPLAY_DEFAULT
+        ; for lores, | DISPLAY_HIRES for 640px, | DISPLAY_EHB or
+        ; | DISPLAY_HAM for the 6-plane modes). Assumes copper.init()
+        ; was already called on a CHIP-RAM buffer. DMA setup stays at
+        ; the call site (emit your own DMACON MOVE before calling this),
+        ; and colors/extras stay after: the caller adds COLORxx MOVEs,
+        ; rasterbars or WAITS, then copper.end().
+        if display == 0
+            return $ffff
+        uword base = attach_planes(depth)
+        if base == $ffff
+            return $ffff
+        void move($01fc, display.fmode)
+        void move($0100, display.bplcon0)
+        void move($008e, display.diwstrt)
+        void move($0090, display.diwstop)
+        void move($0092, display.ddfstrt)
+        void move($0094, display.ddfstop)
+        void move($0108, display.bpl1mod)
+        void move($010a, display.bpl2mod)
+        void move($0102, 0)        ; BPLCON1: reset fine scrolling
+        void move($01e4, display.diwhigh)
+        void move($0104, 0)        ; BPLCON2: single-playfield priorities
+        return base
+    }
+
+    sub attach_planes(ubyte depth) -> uword {        ; Emit empty BPLxPT MOVE slots for depth planes and return the base
         ; value-word index, ready to pass to playfield.patch_copper().
         ; Returns $ffff on invalid depth or a full list (partially emitted).
         if depth == 0 or depth > 8

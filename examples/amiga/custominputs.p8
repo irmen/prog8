@@ -5,6 +5,7 @@
 %import custom
 %import exec
 %import blitter
+%import copper
 
 main {
     const uword SCREEN_WIDTH = 320
@@ -100,16 +101,15 @@ main {
         set_sprite_color(SPRITE_RED)
         set_sprite_pointers()
 
-        ; Copper reapplies the bitmap configuration each frame; CPU restores sprite pointers.
-        copperdata.copper_list[1] = msw(bitplane)
-        copperdata.copper_list[3] = lsw(bitplane)
-        copperdata.copper_list[5] = regs.fmode
-        copperdata.copper_list[7] = regs.bplcon0
-        copperdata.copper_list[9] = regs.diwstrt
-        copperdata.copper_list[11] = regs.diwstop
-        copperdata.copper_list[13] = regs.ddfstrt
-        copperdata.copper_list[15] = regs.ddfstop
-        copperdata.copper_list[17] = regs.bpl1mod
+        ; Copper configures the one-plane lores display each frame;
+        ; CPU restores sprite pointers.
+        copper.init(&copperdata.copper_list, len(copperdata.copper_list))
+        uword planeBase = copper.base_list(regs, 1)
+        void copper.move($0180, $0000)    ; MOVE COLOR00 = black
+        void copper.move($0182, $069f)    ; MOVE COLOR01 = light blue
+        copper.end()
+        copper.set(planeBase, msw(bitplane))
+        copper.set(planeBase+2, lsw(bitplane))
         custom.COP1LC = &copperdata.copper_list
         custom.DMACON = $83e0
         custom.COPJMP1 = 0
@@ -172,21 +172,8 @@ main {
 copperdata {
     %option amiga_chipram
 
-    ; Replayed every frame to configure the one-plane lores display and bitmap palette.
-    uword[] copper_list = [
-        $00e0, $0000,    ; MOVE BPL1PTH (patched at runtime)
-        $00e2, $0000,    ; MOVE BPL1PTL (patched at runtime)
-        $01fc, $0000,    ; MOVE FMODE (patched for AGA)
-        $0100, $1200,    ; MOVE BPLCON0: one bitplane, color burst, lores
-        $008e, $2c81,    ; MOVE DIWSTRT
-        $0090, $2cc1,    ; MOVE DIWSTOP
-        $0092, $0038,    ; MOVE DDFSTRT
-        $0094, $00d0,    ; MOVE DDFSTOP (patched for AGA)
-        $0108, $0000,    ; MOVE BPL1MOD
-        $0180, $0000,    ; MOVE COLOR00 = black
-        $0182, $069f,    ; MOVE COLOR01 = light blue
-        $ffff, $fffe     ; END
-    ]
+    ; Built once at startup: 1 plane + 11 register MOVEs + 2 colors + END = 32 words.
+    uword[40] copper_list
 }
 
 spritedata {

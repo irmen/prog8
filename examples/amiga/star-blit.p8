@@ -1,15 +1,13 @@
 ; Rotating five-point star with a smaller rectangle in its center -
 ; double-buffered bare-metal blitter version.
 ; No OS draw routines: fill-compatible XOR edges and one blitter.area_fill
-; make the star solid while leaving the rectangle empty. The outline is
-; redrawn normally afterward.
+; make the star solid while leaving the rectangle empty.
 ; The pentagon radius is 120, so the fill region is 256x256 centered on
 ; the plane. Click or ESC exits.
 
 %import custom
 %import playfield
 %import copper
-%import exec
 %import blitter
 %import math
 
@@ -150,14 +148,7 @@ main {
     sub build_copperlist(^^custom.DisplayRegs display) -> uword {
         copper.init(&copperdata.copper_list, len(copperdata.copper_list))
         void copper.move($0096, $83c0)    ; DMACON: SET | DMAEN | BLTEN | BPLEN | COPEN
-        uword planeBase = copper.attach_planes(1)
-        void copper.move($01fc, display.fmode)
-        void copper.move($0100, display.bplcon0)
-        void copper.move($008e, display.diwstrt)
-        void copper.move($0090, display.diwstop)
-        void copper.move($0092, display.ddfstrt)
-        void copper.move($0094, display.ddfstop)
-        void copper.move($0108, display.bpl1mod)
+        uword planeBase = copper.base_list(display, 1)
         void copper.move($0180, 0)        ; COLOR00 = black (background)
         void copper.move($0182, $0004)    ; COLOR01 = dark blue (foreground)
         for i in 0 to COLOR1_RAMP_STEPS-1 {

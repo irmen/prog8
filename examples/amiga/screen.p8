@@ -18,8 +18,6 @@ main {
             intuition.SA_Title,     "My 32-Color Screen",
             intuition.SA_Type,      intuition.CUSTOMSCREEN,
             intuition.SA_ShowTitle, false,
-            ;;intuition.SA_Draggable, false,
-            ;;intuition.SA_Exclusive, true,
             utility.TAG_DONE,     0
         ]
 

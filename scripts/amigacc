@@ -2,16 +2,25 @@
 # Amiga C cross-compiler wrapper using vc (vbcc's gcc-like frontend)
 # Usage: ./amigacc source.c [output]
 
-set -e
+set -eu
 
 VBCC=~/Projects/parked/vbcc
-NDK=/mnt/nfs/biggie/Storage/Retro/Amiga/AmigaNDK_headers/Include_H
+NDK=${AMIGA_NDK:-/mnt/nfs/biggie/Storage/Retro/Amiga/NDK32/Include_H}
 export VBCC
 export PATH=$VBCC/bin:$PATH
 
-SRC=$1
-if [ -z "$SRC" ]; then
-    echo "Usage: $0 source.c [output]"
+SRC=${1:?Usage: $0 source.c [output]}
+
+if [ ! -f "$SRC" ]; then
+    echo "error: source file not found: $SRC" >&2
+    exit 1
+fi
+if [ ! -x "$VBCC/bin/vc" ]; then
+    echo "error: vbcc not found at $VBCC/bin/vc" >&2
+    exit 1
+fi
+if [ ! -d "$NDK" ]; then
+    echo "error: Amiga NDK headers not found at $NDK (override with AMIGA_NDK)" >&2
     exit 1
 fi
 

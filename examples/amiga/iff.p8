@@ -1,7 +1,8 @@
-; Amiga custom screen example
+; Amiga ILBM/IFF image loader example
 ; requires kickstart 2.0+ (A600, A1200, etc)
 
 %import dos
+%import exec
 %import graphics
 %import intuition
 %import iffparse
@@ -150,18 +151,8 @@ main {
                     when compressionType {
                         0 -> {
                             ; non-compressed
-                            ;sys.memcopy(body, target, bytesPerRow as uword)
-                            ;body += bytesPerRow
-                            %asm {{
-                                move.l  p8b_main.p8s_loadIFFimage.p8s_decode.p8v_body,a0
-                                move.l  p8b_main.p8s_loadIFFimage.p8s_decode.p8v_target,a1
-                                move.l  p8b_main.p8s_loadIFFimage.p8s_decode.p8v_bytesPerRow,d0
-                                lea     (a0,d0.w),a2        ; body += bytesPerRow
-                                move.l  a2,p8b_main.p8s_loadIFFimage.p8s_decode.p8v_body
-                                subq.w  #1,d0
-.copy                           move.b  (a0)+,(a1)+
-                                dbra    d0,.copy
-                            }}
+                            sys.memcopy(body as long, target as long, bytesPerRow as long)
+                            body += bytesPerRow
                         }
                         1 -> {
                             body = compression.decode_rle(body, target, bytesPerRow as uword)

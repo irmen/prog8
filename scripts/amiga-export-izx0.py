@@ -12,35 +12,51 @@ compressed bitplane streams using the ZX0 compression algorithm (via Salvador).
 File Layout:
 ------------
 +-----------------------------------------------------------------------------+
-| Fixed Binary Header (52 Bytes, Big-Endian)                                  |
+| Fixed Binary Header (60 Bytes, Big-Endian)                                  |
 +-----------------------------------------------------------------------------+
 | Palette Data (Variable length = palette_data_size)                          |
 |   - ECS Mode (is_aga=0): Array of UWORD ($0RGB, 2 bytes/color)              |
 |   - AGA Mode (is_aga=1): Array of ULONG (0x00RRGGBB, 4 bytes/color)         |
+|     Packed storage; expand at load time into a LoadRGB32 table (e.g. via     |
+|     the graphics.load_palette library routine), LoadRGB32 does not accept    |
+|     packed 0x00RRGGBB directly                                               |
+|   - Absent (num entries = 0): palette is supplied externally                |
 +-----------------------------------------------------------------------------+
 | Concatenated Bitplane ZX0 Streams                                           |
 |   - Plane 1 Stream (Size = plane_sizes[0])                                  |
 |   - Plane 2 Stream (Size = plane_sizes[1])                                  |
 |   - ...                                                                     |
 |   - Plane N Stream (Size = plane_sizes[N-1])                                |
+|   - Optional cookie-cut mask stream (Size = plane_sizes[8],                |
+|     1 bit per pixel, bit 1 = pixel visible)                                |
 +-----------------------------------------------------------------------------+
 
-Fixed Binary Header Memory Map (52 Bytes Total):
+Fixed Binary Header Memory Map (60 Bytes Total):
 ------------------------------------------------
 Offset (Hex)  Offset (Dec)  Type       Description
 -------------------------------------------------------------------------------
 0x00          0             4 Bytes    Magic Identifier ('IZX0')
-0x04          4             UWORD      16-bit Word-aligned Width (e.g., 320)
+0x04          4             UWORD      Actual image width in pixels (scanlines are
+                                      padded to a 16-bit word boundary, so the
+                                      in-memory stride is ceil(width/16)*2 bytes)
 0x06          6             UWORD      Height in pixels (e.g., 256)
-0x08          8             UWORD      Number of bitplanes (1..8)
-0x0A          10            UBYTE      is_aga Flag (0 = ECS, 1 = AGA)
-0x0B          11            UBYTE      Reserved / Padding Byte (0x00)
-0x0C          12            UWORD      Number of Palette Entries (2^nPlanes)
-0x0E          14            UWORD      Palette Data Size in Bytes
-0x10          16            ULONG[8]   Array of Compressed Sizes (Planes 1..8, indices 0..7)
-0x30          48            ULONG      Total compressed bitmap data size
+0x08          8             SWORD      Origin X (hotspot/anchor, default 0)
+0x0A          10            SWORD      Origin Y (hotspot/anchor, default 0)
+0x0C          12            UWORD      Number of color bitplanes (1..8)
+0x0E          14            UBYTE      is_aga Flag (0 = ECS, 1 = AGA)
+0x0F          15            UBYTE      Reserved, must be 0
+0x10          16            UWORD      Number of Palette Entries (2^num_planes,
+                                      or 0 = palette supplied externally)
+0x12          18            UWORD      Palette Data Size in Bytes (0 if omitted)
+0x14          20            ULONG      Total compressed plane-stream payload size
+                                      (sum of the streams below; excludes header
+                                      and palette)
+0x18          24            ULONG[9]   Array of Compressed Sizes (color planes
+                                      in indices 0..7, optional mask in index 8;
+                                      a nonzero mask size means a mask stream
+                                      follows the color plane streams)
 -------------------------------------------------------------------------------
-Total Header Size: 52 Bytes (0x34)
+Total Header Size: 60 Bytes (0x3C)
 
 Palette Entry Specifications:
 -----------------------------
@@ -53,12 +69,11 @@ Palette Entry Specifications:
    Total Size = num_palette_entries * 2 bytes.
 
 2. AGA Mode (is_aga = 1):
-   Each entry is a 32-bit ULONG in 0x00RRGGBB (ARGB) format:
-   - Bits 31-24 : Unused / Alpha (0x00)
-   - Bits 23-16 : Red (8-bit, 0x00..0xFF)
-   - Bits 15-8  : Green (8-bit, 0x00..0xFF)
-   - Bits 7-0   : Blue (8-bit, 0x00..0xFF)
-   Total Size = num_palette_entries * 4 bytes.
+   Each entry is a 32-bit ULONG in 0x00RRGGBB format (compact packed storage).
+   This is NOT directly usable with graphics.library LoadRGB32, which takes an
+   expanded table (count/start header plus 3 ULONGs per color, intensity in the
+   top byte - see the graphics.load_palette library routine that performs this
+   expansion). A 256-color palette is 1024 bytes.
 """
 
 import argparse
@@ -69,14 +84,20 @@ import subprocess
 import sys
 from PIL import Image
 
+try:
+    from cx16images import BAYER_4X4, BAYER_8X8, apply_ordered_dither
+except ImportError:  # script is run from another directory; add its own dir to the path
+    sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+    from cx16images import BAYER_4X4, BAYER_8X8, apply_ordered_dither
+
 
 def compress_zx0(data_bytes):
     """Compresses raw bytes using salvador executable (ZX0 format)."""
-    temp_raw = "_temp_plane.raw"
-    temp_zx0 = "_temp_plane.zx0"
-
-    with open(temp_raw, "wb") as f:
+    import tempfile
+    with tempfile.NamedTemporaryFile(prefix="izx0_plane_", suffix=".raw", delete=False) as f:
+        temp_raw = f.name
         f.write(data_bytes)
+    temp_zx0 = temp_raw + ".zx0"
 
     try:
         subprocess.run(
@@ -87,6 +108,8 @@ def compress_zx0(data_bytes):
         )
         with open(temp_zx0, "rb") as f:
             compressed_data = f.read()
+    except FileNotFoundError:
+        raise SystemExit("error: 'salvador' executable not found on PATH (needed for ZX0 compression)")
     finally:
         if os.path.exists(temp_raw):
             os.remove(temp_raw)
@@ -227,60 +250,6 @@ def channel_8to4(color: int) -> int:
     return (color * 15 + 135) >> 8
 
 
-BAYER_4X4 = (
-    (0, 8, 2, 10),
-    (12, 4, 14, 6),
-    (3, 11, 1, 9),
-    (15, 7, 13, 5),
-)
-
-BAYER_8X8 = (
-    (0, 32, 8, 40, 2, 34, 10, 42),
-    (48, 16, 56, 24, 50, 18, 58, 26),
-    (12, 44, 4, 36, 14, 46, 6, 38),
-    (60, 28, 52, 20, 62, 30, 54, 22),
-    (3, 35, 11, 43, 1, 33, 9, 41),
-    (51, 19, 59, 27, 49, 17, 57, 25),
-    (15, 47, 7, 39, 13, 45, 5, 37),
-    (63, 31, 55, 23, 61, 29, 53, 21),
-)
-
-# Peak-to-peak amplitude of the ordered-dither threshold wave, in 8-bit steps.
-ORDERED_DITHER_SPREAD = 64.0
-
-
-def apply_ordered_dither(img, palette_img, matrix):
-    """Bayer ordered dithering of an RGB image into an existing palette.
-
-    Adds the per-pixel matrix threshold to each channel, then maps to the
-    nearest palette color (in C, via a non-dithering quantize).
-    """
-    size = len(matrix)
-    width, height = img.size
-    pixels = list(img.get_flattened_data() if hasattr(img, "get_flattened_data") else img.getdata())
-    adjusted = []
-    for y in range(height):
-        matrix_row = matrix[y % size]
-        row_base = y * width
-        for x in range(width):
-            threshold = (matrix_row[x % size] + 0.5) / (size * size) - 0.5
-            offset = threshold * ORDERED_DITHER_SPREAD
-            r, g, b = pixels[row_base + x]
-            adjusted.append(
-                (
-                    max(0, min(255, int(r + offset))),
-                    max(0, min(255, int(g + offset))),
-                    max(0, min(255, int(b + offset))),
-                )
-            )
-    noisy = Image.new("RGB", img.size)
-    noisy.putdata(adjusted)
-    return noisy.quantize(
-        palette=palette_img,
-        dither=Image.Dither.NONE,
-    )
-
-
 def sort_palette_dark_to_light(img):
     """Sort a paletted image by luminance and move black to palette index 0."""
     palette = img.getpalette() or []
@@ -373,47 +342,70 @@ def read_iff_via_convert(input_path):
 
 
 def decode_izx0(input_path):
-    """Decode an IZX0 file back into a PIL RGB image."""
+    """Decode an IZX0 file back into a PIL image (RGB, or RGBA when a mask plane is present)."""
     with open(input_path, "rb") as f:
         data = f.read()
-    if len(data) < 52 or data[:4] != b"IZX0":
+    if len(data) < 60 or data[:4] != b"IZX0":
         raise ValueError(f"not an IZX0 file: {input_path}")
-    (magic, width, height, num_planes, is_aga, _reserved,
-     num_entries, palette_size, *sizes) = struct.unpack(">4sHHHBBHH9I", data[:52])
-    plane_sizes = sizes[:8]
-    payload_size = sizes[8]
-    if not 1 <= num_planes <= 8 or num_entries != (1 << num_planes):
+    (magic, width, height, origin_x, origin_y, num_planes, is_aga, reserved,
+     num_entries, palette_size, payload_size, *plane_sizes) = struct.unpack(">4sHHhhHBBHHI9I", data[:60])
+    header_size = 60
+    if reserved != 0:
+        raise ValueError(f"invalid IZX0 header in {input_path}: reserved byte is {reserved:#04x}, must be 0")
+    has_mask = plane_sizes[8] != 0
+    color_planes = num_planes
+    if width < 1 or height < 1:
+        raise ValueError(f"invalid IZX0 dimensions in {input_path}: {width}x{height}")
+    # Scanlines are padded to a 16-bit word boundary.
+    raw_stride = ((width + 15) // 16) * 2
+    if not 1 <= num_planes <= 8 or color_planes < 1:
         raise ValueError(f"invalid IZX0 header in {input_path}")
-    if 52 + palette_size + payload_size != len(data):
+    if num_entries != (1 << color_planes) and num_entries != 0:
+        raise ValueError(f"invalid IZX0 header in {input_path}")
+    if num_entries == 0 and palette_size != 0:
+        raise ValueError(f"invalid IZX0 header in {input_path}: palette entries is 0 but palette size is {palette_size}")
+    if header_size + palette_size + payload_size != len(data):
         raise ValueError(f"size mismatch in {input_path}")
-    if width % 8 != 0:
-        raise ValueError(f"width {width} is not a whole number of bytes")
 
-    offset = 52 + palette_size
+    offset = header_size + palette_size
     raw_planes = []
     for i in range(num_planes):
         comp = data[offset : offset + plane_sizes[i]]
         offset += plane_sizes[i]
         raw = zx0_decompress(comp)
-        raw_stride = width // 8
         if len(raw) != height * raw_stride:
             raise ValueError(f"plane {i + 1} decompresses to {len(raw)} bytes, expected {height * raw_stride}")
         raw_planes.append(raw)
+    if has_mask:
+        comp = data[offset : offset + plane_sizes[8]]
+        raw_mask = zx0_decompress(comp)
+        if len(raw_mask) != height * raw_stride:
+            raise ValueError(f"mask plane decompresses to {len(raw_mask)} bytes, expected {height * raw_stride}")
 
     pixels = bytearray(width * height)
+    mask = bytearray(width * height)
     for y in range(height):
         for x in range(width):
             byte = x // 8
             bit = 7 - (x % 8)
             index = 0
-            for plane in range(num_planes):
-                if raw_planes[plane][y * (width // 8) + byte] & (1 << bit):
+            for plane in range(color_planes):
+                if raw_planes[plane][y * raw_stride + byte] & (1 << bit):
                     index |= 1 << plane
             pixels[y * width + x] = index
+            if has_mask:
+                if raw_mask[y * raw_stride + byte] & (1 << bit):
+                    mask[y * width + x] = 255
 
-    palette = data[52 : 52 + palette_size]
+    palette = data[header_size : header_size + palette_size]
     rgb = bytearray()
-    if is_aga:
+    if not palette:
+        # No palette stored (supplied externally): synthesize a grayscale ramp so --display still shows image structure.
+        levels = (1 << color_planes) - 1
+        for i in range(1 << color_planes):
+            g = i * 255 // levels if levels else 0
+            rgb.extend((g, g, g))
+    elif is_aga:
         for (color,) in struct.iter_unpack(">I", palette):
             rgb.extend(((color >> 16) & 0xFF, (color >> 8) & 0xFF, color & 0xFF))
     else:
@@ -425,6 +417,12 @@ def decode_izx0(input_path):
 
     img = Image.frombytes("P", (width, height), bytes(pixels))
     img.putpalette(list(rgb))
+    if has_mask:
+        # Masked-out pixels become transparent (mask bit 1 = visible).
+        alpha = Image.frombytes("L", (width, height), bytes(mask))
+        img = img.convert("RGBA")
+        img.putalpha(alpha)
+        return img
     return img.convert("RGB")
 
 
@@ -433,32 +431,35 @@ def show_izx0_info(input_path):
     with open(input_path, "rb") as f:
         data = f.read()
 
-    if len(data) < 52:
+    if len(data) < 60:
         print(f"Error: '{input_path}' is too small to be an IZX0 file.", file=sys.stderr)
         sys.exit(1)
 
-    (magic, width, height, num_planes, is_aga, _reserved,
-     num_entries, palette_size, *sizes) = struct.unpack(">4sHHHBBHH9I", data[:52])
-    plane_sizes = sizes[:8]
-    payload_size = sizes[8]
+    (magic, width, height, origin_x, origin_y, num_planes, is_aga, reserved,
+     num_entries, palette_size, payload_size, *plane_sizes) = struct.unpack(">4sHHhhHBBHHI9I", data[:60])
+    header_size = 60
+    has_mask = plane_sizes[8] != 0
+    color_planes = num_planes
 
     errors = []
     if magic != b"IZX0":
         errors.append(f"bad magic {magic!r} (expected b'IZX0')")
     if not 1 <= num_planes <= 8:
         errors.append(f"bitplane count {num_planes} out of range 1..8")
-    if num_entries != (1 << num_planes) and 1 <= num_planes <= 8:
-        errors.append(f"palette entries {num_entries} != 2^{num_planes}")
+    if reserved != 0:
+        errors.append(f"reserved byte is {reserved:#04x}, must be 0")
+    if num_entries != 0 and num_entries != (1 << color_planes) and 1 <= num_planes <= 8:
+        errors.append(f"palette entries {num_entries} != 2^{color_planes}")
     expected_palette = num_entries * (4 if is_aga else 2)
     if palette_size != expected_palette:
         errors.append(f"palette size {palette_size} != {expected_palette} for {num_entries} entries")
-    if sum(plane_sizes[:num_planes]) != payload_size:
+    if sum(plane_sizes[:num_planes]) + (plane_sizes[8] if has_mask else 0) != payload_size:
         errors.append("plane sizes do not add up to the payload size")
-    if any(s != 0 for s in plane_sizes[num_planes:]):
+    if any(s != 0 for s in plane_sizes[num_planes:8]):
         errors.append("unused plane size slots are not zero")
-    if 52 + palette_size + payload_size != len(data):
+    if header_size + palette_size + payload_size != len(data):
         errors.append(
-            f"file size {len(data)} != 52 + {palette_size} + {payload_size} "
+            f"file size {len(data)} != {header_size} + {palette_size} + {payload_size} "
             "(header + palette + streams)"
         )
     if is_aga not in (0, 1):
@@ -475,9 +476,16 @@ def show_izx0_info(input_path):
 
     print(f"File: {input_path} ({len(data)} bytes)")
     print(f"Magic: {magic!r}")
-    print(f"Dimensions: {width}x{height} (word-aligned width)")
-    print(f"Bitplanes: {num_planes} [{mode_str}]")
-    print(f"Palette entries: {num_entries} ({palette_size} bytes)")
+    print(f"Dimensions: {width}x{height} (stride {((width + 15) // 16) * 2} bytes/row)")
+    if has_mask:
+        print(f"Bitplanes: {num_planes} [{mode_str}] + cookie-cut mask")
+    else:
+        print(f"Bitplanes: {num_planes} [{mode_str}]")
+    print(f"Origin: ({origin_x}, {origin_y})")
+    if num_entries == 0:
+        print("Palette entries: 0 (omitted, palette supplied externally)")
+    else:
+        print(f"Palette entries: {num_entries} ({palette_size} bytes)")
     if errors:
         print("Invalid IZX0 file:", file=sys.stderr)
         for e in errors:
@@ -485,17 +493,39 @@ def show_izx0_info(input_path):
         sys.exit(1)
 
 
-def export_izx0(input_path, output_path, force_aga=False, max_colors=256, dither="none"):
+def export_izx0(input_path, output_path, force_aga=False, max_colors=256, dither="none", no_palette=False,
+               origin=(0, 0), mask_from_alpha=False):
     img = read_iff_via_convert(input_path)
     if img is None:
         img = Image.open(input_path)
+
+    # Capture the alpha channel as the cookie-cut mask before compositing
+    # (mask bit 1 = pixel visible).
+    mask_pixels = None
+    if mask_from_alpha:
+        if img.mode in ("RGBA", "LA"):
+            alpha = img.split()[-1]
+            mask_pixels = [1 if a >= 128 else 0 for a in
+                           (alpha.get_flattened_data() if hasattr(alpha, "get_flattened_data") else alpha.getdata())]
+        elif img.mode == "P" and "transparency" in img.info:
+            alpha = img.info["transparency"]
+            if isinstance(alpha, bytes):
+                mask_pixels = [1 if a >= 128 else 0 for a in alpha[: img.size[0] * img.size[1]]]
+            else:
+                mask_pixels = [1 if i != alpha else 0 for i in
+                               (img.get_flattened_data() if hasattr(img, "get_flattened_data") else img.getdata())]
+        else:
+            print("warning: --mask-from-alpha given but image has no alpha channel; no mask stored",
+                  file=sys.stderr)
 
     # 1. Quantize image if necessary
     if img.mode != "P":
         if img.mode in ("RGBA", "LA") or (
             img.mode == "P" and "transparency" in img.info
         ):
-            background = Image.new("RGB", img.size, (255, 255, 255))
+            # Opaque background for compositing: black when the alpha channel
+            # doubles as the mask (avoids white fringes), white otherwise.
+            background = Image.new("RGB", img.size, (0, 0, 0) if mask_pixels else (255, 255, 255))
             if img.mode != "RGBA":
                 img = img.convert("RGBA")
             background.paste(img, mask=img.split()[3])
@@ -533,27 +563,26 @@ def export_izx0(input_path, output_path, force_aga=False, max_colors=256, dither
 
     width, height = img.size
 
-    # Calculate 16-bit word-aligned width
-    words_per_row = (width + 15) // 16
-    aligned_width = words_per_row * 16
+    # Scanlines are padded to a 16-bit word boundary in the plane streams.
 
-    # 2. Determine required bitplanes
+    # 2. Determine required bitplanes (color planes; mask appended later)
     _, max_val = img.getextrema()
-    num_planes = max_val.bit_length() if max_val > 0 else 1
+    color_planes = max_val.bit_length() if max_val > 0 else 1
 
-    # Auto-detect AGA if > 5 bitplanes or command line flag passed
-    is_aga = 1 if (force_aga or num_planes > 5) else 0
+    # Auto-detect AGA if > 5 color bitplanes or command line flag passed
+    is_aga = 1 if (force_aga or color_planes > 5) else 0
     mode_str = "AGA (32-bit ARGB)" if is_aga else "ECS (16-bit $0RGB)"
 
     print(
-        f"Image: {width}x{height} (Aligned: {aligned_width}x{height}), Planes: {num_planes} [{mode_str}]"
+        f"Image: {width}x{height} (stride {((width + 15) // 16) * 2} bytes/row), "
+        f"Planes: {color_planes} [{mode_str}]"
     )
 
     pixel_bytes = img.tobytes()
     compressed_planes = []
 
     # 3. Process and compress bitplanes individually
-    for plane in range(num_planes):
+    for plane in range(color_planes):
         plane_mask = 1 << plane
         raw_bytes = bytearray()
 
@@ -586,36 +615,72 @@ def export_izx0(input_path, output_path, force_aga=False, max_colors=256, dither
         compressed_planes.append(c_data)
         print(f"  Plane {plane + 1}: {len(raw_bytes)} -> {len(c_data)} bytes")
 
-    # 4. Extract Palette Data
-    num_palette_entries = 1 << num_planes
-    raw_palette_rgb = img.getpalette()[: num_palette_entries * 3]
-    raw_palette_rgb += [0] * (num_palette_entries * 3 - len(raw_palette_rgb))
+    mask_data = None
+    if mask_pixels is not None:
+        # Compress the cookie-cut mask as its own stream (mask bit 1 = visible).
+        raw_bytes = bytearray()
+        for y in range(height):
+            row_start = y * width
+            current_byte = 0
+            bit_count = 0
+            for bit in mask_pixels[row_start : row_start + width]:
+                current_byte = (current_byte << 1) | (1 if bit else 0)
+                bit_count += 1
+                if bit_count == 8:
+                    raw_bytes.append(current_byte)
+                    current_byte = 0
+                    bit_count = 0
+            if bit_count > 0:
+                current_byte <<= 8 - bit_count
+                raw_bytes.append(current_byte)
+            # Pad scanline to 16-bit word boundary
+            if len(raw_bytes) % 2 != 0:
+                raw_bytes.append(0)
+        mask_data = compress_zx0(bytes(raw_bytes))
+        print(f"  Mask plane: {len(raw_bytes)} -> {len(mask_data)} bytes")
 
-    if is_aga:
-        palette_bytes = build_aga_palette(raw_palette_rgb, num_palette_entries)
+    num_planes = len(compressed_planes)
+    if num_planes > 8:
+        raise ValueError(f"too many color planes ({num_planes}, max 8); reduce colors")
+
+    # 4. Extract Palette Data (unless omitted: palette supplied externally)
+    if no_palette:
+        num_palette_entries = 0
+        palette_bytes = b""
     else:
-        palette_bytes = build_ecs_palette(raw_palette_rgb, num_palette_entries)
+        num_palette_entries = 1 << color_planes
+        raw_palette_rgb = img.getpalette()[: num_palette_entries * 3]
+        raw_palette_rgb += [0] * (num_palette_entries * 3 - len(raw_palette_rgb))
+
+        if is_aga:
+            palette_bytes = build_aga_palette(raw_palette_rgb, num_palette_entries)
+        else:
+            palette_bytes = build_ecs_palette(raw_palette_rgb, num_palette_entries)
 
     palette_data_size = len(palette_bytes)
 
-    # 5. Build Fixed 52-Byte Binary Header (Big-Endian)
-    plane_sizes = [0] * 8
+    # 5. Build Fixed 60-Byte Binary Header (Big-Endian)
+    plane_sizes = [0] * 9
     for i in range(num_planes):
         plane_sizes[i] = len(compressed_planes[i])
+    if mask_data is not None:
+        plane_sizes[8] = len(mask_data)
     compressed_payload_size = sum(plane_sizes)
 
     header = struct.pack(
-        ">4sHHHBB HH 9I",
+        ">4sHHhhHBBHHI9I",
         b"IZX0",
-        aligned_width,
+        width,  # actual pixel width; scanlines padded to 16-bit boundary
         height,
-        num_planes,
+        origin[0],  # hotspot/anchor X
+        origin[1],  # hotspot/anchor Y
+        num_planes,  # color planes only; mask (if any) lives in plane_sizes[8]
         is_aga,  # 1 = AGA, 0 = ECS
-        0,  # Reserved byte
-        num_palette_entries,  # 2^num_planes
-        palette_data_size,  # Byte count of palette block
+        0,  # Reserved, must be 0
+        num_palette_entries,  # 2^num_planes, or 0 if omitted (palette supplied externally)
+        palette_data_size,  # Byte count of palette block (0 if omitted)
+        compressed_payload_size,  # total compressed plane-stream payload (excludes header, palette)
         *plane_sizes,
-        compressed_payload_size,
     )
 
     # 6. Write Output File
@@ -624,11 +689,13 @@ def export_izx0(input_path, output_path, force_aga=False, max_colors=256, dither
         f.write(palette_bytes)
         for c_data in compressed_planes:
             f.write(c_data)
+        if mask_data is not None:
+            f.write(mask_data)
 
     file_size = os.path.getsize(output_path)
     print(f"\nSaved '{output_path}' ({file_size} bytes total)")
     print(
-        f"Header: 52 | Palette: {palette_data_size} ({num_palette_entries} entries) | Streams: {compressed_payload_size}"
+        f"Header: 60 | Palette: {palette_data_size} ({num_palette_entries} entries) | Streams: {compressed_payload_size}"
     )
 
 
@@ -682,6 +749,26 @@ def main():
         "Bare --dither means fs. (default: none)",
     )
     parser.add_argument(
+        "--no-palette",
+        action="store_true",
+        help="Omit the palette from the file (0 entries, 0 bytes; "
+        "palette is supplied externally, e.g. shared across BOBs)",
+    )
+    parser.add_argument(
+        "--origin",
+        nargs=2,
+        type=int,
+        default=(0, 0),
+        metavar=("X", "Y"),
+        help="Hotspot/anchor origin stored in the header (default: 0 0)",
+    )
+    parser.add_argument(
+        "--mask-from-alpha",
+        action="store_true",
+        help="Store the image alpha channel as a cookie-cut mask stream "
+        "(size in plane_sizes[8]; mask bit 1 = pixel visible)",
+    )
+    parser.add_argument(
         "--info",
         action="store_true",
         help="Show the metadata of an existing IZX0 file instead of converting",
@@ -719,6 +806,9 @@ def main():
             force_aga=args.aga,
             max_colors=args.max_colors,
             dither=args.dither,
+            no_palette=args.no_palette,
+            origin=tuple(args.origin),
+            mask_from_alpha=args.mask_from_alpha,
         )
     except Exception as e:
         print(f"Error during export: {e}", file=sys.stderr)

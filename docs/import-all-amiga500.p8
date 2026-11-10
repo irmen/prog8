@@ -29,6 +29,7 @@
 %import dos
 %import graphics
 %import intuition
+%import easygfx
 %import utility
 %import lowlevel
 %import timer

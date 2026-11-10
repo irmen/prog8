@@ -11,13 +11,13 @@
 ; Disk layout expected (logical-linear, like a raw .adf sector dump):
 ; PCM bytes start at START_OFFSET and run contiguously, one 5632-byte track
 ; per CMD_READ (11 sectors x 512). Pad the image to TOTAL_TRACKS*5632 bytes.
-; This prototype does NOT parse FFS: for a normal DOS file use thriller.p8.
+; This prototype does NOT parse FFS: for a normal DOS file see stream-wav.p8
+; (and the thriller.wav sample file).
 ;
 ; Default UNIT=1 (DF1) so the boot/program disk in DF0 is untouched. Only set
 ; UNIT=0 if the program runs from RAM/HD and the raw audio disk is in DF0.
 ; Buffers live in chip RAM: required for trackdisk DMA on Kickstart < V36.
 
-%import exec
 %import trackdisk
 %import audio
 %import custom

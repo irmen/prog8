@@ -7,54 +7,19 @@ from PIL import Image
 from typing import List
 
 if __package__:
-    from .cx16images import BitmapImage
+    from .cx16images import (
+        BitmapImage,
+        BAYER_4X4,
+        BAYER_8X8,
+        apply_ordered_dither,
+    )
 else:
-    from cx16images import BitmapImage
-
-
-BAYER_4X4 = (
-    (0, 8, 2, 10),
-    (12, 4, 14, 6),
-    (3, 11, 1, 9),
-    (15, 7, 13, 5),
-)
-
-BAYER_8X8 = (
-    (0, 32, 8, 40, 2, 34, 10, 42),
-    (48, 16, 56, 24, 50, 18, 58, 26),
-    (12, 44, 4, 36, 14, 46, 6, 38),
-    (60, 28, 52, 20, 62, 30, 54, 22),
-    (3, 35, 11, 43, 1, 33, 9, 41),
-    (51, 19, 59, 27, 49, 17, 57, 25),
-    (15, 47, 7, 39, 13, 45, 5, 37),
-    (63, 31, 55, 23, 61, 29, 53, 21),
-)
-
-ORDERED_DITHER_SPREAD = 64.0
-
-
-def apply_ordered_dither(img, palette_img, matrix):
-    size = len(matrix)
-    width, height = img.size
-    pixels = list(img.get_flattened_data() if hasattr(img, "get_flattened_data") else img.getdata())
-    adjusted = []
-    for y in range(height):
-        matrix_row = matrix[y % size]
-        row_base = y * width
-        for x in range(width):
-            threshold = (matrix_row[x % size] + 0.5) / (size * size) - 0.5
-            offset = threshold * ORDERED_DITHER_SPREAD
-            r, g, b = pixels[row_base + x]
-            adjusted.append(
-                (
-                    max(0, min(255, int(r + offset))),
-                    max(0, min(255, int(g + offset))),
-                    max(0, min(255, int(b + offset))),
-                )
-            )
-    noisy = Image.new("RGB", img.size)
-    noisy.putdata(adjusted)
-    return noisy.quantize(palette=palette_img, dither=Image.Dither.NONE)
+    from cx16images import (
+        BitmapImage,
+        BAYER_4X4,
+        BAYER_8X8,
+        apply_ordered_dither,
+    )
 
 
 class Bmx:

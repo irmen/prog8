@@ -108,6 +108,7 @@ main {
         ; The 8 winning lines are precomputed masks, so a win test is just (bits & mask) == mask for each:
         ; a subset check in a single AND. Occupancy is (x | o) & bit, and a full board is (x | o) == 0x1FF.
         ; No arrays, no loops over cells — every query is constant-time bitwise logic.
+        uword[8] wins = [$007, $038, $1c0, $049, $092, $124, $111, $054]
 
         for i in 0 to 7 {
             uword m = wins[i]
@@ -119,14 +120,11 @@ main {
         if (xbits | obits) == $1ff
             return Outcome::DRAW
         return Outcome::ONGOING
-
-        uword[8] wins = [$007, $038, $1c0, $049, $092, $124, $111, $054]
     }
 
     sub status(str msg) {
         ; JAM2 so the text background overwrites the previous line;
         ; with the default JAM1 black pixels are transparent and text ghosts.
-        ; easygfx.fillrect(0, BY + 3*CELL + 16, 320, 12, 3)
         ^^graphics.RastPort rp = easygfx.rastport
         graphics.SetBPen(rp, 3)
         easygfx.drawmode(graphics.RP_JAM2)

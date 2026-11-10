@@ -229,6 +229,18 @@ modules. Import them the same way as any other library::
     word's index so the main loop patches values in place instead of
     rebuilding; ``wait()``/``skip()`` hide the instruction encoding,
     ``attach_planes()`` emits ``BPLxPT`` slots for ``playfield.patch_copper()``,
+    and ``base_list(display, depth)`` adds those slots plus the common display
+    registers from a ``custom.compute_display()`` result. It returns the base
+    slot index for ``playfield.patch_copper()`` or ``set_planes()``. Select the
+    display mode with ``DISPLAY_*`` flags when computing the display. The helper
+    assumes ``copper.init()`` has been called on a chip-RAM buffer and does not
+    enable DMA. It returns ``$ffff`` for a null display, invalid depth, or when
+    the plane-pointer slots do not fit. Later register MOVE overflows increment
+    ``overflows`` but do not change the returned base, so reserve space for the
+    complete prefix and the caller's additions. The caller still adds DMA
+    setup, colors and any extra copper instructions before ``copper.end()``.
+    ``attach_planes()`` remains available when only plane-pointer slots are
+    needed.
     ``rasterbar()`` builds a patchable per-scanline color skeleton, and
     ``aga_move()``/``aga_set()`` encapsulate the four-MOVE 24-bit AGA color
     sequence behind a single slot handle.
@@ -270,8 +282,13 @@ modules. Import them the same way as any other library::
     Primitives (``clear/plot/line/rect/fillrect/circle/oval/disc/filled_oval/text``),
     ``scroll/readpixel/textwidth``, ``palette/setcolor``, ``drawmode`` and bucket
     or boundary ``fill/fillto`` are all plain ``graphics.library`` calls, so they
-    clip to the window. The ``rastport`` and ``window`` variables expose the handles
-    for direct library calls and IDCMP message handling. Kickstart 1.3 compatible.
+    clip to the window. ``imsg_poll()`` fetches the next IDCMP message without
+    blocking and returns 0 when the queue is empty; drain messages with
+    ``imsg_poll()``/``imsg_reply()`` in animation loops. ``imsg_wait()`` blocks
+    until a message arrives. The ``rastport`` and ``window`` variables expose the
+    handles for direct library calls and IDCMP message handling. See
+    ``examples/amiga/penrose-triangle-os.p8`` for a polling loop. Kickstart 1.3
+    compatible.
 
 Manual additions and tweaks
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~

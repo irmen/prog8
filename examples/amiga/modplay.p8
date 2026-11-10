@@ -1,4 +1,5 @@
 %import dos
+%import exec
 %import textio
 %import ptplayer
 

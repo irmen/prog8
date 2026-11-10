@@ -1,6 +1,6 @@
 
 Prog8 compiler v14.0-BETA3 by Irmen de Jong (irmen@razorvine.net)
-Prerelease version from git commit 56932332 in branch master
+Prerelease version from git commit de2788c6 in branch master
 This software is licensed under the GNU GPL 3.0, see https://www.gnu.org/licenses/gpl.html
 
 Compiling program docs/import-all-amiga1200.p8
@@ -768,6 +768,7 @@ copper  {
     aga_move  (ubyte index) -> uword
     aga_set  (uword base, ubyte index, long rgb24)
     attach_planes  (ubyte depth) -> uword
+    base_list  (^^custom.DisplayRegs display, ubyte depth) -> uword
     end  ()
     init  (^^uword buffer, uword words)
     move  (uword reg, uword value) -> uword
@@ -2263,6 +2264,43 @@ dos  {
     Write  (long file @D1, long buffer @D2, long length @D3) -> long @D0@bank 2 = -$30
     WriteChars  (str buf @D1, long buflen @D2) -> long @D0@bank 2 = -$03ae
     read_file  (str filename, bool chip_ram) -> long, long
+}
+
+
+LIBRARY MODULE NAME: easygfx
+----------------------------
+
+easygfx  {
+    ubyte  depth
+    uword  height
+    ^^graphics.RastPort  rastport
+    uword  width
+    ^^intuition.Window  window
+    circle  (word cx, word cy, word radius, ubyte pen)
+    clear  (ubyte pen)
+    close  ()
+    disc  (word cx, word cy, word radius, ubyte pen)
+    drawmode  (ubyte mode)
+    fill  (word x, word y, ubyte pen)
+    filled_oval  (word cx, word cy, word rx, word ry, ubyte pen)
+    fillrect  (word x, word y, word w, word h, ubyte pen)
+    fillto  (word x, word y, ubyte pen, ubyte outline)
+    fullscreen  (uword w, uword h, ubyte ndepth, uword viewmodes, str title) -> bool
+    imsg_poll  () -> ^^intuition.IntuiMessage
+    imsg_reply  (^^intuition.IntuiMessage msg) -> ^^intuition.IntuiMessage
+    imsg_wait  () -> ^^intuition.IntuiMessage
+    line  (word x1, word y1, word x2, word y2, ubyte pen)
+    mouse_xy  (^^intuition.IntuiMessage msg) -> word, word
+    oval  (word cx, word cy, word rx, word ry, ubyte pen)
+    palette  (long colors, uword count)
+    plot  (word x, word y, ubyte pen)
+    readpixel  (word x, word y) -> long
+    rect  (word x, word y, word w, word h, ubyte pen)
+    scrollrect  (word dx, word dy, word x, word y, word w, word h)
+    setcolor  (ubyte index, ubyte red, ubyte green, ubyte blue)
+    text  (word x, word y, str s, ubyte pen)
+    textwidth  (str s) -> word
+    windowed  (uword x, uword y, uword w, uword h, str title) -> bool
 }
 
 

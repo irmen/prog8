@@ -394,7 +394,6 @@ def resolve_struct_sizes(raw_structs: dict) -> dict:
                 used_original[base] = origin
                 used_all.add(base)
             else:
-                prev_origin = used_original[base]
                 if origin == tag:
                     # own field — rename the conflicting previous embedding
                     for prev in flat:
@@ -1707,7 +1706,6 @@ def _c_field_name_to_asm(c_name: str, prefix: str) -> str:
     if not c_name:
         return 'unknown'
 
-    pu = prefix.upper()
     lower_name = c_name.lower()
 
     # Try full prefix match first
@@ -2087,6 +2085,35 @@ def _library_struct_tags(lib_name: str) -> set:
     return tags
 
 
+def _clang_typedef_map_for_lib(ndk_path: str, lib_name: str) -> dict:
+    """Build the typedef map for a library from a clang JSON AST dump.
+
+    Returns an empty map if clang is unavailable or the dump fails.
+    Extracted from main()'s phase 2; the temp C file is always removed.
+    """
+    inc_path = os.path.join(ndk_path, 'Include_H')
+    c_lines = ['#include <exec/exec.h>']
+    for hdr in LIB_HEADERS.get(lib_name, []):
+        c_lines.append(f'#include <{hdr}>')
+    c_source = '\n'.join(c_lines)
+    c_file = None
+    try:
+        with tempfile.NamedTemporaryFile(suffix='.c', mode='w', delete=False) as f:
+            f.write(c_source)
+            c_file = f.name
+        result = subprocess.run(['clang', '-Xclang', '-ast-dump=json', '-fsyntax-only',
+                                 f'-I{inc_path}', c_file],
+                                capture_output=True, text=True, timeout=10)
+        if result.returncode == 0:
+            return _build_typedef_map(json.loads(result.stdout))
+    except Exception:
+        pass
+    finally:
+        if c_file and os.path.exists(c_file):
+            os.unlink(c_file)
+    return {}
+
+
 def parse_structs_from_clang(ndk_path: str, lib_name: str) -> dict | None:
     """Parse struct definitions from C headers via clang JSON AST dump.
 
@@ -2104,6 +2131,7 @@ def parse_structs_from_clang(ndk_path: str, lib_name: str) -> dict | None:
     c_source = '\n'.join(c_lines)
 
     # Write temp C file and run clang
+    c_file = None
     try:
         with tempfile.NamedTemporaryFile(suffix='.c', mode='w', delete=False) as f:
             f.write(c_source)
@@ -2124,10 +2152,11 @@ def parse_structs_from_clang(ndk_path: str, lib_name: str) -> dict | None:
         print(f"Warning: clang AST dump failed: {e}", file=sys.stderr)
         return None
     finally:
-        try:
-            os.unlink(c_file)
-        except OSError:
-            pass
+        if c_file and os.path.exists(c_file):
+            try:
+                os.unlink(c_file)
+            except OSError:
+                pass
 
     # Build typedef map
     typedef_map = _build_typedef_map(ast)
@@ -2141,17 +2170,11 @@ def parse_structs_from_clang(ndk_path: str, lib_name: str) -> dict | None:
             continue
         entry = STRUCT_NAME_MAP[tag]
         c_name = entry[0]
-        prefix = entry[1]
 
         record = _find_record_decl(ast, c_name)
         if record is None:
             continue
 
-        # Check struct size from AST if available
-        if record.get('type', {}).get('qualType'):
-            t = record.get('type', {})
-            size_info = t.get('size', 0)
-            # Not all AST versions provide size in RecordDecl
         used_names: set = set()
         fields_raw, total_size = _inline_struct_fields(tag, ast, typedef_map,
                                                        used_names, 0)
@@ -2273,7 +2296,6 @@ def _resolve_c_pointer_to_prog8(c_qual_type: str, typedef_map: dict, current_lib
     base = re.sub(r'\b(const|volatile)\b', '', base, flags=re.IGNORECASE).strip()
     base = re.sub(r'\s+', ' ', base).strip()
     # Resolve typedef chain if needed
-    orig_base = base
     seen = set()
     while base in typedef_map and base not in seen:
         seen.add(base)
@@ -2355,18 +2377,11 @@ def main():
     # Phase 1: Scan all libs for raw structs to build global registry
     print(f"Scanning NDK at {ndk} for {len(AMIGA_LIBS)} libs...", file=sys.stderr)
     all_libs_raw = {}
-    all_libs_typedef = {}
     for lib in AMIGA_LIBS:
         raw = _collect_raw_for_lib(ndk, lib)
         all_libs_raw[lib] = raw
-        # Also collect typedef map for typer (from clang AST if available)
-        # parse_structs_from_clang already built typedef map internally, but we need to capture it
-        # For simplicity, build typedef map from clang AST separately if available
-        # Fallback: empty map
-        all_libs_typedef[lib] = {}
 
-    # For clang path, we need typedef maps per lib; re-parse to get them
-    # Instead, build global map from STRUCT_NAME_MAP entries that exist in any raw
+    # Build global map from STRUCT_NAME_MAP entries that exist in any raw
     global_map = _build_global_struct_map(all_libs_raw)
     # Rename dos.DateStamp struct to avoid collision with extsub DateStamp in same block (ST cannot hold both with same scoped name)
     if "DateStamp" in global_map and global_map["DateStamp"]["lib"] == "dos":
@@ -2388,34 +2403,7 @@ def main():
         _CURRENT_LIB_FOR_TYPER = lib
         _GLOBAL_MAP_FOR_TYPER = global_map
         # Build typedef map for this lib from clang AST if available
-        # Try to get typedef map via re-parsing clang AST for this lib
-        try:
-            # Quick: build typedef map from clang AST if parse succeeds
-            from pathlib import Path
-            # Use existing parse_structs_from_clang path to also get typedef map
-            # We call a helper to get typedef map
-            _TYPEDEF_MAP_FOR_TYPER = {}
-            # Attempt to load clang AST typedefs: call parse_structs_from_clang with side effect capture
-            # Instead, directly build from AST if available
-            inc_path = os.path.join(ndk, 'Include_H')
-            c_lines = ['#include <exec/exec.h>']
-            for hdr in LIB_HEADERS.get(lib, []):
-                c_lines.append(f'#include <{hdr}>')
-            c_source = '\n'.join(c_lines)
-            import tempfile, subprocess, json
-            try:
-                with tempfile.NamedTemporaryFile(suffix='.c', mode='w', delete=False) as f:
-                    f.write(c_source)
-                    c_file = f.name
-                result = subprocess.run(['clang', '-Xclang', '-ast-dump=json', '-fsyntax-only', f'-I{inc_path}', c_file], capture_output=True, text=True, timeout=10)
-                if result.returncode == 0:
-                    ast = json.loads(result.stdout)
-                    _TYPEDEF_MAP_FOR_TYPER = _build_typedef_map(ast)
-                os.unlink(c_file)
-            except Exception:
-                pass
-        except Exception:
-            _TYPEDEF_MAP_FOR_TYPER = {}
+        _TYPEDEF_MAP_FOR_TYPER = _clang_typedef_map_for_lib(ndk, lib)
 
         lvos = parse_lvo(lvo_p)
         # Need to re-parse SFD with typer globals set so parse_sfd_param can type extsubs
@@ -2503,9 +2491,9 @@ def main():
         # that re-declares the same block, so they must merge instead of
         # redefining it.
         if name_prefix:
-            out_lines.append(f"    %option merge, no_symbol_prefixing")
+            out_lines.append("    %option merge, no_symbol_prefixing")
         else:
-            out_lines.append(f"    %option no_symbol_prefixing")
+            out_lines.append("    %option no_symbol_prefixing")
         if helper:
             out_lines.append(helper)
 
@@ -2564,7 +2552,7 @@ def main():
         if consts_text:
             out_lines.append(consts_text)
 
-        out_lines.append(f"}}")
+        out_lines.append("}")
         out_lines.append(f";; End of auto-generated {lib}_lib.sfd")
         content = "\n".join(out_lines) + "\n"
 
@@ -2585,26 +2573,6 @@ def main():
     _CURRENT_LIB_FOR_TYPER = None
     _GLOBAL_MAP_FOR_TYPER = {}
     _TYPEDEF_MAP_FOR_TYPER = {}
-
-
-def _tags_in_dir(d: str) -> set:
-    tags = set()
-    for fn in os.listdir(d):
-        if not fn.endswith('.i'):
-            continue
-        with open(os.path.join(d, fn), encoding='latin-1') as f:
-            for line in f:
-                m = re.match(r'STRUCTURE\s+(\w+)\s*,', line)
-                if m:
-                    tags.add(m.group(1))
-    return tags
-
-
-def print_mapping(cl):
-    print(file=sys.stderr)
-    for lib, bn in sorted(LIBRARY_BANK_MAP.items(), key=lambda x: x[1]):
-        m = "  <--" if lib == cl else ""
-        print(f"  bank {bn:3d} = {lib}{m}", file=sys.stderr)
 
 
 if __name__ == '__main__':

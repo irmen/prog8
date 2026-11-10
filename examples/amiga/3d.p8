@@ -169,14 +169,7 @@ main {
         ; rewrites them with copper.set() on every buffer swap.
         copper.init(&copperdata.copper_list, len(copperdata.copper_list))
         void copper.move($0096, $83c0)    ; DMACON: SET | DMAEN | BLTEN | BPLEN | COPEN
-        uword planeBase = copper.attach_planes(1)
-        void copper.move($01fc, display.fmode)
-        void copper.move($0100, display.bplcon0)
-        void copper.move($008e, display.diwstrt)
-        void copper.move($0090, display.diwstop)
-        void copper.move($0092, display.ddfstrt)
-        void copper.move($0094, display.ddfstop)
-        void copper.move($0108, display.bpl1mod)
+        uword planeBase = copper.base_list(display, 1)
         void copper.move($0180, 0)        ; COLOR00 = black (background)
         void copper.move($0182, $0fff)    ; COLOR01 = white (foreground)
         ubyte line = BAR_TOP
@@ -213,9 +206,9 @@ copperdata {
     %option amiga_chipram
 
     ; Word buffer owned by the copper builder (see main.build_copperlist()):
-    ; DMACON + 1 plane + 7 register MOVEs + 2 colors + 43 gradient
-    ; WAIT/MOVE pairs + END = 198 words.
-    uword[208] copper_list
+    ; DMACON + base_list (1 plane + 11 register MOVEs) + 2 colors +
+    ; 43 gradient WAIT/MOVE pairs + END = 206 words.
+    uword[216] copper_list
 }
 
 textdata {

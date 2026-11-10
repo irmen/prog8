@@ -22,7 +22,7 @@ main {
     const uword NOISE_LEN_WORDS = NOISE_SAMPLES / 2
 
     sub start() {
-        txt.print("Makeing waveforms...\n")
+        txt.print("Making waveforms...\n")
         make_waveforms()
 
         ; NOTE: this is a hardware banging program so it really should do custom.grab_system(),
