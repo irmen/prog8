@@ -343,7 +343,7 @@ main {
     }
 }"""
         val errors = ErrorReporterForTests(keepMessagesAfterReporting = true)
-        compileText(VMTarget(), false, src, outputDir, errors, writeAssembly=false)
+        compileText(C64Target(), false, src, outputDir, errors, writeAssembly=false)
         errors.errors shouldBe emptyList()
         errors.warnings.size shouldBe 2
         errors.warnings.forEach { it shouldContain "binary blob" }
@@ -365,7 +365,7 @@ main {
     }
 }"""
         val errors = ErrorReporterForTests(keepMessagesAfterReporting = true)
-        compileText(VMTarget(), false, src, outputDir, errors, writeAssembly=false)
+        compileText(C64Target(), false, src, outputDir, errors, writeAssembly=false)
         errors.errors shouldBe emptyList()
         errors.warnings shouldBe emptyList()
     }

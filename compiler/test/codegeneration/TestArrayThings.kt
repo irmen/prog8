@@ -120,7 +120,7 @@ main {
   }
 }"""
         compileText(C64Target(), false, text, outputDir, writeAssembly = true) shouldNotBe null
-        compileText(VMTarget(), false, text, outputDir, writeAssembly = true) shouldNotBe null
+        compileText(Cx16Target(), false, text, outputDir, writeAssembly = true) shouldNotBe null
     }
 
     test("array target with expression for index") {

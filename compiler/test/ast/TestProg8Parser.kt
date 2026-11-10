@@ -20,6 +20,7 @@ import prog8.code.core.*
 import prog8.code.source.ImportFileSystem
 import prog8.code.source.SourceCode
 import prog8.code.target.C64Target
+import prog8.code.target.Cx16Target
 import prog8.code.target.VMTarget
 import prog8.code.target.encodings.PetsciiEncoding
 import prog8.parser.MultipleParseErrors
@@ -1102,19 +1103,21 @@ main {
     }
 
     test("various alternative curly brace styles are ok") {
-        val src="""
+        // note: %asm and %ir can't be mixed in one program anymore: %asm is rejected
+        // on the virtual target, %ir is rejected on CPU targets. So both brace styles
+        // are tested once with %asm (on cx16) and once with %ir (on virtual).
+        val asmSrc="""
 main {
     ; curly braces without newline
     sub start () { foo() derp() other() }
     sub foo() { cx16.r0++ }
-    asmsub derp() { %asm {{ nop rts }} %ir {{ load.b r0.b,#1.b return }} }
+    asmsub derp() { %asm {{ nop rts }} }
 
     ; curly braces on next line
     sub other()
     {
         cx16.r0++
         asmother()
-        asmir()
     }
 
     asmsub asmother()
@@ -1125,6 +1128,23 @@ main {
             tay
             rts
         }}
+    }
+}"""
+
+        compileText(Cx16Target(),  false, asmSrc, outputDir, writeAssembly = false) shouldNotBe null
+
+        val irSrc="""
+main {
+    ; curly braces without newline
+    sub start () { foo() derp() other() }
+    sub foo() { cx16.r0++ }
+    asmsub derp() { %ir {{ load.b r0.b,#1.b return }} }
+
+    ; curly braces on next line
+    sub other()
+    {
+        cx16.r0++
+        asmir()
     }
 
     asmsub asmir()
@@ -1137,7 +1157,7 @@ main {
     }
 }"""
 
-        compileText(VMTarget(),  false, src, outputDir, writeAssembly = false) shouldNotBe null
+        compileText(VMTarget(),  false, irSrc, outputDir, writeAssembly = false) shouldNotBe null
     }
 
     test("underscores for numeric groupings") {
@@ -1166,7 +1186,7 @@ main {
             main { sub start() { cx16.r0++ cx16.r1++ } }
             other { asmsub thing() { %asm {{ inx  rts }} } }
         """
-        val result = compileText(VMTarget(),  false, src, outputDir, writeAssembly = false)!!
+        val result = compileText(Cx16Target(),  false, src, outputDir, writeAssembly = false)!!
         val st = result.compilerAst.entrypoint.statements
         st.size shouldBe 3
     }

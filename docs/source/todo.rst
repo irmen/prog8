@@ -6,8 +6,12 @@ Future Things and Ideas
 - extend the ``-gendoc`` command to generate user reference documentation from Markdown docstrings; see ``ideas/markdown-docstrings-and-reference-docs.md`` for the plan.
 - add float support to the configurable compiler targets. Restrictions: just have "cbm-style floats" as an option (to that it can slot into the current float codegen), where "all" you have to specify is the addresses of AYINT and GIVAYF and FADDT and all their friends.
 - Change scoping rules for qualified symbols so that they don't always start from the root but behave like other programming languages (look in local scope first), maybe only when qualified symbol starts with '.' such as: .local.value = 33, or the other way around? i.e. require new syntax to explicitly look up from global scope. That would give a backwards compatible solution. See ideas/scoping-qualified-symbols.md for a brevity-focused exploration (opt-in `.a.b` local-first, `a.b` stays global; `::a.b` reserved for future flip).
-- implement the signed remainder byte and word routines on 6502 old codegen (virtual, m68k and IR-based codegens already have them working)
-- implement the signed divmod byte and word routines on 6502 old codegen (virtual, m68k and IR-based codegens already have them working)
+- implement the signed remainder byte and word routines on 6502 old codegen (virtual and m68k backends already have them working; the experimental new 6502 backend does not)
+- implement the signed divmod byte and word routines on 6502 old codegen (virtual and m68k backends already have them working; the experimental new 6502 backend does not)
+- complete signed divmod support in the experimental new 6502 codegen:
+  - ``sdivModRegisters`` is a bare ``TODO`` and throws if reached. Normal 6502 source is currently rejected earlier by ``BuiltinFuncGen.funcDivmod``.
+  - ``sdivModImmediate`` delegates to the unsigned ``divModImmediate`` path. If reached, a runtime signed dividend with an immediate divisor gets incorrect results; fully constant calls such as ``divmod__byte(-7, 3)`` are folded separately.
+- sign-correct the saved ``_remainder`` in ``prog8_math.divmod_b_asm``; it currently fixes only the quotient sign, and the saved remainder is not currently read by codegen.
 - add automated validation for m68k ``asmsub`` clobber declarations, including user and third-party assembly bodies. The stdlib declarations have been audited, so declared asmsubs now use precise per-call forbidding; bodies without usable metadata still conservatively destroy the whole allocatable pool.
 - the c64 sprite multiplexer still needs adjustments to make it smooth, it lacks a proper raster event scheduler.
 
@@ -25,8 +29,7 @@ Won't do's or deferred
 - Won't do: make enums strongly typed instead of just syntactic sugar for ints (see ideas/enum-strong-type.md for the plan)
 - Won't do: ``elif`` as syntactic sugar for nested ``else``/``if`` (Python-style). It saves one indent level but generates identical flat branch code, and the idiomatic replacements already exist: ``when`` for comparing one value against constant choices (the compiler even hints at this after 3 links in ``AstChecker.checkIfElseChainAsWhen``) and ``when true`` for heterogeneous conditions. Adding it would duplicate ``when``'s job for little gain.
 - Won't do: VM stack frames. The virtual target keeps the static-memory model and the VM rejects frame-based IR with an explicit error instead of executing it (see ``technical.rst``). Rationale: the VM exists to test ordinary virtual-target programs, not as a second executor for m68k IR; giving it activation records plus per-activation vreg spilling would duplicate the m68k frame semantics for little validation gain, while emitting frames for ``-target virtual`` would churn hundreds of compile-test expectations. M68K programs are validated with the M68K backend and an emulator instead.
-- STR is now assignable to LONG on all targets including 16-bit ones, for consistency with 32-bit targets where str arrays are LONG[]. On 16-bit targets this means a 2-byte string pointer can be assigned to a 4-byte long variable without a typecast.
-  Status: not fixed (known behavior). ``isAssignableTo`` in ``DataTypes.kt`` is target-agnostic and permits STR->LONG everywhere; the 16-bit side effect is harmless and correctness is enforced by the target-aware ``POINTER_MEM_SIZE`` branches in ``AstChecker``.
+- Won't do: rejecting ``STR`` assignment to ``LONG`` on 16-bit targets, for consistency with 32-bit targets where str arrays are ``LONG[]``. On 16-bit targets this means a 2-byte string pointer can be assigned to a 4-byte long variable without a typecast; that side effect is harmless. ``isAssignableTo`` in ``DataTypes.kt`` is target-agnostic and permits STR->LONG everywhere; correctness is enforced by the target-aware ``POINTER_MEM_SIZE`` branches in ``AstChecker``.
 - Won't do: caching the per-line parse results in the m68k ``AsmOptimizer``, or restricting its passes to the ranges a modification touched. Measured: the whole phase is 0.24-0.28s of a ~3.5s compile and the cost is spread thin, so reworking ~100 call sites in 18 passes would buy ~3-4% at most. The cheap wins (token-set label lookup, hoisted regexes, character checks instead of register patterns, windows materialized once per round) are already in.
 
 Romable (%option romable)
@@ -43,7 +46,7 @@ Romable (%option romable)
 IR/VM
 ^^^^^
 Missing VM Implementations (VirtualMachine.kt)
-- ``IRInlineAsmChunk`` with ``isIR=true`` (IR-form inline asm) is not executable: ``VmProgramLoader.kt`` only converts the trivial ``"clc"``/``"sec"`` chunks and throws on everything else. This is the designed-for home of IR-form asm, since ``AstChecker`` restricts ``asm { %ir }`` to the virtual target only; the VM should parse and run the IR instruction lines contained in such chunks. Raw (non-IR) inline asm and ``IRAsmSubroutine`` should NOT be made executable (the VM has no 6502/68k CPU): instead, reject non-IR ``asm`` blocks and ``asmsub`` with a frontend error on the virtual target (currently they pass ``AstChecker`` and only crash at VM load). ``IRInlineBinaryChunk`` (``%binary`` include) stays deferred: the program is not loaded as data, so an embedded blob has no place.
+- Native ``%asm`` blocks are now rejected by ``AstChecker`` on the virtual target (the VM has no 6502/68k CPU); IR-form inline asm (``%ir {{ ... }}``) is converted into regular IR instructions by ``IRProgram.convertAsmChunks()`` before the VM loads the program, so it executes fine. Still open: an ``asmsub`` on the virtual target is only rejected when the VM loads the program (``VmProgramLoader.kt``), not at compile time. The rejection cannot simply move into ``AstChecker`` because an ``asmsub`` with an IR body has to stay compilable - the IR-codegen tests use the virtual target to inspect the generated IR of asmsub calls (register and status-flag returns). ``IRInlineBinaryChunk`` (``%binary`` include) stays deferred: the program is not loaded as data, so an embedded blob has no place.
 Source line tracking in new codegen backends
 - Improve source line tracking across the IR into the generated assembly code in the new codegen backends (new6502, m68k). Currently, the IR preserves some source position information, but this is not consistently propagated through to the final assembly output. Better tracking would improve debugging experience (e.g., in monitor/debugger tools) and make it easier to correlate generated assembly back to the original Prog8 source code. Consider adding source location metadata to IR instructions and ensuring code generators emit appropriate ``.line`` directives or comments in the assembly output.
 
@@ -53,26 +56,6 @@ Libraries
 - add an IFF ANIM5 playback helper module for the Amiga targets (a separate concern from the bare-metal hardware helpers): in-memory IFF chunk walker (BMHD/CMAP/CAMG/BODY plus per-frame ANHD/DLTA), ByteRun1 decoder, op5 byte-vertical delta decoder (unvscomp-style), and a small double-buffer/interleave state machine with ANHD ``reltime`` pacing via vblank waits. CMAP loading is already covered by ``custom.load_iff_cmap()`` (bare metal) and ``graphics.load_iff_cmap()`` (Intuition screens). Usable both OS-friendly (drawing into a ``playfield``) and bare-metal (chip-RAM planes plus ``copper.set_planes`` for the flip). A working C reference implementation is in ``ideas/anim5player.c``: SDL2 + libiff, but structured the way an on-system player must work (two screens, page flip per frame, op5 deltas decoded on demand, no frame cache), so the decode loop and the double-buffer/interleave recipe can be ported from it directly.
 - implement the remaining Amiga bare-metal hardware helpers; see ``ideas/amiga-baremetal-helpers.md`` for the designs and status. Still open: the sprite helper module (packing control words, setting sprite pointers, AGA ``FMODE`` fetch width), the BOB helper (``soft_blit``), and IRQ/VERTB/CIA/TOD handling. ``horiz_line`` is implemented and ``line_draw`` dispatches horizontal segments to it; ``area_fill`` and fill-compatible ``line_draw(..., fill=true)`` are implemented. The bare-metal ``text`` module is implemented as well.
 - make a list of all floats.* routines that the compiler expects for full float support?
-- Inline asmsub with register-bound parameters: fixed. `inline asmsub foo(word x @R7)` is not emitted as a subroutine (the body is inlined at the call site) but the argument stores to the bound registers must still happen. Note: `Inliner.canInlineAtCallSiteWithReason` returns the internal reason "asmsub with parameters cannot be inlined" (not a user-facing error) and skips AST-level inlining; the actual inlining happens later in the codegen via `findInlineAsmSub`/`translateCall` (new6502) or `FunctionCallAsmGen` (old 6502). The normal-sub guard (`registerOrPair != null` check in `DetermineInlineSubs` and `canInlineAtCallSiteWithReason`) stays so a normal `sub` whose parameters are register-bound is never inlined (its register setup would be dropped). Repro (cx16), verified working -- register stores survive at the call site and the call is emitted (as a `jmp` tail call):
-  ```
-  %zeropage basicsafe
-  %option no_sysinit
-  main {
-      sub start() {
-          word @shared xorg = 123
-          word @shared yorg = 45
-          setup_SpriteGrid(xorg, yorg)
-      }
-      sub setup_SpriteGrid(word X @R7, word Y @R9) {
-          TrampCallSTD($a000)
-      }
-      asmsub TrampCallSTD(uword addr @AY) clobbers(A, Y) {
-          %asm {{ rts }}
-      }
-  }
-  ```
-  Expected: `sta/sty cx16.r7s` and `sta/sty cx16.r9s` survive at the call site and `jsr p8s_setup_SpriteGrid` is emitted.
-
 
 Optimizations
 ^^^^^^^^^^^^^

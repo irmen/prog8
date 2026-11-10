@@ -1,6 +1,5 @@
 package prog8tests.vm
 
-import io.kotest.assertions.throwables.shouldThrow
 import io.kotest.assertions.withClue
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.engine.spec.tempdir
@@ -348,13 +347,10 @@ main {
         val othertarget = Cx16Target()
         compileText(othertarget, true, src, outputDir, writeAssembly = true) shouldNotBe null
 
-        val target = VMTarget()
-        val result = compileText(target, false, src, outputDir, writeAssembly = true)!!
-        val virtfile = result.compilationOptions.outputDir.resolve(result.compilerAst.name + ".p8ir")
-        val exc = shouldThrow<Exception> {
-            VmRunner().runProgram(virtfile.readText(), false)
-        }
-        exc.message shouldContain("cannot execute native assembly code")
+        val errors = ErrorReporterForTests(throwExceptionAtReportIfErrors = false, keepMessagesAfterReporting = true)
+        val result = compileText(VMTarget(), false, src, outputDir, errors = errors, writeAssembly = true)
+        result shouldBe null
+        errors.errors.single() shouldContain "%asm blocks with native assembly code cannot be executed by the virtual machine"
     }
 
     test("inline asm for virtual target with IR is accepted and converted to regular instructions") {
@@ -830,12 +826,12 @@ main {
 
 instructions {
     asmsub  match() {
-        %asm {{
-            rts
+        %ir {{
+            return
         }}
     }
 
-    %asm {{
+    %ir {{
         nop
     }}
 }"""
@@ -1846,25 +1842,20 @@ main {
     }
 
     asmsub testPz() -> ubyte @A, bool @Pz {
-        %asm {{
-            lda  #42
-            cmp  #42        ; Z=1
-            rts
+        %ir {{
+            return
         }}
     }
 
     asmsub testPn() -> ubyte @A, bool @Pn {
-        %asm {{
-            lda  #255       ; N=1
-            rts
+        %ir {{
+            return
         }}
     }
 
     asmsub testPv() -> ubyte @A, bool @Pv {
-        %asm {{
-            lda  #1
-            clv
-            rts
+        %ir {{
+            return
         }}
     }
 
@@ -1897,10 +1888,8 @@ main {
         main.b1 = c
     }
     asmsub test() -> ubyte @A, bool @Pc {
-        %asm {{
-            lda #42
-            cmp #42
-            rts
+        %ir {{
+            return
         }}
     }
     ubyte @shared r1
@@ -1936,10 +1925,8 @@ main {
         main.b3 = n
     }
     asmsub testFlags() -> ubyte @A, bool @Pc, bool @Pz, bool @Pn {
-        %asm {{
-            lda #42
-            cmp #42
-            rts
+        %ir {{
+            return
         }}
     }
     ubyte @shared r1

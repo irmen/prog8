@@ -311,6 +311,11 @@ Directives
         Avoid using single-letter symbols in included assembly code, as they could be confused with CPU registers.
         Also, all prog8 symbols are prefixed in assembly code, see :ref:`symbol-prefixing`.
 
+    On the ``virtual`` target, a ``%asm`` block with native assembly code is a compile error:
+    the built-in virtual machine has no CPU to execute it. Use ``%ir {{ ... }}`` blocks there
+    instead, which contain IR instructions that the compiler converts to regular IR code
+    (those are accepted on the virtual target only).
+
 
 .. index:: pair: Directives; %asmbinary
 .. data:: %asmbinary "<filename>" [, <offset>[, <length>]]

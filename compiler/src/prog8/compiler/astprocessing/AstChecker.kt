@@ -2684,8 +2684,12 @@ internal class AstChecker(private val program: Program,
     }
 
     override fun visit(inlineAssembly: InlineAssembly) {
-        if(inlineAssembly.isIR && options.compTarget.name != VMTarget.NAME)
-            errors.err("%asm containing IR code cannot be translated to 6502 assembly", inlineAssembly.position)
+        if(inlineAssembly.isIR) {
+            if(options.compTarget.name != VMTarget.NAME)
+                errors.err("%asm containing IR code cannot be translated to 6502 assembly", inlineAssembly.position)
+        } else if(options.compTarget.name == VMTarget.NAME && !inlineAssembly.definingBlock.isInLibrary) {
+            errors.err("%asm blocks with native assembly code cannot be executed by the virtual machine, use %ir {{ ... }} instead", inlineAssembly.position)
+        }
     }
 
     override fun visit(struct: StructDecl) {
