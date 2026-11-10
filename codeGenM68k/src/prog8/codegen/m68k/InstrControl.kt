@@ -1015,7 +1015,9 @@ private fun AsmGen.emitInlineCopyLoop(iterations: Int, size: Int) {
         2 -> "move.w"
         else -> "move.b"
     }
-    emitLine("moveq  #$iterations, $SCRATCH_D0")
+    // dbra executes iterations+1 times for a start value of iterations,
+    // so preload iterations-1.
+    emitLine("moveq  #${iterations - 1}, $SCRATCH_D0")
     emitLabel(loopLabel)
     emitLine("$moveInsn  ($SCRATCH_A0)+,($SCRATCH_A1)+")
     emitLine("dbra  $SCRATCH_D0,$loopLabel")

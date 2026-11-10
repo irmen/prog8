@@ -578,6 +578,9 @@ class TestInstructionSelectionOptimizations : FunSpec({
         lines.any { it == "bsr  sys.memcopy" } shouldBe false
         lines.count { it == "move.l  (a0)+,(a1)+" } shouldBe 1
         lines.any { it.contains("dbra") } shouldBe true
+        // dbra executes count+1 times for a start value of count:
+        // 9 longwords need a preload of 8
+        lines.any { it == "moveq  #8,d0" } shouldBe true
     }
 
     test("calls sys.memcopy when long count exceeds inline threshold") {
@@ -593,6 +596,8 @@ class TestInstructionSelectionOptimizations : FunSpec({
         lines.any { it == "bsr  sys.memcopy" } shouldBe false
         lines.count { it == "move.b  (a0)+,(a1)+" } shouldBe 1
         lines.any { it.contains("dbra") } shouldBe true
+        // 8 byte iterations need a dbra preload of 7
+        lines.any { it == "moveq  #7,d0" } shouldBe true
     }
 
     test("uses dbra byte loop for byte counts above unrolled limit") {
@@ -601,6 +606,8 @@ class TestInstructionSelectionOptimizations : FunSpec({
         lines.any { it == "bsr  sys.memcopy" } shouldBe false
         lines.count { it == "move.b  (a0)+,(a1)+" } shouldBe 1
         lines.any { it.contains("dbra") } shouldBe true
+        // 12 byte iterations need a dbra preload of 11
+        lines.any { it == "moveq  #11,d0" } shouldBe true
     }
 
     test("calls sys.memcopy when byte count exceeds inline threshold") {
