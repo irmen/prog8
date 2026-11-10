@@ -422,10 +422,17 @@ internal class ProgramAndVarsGen(
             }
         }
 
-        val (instancesNoInit, instances) = symboltable.allStructInstances().partition {
+        val inlineArrayInstanceNames = symboltable.allVariables
+            .filter { it.dt.base == BaseDataType.ARRAY && it.dt.sub == BaseDataType.STRUCT_INSTANCE }
+            .flatMap { variable ->
+                variable.initializationArrayValue.orEmpty().mapNotNull { (it as? StArrayElement.StructInstance)?.name }
+            }
+            .toSet()
+        val (instancesNoInit, initializedInstances) = symboltable.allStructInstances().partition {
             val structtype = symboltable.lookup(it.structName) as StStruct
             it.initialValues.isEmpty() || structtype.isUnion
         }
+        val instances = initializedInstances.filterNot { it.name in inlineArrayInstanceNames }
         asmgen.out("; struct instances without initialization values, as BSS zeroed at startup\n")
         asmgen.out("    .section BSS\n")
         asmgen.out("${StStructInstanceBlockName}_bss  .block\n")

@@ -2285,6 +2285,38 @@ main {
         compileText(VMTarget(), false, src, outputDir) shouldNotBe null
     }
 
+    test("inline struct array initializers do not emit redundant instances") {
+        val src="""
+main {
+    struct Command {
+        pointer name
+        ubyte parms
+        ubyte handler
+    }
+
+    sub start() {
+        Command[] commands = [
+            ["arc", 2, 1],
+            ["back", 1, 2]
+        ]
+        ^^Command x = ["second", 2, 1]
+        x.parms++
+        ^^Command cmd = &commands[1]
+        cmd.parms++
+    }
+}"""
+        val result = compileText(Cx16Target(), false, src, outputDir)!!
+        val asm = result.compilationOptions.outputDir.resolve(result.compilerAst.name + ".asm").readText()
+        val lines = asm.lines().map { it.trim() }
+        val instances = lines.dropWhile { !it.startsWith("prog8_struct_instances ") }
+            .drop(1)
+            .takeWhile { it != ".endblock" }
+            .filter { ".dstruct" in it }
+
+        instances.size shouldBe 1
+        instances.single() shouldContain "string_3,2,1"
+    }
+
     test("type error for invalid field initializer") {
         val src="""
 main {
