@@ -664,4 +664,40 @@ main {
         lines.any { it.startsWith("move.w") && it.endsWith(",d1") } shouldBe true
         lines.count { it.startsWith("dbra  d1,.ac_loop_") } shouldBe 2
     }
+
+    test("inline struct array initializers do not emit redundant instances on m68k") {
+        // m68k counterpart of the 6502 duplicate-struct-instance bug: element instances of an
+        // inline struct array are emitted as raw bytes in the array's data, so no standalone
+        // copy of them may be emitted (only the named instance variable's copy remains).
+        val src = """
+main {
+    struct Command {
+        pointer name
+        ubyte parms
+        ubyte handler
+    }
+
+    sub start() {
+        Command[] commands = [
+            ["arc", 2, 1],
+            ["back", 1, 2]
+        ]
+        ^^Command x = ["second", 2, 1]
+        x.parms++
+        ^^Command cmd = &commands[1]
+        cmd.parms++
+    }
+}
+"""
+        val result = compileText(Qemu68kTarget(), optimize = false, src, outputDir, writeAssembly = true, assemble = false)
+        result shouldNotBe null
+        val asm = result!!.compilationOptions.outputDir.resolve("${result.compilerAst.name}.asm").toFile().readText()
+        val instanceSection = asm.lines().map { it.trim() }
+            .dropWhile { !it.startsWith("; struct instances with initial values") }
+            .takeWhile { !it.startsWith("section") }
+        val instanceLabels = instanceSection.filter { it.startsWith("prog8_struct_instances.") && it.endsWith(":") }
+        instanceLabels.size shouldBe 1
+        instanceSection.count { it.startsWith("dc.l") } shouldBe 1
+        instanceSection.any { "string_3" in it } shouldBe true
+    }
 })
