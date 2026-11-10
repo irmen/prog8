@@ -19,8 +19,8 @@ File Layout:
 |   - AGA Mode (is_aga=1): Array of ULONG (0x00RRGGBB, 4 bytes/color)         |
 +-----------------------------------------------------------------------------+
 | Concatenated Bitplane ZX0 Streams                                           |
-|   - Plane 0 Stream (Size = plane_sizes[0])                                  |
-|   - Plane 1 Stream (Size = plane_sizes[1])                                  |
+|   - Plane 1 Stream (Size = plane_sizes[0])                                  |
+|   - Plane 2 Stream (Size = plane_sizes[1])                                  |
 |   - ...                                                                     |
 |   - Plane N Stream (Size = plane_sizes[N-1])                                |
 +-----------------------------------------------------------------------------+
@@ -37,7 +37,7 @@ Offset (Hex)  Offset (Dec)  Type       Description
 0x0B          11            UBYTE      Reserved / Padding Byte (0x00)
 0x0C          12            UWORD      Number of Palette Entries (2^nPlanes)
 0x0E          14            UWORD      Palette Data Size in Bytes
-0x10          16            ULONG[8]   Array of Compressed Sizes (Planes 0..7)
+0x10          16            ULONG[8]   Array of Compressed Sizes (Planes 1..8, indices 0..7)
 0x30          48            ULONG      Total compressed bitmap data size
 -------------------------------------------------------------------------------
 Total Header Size: 52 Bytes (0x34)
@@ -257,7 +257,7 @@ def apply_ordered_dither(img, palette_img, matrix):
     """
     size = len(matrix)
     width, height = img.size
-    pixels = list(img.getdata())
+    pixels = list(img.get_flattened_data() if hasattr(img, "get_flattened_data") else img.getdata())
     adjusted = []
     for y in range(height):
         matrix_row = matrix[y % size]
@@ -397,7 +397,7 @@ def decode_izx0(input_path):
         raw = zx0_decompress(comp)
         raw_stride = width // 8
         if len(raw) != height * raw_stride:
-            raise ValueError(f"plane {i} decompresses to {len(raw)} bytes, expected {height * raw_stride}")
+            raise ValueError(f"plane {i + 1} decompresses to {len(raw)} bytes, expected {height * raw_stride}")
         raw_planes.append(raw)
 
     pixels = bytearray(width * height)
@@ -584,7 +584,7 @@ def export_izx0(input_path, output_path, force_aga=False, max_colors=256, dither
 
         c_data = compress_zx0(bytes(raw_bytes))
         compressed_planes.append(c_data)
-        print(f"  Plane {plane}: {len(raw_bytes)} -> {len(c_data)} bytes")
+        print(f"  Plane {plane + 1}: {len(raw_bytes)} -> {len(c_data)} bytes")
 
     # 4. Extract Palette Data
     num_palette_entries = 1 << num_planes

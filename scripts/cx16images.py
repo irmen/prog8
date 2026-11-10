@@ -216,16 +216,19 @@ class BitmapImage:
         self.img = image_rgb
         self.quantize_to(palette_rgb, dither)
 
-    def constrain_size(self, hires: bool = False) -> None:
+    def constrain_size(self, hires: bool = False, max_width: Optional[int] = None, max_height: Optional[int] = None) -> None:
         """
         If the image is larger than the lores or hires screen size, scale it down so that it fits.
         If the image already fits, doesn't do anything.
+        Explicit max_width and max_height override the screen dimensions.
         """
+        if max_width is None:
+            max_width = 640 if hires else 320
+        if max_height is None:
+            max_height = 480 if hires else 240
         w, h = self.img.size
-        if hires and (w > 640 or h > 480):
-            self.img.thumbnail((640, 480))
-        elif w > 320 or h > 240:
-            self.img.thumbnail((320, 240))
+        if w > max_width or h > max_height:
+            self.img.thumbnail((max_width, max_height))
         self.size = self.img.size
         self.width, self.height = self.size
 
