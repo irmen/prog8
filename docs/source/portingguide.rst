@@ -85,6 +85,10 @@ Prog8 can support floating point math *if* the target system has suitable floati
 #. what is the binary representation format of the floating point numbers? (how many bytes, how the bits are set up)
 #. what are the valid minimum negative and maximum positive floating point values?
 #. provide a list of the floating point math routines in ROM: name, address, call signature.
+   The exact set of ``floats.*`` routines the 6502 code generators expect is documented in
+   :doc:`technical` ("Float support contract"); a new CBM-style target needs the 24 core
+   routines for either backend, plus 10 more ROM entry points if it uses the new IR-based
+   codegen (or 38 helper trampolines for the old codegen).
 
 
 Support libraries

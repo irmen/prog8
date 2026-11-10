@@ -480,6 +480,73 @@ for both the parameters and the return values::
     }
 
 
+Float support contract (``floats.*`` routines expected by the code generators)
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+.. index:: single: floats library; compiler contract
+
+How much of the ``floats`` block a target's library must provide depends on the backend.
+The 6502 backends call into ``floats.*`` routines by hardcoded name; the m68k and virtual
+backends don't (m68k lowers float operations to FPU instructions, virtual to IR float
+operations plus ordinary library calls), so they have no hardcoded contract beyond the
+user-visible API. On CBM targets most of the arithmetic entry points are ``extsub``
+declarations pointing at the kernal ROM routines (addresses differ per target).
+
+A new CBM-style target only needs the new IR-based codegen's contract, which comes in
+tiers — a target can support scalar floats without transcendentals or float arrays:
+
+Tier 0 — scalar floats (23 routines): assignment, arithmetic, comparisons,
+int/float casts, float subroutine arguments and return values.
+
+``FADD`` ``FMULT`` ``FADDT`` ``FMULTT`` ``FDIVT`` ``FSUBT``
+(memory-operand add/multiply plus FAC2-operand add/multiply/divide/subtract;
+note the memory-operand ``FSUB``/``FDIV`` are *not* used)
+``FREADSA`` ``FREADUY`` ``GIVAYFAY`` ``GIVUAYFAY`` (int to float)
+``MOVFM`` ``MOVMF`` ``MOVAF`` ``MOVFA`` ``CONUPK`` (FAC1/FAC2 movement)
+``NEGOP`` (unary minus) ``QINT`` (float to long) ``SIGN`` (comparison via
+``FSUBT`` + ``SIGN`` instead of ``FCOMP``)
+``cast_as_w_into_ay`` ``cast_as_uw_into_ya`` (float to int)
+``pushFAC1`` ``popFAC`` (float call arguments)
+``FAC_ADDR`` (const uword: base address of the FAC1/FAC2 working registers).
+
+Tier 1 — transcendental functions (+10 ROM routines, only needed if the program uses
+them or the ``**`` operator): ``ABS`` ``ATN`` ``COS`` ``INT`` ``LOG`` ``ROUND``
+``SIN`` ``SQR`` ``TAN`` ``FPWRT``.
+
+Tier 2 — float arrays (+1 routine, only needed for the ``in`` containment operator on
+float arrays): ``containment_floatarray``.
+
+The legacy 6502 codegen needs 38 routines on top of tier 0 (33 if the program uses no
+float arrays): cast/copy/comparison trampolines that the new backend inlines or
+routes directly to ROM instead:
+
+``cast_from_b`` ``cast_from_ub`` ``cast_from_w`` ``cast_from_uw``
+``cast_as_bool_into_a`` ``cast_as_long``
+``cast_FAC1_as_bool_into_a`` ``cast_FAC1_as_w_into_ay`` ``cast_FAC1_as_uw_into_ya``
+``internal_long_AY_to_FAC`` ``internal_long_R1_to_float_AY``
+``copy_float`` ``copy_float2`` ``swap_floats`` ``pushFAC``
+``set_array_float`` ``set_array_float_from_fac1`` ``set_0_array_float``
+``inc_var_f`` ``dec_var_f``
+``var_fac1_equal_f`` ``var_fac1_notequal_f`` ``var_fac1_less_f`` ``var_fac1_lesseq_f``
+``var_fac1_greater_f`` ``var_fac1_greatereq_f``
+``vars_equal_f`` ``vars_less_f`` ``vars_lesseq_f``
+``func_abs_f_into_FAC1`` ``func_sign_f_into_A`` ``func_sqrt_into_FAC1``
+``FSUB`` ``FDIV`` ``FADDH`` ``MUL10`` ``MOVEF`` ``floats_temp_var``
+(5-byte temporary float storage).
+
+So: 23 routines for scalar floats on the new backend (34 with transcendentals, 35 with
+float-array containment), versus 62 for the legacy backend. The helpers live in
+``c64/floats.asm`` + ``c64/floats_funcs.asm`` on CBM targets (included by both
+``c64/floats.p8`` and ``cx16/floats.p8``), with per-target equivalents elsewhere.
+Regenerate per backend with::
+
+    rg -o "floats\.[A-Za-z0-9_]+" codeGenCpu6502/src --no-filename | sort -u     # legacy 6502
+    rg -o "floats\.[A-Za-z0-9_]+" codeGenNew6502/src --no-filename | sort -u      # new 6502
+
+User-visible routines such as ``sin()``, ``cos()``, ``sqrt()``, ``print()`` and ``tostr()``
+are *not* part of this contract; they are regular library functions documented in
+:doc:`libraries` that are implemented on top of the above.
+
+
 Compiler Internals
 ------------------
 .. index:: single: Compiler internals
