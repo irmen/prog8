@@ -140,8 +140,8 @@ class Bmx:
         """Create a BMX image from the given Pillow image."""
         if bpp not in (1, 2, 4, 8):
             raise ValueError("bpp must be 1, 2, 4, or 8")
-        if preserve_first_16_colors and bpp != 8:
-            raise ValueError("preserving the default 16 colors requires 8bpp")
+        if preserve_first_16_colors and bpp not in (4, 8):
+            raise ValueError("preserving the default 16 colors requires 4 or 8 bpp")
         if dither not in ("none", "fs", "ordered4", "ordered8"):
             raise ValueError("dither must be none, fs, ordered4, or ordered8")
         palette_limit = 1 << bpp
@@ -308,8 +308,8 @@ if __name__ == "__main__":
     elif args.action == "tobmx":
         if args.output is None:
             parser.error("tobmx requires an output path")
-        if args.preserve16 and args.bpp != 8:
-            parser.error("--preserve16 requires 8bpp output")
+        if args.preserve16 and args.bpp not in (4, 8):
+            parser.error("--preserve16 requires 4 or 8 bpp output")
         try:
             bmx_create(args.filename, args.output, args.preserve16, args.dither, args.bpp, args.hires)
         except Bmx.BmxError as error:

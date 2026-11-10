@@ -182,6 +182,7 @@ class BitmapImage:
         elif bits_per_pixel == 4:
             num_colors = 15 if fixed_color_zero else 16
             if num_colors==16 and preserve_first_16_colors:
+                self.img = self.img.convert("RGB")
                 return self.quantize_to(default_colors[:16], dither)
         elif bits_per_pixel == 2:
             assert preserve_first_16_colors==False, "bpp is too small for 16 default colors"
