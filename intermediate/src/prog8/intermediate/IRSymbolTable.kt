@@ -31,6 +31,18 @@ class IRSymbolTable {
     fun allStructDefs(): Sequence<IRStStructDef> =
         table.asSequence().map { it.value }.filterIsInstance<IRStStructDef>()
 
+    /**
+     * Names of struct instances that are used as raw bytes inside inline struct-value
+     * arrays. These instances should not be emitted as standalone data or allocated
+     * separately because the array variable already contains their bytes.
+     */
+    fun inlineStructArrayInstanceNames(): Set<String> =
+        allVariables()
+            .filter { it.dt.base == BaseDataType.ARRAY && it.dt.sub == BaseDataType.STRUCT_INSTANCE }
+            .flatMap { v -> (v.initializationValue as? IRVariableInitializer.Array)?.elements.orEmpty() }
+            .mapNotNull { (it as? IRStSymbolicReference.Symbol)?.name?.removePrefix("@") }
+            .toSet()
+
     fun lookup(name: String): IRStNode? = table[name]
 
     fun add(node: IRStNode) {

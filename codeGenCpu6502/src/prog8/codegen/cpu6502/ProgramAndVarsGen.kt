@@ -436,7 +436,7 @@ internal class ProgramAndVarsGen(
         asmgen.out("; struct instances without initialization values, as BSS zeroed at startup\n")
         asmgen.out("    .section BSS\n")
         asmgen.out("${StStructInstanceBlockName}_bss  .block\n")
-        instancesNoInit.forEach {
+        instancesNoInit.filterNot { it.name in inlineArrayInstanceNames }.forEach {
             val structtype: StStruct = symboltable.lookup(it.structName) as StStruct
             asmgen.out("${it.name}    .fill  ${structtype.size}    ; struct ${it.structName}\n")
         }
@@ -990,6 +990,10 @@ internal class ProgramAndVarsGen(
                         val instanceName = (elt as? StArrayElement.StructInstance)?.name ?: throw AssemblyError("expected struct instance in array init for $varname")
                         val instance = symboltable.lookup(instanceName) as? StStructInstance ?: throw AssemblyError("struct instance $instanceName not found")
                         val fieldValues = instance.initialValues
+                        if(fieldValues.isEmpty()) {
+                            asmgen.out("  .fill  $structSize, 0")
+                            continue
+                        }
                         require(fieldValues.size==expandedFieldTypes.size) { "field count mismatch for $instanceName" }
                         for((fieldType, fieldVal) in expandedFieldTypes.zip(fieldValues)) {
                             when (fieldVal) {

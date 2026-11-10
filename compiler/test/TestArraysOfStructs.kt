@@ -7,11 +7,10 @@ import io.kotest.matchers.shouldBe
 import io.kotest.matchers.string.shouldContain
 import io.kotest.matchers.string.shouldNotContain
 import prog8.code.core.BaseDataType
-import prog8.code.target.Amiga500Target
-import prog8.code.target.C64Target
-import prog8.code.target.Qemu68kTarget
-import prog8.code.target.VMTarget
+import prog8.code.target.*
 import prog8.intermediate.IRFileReader
+import prog8.vm.VmRunner
+import prog8.vm.VmVariableAllocator
 import prog8tests.helpers.compileText
 
 class TestArraysOfStructs: FunSpec({
@@ -25,7 +24,7 @@ class TestArraysOfStructs: FunSpec({
                 sub start() { points[0].x = 1 }
             }
         """
-        val result = compileText(VMTarget(), true, src, out, writeAssembly = true, assemble = false)!!
+        val result = compileText(VMTarget(), true, src, out, writeAssembly = true)!!
         val dt = result.codegenSymboltable!!.allVariables.first { it.name.endsWith("points") }.dt
         dt.base shouldBe BaseDataType.ARRAY
         dt.sub shouldBe BaseDataType.STRUCT_INSTANCE
@@ -113,6 +112,101 @@ class TestArraysOfStructs: FunSpec({
         val ir = out.toFile().listFiles()!!.single { it.name.endsWith(".p8ir") }.readText()
         ir shouldContain "<STRUCTINSTANCES>"
         ir shouldContain "arr"
+    }
+
+    test("empty initializer in an inline struct array zero-fills its element") {
+        // 'single' is a standalone zero-initialized instance, so the BSS block must
+        // exist and hold exactly that one instance. The two inline elements must
+        // not add their own entries.
+        val src = """
+            main {
+                struct Point { ubyte x  ubyte y }
+                Point[2] points = [Point:[], Point:[7, 9]]
+                ubyte @shared firstX, firstY, secondX, secondY, singleX, singleY
+                sub start() {
+                    firstX = points[0].x
+                    firstY = points[0].y
+                    secondX = points[1].x
+                    secondY = points[1].y
+                    ^^Point single = ^^Point:[]
+                    singleX = single.x
+                    singleY = single.y
+                }
+            }
+        """
+        listOf(C64Target(), C128Target(), Cx16Target(), PETTarget()).forEach { target ->
+            listOf(false, true).forEach { newCodegen ->
+                val out = tempdir().toPath()
+                val result = compileText(target, true, src, out, writeAssembly = true, assemble = false, newCodegen = newCodegen)!!
+                val asm = result.compilationOptions.outputDir.resolve("${result.compilerAst.name}.asm").toFile().readText()
+                withClue("target=${target.name} newCodegen=$newCodegen") {
+                    asm shouldContain ".fill  2, 0"
+                    asm shouldContain ".byte  7"
+                    asm shouldContain ".byte  9"
+                    val afterBlockStart = asm.substringAfter("prog8_struct_instances_bss  .block")
+                    val blockEnd = listOf(".endblock", ".bend")
+                        .map { afterBlockStart.indexOf(it) }
+                        .filter { it >= 0 }
+                        .minOrNull() ?: error("BSS struct instance block is not terminated")
+                    val bss = afterBlockStart.substring(0, blockEnd)
+                    bss.lines().count { ".fill" in it } shouldBe 1
+                }
+            }
+        }
+
+        listOf(Amiga500Target(), Amiga1200Target(), Qemu68kTarget()).forEach { target ->
+            val out = tempdir().toPath()
+            val result = compileText(target, true, src, out, writeAssembly = true, assemble = false)!!
+            val asm = result.compilationOptions.outputDir.resolve("${result.compilerAst.name}.asm").toFile().readText()
+            withClue("target=${target.name}") {
+                asm shouldContain "dcb.b  2,0"
+                asm shouldContain "dc.b  7"
+                asm shouldContain "dc.b  9"
+                asm shouldContain "; struct instances (zeroed)"
+                // only the zeroed-instances emitter allocates ds.b with a "; struct <type>" comment
+                asm.lines().count { "ds.b" in it && "; struct " in it } shouldBe 1
+            }
+        }
+    }
+
+    test("virtual machine zero-initializes empty inline struct array elements") {
+        val src = """
+            main {
+                struct Point { ubyte x  ubyte y }
+                Point[2] points = [Point:[], Point:[7, 9]]
+                ubyte @shared firstX, firstY, secondX, secondY, singleX, singleY
+                sub start() {
+                    firstX = points[0].x
+                    firstY = points[0].y
+                    secondX = points[1].x
+                    secondY = points[1].y
+                    ^^Point single = ^^Point:[]
+                    singleX = single.x
+                    singleY = single.y
+                }
+            }
+        """
+        val out = tempdir().toPath()
+        val result = compileText(VMTarget(), true, src, out, writeAssembly = true)!!
+        val irContent = out.toFile().listFiles()!!.single { it.name.endsWith(".p8ir") }.readText()
+        val irProgram = IRFileReader().read(irContent)
+        irProgram.st.stripAllPrefixes()
+        val inlineInstanceNames = irProgram.st.inlineStructArrayInstanceNames()
+        val allocations = VmVariableAllocator(irProgram.st, irProgram.encoding, irProgram.options.compTarget).allocations
+        inlineInstanceNames.size shouldBe 2
+        inlineInstanceNames.forEach { allocations.containsKey(it) shouldBe false }
+        val standaloneInstances = irProgram.st.allStructInstances().map { it.name }.toSet() - inlineInstanceNames
+        standaloneInstances.size shouldBe 1
+        allocations.containsKey(standaloneInstances.single()) shouldBe true
+
+        VmRunner().runAndTestProgram(irContent) { vm ->
+            vm.memory.getUB(allocations.getValue("main.firstX")).toInt() shouldBe 0
+            vm.memory.getUB(allocations.getValue("main.firstY")).toInt() shouldBe 0
+            vm.memory.getUB(allocations.getValue("main.secondX")).toInt() shouldBe 7
+            vm.memory.getUB(allocations.getValue("main.secondY")).toInt() shouldBe 9
+            vm.memory.getUB(allocations.getValue("main.singleX")).toInt() shouldBe 0
+            vm.memory.getUB(allocations.getValue("main.singleY")).toInt() shouldBe 0
+        }
     }
 
     test("initialized struct array can point to a split word array") {

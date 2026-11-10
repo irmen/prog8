@@ -38,7 +38,8 @@ class VmVariableAllocator(st: IRSymbolTable, val encoding: IStringEncoding, mems
             allocations[slab.name] = nextLocation
             nextLocation += slab.size
         }
-        for(struct in st.allStructInstances()) {
+        val inlineArrayInstanceNames = st.inlineStructArrayInstanceNames()
+        for(struct in st.allStructInstances().filterNot { it.name in inlineArrayInstanceNames }) {
             allocations[struct.name] = nextLocation
             nextLocation += struct.size
         }

@@ -1099,14 +1099,17 @@ internal class AsmGen(val program: IRProgram, private val target: ICompilationTa
 
         // struct instances without init values -> BSS (zeroed at startup)
         val allInstances = program.st.allStructInstances().toList()
+        val inlineArrayInstanceNames = program.st.inlineStructArrayInstanceNames()
         val (instancesNoInit, instancesWithInit) = allInstances.partition {
             val def = program.st.lookup(it.structName) as IRStStructDef
             it.values.isEmpty() || def.isUnion
         }
-        if (instancesNoInit.isNotEmpty()) {
+        val standaloneInstancesNoInit = instancesNoInit.filterNot { it.name in inlineArrayInstanceNames }
+        val standaloneInstancesWithInit = instancesWithInit.filterNot { it.name in inlineArrayInstanceNames }
+        if (standaloneInstancesNoInit.isNotEmpty()) {
             emitRaw("    .section BSS")
             emitRaw("prog8_struct_instances_bss  .block")
-            for (si in instancesNoInit) {
+            for (si in standaloneInstancesNoInit) {
                 val label = fixNameSymbols(si.name)
                 val instName = label.substringAfter('.')
                 emitLine("$instName  .fill  ${si.size}")
@@ -1117,41 +1120,45 @@ internal class AsmGen(val program: IRProgram, private val target: ICompilationTa
         }
 
         // struct instances with init values -> STRUCTINSTANCES section
-        if (instancesWithInit.isNotEmpty()) {
+        if (standaloneInstancesWithInit.isNotEmpty()) {
             emitRaw("    .section STRUCTINSTANCES")
             emitRaw("prog8_struct_instances  .block")
-            for (si in instancesWithInit) {
+            for (si in standaloneInstancesWithInit) {
                 val label = fixNameSymbols(si.name)
                 val instName = label.substringAfter('.')
                 emitLabel(instName)
-                for (fieldValue in si.values) {
-                    when (val fv = fieldValue.value) {
-                        is IRStSymbolicReference.Numeric -> {
-                            // FLOAT is 5 MFLPT bytes (6502), LONG is 4 bytes; both would
-                            // be truncated if emitted as a 2-byte .word, corrupting the
-                            // instance layout.
-                            when (fieldValue.dt) {
-                                BaseDataType.FLOAT -> emitLine("    .byte  [${target.getFloatAsmBytes(fv.value)}]    ; float ${fv.value}")
-                                BaseDataType.LONG -> emitLine("    .dint  ${fv.value.toLong()}")
-                                BaseDataType.BYTE -> emitLine("    .char  ${fv.value.toInt()}")
-                                BaseDataType.UBYTE, BaseDataType.BOOL -> emitLine("    .byte  ${fv.value.toInt()}")
-                                BaseDataType.UWORD, BaseDataType.WORD, BaseDataType.STR, BaseDataType.POINTER -> emitLine("    .word  ${fv.value.toInt()}")
-                                else -> error("unsupported datatype for struct instance field value: ${fieldValue.dt}")
-                            }
-                        }
-                        is IRStSymbolicReference.Symbol -> {
-                            emitLine("    .word  ${fixNameSymbols(fv.name)}")
-                        }
-                        is IRStSymbolicReference.BoolValue -> {
-                            val v = if (fv.value) 1 else 0
-                            emitLine("    .byte  $v")
-                        }
-                    }
-                }
+                emitStructInstanceValues(si)
             }
             emitRaw("    .bend")
             emitRaw("    .send STRUCTINSTANCES")
             emitRaw("")
+        }
+    }
+
+    private fun emitStructInstanceValues(si: IRStStructInstance) {
+        for (fieldValue in si.values) {
+            when (val fv = fieldValue.value) {
+                is IRStSymbolicReference.Numeric -> {
+                    // FLOAT is 5 MFLPT bytes (6502), LONG is 4 bytes; both would
+                    // be truncated if emitted as a 2-byte .word, corrupting the
+                    // instance layout.
+                    when (fieldValue.dt) {
+                        BaseDataType.FLOAT -> emitLine("    .byte  [${target.getFloatAsmBytes(fv.value)}]    ; float ${fv.value}")
+                        BaseDataType.LONG -> emitLine("    .dint  ${fv.value.toLong()}")
+                        BaseDataType.BYTE -> emitLine("    .char  ${fv.value.toInt()}")
+                        BaseDataType.UBYTE, BaseDataType.BOOL -> emitLine("    .byte  ${fv.value.toInt()}")
+                        BaseDataType.UWORD, BaseDataType.WORD, BaseDataType.STR, BaseDataType.POINTER -> emitLine("    .word  ${fv.value.toInt()}")
+                        else -> error("unsupported datatype for struct instance field value: ${fieldValue.dt}")
+                    }
+                }
+                is IRStSymbolicReference.Symbol -> {
+                    emitLine("    .word  ${fixNameSymbols(fv.name)}")
+                }
+                is IRStSymbolicReference.BoolValue -> {
+                    val v = if (fv.value) 1 else 0
+                    emitLine("    .byte  $v")
+                }
+            }
         }
     }
 
@@ -1217,7 +1224,20 @@ internal class AsmGen(val program: IRProgram, private val target: ICompilationTa
 
             dt.isArray -> {
                 val hasExplicitInit = init is IRVariableInitializer.Array
-                if (dt.elementType().isFloat) {
+                if(dt.sub == BaseDataType.STRUCT_INSTANCE) {
+                    val elements = (init as? IRVariableInitializer.Array)?.elements.orEmpty()
+                    emitLabel(label)
+                    for(elt in elements) {
+                        val sym = (elt as? IRStSymbolicReference.Symbol)?.name ?: error("expected struct instance symbol for ${v.name}")
+                        val instanceName = sym.removePrefix("@")
+                        val instance = program.st.lookup(instanceName) as? IRStStructInstance ?: error("struct instance $instanceName not found for ${v.name}")
+                        if(instance.values.isEmpty()) {
+                            emitLine(".fill  ${instance.size}, 0")
+                        } else {
+                            emitStructInstanceValues(instance)
+                        }
+                    }
+                } else if (dt.elementType().isFloat) {
                     val bytes = when (init) {
                         is IRVariableInitializer.Array -> init.elements.map {
                             when (it) {
