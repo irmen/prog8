@@ -4,25 +4,6 @@ Trimmed to the items still open. Completed tiers and their measurement notes
 have been removed; see git history for the full record. Ordered roughly by
 complexity/impact.
 
-## 3.8 Move scheduler for hardware-register call arguments [STILL TODO - correctness hardening]
-
-- **Where**: `codeGenM68k/InstrControl.kt`, `translateCall`.
-- **Problem**: when two call arguments both pass in data-register slots but
-  their source vregs are allocated to each other's target registers, the naive
-  sequential move sequence can clobber one value before it reaches its slot
-  (e.g. arg0 wants d2 but lives in d3, arg1 wants d3 but lives in d2).
-- **Current fix**: the register allocator (`RegisterAllocator.kt`,
-  `fixedBoundaryEffects`) forbids an argument source vreg from occupying any
-  other argument's hardware target slot, and `translateCall` hoists address-slot
-  arguments before data-slot arguments.
-- **Better fix**: replace the ad-hoc sequencing with a small move scheduler.
-  Treat each hardware-slot move as a node; edge when one move's destination is
-  another's source. Topologically sort; break cycles by staging one source to
-  d0/d1 scratch (argument sources are never allocated there).
-- **Benefit**: makes `translateCall` correct independent of allocation choices,
-  removing the allocator constraint that currently papers over the issue.
-- **Effort**: small-medium.
-
 ## Tier 4 - Register allocation & spilling (weeks)
 
 ### 4.1 Widen StackFrameLayout promotion

@@ -47,6 +47,61 @@ main {
         compileText(Qemu68kTarget(), optimize = true, src, outputDir, writeAssembly = true, assemble = false) shouldNotBe null
     }
 
+    test("call arguments in swapped hardware registers preserve both values") {
+        // The results arrive in D3 then D2, while consume expects them in D2 then D3.
+        val src = """
+main {
+    asmsub first_value() -> uword @D3 {
+        %asm {{
+            move.w  #$1111,d3
+            rts
+        }}
+    }
+
+    asmsub second_value() -> uword @D2 {
+        %asm {{
+            move.w  #$2222,d2
+            rts
+        }}
+    }
+
+    asmsub consume(uword first @D2, uword second @D3) {
+        %asm {{
+            move.w  d2,d0
+            add.w   d3,d0
+            rts
+        }}
+    }
+
+    sub start() {
+        consume(first_value(), second_value())
+    }
+}
+"""
+        val result = compileText(Amiga500Target(), optimize = false, src, outputDir, writeAssembly = true, assemble = false)
+        result shouldNotBe null
+        val asm = result!!.compilationOptions.outputDir.resolve("${result.compilerAst.name}.asm").toFile().readText()
+        val start = asm.substring(
+            asm.indexOf("; ---- Subroutine: p8b_main.p8s_start"),
+            asm.indexOf("; End of subroutine: p8b_main.p8s_start")
+        )
+        val lines = start.lines().map { it.substringBefore(';').trim() }
+        val firstCall = lines.indexOf("bsr  p8b_main.p8s_first_value")
+        val secondCall = lines.indexOf("bsr  p8b_main.p8s_second_value")
+        val saveFirst = lines.indexOf("move.l  d3,d0")
+        val moveSecondToD3 = lines.indexOf("move.w  d2,d3")
+        val moveFirstToD2 = lines.indexOf("move.w  d0,d2")
+        val consumeCall = lines.indexOf("bsr  p8b_main.p8s_consume")
+
+        firstCall shouldBeGreaterThan -1
+        secondCall shouldBeGreaterThan firstCall
+        // Break the D3/D2 cycle with D0: save the first argument, install the second, then restore the first.
+        saveFirst shouldBeGreaterThan secondCall
+        moveSecondToD3 shouldBeGreaterThan saveFirst
+        moveFirstToD2 shouldBeGreaterThan moveSecondToD3
+        consumeCall shouldBeGreaterThan moveFirstToD2
+    }
+
     test("module sub returning uword computed from a long expression assembles on qemu68k") {
         // Regression test for a m68k backend bug: a module-level sub whose return
         // type is uword, but whose return expression is a 'long' value cast to uword,

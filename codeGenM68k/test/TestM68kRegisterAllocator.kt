@@ -84,41 +84,6 @@ class TestM68kRegisterAllocator : FunSpec({
         listOf("a2", "a3", "a4").contains(alloc[VirtualRegister.int(1)]) shouldBe true
     }
 
-    test("argument source vregs avoid other argument target-slot registers") {
-        // The backend emits hardware-slot argument moves sequentially; a move into one
-        // argument's target slot must not overwrite another argument's source register
-        // before it is read. The allocator should keep source vregs out of all other
-        // argument target slots.
-        val options = CompilationOptions.builder(Qemu68kTarget())
-            .output(OutputType.RAW).zeropage(ZeropageType.FLOATSAFE)
-            .compilerVersion("test").memtopAddress(0xffffu).optimize(true).build()
-        val program = IRProgram("test", IRSymbolTable(), options, DummyStringEncoder)
-        val chunk = IRCodeChunk(null, null)
-        chunk.instructions.add(IRInstructions.load(IRDataType.WORD, 1, 100))
-        chunk.instructions.add(IRInstructions.load(IRDataType.WORD, 2, 200))
-        val callSite = CallSite(
-            CallTarget.Direct(CodeReference.Label("test.other", 0)),
-            arguments = listOf(
-                Calls.argument(1, IRDataType.WORD, CallLocation.HardwareRegister(CallingConventionSlot(13))), // D3
-                Calls.argument(2, IRDataType.WORD, CallLocation.HardwareRegister(CallingConventionSlot(12)))  // D2
-            )
-        )
-        chunk.instructions.add(IRInstruction(Opcode.CALL, null, callSite = callSite))
-        val sub = IRSubroutine("test.start", emptyList(), emptyList(), Position.DUMMY)
-        sub.chunks.add(chunk)
-        val other = IRSubroutine("test.other", emptyList(), emptyList(), Position.DUMMY)
-        other.chunks.add(IRCodeChunk(null, null))
-        val block = IRBlock("test", false, IRBlock.Options(), Position.DUMMY)
-        block.children.add(sub)
-        block.children.add(other)
-        program.blocks.add(block)
-
-        val alloc = M68kRegisterAllocator(program).allocate().mapBySub[sub] ?: emptyMap()
-        // Spilled is fine; if allocated, it must not be in the conflicting target slot.
-        alloc[VirtualRegister.int(1)]?.let { it shouldNotBe "d3" }  // target of arg0
-        alloc[VirtualRegister.int(2)]?.let { it shouldNotBe "d2" }  // target of arg1
-    }
-
     test("value live across a CALL is never allocated to a caller-saved register") {
         val options = CompilationOptions.builder(Qemu68kTarget())
             .output(OutputType.RAW).zeropage(ZeropageType.FLOATSAFE)

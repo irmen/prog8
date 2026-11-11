@@ -397,22 +397,6 @@ class M68kRegisterAllocator(val program: IRProgram) {
                                 forbiddenByVreg.getOrPut(v) { mutableSetOf() }.addAll(clobberedPool)
                             }
                         }
-                        // The backend emits hardware-slot argument moves sequentially; a move into
-                        // one argument's target slot must not overwrite another argument's source
-                        // register before that source has been read. Forbid every argument source
-                        // vreg from occupying any other argument's target slot (its own slot is
-                        // harmless: the emitted move is a no-op and the value is already there).
-                        val argTargetPool = effects.reads.intersect(allocatablePool)
-                        if (argTargetPool.isNotEmpty()) {
-                            for (arg in cs.arguments) {
-                                val src = (arg.source as? RegisterCallSource)?.register?.register ?: continue
-                                val ownSlot = (arg.location as? CallLocation.HardwareRegister)?.slot
-                                val ownTarget = ownSlot?.let { M68kRegisterConvention.fixedRegister(it) }
-                                val forbidden = argTargetPool.filterNot { it.equals(ownTarget, ignoreCase = true) }.toSet()
-                                if (forbidden.isNotEmpty())
-                                    forbiddenByVreg.getOrPut(src) { mutableSetOf() }.addAll(forbidden)
-                            }
-                        }
                     }
                 }
                 live.removeAll(defs)

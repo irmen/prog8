@@ -852,6 +852,55 @@ internal fun AsmGen.translateControl(insn: IRInstruction, forwardedImmediateCall
 
 // === CALL translation with argument handling ===
 
+private data class HardwareRegisterMove(var source: String, val target: String, val type: IRDataType)
+
+private fun AsmGen.emitHardwareRegisterMove(source: String, target: String, type: IRDataType) {
+    // The cycle save is a longword; select the low byte or word in big-endian stack order.
+    val sourceOperand = if (source == "(sp)") when (type) {
+        IRDataType.BYTE -> "3(sp)"
+        IRDataType.WORD -> "2(sp)"
+        else -> source
+    } else source
+    if (target.startsWith("a") && type in setOf(IRDataType.LONG, IRDataType.POINTER))
+        emitLine("movea.l  $sourceOperand,$target")
+    else
+        emitLine("move${dtSuffix(type)}  $sourceOperand,$target")
+}
+
+private fun AsmGen.scheduleHardwareRegisterMoves(moves: List<HardwareRegisterMove>, unavailableRegisters: Set<String>) {
+    val pending = moves.map { it.copy() }.toMutableList()
+    // D0/D1 are outside the allocator pool; use one only if this call does not need it.
+    val scratch = listOf("d0", "d1").firstOrNull { it !in unavailableRegisters }
+    var stackTemporary = false
+
+    while (pending.isNotEmpty()) {
+        // Emit a move once its destination no longer holds another pending source.
+        val ready = pending.indexOfFirst { move ->
+            pending.none { it.source.equals(move.target, ignoreCase = true) }
+        }
+        if (ready >= 0) {
+            val move = pending.removeAt(ready)
+            emitHardwareRegisterMove(move.source, move.target, move.type)
+            if (stackTemporary && pending.none { it.source == "(sp)" }) {
+                emitLine("lea  4(sp),sp")
+                stackTemporary = false
+            }
+            continue
+        }
+
+        val source = pending.first().source
+        if (scratch != null) {
+            emitLine("move.l  $source,$scratch")
+            pending.filter { it.source.equals(source, ignoreCase = true) }.forEach { it.source = scratch }
+        } else {
+            check(!stackTemporary) { "cyclic hardware-register arguments require a second stack temporary" }
+            emitLine("move.l  $source,-(sp)")
+            pending.filter { it.source.equals(source, ignoreCase = true) }.forEach { it.source = "(sp)" }
+            stackTemporary = true
+        }
+    }
+}
+
 private fun AsmGen.translateCall(fnLabel: String, callSite: CallSite, forwardedImmediateCall: ImmediateCallOptimization? = null) {
     if (fnLabel == "sys.memcopy" && emitInlineMemcopyCall(callSite, forwardedImmediateCall))
         return
@@ -869,24 +918,55 @@ private fun AsmGen.translateCall(fnLabel: String, callSite: CallSite, forwardedI
         val regSource = arg.source as? RegisterCallSource ?: return null
         return regAllocation[regSource.register.register]
     }
+    fun isM68kRegister(register: String): Boolean =
+        register.length == 2 && register[0].lowercaseChar() in setOf('d', 'a') && register[1] in '0'..'7'
+
+    val scheduledArguments = mutableSetOf<Int>()
+    val registerMoves = mutableListOf<HardwareRegisterMove>()
+    for ((index, arg) in callSite.arguments.withIndex()) {
+        if (arg.source !is RegisterCallSource) continue
+        if (arg.registerSource.register in forwardedRegs || arg.registerSource.isFloat) continue
+        val target = slotTargetReg(arg) ?: continue
+        if (!isM68kRegister(target)) continue
+        val source = sourcePhysReg(arg) ?: continue
+        if (!isM68kRegister(source)) continue
+        scheduledArguments.add(index)
+        if (!source.equals(target, ignoreCase = true))
+            registerMoves.add(HardwareRegisterMove(source, target, arg.registerSource.type))
+    }
+    val unavailableScratchRegisters = buildSet {
+        registerMoves.forEach {
+            add(it.source.lowercase())
+            add(it.target.lowercase())
+        }
+        callSite.arguments.mapNotNull(::sourcePhysReg).forEach { add(it.lowercase()) }
+    }
+
+    val preEmittedArguments = mutableSetOf<Int>()
+    for ((index, arg) in callSite.arguments.withIndex()) {
+        if (arg.location is CallLocation.HardwareRegister) continue
+        if (arg.source !is RegisterCallSource) continue
+        if (arg.registerSource.register in forwardedRegs) continue
+        translateArgument(arg, fnLabel, forwardedImmediateCall, paramNameFor(index))
+        preEmittedArguments.add(index)
+    }
+
     // Address-slot arguments staged through a data register (or reloaded from memory)
     // must move before any data-slot load: an earlier-indexed data load would otherwise
     // destroy the staged value first (e.g. a pointer staged in D2 bound for A1, with x2's
     // slot also D2). Hoisted moves only write their own slot and movea leaves CCR alone,
     // so this preserves every working order; skip any argumentTuple whose target is read by a
     // later argumentTuple.
-    //
-    // Register-to-data-slot swaps (where arg i's target is arg j's source and vice versa)
-    // are prevented by the register allocator: it forbids an argument source vreg from
-    // occupying any other argument's hardware target slot.
     val hoisted = mutableSetOf<Int>()
     for ((index, arg) in callSite.arguments.withIndex()) {
+        if (index in scheduledArguments || index in preEmittedArguments) continue
         // Only staged register reads need hoisting; immediates read nothing.
         // Stack-slot pushes keep their order (layout!), other locations too.
         val regSource = arg.source as? RegisterCallSource ?: continue
         if (regSource.register.register in forwardedRegs) continue
         val target = slotTargetReg(arg) ?: continue
-        if (!target.lowercase().startsWith("d") && !target.lowercase().startsWith("a")) continue
+        if (!target.lowercase().startsWith("a")) continue
+        if (registerMoves.any { it.source.equals(target, ignoreCase = true) }) continue
         val source = sourcePhysReg(arg)
         if (source != null && !source.lowercase().startsWith("d")) continue
         val targetReadLater = ((index + 1) until callSite.arguments.size).any { later ->
@@ -896,8 +976,9 @@ private fun AsmGen.translateCall(fnLabel: String, callSite: CallSite, forwardedI
     }
     for (index in hoisted)
         translateArgument(callSite.arguments[index], fnLabel, forwardedImmediateCall, paramNameFor(index))
+    scheduleHardwareRegisterMoves(registerMoves, unavailableScratchRegisters)
     for ((index, arg) in callSite.arguments.withIndex()) {
-        if (index in hoisted) continue
+        if (index in hoisted || index in scheduledArguments || index in preEmittedArguments) continue
         if (arg.source is RegisterCallSource && arg.registerSource.register in forwardedRegs) continue
         translateArgument(arg, fnLabel, forwardedImmediateCall, paramNameFor(index))
     }

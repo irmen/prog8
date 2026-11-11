@@ -334,6 +334,66 @@ class TestInstructionSelectionOptimizations : FunSpec({
         sub.count { it.startsWith("move.w  #1220,") } shouldBe 1
     }
 
+    test("schedules cyclic hardware-register call arguments through a scratch register") {
+        // Force sources in D3/D2 while the call targets D2/D3; serial moves would overwrite a source.
+        val site = callSite("test.callee", arguments = listOf(hwArg(1, IRDataType.WORD, 12), hwArg(2, IRDataType.WORD, 13)))
+        val lines = generateAsm(
+            tempRoot.resolve("test-m68k-call-arg-swap"),
+            listOf(
+                IRInstructions.loadMemory(Opcode.LOADM, IRDataType.WORD, 1, IRMemory.direct("p8b_test.p8v_first")),
+                IRInstructions.loadMemory(Opcode.LOADM, IRDataType.WORD, 2, IRMemory.direct("p8b_test.p8v_second")),
+                IRInstructions.call(site)
+            ),
+            regAllocation = mapOf(VirtualRegister.int(1) to "d3", VirtualRegister.int(2) to "d2")
+        )
+
+        val sub = lines.subroutineLines()
+        sub.any { it == "move.w  p8b_test.p8v_first,d3" } shouldBe true
+        sub.any { it == "move.w  p8b_test.p8v_second,d2" } shouldBe true
+        val callIndex = sub.indexOf("bsr  test.callee")
+        callIndex shouldBeGreaterThan -1
+        val transfers = sub.take(callIndex).filter {
+            it in setOf("move.l  d3,d0", "move.w  d2,d3", "move.w  d0,d2", "move.w  d3,d2")
+        }
+        transfers shouldBe listOf("move.l  d3,d0", "move.w  d2,d3", "move.w  d0,d2")
+    }
+
+    test("uses an aligned stack temporary when scratch registers are call arguments") {
+        val site = callSite(
+            "test.callee",
+            arguments = listOf(
+                hwArg(1, IRDataType.BYTE, 12),
+                hwArg(2, IRDataType.BYTE, 13),
+                hwArg(3, IRDataType.WORD, 10),
+                hwArg(4, IRDataType.WORD, 11)
+            )
+        )
+        val lines = generateAsm(
+            tempRoot.resolve("test-m68k-call-arg-stack-temp"),
+            listOf(
+                IRInstructions.loadMemory(Opcode.LOADM, IRDataType.BYTE, 1, IRMemory.direct("p8b_test.p8v_first")),
+                IRInstructions.loadMemory(Opcode.LOADM, IRDataType.BYTE, 2, IRMemory.direct("p8b_test.p8v_second")),
+                IRInstructions.loadMemory(Opcode.LOADM, IRDataType.WORD, 3, IRMemory.direct("p8b_test.p8v_third")),
+                IRInstructions.loadMemory(Opcode.LOADM, IRDataType.WORD, 4, IRMemory.direct("p8b_test.p8v_fourth")),
+                IRInstructions.call(site)
+            ),
+            regAllocation = mapOf(
+                VirtualRegister.int(1) to "d3",
+                VirtualRegister.int(2) to "d2",
+                VirtualRegister.int(3) to "d4",
+                VirtualRegister.int(4) to "d5"
+            )
+        )
+
+        val sub = lines.subroutineLines()
+        val callIndex = sub.indexOf("bsr  test.callee")
+        callIndex shouldBeGreaterThan -1
+        val transfers = sub.take(callIndex).filter {
+            it in setOf("move.w  d4,d0", "move.w  d5,d1", "move.l  d3,-(sp)", "move.b  d2,d3", "move.b  3(sp),d2", "lea  4(sp),sp")
+        }
+        transfers shouldBe listOf("move.w  d4,d0", "move.w  d5,d1", "move.l  d3,-(sp)", "move.b  d2,d3", "move.b  3(sp),d2", "lea  4(sp),sp")
+    }
+
     test("does not partially forward a multi-argument call") {
         val site = callSite("copper.move", arguments = listOf(hwArg(1, IRDataType.WORD, 10), hwArg(2, IRDataType.WORD, 11)))
         val lines = generateAsm(

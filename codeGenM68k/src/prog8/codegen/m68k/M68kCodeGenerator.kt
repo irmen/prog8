@@ -62,7 +62,7 @@ class M68kCodeGenerator(val retainSSA: Boolean): ICodeGeneratorBackend {
             allocation
         }
 
-        // Step 1 of frame-pointer omission: mark leaf-ish framed subroutines (no locals/spills,
+        // Frame-pointer omission: mark framed subroutines that need no frame (no locals/spills,
         // stack-passed arguments only, no callee-saved registers, no hand-written A5 references)
         // so AsmGen skips the link/unlk pair and addresses incoming arguments relative to SP.
         // Subroutines that gain callee-saved registers during allocation keep their frame.
