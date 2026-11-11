@@ -702,6 +702,14 @@ for a character in such strings (one that stops at the first 0 byte)
     but in this case that is equivalent to declaring them as ``uword`` (because
     in this case, the address of the string is passed as argument or returned as value).
 
+.. note:: Assigning ``str`` values to ``long`` variables
+
+    A ``str`` value is a pointer (the memory address of the string's characters),
+    so it can be assigned to ``uword``, ``pointer``, or ``long`` variables without
+    a typecast. On 16-bit targets this stores a 2-byte address in a 4-byte long,
+    which is harmless. This is intentional and the same on all targets: on 32-bit
+    targets a ``str[]`` array is equivalent to a ``LONG[]`` array of addresses.
+
 .. note:: Strings and their (im)mutability
 
     *String literals outside of a string variable's initialization value*,

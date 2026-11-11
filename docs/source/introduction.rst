@@ -25,9 +25,9 @@ You can compile programs for various machines that are built into the compiler:
 * Commodore 64
 * Commodore 128 (limited support)
 * Commodore PET (limited support)
-* Amiga 500  (32-bit 68000 cpu - the intended machine for the m68k code generator backend; experimental)
-* Amiga 1200  (32-bit 68020 cpu with optional FPU; experimental)
-* Qemu M68k simulator (experimental)
+* Amiga 500  (32-bit 68000 cpu - the intended machine for the m68k code generator backend)
+* Amiga 1200  (32-bit 68020 cpu with optional FPU)
+* Qemu M68k simulator
 * any other 65(C)02 target machine or setup can be configured to a great extent in a user written configuration file.
   There are some for the Atari 800 XL, NEO6502, Foenix F256, and such.
 * some users have been experimenting with a NES and a C64 OS target as well.

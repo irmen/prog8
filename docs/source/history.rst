@@ -263,7 +263,7 @@ Major breaking changes that require code modifications when upgrading:
 
 **v14.0** - beta releases from September 2026
     - **Motorola 68000/68020 (m68k) support** - a new, IR-based backend adds native compilation for the 68000 CPU family.
-    - **New compilation targets** — ``amiga500`` (68000), ``amiga1200`` (68020 with optional FPU), and ``qemu68k`` (Qemu m68k simulator). These targets are experimental and still under active development.
+    - **New compilation targets** — ``amiga500`` (68000), ``amiga1200`` (68020 with optional FPU), and ``qemu68k`` (Qemu m68k simulator).
     - **Experimental IR-based 6502 code generator option renamed** from ``-expericodegen`` to ``-newcodegen``.
     - **Amiga library suite** — the new targets ship far more than raw OS bindings: ``custom`` (hardware register access, chipset detection, display calculation, palette helpers, keyboard/mouse/joystick), the bare-metal ``blitter``/``copper``/``playfield``/``trackdisk`` helper modules, the OS-friendly ``easygfx`` wrapper, ``ptplayer``/``sound`` audio, and on-demand bindings for ``iffparse``, ``datatype``, ``asl``, ``arexx``, ``asyncio``, ``icon`` and ``diskfont``.
     - **M68K stack frames and register allocation** — ordinary subroutine locals and parameters now live in activation records on the CPU stack (A5 frame pointer), making subroutines recursive and re-entrant. An intraprocedural register allocator keeps hot values in hardware registers. ``asmsub`` routines must preserve ``D2-D6``/``A2-A4``/``FP2-FP7`` (no ``clobbers()`` list); use ``%option noframe`` for subroutines that manipulate the stack themselves. Clean locals are zero-initialized on every call.

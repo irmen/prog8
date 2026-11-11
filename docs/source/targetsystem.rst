@@ -17,9 +17,9 @@ Currently these machines can be selected as a compilation target (via the ``-tar
 - 'cx16': the `Commander X16 <https://www.commanderx16.com/>`_
 - 'c128': the Commodore 128
 - 'pet32': the Commodore PET 4032
-- 'amiga500': Amiga 500 (experimental)
-- 'amiga1200': Amiga 1200 (experimental, 68020 CPU with optional FPU)
-- 'qemu68k': Qemu M68k simulator (experimental)
+- 'amiga500': Amiga 500
+- 'amiga1200': Amiga 1200 (68020 CPU with optional FPU)
+- 'qemu68k': Qemu M68k simulator
 - 'virtual': a builtin virtual machine (32-bit pointers, 16 MB memory)
 - custom targets via a separate configuration file (see :ref:`customizable_target`)
 
@@ -282,7 +282,7 @@ Footnotes for the Amiga targets
 .. _amiga500footnotes:
 .. index:: single: Targets; Amiga 500 notes
 
-The amiga500 and amiga1200 targets are **experimental**. They use the M68k code generator
+The amiga500 and amiga1200 targets use the M68k code generator
 backend and produce Amiga Hunk executable files via the vasm assembler.
 The amiga500 targets a plain 68000 CPU; the amiga1200 targets a 68020 CPU (which enables
 some extra instructions) and assembles with the 68881 FPU enabled. Everything else in this
