@@ -431,26 +431,33 @@ Sprite sheets are input assets, not a runtime BOB layout. Extracting and
 repacking their cells into the required plane-major frames is the responsibility
 of the client or its asset converter; the blitter library does not convert them.
 
-- **Soft-scroll BOB blit — needed (decision: implement).** `masked_blit` is
-  word-aligned only, which forces BOBs to 16-pixel boundaries and looks jerky
-  for bullets, scrolling sprites and smooth motion. The Amiga blitter's
-  ASHIFT/BSHIFT bits (BLTCON0 bits 12-15 / 4-7) plus BLTAFWM/BLTALWM do
-  exactly this in hardware, so a primitive exposing them is warranted.
-  Proposed routine:
+- **Soft-scroll BOB blit — needed (decision: generalize `masked_blit`, not a new routine).**
+  `masked_blit` is word-aligned only, which forces BOBs to 16-pixel boundaries
+  and looks jerky for bullets, scrolling sprites and smooth motion. The Amiga
+  blitter's ASHIFT/BSHIFT bits (BLTCON0 bits 12-15 / 4-7) plus BLTAFWM/BLTALWM
+  do exactly this in hardware, so a primitive exposing them is warranted.
+  A separate `soft_blit` entry point was considered and rejected: the name says
+  nothing about what it does, and a masked blit with `shift == 0` *is* today's
+  `masked_blit`, so the second routine would only duplicate it under a vaguer
+  label. Chosen approach: keep the single name and extend the existing
+  signature with two trailing parameters. `mask_mod` stays where it is so the
+  first eight arguments keep their meaning.
+  Target signature:
   ```
-  blitter.soft_blit(pointer src @A0, pointer mask @A1, pointer dst @A2,
-                    uword width_words @D0, uword height @D1,
-                    uword src_mod @D2, uword dst_mod @D3,
-                    ubyte shift @D4, uword minterm @D5)
+  blitter.masked_blit(pointer src @A0, pointer mask @A1, pointer dst @A2,
+                      uword width_words @D0, uword height @D1,
+                      uword src_mod @D2, uword mask_mod @D3, uword dst_mod @D4,
+                      ubyte shift @D5, uword minterm @D6)
   ```
   - `src`/`mask`/`dst` are chip-RAM pointers. `mask == 0` disables the mask
     channel (USEB=0) for solid copies/erases; otherwise USEA+USEB+USEC+USED.
   - `width_words` is the BOB width in *destination* words (W). `shift` is
     `x & 15` (0-15). For `shift != 0` the source must be **W+1 words wide**
-    per line (caller pads each line with one zero word); for `shift == 0`
-    the source is W words wide.
+    per line (the `row_words = width_words + 1` guard-word layout above already
+    provides it); for `shift == 0` the source is W words wide.
   - BLTCON0 = `(shift << 12) | (shift << 4) | USEA | (USEB if mask) | USEC | USED | minterm`
-    (BSHIFT follows ASHIFT so the mask scrolls with the data).
+    (BSHIFT follows ASHIFT so the mask scrolls with the data; callers that do
+    not need an independent mask pitch pass `mask_mod == src_mod`).
   - `shift == 0`: BLTAFWM/BLTALWM = $ffff, A/B modulo = pitch - W*2.
   - `shift != 0`: BLTAFWM = `$ffff >> shift`, BLTALWM = `($ffff << (16-shift)) & $ffff`,
     A/B modulo = pitch - (W+1)*2, C/D modulo = pitch - W*2.
@@ -461,24 +468,28 @@ of the client or its asset converter; the blitter library does not convert them.
   - Caller computes the destination pointer (`bitmap + y*pitch + (x>>4)*2`)
     and `shift = x & 15`; the routine stays a pure DMA primitive with no
     position math, no state, no allocation — composable with the other blitter
-    helpers (use `copy_rect`/`blit_copy` to save+restore the background for
-    erase; `soft_blit` with `MINTERM_A_ONLY` and no mask draws a solid BOB).
-  - `masked_blit` remains the simpler, cheaper path when the caller already
-    knows the BOB is word-aligned (shift == 0); `soft_blit` generalises it.
+    helpers (use `copy_rect` to save+restore the background for erase;
+    `masked_blit(..., mask = 0, minterm = MINTERM_A_ONLY)` draws a solid BOB).
+  - The current hardcoding of `MINTERM_MASKED` and the $ffff first/last word
+    masks moves into the `shift == 0` branch, so the aligned path emits exactly
+    today's register sequence; the only new cost is one entry branch on
+    `shift == 0`.
+  - Migration: the single existing caller, `examples/amiga/agabobs.p8`, appends
+    `0, blitter.MINTERM_MASKED` and is otherwise unchanged.
 
-### BOB animation lifecycle (why soft_blit alone is not enough)
+### BOB animation lifecycle (why masked_blit alone is not enough)
 
 A *moving* BOB needs three primitives per frame, in this order:
 
 1. **Erase** the BOB at its old position — restore the saved background:
    `copy_rect(savebuf, dst, W, H, 0, dst_mod, MINTERM_A_ONLY)` (or
-   `soft_blit(savebuf, 0, dst, W, H, 0, dst_mod, old_shift, MINTERM_A_ONLY)`
+   `masked_blit(savebuf, 0, dst, W, H, 0, 0, dst_mod, old_shift, MINTERM_A_ONLY)`
    if the BOB was soft-scrolled and the save buffer is W+1 words wide).
 2. **Save** the background at the new position into the save buffer:
    `copy_rect(dst_new, savebuf, W, H, dst_mod, 0, MINTERM_A_ONLY)` (W+1 words
    for soft-scroll).
 3. **Draw** the BOB at the new position:
-   `soft_blit(bob, mask, dst_new, W, H, src_mod, dst_mod, shift, MINTERM_MASKED)`.
+   `masked_blit(bob, mask, dst_new, W, H, src_mod, src_mod, dst_mod, shift, MINTERM_MASKED)`.
 
 The save buffer must be BOB-sized (W words, or W+1 for soft-scroll) and live
 in chip RAM. With multiple BOBs, erase in reverse draw order (back to front)
@@ -488,10 +499,10 @@ buffers and the old/new position state — the helpers stay stateless.
 This is why the library deliberately stops at primitives: a "move_bob" helper
 would have to own save buffers, positions, and frame ordering, which is
 game-specific. The three-primitive sequence above is the standard Amiga BOB
-pattern and composes cleanly with the existing `copy_rect`/`soft_blit`.
+pattern and composes cleanly with the existing `copy_rect`/`masked_blit`.
 
 - do we need a routine to clear the BOB as well or can we use masked blit for that too efficiently maybe? -> use `fill_rect` with pattern $0000 for a region, or `copy_rect` (save/restore background) for erase; no dedicated clear-BOB routine.
-- what else is missing to easily handle BOBS? -> see the soft_blit design above; otherwise the existing primitives (copy_rect, masked_blit, clear_plane, fill_rect) cover save/restore, draw and erase. Collision detection stays CPU/hardware (CLXCON/CLXDAT), not a blitter job.
+- what else is missing to easily handle BOBS? -> see the `masked_blit` generalization above; otherwise the existing primitives (copy_rect, masked_blit, clear_plane, fill_rect) cover save/restore, draw and erase. Collision detection stays CPU/hardware (CLXCON/CLXDAT), not a blitter job.
 - `blitter.wait()` already exists in `shared_amiga_blitter.p8` (busy-waits on
   DMACONR bit 6). No new helper needed — just reuse/alias it.
 

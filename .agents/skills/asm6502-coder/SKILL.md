@@ -1,6 +1,6 @@
 ---
 name: asm6502-coder
-description: Writing or understanding 6502/65C02 assembly in 64tass syntax, standalone or embedded in Prog8
+description: Writing, reviewing, debugging, or optimizing 6502/65C02 assembly in 64tass syntax, standalone or embedded in Prog8 (including asmsub hot-path rewrites)
 ---
 
 # 6502 Assembly Coder

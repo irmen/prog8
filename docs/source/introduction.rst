@@ -288,3 +288,20 @@ load the ``m68k-coder`` skill (``.agents/skills/m68k-coder/``) instead, which co
 vasm mot syntax, the A5 frame pointer and register allocator conventions, and
 AmigaOS library call register usage.  
 
+To have an agent review an existing program instead of writing new code, use the
+review prompt in ``.agents/prompts/review-p8.md``. It is harness-neutral: give it
+to any coding agent together with one or more ``.p8`` files or directories.
+The review looks for redundant code, non-idiomatic constructs, missed builtin and
+standard library opportunities (with extra attention for the ``math``, ``strings``
+and ``sys`` modules), performance pitfalls, tiny hot-path subroutines that could be
+an ``asmsub``, structure and encapsulation improvements, and modernization to newer
+language features. It is deliberately not a correctness review, and it only reports
+findings with concrete replacements; it does not modify your code. Nothing from the
+report is applied automatically: the agent presents the findings and waits until you
+say which ones you want changed.
+
+OpenCode users can invoke the same prompt with the ``/review-p8`` command
+(``.opencode/commands/review-p8.md``), which runs it in a background subagent on the
+model configured for code reviews. Other harnesses can read the prompt file directly
+or reference it from their own command or prompt definition.
+

@@ -1,6 +1,6 @@
 ---
 name: m68k-coder
-description: Writing or understanding classic Motorola M680x0 assembly in vasm mot syntax, standalone or embedded in Prog8
+description: Writing, reviewing, debugging, or optimizing classic Motorola M680x0 assembly in vasm mot syntax, standalone or embedded in Prog8 (including asmsub hot-path rewrites)
 ---
 
 # M68K Assembly Coder

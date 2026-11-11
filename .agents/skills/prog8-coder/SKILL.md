@@ -1,6 +1,6 @@
 ---
 name: prog8-coder
-description: Writing or understanding Prog8 programs and Prog8 IR
+description: Writing, reviewing, debugging, refactoring, or optimizing Prog8 programs (.p8) and Prog8 IR (.p8ir)
 ---
 
 # Prog8 Coder
