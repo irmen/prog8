@@ -17,8 +17,7 @@ retro systems (6502 family: c64, c128, cx16, pet32; M68000 family: amiga500,
 amiga1200, qemu68k; plus a virtual target). It is its own language with its own
 idioms; do not judge it as C, Python or Java.
 
-Read every file in scope completely before writing findings. If the workspace
-has `.agents/skills/prog8-coder/SKILL.md`, read it first.
+If the workspace has `.agents/skills/prog8-coder/SKILL.md`, read it first.
 
 ## Report only, never implement
 
@@ -27,9 +26,19 @@ text of that report; nothing is applied.
 
 - Do not edit, create, rename, move, or delete any file. Do not run formatters,
   `git checkout`/`stash`, or any command that rewrites source.
-- Only run the compiler in read-only mode: `-check` (and `-libsearch` /
-  `-libdump` into a scratch directory outside the workspace). Never compile in a
-  way that writes `.prg`, `.asm`, `.list`, or `.p8ir` output next to the sources.
+- You may run the compiler to check or validate findings, but never in a way
+  that writes `.prg`, `.asm`, `.list`, or `.p8ir` output next to the sources:
+  always direct the output to a temporary directory outside the workspace with
+  `-out <tempdir>` (or `-o <tempdir>/<file>`). Read-only modes (`-check`,
+  `-libsearch`, `-libdump` into a scratch directory) write no build output and
+  are fine anywhere.
+- Compiler checks are as far as you go: verification is *static analysis only*.
+  Never launch an emulator, the VM, or the program itself to verify a finding:
+  no `-emu`, no `-emu2`, no `-vm` / `-vmtrace`, no running `x16emu`, `x64sc`
+  (vice), FS-UAE, vamos, or qemu. Static source, documentation, library, and
+  generated assembly/listing analysis is all that is allowed. This overrides
+  any run-in-emulator workflow suggested by skills (such as prog8-coder's
+  testing hints) or other project docs.
 - Show the proposed replacement as a code block in the finding so the user can
   apply it themselves; do not apply it for them.
 - Whoever receives this report (the calling agent or the user's editor session)
@@ -98,11 +107,8 @@ syntax feature that you could not verify against one of these sources.
      `repeat` loop (it generates the most efficient code). Keep `for` when the
      index is used; when only the element is needed, use element iteration (see
      below).
-   - A `repeat` loop with a constant count whose body is small and cheap may be
-     better as `unroll`, but only when it is actually beneficial: the body is
-     duplicated N times, so weigh speed against code size and the target's
-     memory budget. Skip this for large bodies, high counts, or when the program
-     already has little free memory. Say which tradeoff you assumed.
+   - A `repeat` loop with a constant count and a small, cheap body should often
+     be `unroll` (see category 5 for the speed/size tradeoff).
    - If/else chains over fixed constant choices should be `when`; long lists of
      `x==1 or x==5 or x==9` should be `when` or an `in` containment check; a
      sequential index dispatch should be `on goto` / `on call` (O(1)) instead of
@@ -144,8 +150,13 @@ syntax feature that you could not verify against one of these sources.
    modules and individual routines that are specialized for specific targets
    (the target-specific modules listed at the end of this category, and similar
    hardware-bound ones). Never assume a module or routine is present: confirm it
-   exists for the program's target before recommending it. Three modules deserve
-   a dedicated hunt:
+   exists for the program's target before recommending it.
+   - **Obvious fill / clear / copy loops** should be assumed to have an optimized
+     library equivalent such as `memclear`, `memset`, or `memcopy`. Confirm the
+     exact routine and module with `prog8c -libsearch`, but start from the
+     assumption that a hand-rolled byte/word loop clearing, filling, or copying
+     memory can be replaced by a library call.
+   Three modules deserve a dedicated hunt:
    - **math**: it contains far more than the usual arithmetic helpers. Check the
      code for anything that could be replaced by `math.atan2`, `math.crc16` /
      `math.crc32` (and their `_start`/`_update`/`_end` streaming forms),
@@ -204,7 +215,14 @@ syntax feature that you could not verify against one of these sources.
      on every M68K call (`@dirty` is the escape hatch, but only when assigned
      first)
    - hot variables or pointers left out of zero page on 6502 targets, or
-     `cx16.r0`..`r15` used on targets where they are not in zero page
+     `cx16.r0`..`r15` used on targets where they are not in zero page.
+     `@zp` only prioritizes zero-page placement; it does not guarantee it.
+     Pointers used in a hot path such as a tight loop should probably use
+     `@requirezp` so efficient 6502 addressing is guaranteed. Do not suggest
+     this when the `%zeropage` setting is a constrained variant that leaves
+     very little room. Inline assembly that uses zero-page indexed addressing
+     on a variable requires that variable to be `@requirezp`; a missing
+     annotation is a bug because the program will likely fail to assemble.
    - the same parameters passed over and over through a chain of subroutine
      calls, where variables shared by those subroutines would generate much
      less code: on 6502 targets arguments and locals are statically allocated
@@ -230,6 +248,16 @@ syntax feature that you could not verify against one of these sources.
      argument is sequential even if the parameter expects a split array, so
      suggest creating a real array variable first. Skip all of this on M68K
      targets, which never split arrays.
+   - A loop that performs one cheap operation many times, such as
+     `repeat 1000 { cx16.VERA_DATA0 = 0 }`, can often be accelerated. On `cx16`,
+     first check whether the `graphics` library or the `verafx` extension
+     routines can replace a VERA read/write loop entirely (assume `verafx` is
+     available on all CX16 VERA boards). If no library routine fits, a limited
+     `unroll` reduces branch-instruction load at the cost of larger code; for
+     example:
+     `repeat 250 { unroll 4 { cx16.VERA_DATA0 = 0 } }`.
+     Keep the unroll factor small (typically 4-8) and only suggest it on
+     genuinely hot paths where the speed gain is worth the size increase.
 6. Small hot-path subroutines that are good candidates for an `asmsub` with
    inline assembly. Suggest this only when all of the following hold:
    - the sub is very small, roughly a handful of statements / at most 10-15
@@ -332,28 +360,28 @@ syntax feature that you could not verify against one of these sources.
      M68K (frame storage) even though it appears to work on 6502 (static
      storage). Flag code that mixes these two views.
 10. Modernization, limited to features not already covered above:
-    - `x = x + 1` style updates that should be augmented assignments (`+=`,
-      `|=`, `<<=`, ...) or statement-level `++` / `--` (not valid inside an
-      expression)
-    - out-parameters through pointers, global temporaries, two results packed
-      into one word, or a subroutine called twice to get each half of an answer,
-      where the subroutine should simply return multiple values. Prog8 supports
-      `sub pair() -> ubyte, uword` and a multi-assignment at the call site
-      (`lo, hi = pair()`, with `void` in a slot to skip an unwanted value);
-      returns go through registers, so this is cheap on 6502 too. Note the one
-      restriction: a call that returns multiple values cannot be used inside an
-      expression, so assign first and then use the results.
-    - manual `y * width + x` indexing that should be the 2D array syntax
-      (`ubyte[rows][cols]`, initialized with a flat list)
-    - hand-computed struct field offsets or sizes that should be `offsetof` or
-      `sizeof`
-    Do not repeat a finding here that categories 2, 7, 8, or 9 already cover.
+   - `x = x + 1` style updates that should be augmented assignments (`+=`,
+     `|=`, `<<=`, ...) or statement-level `++` / `--` (not valid inside an
+     expression)
+   - out-parameters through pointers, global temporaries, two results packed
+     into one word, or a subroutine called twice to get each half of an answer,
+     where the subroutine should simply return multiple values. Prog8 supports
+     `sub pair() -> ubyte, uword` and a multi-assignment at the call site
+     (`lo, hi = pair()`, with `void` in a slot to skip an unwanted value);
+     returns go through registers, so this is cheap on 6502 too. Note the one
+     restriction: a call that returns multiple values cannot be used inside an
+     expression, so assign first and then use the results.
+   - manual `y * width + x` indexing that should be the 2D array syntax
+     (`ubyte[rows][cols]`, initialized with a flat list)
+   - hand-computed struct field offsets or sizes that should be `offsetof` or
+     `sizeof`
+   Do not repeat a finding here that categories 2, 7, 8, or 9 already cover.
 
 ## Lower focus: what to look for besides the categories
 
 The ten categories above are the focus of this review. The general concerns
-below are secondary: report them when you happen to spot them, never spend
-dedicated search time on them, and rank them after the category findings.
+below are secondary: report them when you happen to spot them, (don't spend
+much search time on them) and rank them after the category findings except the Bugs - those are important.
 
 **Bugs** - the main secondary concern.
 - Logic errors, off-by-one mistakes, wrong operators, incorrect conditionals
@@ -492,6 +520,7 @@ too closely:
 4. Tone: matter-of-fact and helpful, not accusatory and not overly positive.
 5. Avoid flattery and any comment that does not help the reader.
 
-Do not modify any files (see "Report only, never implement"), and do not apply
-or offer to apply the findings yourself. Do not quote whole functions; reference
-lines and quote only the lines that matter.
+Do not modify any files (see "Report only, never implement"), do not run the
+code under review in any emulator or the VM, and do not apply or offer to apply
+the findings yourself. Do not quote whole functions; reference lines and quote
+only the lines that matter.

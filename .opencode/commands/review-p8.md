@@ -24,10 +24,11 @@ Source files or directories to review (empty: all `.p8` files in the
 workspace): $ARGUMENTS
 
 This is a REPORT-ONLY review. The reviewer must not edit, create, or delete any
-file, and must not run the compiler in a mode that writes output next to the
-sources (`-check`, `-libsearch`, `-libdump` only).
+file in the workspace.
 
-It is okay to run the compiler to check or validate findings, but do so in a temporary directory location.
+It is okay to run the compiler to check or validate findings, but always place
+its *output* in a temporary directory location (for example with the `-out`
+option), never next to the sources.
 
 When the subagent returns its report, show it to the user verbatim and stop
 there: do not summarize it into a work plan, do not implement, stage, or offer to
