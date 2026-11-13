@@ -86,7 +86,7 @@ Major breaking changes that require code modifications when upgrading:
 - **v12.1**: Combined virtual register renames (``R0R1_32`` → ``R0R1``, etc.)
 - **v12.2**: ``swap()`` is now a statement (not a function), ``math.crc16()`` and ``math.crc16_start()`` require new parameters, ``private`` is now a reserved keyword
 - **v12.3**: Deterministic module search order, filesystem priority over internal resources
-- **v14.0**: ``list`` module renamed to ``lists``, ``-expericodegen`` option renamed to ``-newcodegen``, virtual target VM switched to 32-bit registers
+- **v14.0**: ``list`` module renamed to ``lists``, ``-expericodegen`` option renamed to ``-newcodegen``, virtual target VM switched to 32-bit registers, CX16 ``psg2`` module renamed to ``psg`` (the old deprecated ``psg`` module was removed)
 
 
 2019 - Early Development
@@ -276,6 +276,7 @@ Major breaking changes that require code modifications when upgrading:
     - **``defer`` is now program-wide** — deferred blocks are also unwound when the program exits, or when ``return``/``exit()`` is used from the ``start()`` subroutine. Very useful to let programs cleanly return to the OS without forgetting to free resources.
     - **Union types** — ``union Name { ... }`` declarations where every field shares offset 0 and storage size equals the largest field; only zero-initialization (``[]``) is allowed, values must be written at runtime through typed pointers.
     - added ``arena`` memory allocation library
+    - **CX16 ``psg`` module replaced** - the old deprecated ``psg`` module has been removed and the ``psg2`` module has been renamed to ``psg``, taking over its name. Code that used the old ``psg`` API or imported ``psg2`` has to be ported to the new API (see the ``psg`` library documentation).
     - **``-o`` / ``--output`` compiler option** - choose the exact file name and path of the output program file;
       all auxiliary output files (assembly, listing, monitor list, IR) are placed alongside it.
       Mutually exclusive with ``-out``.

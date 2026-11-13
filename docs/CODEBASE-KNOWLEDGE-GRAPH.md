@@ -306,7 +306,7 @@ Location: `compiler/res/prog8lib/`. These files are **embedded into the compiler
 - **Shared** `.p8`/`.asm` files at top level: `prog8_lib`, `prog8_math`, `math`, `strings`, `conv`, `bcd`, `buffers`, `compression`, `coroutines`, `lists`, `sorting`, `wavfile`, plus `shared_*` suffix files reused across targets.
 
 ### Representative target module sets
-- **cx16** (`cx16/`): `syslib`, `textio`, `graphics`, `gfx_hires`, `gfx_lores`, `monogfx`, `floats`, `diskio`, `bcd`, `bmx`, `psg`, `psg2`, `sprites`, `palette`, `adpcm`, `serial`, `emudbg`, `compression`, `buffers`, `verafx`, `prog8_lib`.
+- **cx16** (`cx16/`): `syslib`, `textio`, `graphics`, `gfx_hires`, `gfx_lores`, `monogfx`, `floats`, `diskio`, `bcd`, `bmx`, `psg`, `sprites`, `palette`, `adpcm`, `serial`, `emudbg`, `compression`, `buffers`, `verafx`, `prog8_lib`.
 - **amiga500** (`amiga500/`): `syslib`, `exec`, `dos`, `graphics`, `intuition`, `audio`, `arexx`, `blitter`, `sound`, `custom`, `floats`, `ptplayer`, `icon`, `iffparse`, `timer`, `utility`, `textio`, `strings`, etc.
 - **virtual** (`virtual/`): `syslib`, `textio`, `math`, `floats`, `bcd`, `compression`, `conv`, `coroutines`, `diskio`, `strings`, `sorting`, `monogfx`, etc.
 

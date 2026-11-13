@@ -1,5 +1,5 @@
 ; Vera PSG abstraction module for the Vera64X board on the C64.
-; This is a port of the cx16 psg2 module; the PSG is accessed through the
+; This is a port of the cx16 psg module; the PSG is accessed through the
 ; VERA registers of the vera module instead of the CX16's mapped VERA registers.
 ;
 ; This module requires setting up the voice parameters in their Voice structure,

@@ -1497,20 +1497,7 @@ psg  (cx16 only)
 .. index:: pair: Libraries; psg
 
 Available for the Cx16 target.
-**Note: New code should probably use the psg2 module instead!**
-Contains a simple abstraction for the Vera's PSG (programmable sound generator) to play simple waveforms.
-It includes an interrupt handler routine for handling automatic ASR volume envelopes as well.
-
-Read the :source:`psg source code <compiler/res/prog8lib/cx16/psg.p8>` to see what's in there.
-
-
-psg2  (cx16 only)
-^^^^^^^^^^^^^^^^^
-.. index:: pair: Libraries; psg
-
-Available for the Cx16 target.
 Contains an abstraction for the Vera's PSG (programmable sound generator) to play simple waveforms.
-It has better consistent envelope timings than the older ``psg`` module, and easier access to all voice parameters if desired.
 It includes an interrupt handler routine for handling automatic ASR volume envelopes as well.
 
 Envelope timing (one tick = one call to ``update()``):
@@ -1557,7 +1544,7 @@ Channel constants: ``LEFT``, ``RIGHT``, ``BOTH``, ``DISABLED``
 
 See the :source:`examples/cx16/bdmusic.p8` program for ideas how to use it.
 
-Read the :source:`psg2 source code <compiler/res/prog8lib/cx16/psg2.p8>` to see everything that's in there.
+Read the :source:`psg source code <compiler/res/prog8lib/cx16/psg.p8>` to see everything that's in there.
 
 
 vera (C64 + Vera64X)
@@ -1576,7 +1563,7 @@ vera_psg (C64 + Vera64X)
 ^^^^^^^^^^^^^^^^^^^^^^^^
 .. index:: pair: Libraries; vera_psg
 
-Available for the C64 target when using the Vera64X board. This module has the same API as ``psg2`` above, including its voice parameters, ASR envelopes, and ``update()`` routine. It accesses the PSG through the C64 ``vera`` module.
+Available for the C64 target when using the Vera64X board. This module has the same API as ``psg`` above, including its voice parameters, ASR envelopes, and ``update()`` routine. It accesses the PSG through the C64 ``vera`` module.
 
 Install ``vera_psg.update`` as the C64 IRQ handler with ``sys.set_irq(&vera_psg.update)`` to advance envelopes and apply voice changes regularly. The handler chains to the KERNAL IRQ, keeping the jiffy clock available for ``sys.wait``.
 

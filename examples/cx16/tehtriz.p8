@@ -10,7 +10,7 @@
 %import syslib
 %import textio
 %import math
-%import psg2
+%import psg
 
 main {
 
@@ -678,53 +678,53 @@ blocklogic {
 
 sound {
     sub init() {
-        psg2.init()
+        psg.init()
         cx16.enable_irq_handlers(true)
-        cx16.set_vsync_irq_handler(&psg2.update)
+        cx16.set_vsync_irq_handler(&psg.update)
     }
 
     sub blockrotate() {
         ; soft click/"tschk" sound
-        psg2.voice(0, psg2.LEFT | psg2.RIGHT, 32, psg2.NOISE, 0)
-        psg2.frequency(0, 15600)
-        psg2.envelope(0, 200, 0, 255)
+        psg.voice(0, psg.LEFT | psg.RIGHT, 32, psg.NOISE, 0)
+        psg.frequency(0, 15600)
+        psg.envelope(0, 200, 0, 255)
     }
 
     sub blockdrop() {
         ; swish
-        psg2.voice(1, psg2.LEFT | psg2.RIGHT, 40, psg2.NOISE, 0)
-        psg2.frequency(1, 4600)
-        psg2.envelope(1, 200, 5, 30)
+        psg.voice(1, psg.LEFT | psg.RIGHT, 40, psg.NOISE, 0)
+        psg.frequency(1, 4600)
+        psg.envelope(1, 200, 5, 30)
     }
 
     sub swapping() {
         ; beep
-        psg2.voice(2, psg2.LEFT | psg2.RIGHT, 40, psg2.TRIANGLE, 0)
-        psg2.frequency(2, 1500)
-        psg2.envelope(2, 200, 2, 40)
+        psg.voice(2, psg.LEFT | psg.RIGHT, 40, psg.TRIANGLE, 0)
+        psg.frequency(2, 1500)
+        psg.envelope(2, 200, 2, 40)
     }
 
     sub lineclear() {
         ; explosion
-        psg2.voice(3, psg2.LEFT | psg2.RIGHT, 63, psg2.NOISE, 0)
-        psg2.frequency(3, 1400)
-        psg2.envelope(3, 100, 8, 10)
+        psg.voice(3, psg.LEFT | psg.RIGHT, 63, psg.NOISE, 0)
+        psg.frequency(3, 1400)
+        psg.envelope(3, 100, 8, 10)
     }
 
     sub lineclear_big() {
         ; big explosion
-        psg2.voice(4, psg2.LEFT | psg2.RIGHT, 63, psg2.NOISE, 0)
-        psg2.frequency(4, 2500)
-        psg2.envelope(4, 100, 20, 10)
+        psg.voice(4, psg.LEFT | psg.RIGHT, 63, psg.NOISE, 0)
+        psg.frequency(4, 2500)
+        psg.envelope(4, 100, 20, 10)
     }
 
     sub gameover() {
         ; buzz/boing
-        psg2.voice(5, psg2.LEFT | psg2.RIGHT, 50, psg2.SAWTOOTH, 0)
-        psg2.voice(6, psg2.LEFT | psg2.RIGHT, 53, psg2.TRIANGLE, 0)
-        psg2.frequency(5, 200)
-        psg2.frequency(6, 600)
-        psg2.envelope(5, 200, 5, 20)
-        psg2.envelope(6, 255, 5, 20)
+        psg.voice(5, psg.LEFT | psg.RIGHT, 50, psg.SAWTOOTH, 0)
+        psg.voice(6, psg.LEFT | psg.RIGHT, 53, psg.TRIANGLE, 0)
+        psg.frequency(5, 200)
+        psg.frequency(6, 600)
+        psg.envelope(5, 200, 5, 20)
+        psg.envelope(6, 255, 5, 20)
     }
 }

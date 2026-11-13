@@ -1,6 +1,6 @@
 %import textio
 %import syslib
-%import psg2
+%import psg
 
 main {
 
@@ -9,28 +9,28 @@ main {
         void cbm.CHRIN()
         txt.clear_screen()
 
-        psg2.init()
-        psg2.voice(0, psg2.LEFT, 63, psg2.TRIANGLE, 0)
-        psg2.voice(1, psg2.RIGHT, 63, psg2.TRIANGLE, 0)
+        psg.init()
+        psg.voice(0, psg.LEFT, 63, psg.TRIANGLE, 0)
+        psg.voice(1, psg.RIGHT, 63, psg.TRIANGLE, 0)
 
         cx16.enable_irq_handlers(true)
-        cx16.set_vsync_irq_handler(&psg2.update)
+        cx16.set_vsync_irq_handler(&psg.update)
 
         repeat {
             uword note
             for note in notes {
                 ubyte note0 = lsb(note)
                 ubyte note1 = msb(note)
-                psg2.frequency(0, vera_freqs[note0])
-                psg2.frequency(1, vera_freqs[note1])
-                psg2.envelope(0, 255, 0, 6)
-                psg2.envelope(1, 255, 0, 6)
+                psg.frequency(0, vera_freqs[note0])
+                psg.frequency(1, vera_freqs[note1])
+                psg.envelope(0, 255, 0, 6)
+                psg.envelope(1, 255, 0, 6)
                 print_notes(note0, note1)
                 sys.wait(10)
             }
         }
 
-        psg2.off()
+        psg.off()
         cx16.disable_irq_handlers()
     }
 

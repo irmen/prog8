@@ -281,7 +281,7 @@ class Prog8TextDocumentService: TextDocumentService {
                     "memory", "offsetof", "sizeof", "swap",
                     "rsave", "rsavex", "rrestore", "rrestorex",
                     "rnd", "rndw", "sqrtw"
-                    // Note: 'psg' and 'psg2' are library modules, not builtin functions
+                    // Note: 'psg' is a library module, not a builtin function
                 )
                 // Note: Tags like @zp, @shared, @nosplit, etc. are NOT included here
                 // because they're context-specific modifiers (used after datatype in declarations)
@@ -502,7 +502,7 @@ class Prog8TextDocumentService: TextDocumentService {
                         "floats", "gfx_hires", "gfx_lores", "graphics", "icon", "iffparse",
                         "intuition", "lineclip", "lists", "lowlevel", "math", "monogfx",
                         "palette", "petgfx", "petsnd", "playfield", "prog8_lib", "prog8_math",
-                        "psg", "psg2", "ptplayer", "serial", "sorting", "sound",
+                        "psg", "ptplayer", "serial", "sorting", "sound",
                         "sprites", "strings", "syslib", "test_stack", "text", "textio",
                         "timer", "trackdisk", "utility", "vera", "vera_gfx", "vera_palette",
                         "vera_psg", "vera_sprites", "vera_text", "verafx", "wavfile"
