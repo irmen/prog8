@@ -284,8 +284,10 @@ Footnotes for the Amiga targets
 
 The amiga500 and amiga1200 targets use the M68k code generator
 backend and produce Amiga Hunk executable files via the vasm assembler.
-The amiga500 targets a plain 68000 CPU; the amiga1200 targets a 68020 CPU (which enables
-some extra instructions) and assembles with the 68881 FPU enabled. Everything else in this
+The amiga500 targets a plain 68000 CPU (upgraded to 68020 for the assembler when floats are used);
+the amiga1200 targets a 68020 CPU (which enables some extra instructions) and is always assembled
+with ``-m68020 -m68881``. That flag only enables assembling FPU instructions: a program that does
+not use floats still runs on a stock Amiga 1200 without an FPU. Everything else in this
 section applies to both.
 
 Unlike the 6502 targets, the 68000/68020 CPU is **big endian**: multi-byte values (words, 32-bit longs and

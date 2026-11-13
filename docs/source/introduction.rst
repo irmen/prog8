@@ -223,6 +223,7 @@ If multiple options are listed above, you can select which one you want to launc
 
 For the Amiga targets (``amiga500`` and ``amiga1200``), you can use an Amiga emulator such as
 `WinUAE <https://www.winuae.net/>`_, `FS-UAE <https://fs-uae.net/>`_ or `Copperline <https://copperline.dev/>`_.
+The ``-emu`` option launches **Copperline**, the ``-emu2`` option launches **Vamos** (Amitools).
 Copperline is a modern Amiga emulator with a built-in debugger and headless/scripted execution
 support. It is the only emulator that fully supports the ``emudbg`` library module:
 ``console_write``, ``console_nl`` and ``exitemu()`` also work on WinUAE (via the uaelib trap),

@@ -563,8 +563,16 @@ Are you getting an assembler error about undefined symbols such as ``not defined
 This happens when your program uses floating point values, and you forgot to import ``floats`` library.
 If you use floating points, the compiler needs routines from that library.
 Fix it by adding an ``%import floats``.
-Note for ``amiga500``: using floats causes the compiler to assemble with ``-m68020 -m68881``,
-so the resulting executable requires a 68020 CPU with a 68881/68882 FPU rather than a stock 68000 Amiga 500.
+
+Floating point programs crash on the Amiga (m68k targets)
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Using floats makes the compiler assemble with ``-m68020 -m68881``, so the program then requires
+a 68020 CPU with a 68881/68882 FPU. Every floating-point operation (including ``floats.print()``
+and ``floats.parse()``) is emitted as a direct FPU instruction, and without that hardware the program
+crashes with an illegal instruction at its first float operation.
+Run it on a 68020+ machine with an FPU, an upgraded system, or an emulator configured with an FPU
+(the ``qemu68k`` target launches QEMU's ``m68020`` CPU model, which emulates an FPU).
+AmigaOS does provide software floating-point libraries (``mathieee*.library``), but Prog8 does not use them.
 
 Gradle error when building the compiler yourself
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^

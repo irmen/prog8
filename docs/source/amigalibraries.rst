@@ -358,9 +358,15 @@ additions:
   ``exitemu()`` use the WinUAE/Copperline uaelib trap, the remaining routines
   are Copperline-only, and the module must not be used on real hardware or
   FS-UAE.
-- ``floats`` - requires a 68020 or better CPU with an 68881/68882 FPU; the
-  amiga500 target is assembled with ``-m68020 -m68881`` and amiga1200 with
-  ``-m68881``.
+- ``floats`` - requires a 68020 or better CPU with an 68881/68882 FPU. The amiga500 target is
+  assembled with ``-m68000`` normally, and with ``-m68020 -m68881`` when floats are used, so such
+  a program will not run on a stock Amiga 500. The amiga1200 target is always assembled with
+  ``-m68020 -m68881``, but that only enables assembling FPU instructions: a program that does not
+  use floats still runs on a stock Amiga 1200 without an FPU.
+  Every float operation, including ``print()`` and ``parse()``, is a direct FPU instruction, so a
+  program using floats warns at compile time and crashes with an illegal instruction when run
+  without an FPU. AmigaOS ships software floating-point libraries (``mathieee*.library``) that
+  need no FPU, but Prog8 does not use them at thist time.
 - ``lists`` - on amiga500/amiga1200 it wraps ``exec.library`` and uses the real
   Exec ``MinList``/``MinNode``/``Node`` layouts.
 - ``math`` - ``mul32`` compiles to a single m68k multiply instruction.

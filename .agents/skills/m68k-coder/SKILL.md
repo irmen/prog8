@@ -175,8 +175,9 @@ For QEMU 68k, Prog8 invokes `vasmm68k_mot` with `-m68020 -m68881 -Felf
 binary output use `-Fbin` and `-join=0x<addr>`. Add `-L listing.txt` when a
 listing is needed.
 
-Prog8 runs `amiga500` programs with `vamos --cpu 68000` and `qemu68k` programs
-with `qemu-system-m68k -M virt -cpu m68020 -m 1M -kernel program.elf -nographic`.
+Prog8 runs `amiga500` programs with `vamos --cpu 68000` (`-emu2`) or
+`copperline --factory --model A500 --cpu 68000 --slow 512K --run <program>` (`-emu`),
+and `qemu68k` programs with `qemu-system-m68k -M virt -cpu m68020 -m 1M -kernel program.elf -nographic`.
 
 ## Searching
 

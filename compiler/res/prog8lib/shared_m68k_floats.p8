@@ -13,7 +13,7 @@ floats {
     const float PI = π
     const float TWOPI = 2*π
     const float E = 2.718281828459045
-    const float EPSILON = 4.9E-324
+    const float EPSILON = 1.401298464e-45   ; smallest positive single-precision float (2^-149)
 
     asmsub sin(float angle @FP0) -> float @FP0 {
         %asm {{

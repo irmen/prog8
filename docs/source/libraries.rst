@@ -833,9 +833,13 @@ floats
     On the X16, make sure rom bank 4 is still active before doing floating point operations (it's the bank that contains the fp routines).
     On the C64, you have to make sure the Basic ROM is still banked in (same reason).
     On the ``qemu68k``, ``amiga500`` and ``amiga1200`` targets, floating point support requires a 68020 or better CPU with an 68881/68882 FPU.
+    Every float operation, including the ``floats`` module's own ``print()`` and ``parse()``, is emitted as a direct FPU instruction,
+    so a program that uses floats warns at compile time and crashes with an illegal instruction when run without an FPU.
+    Use a 68020+ CPU with an 68881/68882 coprocessor, or an emulator configured with one.
+    AmigaOS provides software floating-point libraries (``mathieee*.library``) that need no FPU, but Prog8 does not use them.
     For ``amiga500`` programs that use floats, the compiler automatically assembles with ``-m68020 -m68881``; the ``amiga1200`` target is
-    already 68020 and is always assembled with ``-m68881``.
-    Such programs will not run on an Amiga 500/600 or 1200 without an FP coprocessor or a suitable upgraded/emulated CPU configuration.
+    already 68020 and is always assembled with ``-m68020 -m68881`` (this only enables assembling FPU instructions - a program
+    that does not use floats still runs without an FPU).
 
 Provides definitions for the ROM/Kernal subroutines and utility routines dealing with floating point variables.
 
@@ -849,7 +853,7 @@ Provides definitions for the ROM/Kernal subroutines and utility routines dealing
     float const for Euler's number, 2.718281828459045...
 
 ``EPSILON``
-    float const for the smallest representable floating point value (about 2.94e-39 on CBM machines, 4.9e-324 on the virtual target)
+    float const for the smallest representable floating point value (about 2.94e-39 on CBM machines, 1.4e-45 on m68k targets, 4.9e-324 on the virtual target)
 
 ``atan (x)``
     Arctangent.

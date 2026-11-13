@@ -508,9 +508,11 @@ Directives
 	Sets special compiler options.
 
     - ``enable_floats`` (module level) tells the compiler
-      to deal with floating point numbers (by using various subroutines from the Kernal).
-      Otherwise, floating point support is not enabled. Normally you don't have to use this yourself as
-      importing the ``floats`` library is required anyway and that will enable it for you automatically.
+      to deal with floating point numbers. Otherwise, floating point support is not enabled.
+      Normally you don't have to use this yourself as importing the ``floats`` library is required
+      anyway and that will enable it for you automatically.
+      On 6502 targets the floating-point routines come from the Kernal or BASIC ROM;
+      on m68k targets the code generator lowers them directly to 68881/68882 FPU instructions.
     - ``no_sysinit`` (module level) which cause the resulting program to *not* include
       the system re-initialization logic of clearing the screen, resetting I/O config, setting memory bank configuration etc.
       You'll have to take care of that yourself. The program will just start running from whatever state the machine is in when the

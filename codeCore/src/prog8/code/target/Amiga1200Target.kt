@@ -62,7 +62,7 @@ class Amiga1200Target: ICompilationTarget,
             return
         }
         if (selectedEmulator != 2) {
-            System.err.println("The amiga1200 target supports FS-UAE (-emu) and Amitools's vamos (-emu2).")
+            System.err.println("The amiga1200 target supports Copperline (-emu) and Amitools's vamos (-emu2).")
             return
         }
         val cpuStr = when (this.cpu) {
