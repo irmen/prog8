@@ -75,7 +75,7 @@ extsub $FFD2 = CHROUT(ubyte character @ A)                           ; (via 806 
 extsub $FFD5 = LOAD(ubyte verify @ A, uword address @ XY) -> bool @Pc, ubyte @ A, uword @ XY     ; (via 816 ($330)) load from device
 extsub $FFD8 = SAVE(ubyte zp_startaddr @ A, uword endaddr @ XY) clobbers (X, Y) -> bool @ Pc, ubyte @ A       ; (via 818 ($332)) save to a device.  See also BSAVE
 extsub $FFDB = SETTIM(ubyte low @ A, ubyte middle @ X, ubyte high @ Y)      ; set the software clock
-extsub $FFDE = RDTIM() -> ubyte @ A, ubyte @ X, ubyte @ Y       ; read the software clock (in little endian order: A=lo,X=mid,Y=high) , however use RDTIM_safe() instead
+extsub $FFDE = RDTIM() -> ubyte @ A, ubyte @ X, ubyte @ Y       ; read the software clock (in little endian order: A=lo,X=mid,Y=high). Not IRQ-safe: an IRQ firing mid-read can corrupt the value / hit a RAM-bank issue. Use RDTIM_safe() instead.
 extsub $FFE1 = STOP() clobbers(X) -> bool @ Pz, ubyte @ A       ; (via 808 ($328)) check the STOP key (and some others in A)        also see STOP2
 extsub $FFE4 = GETIN() clobbers(X,Y) -> bool @Pc, ubyte @ A     ; (via 810 ($32A)) get a character      also see GETIN2
 extsub $FFE7 = CLALL() clobbers(A,X)                            ; (via 812 ($32C)) close all files
@@ -547,7 +547,7 @@ extsub $fec0 = kbdbuf_get_modifiers() -> ubyte @A
 extsub $fec3 = kbdbuf_put(ubyte key @A) clobbers(X)
 extsub $fed2 = keymap(uword identifier @XY, bool read @Pc) -> bool @Pc
 extsub $ff68 = mouse_config(byte shape @A, ubyte resX @X, ubyte resY @Y)  clobbers (A, X, Y)
-extsub $ff6b = mouse_get(ubyte zdataptr @X) -> ubyte @A, byte @X    ;  use mouse_pos() instead
+extsub $ff6b = mouse_get(ubyte zdataptr @X) -> ubyte @A, byte @X    ; raw kernal mouse read. mouse_pos() is the preferred wrapper (also returns x/y in r0/r1 and button status in A).
 extsub $ff71 = mouse_scan()  clobbers(A, X, Y)
 extsub $ff53 = joystick_scan()  clobbers(A, X, Y)
 extsub $ff56 = joystick_get(ubyte joynr @A) -> uword @AX, bool @Y   ; note: everything is inverted even the boolean present flag.  Also see joysticks_detect() and joysticks_getall()

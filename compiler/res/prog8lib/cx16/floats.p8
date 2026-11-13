@@ -24,7 +24,7 @@ extsub $fe00 = AYINT() clobbers(A,X,Y)          ; fac1-> signed word in 'facmo' 
 extsub $fe03 = GIVAYF(ubyte lo @ Y, ubyte hi @ A) clobbers(A,X,Y)
 
 extsub $fe06 = FOUT() clobbers(X) -> str @ AY             ; fac1 -> string, address returned in AY
-extsub $fe09 = VAL_1(str string @XY, ubyte length @A) clobbers(A,X,Y) -> float @FAC1      ; convert ASCII string in XY and length in A, to floating point in FAC1. WARNING: only implemented in ROM 47+. Safer to use floats.parse() instead.
+extsub $fe09 = VAL_1(str string @XY, ubyte length @A) clobbers(A,X,Y) -> float @FAC1      ; convert ASCII string in XY and length in A, to floating point in FAC1. WARNING: only implemented in ROM 47+ (absent on older ROMs). Safer to use floats.parse() instead.
 
 ; GETADR: fac1 -> unsigned word in Y/A (might throw ILLEGAL QUANTITY) (result also in $14/15)
 ; (tip: use GETADRAY to get A/Y output; lo/hi switched to normal little endian order)
@@ -58,7 +58,7 @@ extsub $fe57 = RND_0() clobbers(A,X,Y)                      ; fac1 = RND(fac1) f
 extsub $fe57 = RND() clobbers(A,X,Y)                        ; alias for RND_0
 extsub $fe5a = CONUPK(uword mflpt @ AY) clobbers(A,X,Y)     ; load mflpt value from memory in A/Y into fac2
 extsub $fe5d = ROMUPK(uword mflpt @ AY) clobbers(A,X,Y)     ; load mflpt value from memory in current bank in A/Y into fac2
-extsub $fe60 = MOVFRM(uword mflpt @ AY) clobbers(A,X,Y)     ; load mflpt value from memory in A/Y into fac1  (use MOVFM instead)
+extsub $fe60 = MOVFRM(uword mflpt @ AY) clobbers(A,X,Y)     ; load mflpt value from memory in A/Y into fac1  (MOVFM is the preferred wrapper for this)
 extsub $fe63 = MOVFM(uword mflpt @ AY) clobbers(A,X,Y)      ; load mflpt value from memory in A/Y into fac1
 extsub $fe66 = MOVMF(uword mflpt @ XY) clobbers(A,X,Y)      ; store fac1 to memory  X/Y as 5-byte mflpt
 extsub $fe69 = MOVFA() clobbers(A,X)                        ; copy fac2 to fac1
@@ -68,7 +68,7 @@ extsub $fe6c = MOVAF() clobbers(A,X)                        ; copy fac1 to fac2 
 extsub $fe6f = FADDH() clobbers(A,X,Y)                      ; fac1 += 0.5, for integer rounding- call this before INT
 extsub $fe72 = ZEROFC() clobbers(A,X,Y)                     ; fac1 = 0
 extsub $fe75 = NORMAL() clobbers(A,X,Y)                     ; normalize fac1
-extsub $fe78 = NEGFAC() clobbers(A)                         ; switch the sign of fac1 (fac1 = -fac1) (doesn't work, juse use NEGOP() instead!)
+extsub $fe78 = NEGFAC() clobbers(A)                         ; switch the sign of fac1 (fac1 = -fac1) (broken, does not work correctly; use NEGOP() instead)
 extsub $fe7b = MUL10() clobbers(A,X,Y)                      ; fac1 *= 10
 extsub $fe7e = DIV10() clobbers(A,X,Y)                      ; fac1 /= 10 , CAUTION: result is always positive! Have to restore sign manually!
 extsub $fe81 = MOVEF() clobbers(A,X)                        ; copy fac1 to fac2

@@ -534,3 +534,10 @@ You can do the same in assembly code if needed: the struct definition gets writt
     lda  #p8t_Node.p8v_type
     lda  #p8t_Node.p8v_value
     lda  #p8t_Node.p8v_flag
+
+On the m68k targets, the compiler instead emits ``vasm`` ``equ`` symbols for the size and each field offset::
+
+    p8b_main.p8t_Node_size equ 4
+    p8b_main.p8t_Node.p8v_type equ 0
+    p8b_main.p8t_Node.p8v_value equ 1
+    p8b_main.p8t_Node.p8v_flag equ 3

@@ -23,8 +23,8 @@ Then you can choose a few ways to get a compiler:
 
 Arch Linux:
     Currently, it's available on `AUR <https://wiki.archlinux.org/title/Arch_User_Repository>`_ for Arch Linux and derivative systems.
-    The package is called `"prog8" <https://aur.archlinux.org/packages/prog8>`_. There should be no need to install anything else as
-    it can automatically pull in the required dependencies.
+    The package is called `"prog8" <https://aur.archlinux.org/packages/prog8>`_. It pulls in the required dependencies
+    for the 6502 targets (``tass64``); for the m68k targets you still need to install ``vasm`` (and ``vlink`` for ``qemu68k``) separately.
 
     This package, alongside the compiler itself, also globally installs syntax highlighting for ``vim`` and ``nano``.
     In order to run compiler, you can type ``prog8c``. The usage of those commands is exactly the same as with the ``java -jar`` method.
@@ -36,7 +36,8 @@ Arch Linux:
 
 Mac OS (and Linux, and WSL2 on Windows):
     Prog8 can be installed via `Homebrew <https://formulae.brew.sh/formula/prog8>`_ using the command ``brew install prog8``.
-    It will make the ``prog8c`` command available and also installs the other required software tools for you.
+    It will make the ``prog8c`` command available and also installs the 6502 assembler (``64tass``) for you.
+    For the m68k targets you still need to install ``vasm`` (and ``vlink`` for ``qemu68k``) separately.
     While Homebrew works on Linux, it's probably best to first check your distribution's native package manager.
 
 **Or, download a bleeding edge development version from Github:**
@@ -106,23 +107,27 @@ Required additional tools
 
 .. index:: single: Installation; Additional requirements
 
+For the **6502 targets** (``c64``, ``c128``, ``cx16``, ``pet32``, etc.):
+
 `64tass <https://sourceforge.net/projects/tass64/>`_ - cross assembler. Install this program somewhere on your shell's search path.
 It's easy to compile yourself, but a recent precompiled .exe (only for Windows) can be obtained from
 `the files section <https://sourceforge.net/projects/tass64/files/binaries/>`_ in the official project on sourceforge.
 *You need at least version 1.58.0 of this assembler.*
 If you are on Linux, there's probably a "64tass" package in the repositories, but check if it is a recent enough version.
 
-For the **m68k targets** (``amiga500``, ``amiga1200`` and ``qemu68k``), the following additional tools are required when assembling programs:
+For the **m68k targets** (``amiga500``, ``amiga1200`` and ``qemu68k``):
 
 `vasm <http://sun.hasenbraten.de/vasm/>`_ - cross assembler. Prog8 uses the ``vasmm68k_mot`` executable, which must be installed somewhere on your shell's search path.
 
 `vlink <http://sun.hasenbraten.de/vlink/>`_ - linker. This is required for the ``qemu68k`` target, which produces ELF executables. The ``amiga500`` and ``amiga1200`` targets produce Amiga Hunk executables directly with vasm.
 
-The ``-emu`` option has these additional optional dependencies for the m68k targets:
+The ``-emu`` / ``-emu2`` options have these additional optional dependencies for the m68k targets:
 
-`QEMU <https://www.qemu.org/>`_ - install the ``qemu-system-m68k`` executable to run ``qemu68k`` programs.
+`Copperline <https://copperline.dev/>`_ - install the ``copperline`` executable to run ``amiga500`` or ``amiga1200`` programs with ``-emu``.
 
-`Amitools <https://github.com/cnvogelg/amitools>`_ - install the ``vamos`` executable to run ``amiga500`` or ``amiga1200`` programs.
+`Amitools <https://github.com/cnvogelg/amitools>`_ - install the ``vamos`` executable to run ``amiga500`` or ``amiga1200`` programs with ``-emu2``.
+
+`QEMU <https://www.qemu.org/>`_ - install the ``qemu-system-m68k`` executable to run ``qemu68k`` programs with ``-emu`` (``qemu68k`` has no ``-emu2``).
 
 A **Java runtime (jre or jdk), version 17 or newer** is required to run the prog8 compiler itself.
 If you're scared of Oracle's licensing terms, get one of the versions of another vendor. Even Microsoft provides their own version.
@@ -153,8 +158,11 @@ For normal use the compiler can be invoked with the command:
 
 By default, assembly code is generated and written as ``sourcefile.asm`` in the current working directory
 (the default output directory; the ``-out`` option selects a different location).
-It is then (automatically) fed to the `64tass <https://sourceforge.net/projects/tass64/>`_ assembler tool
+On the 6502 targets it is then (automatically) fed to the `64tass <https://sourceforge.net/projects/tass64/>`_ assembler tool
 that creates the final runnable program.
+On the m68k targets it is assembled with ``vasmm68k_mot`` (producing an Amiga Hunk executable with no filename
+extension on ``amiga500``/``amiga1200``, or an object file linked with ``vlink`` into ``sourcefile.elf`` on ``qemu68k``).
+Note that each m68k target only allows its own default ``%output`` type (``amigahunk`` or ``elf``).
 For the ``virtual`` target no assembly code is generated: instead an IR program file named ``sourcefile.p8ir`` is written.
 
 
@@ -178,12 +186,13 @@ One or more .p8 module files
     Also generate an assembler listing file  <program>.list
 
 ``-breakinstr <instruction>``
-    Also output the specified CPU instruction for a ``%breakpoint``, as well as the entry in the vice monitor list file.
+    (6502 targets only) Also output the specified CPU instruction for a ``%breakpoint``, as well as the entry in the vice monitor list file.
     This can be useful on emulators/systems that don't parse the breakpoint information in the list file,
     such as the X16Emu emulator for the Commander X16.
     Useful instructions to consider are ``brk`` and ``stp``.
     For example for the Commander X16 emulator, ``stp`` is useful because it can actually trigger
     a breakpoint halt in the debugger when this is enabled by running the emulator with -debug.
+    On m68k targets, ``%breakpoint`` always emits an ``illegal`` instruction directly and this option is not used.
 
 ``-bytes2float <bytes>``
     convert a comma separated list of bytes from the specified target system to a float value.
@@ -300,8 +309,9 @@ One or more .p8 module files
     Don't print assembler messages
 
 ``-nosourcelines``
-    Do not include the original prog8 source code lines as comments in the generated assembly code file,
+    (6502 targets only) Do not include the original prog8 source code lines as comments in the generated assembly code file,
     mixed in between the actual generated assembly code. The default behavior is to include the source lines.
+    (On m68k targets, use ``-ircomments`` to include IR instruction comments instead.)
 
 ``-srcdirs <pathlist>``
     Specify a list of extra paths (separated with the system path separator, ':' on Linux/macOS, ';' on Windows), to search in for imported modules.
@@ -327,7 +337,7 @@ One or more .p8 module files
     code generator, and ``assembling`` for the external assembler (or writing the ``.p8ir`` file on the virtual target).
 
 ``-varsaddress <address>``
-    Put uninitialized non-zeropage variables and memory slabs (``memory()`` allocations) at the given raw address
+    (6502 targets only; not available on m68k targets) Put uninitialized non-zeropage variables and memory slabs (``memory()`` allocations) at the given raw address
     (e.g. ``$A000`` or ``40960``). Both segments are placed sequentially starting from this single address
     (variables first, slabs immediately after). This is the raw-address counterpart to the ``%varsaddress`` directive
     and the ``vars_address`` target config property. Mutually exclusive with ``-varsgolden`` and ``-varshigh``.
@@ -384,7 +394,7 @@ One or more .p8 module files
     but maybe you expected the result to actually be 1000 here (and forgot to add a cast in the expression to make it words)
 
 ``-warnshadow``
-    Tells the assembler to issue warning messages about symbol shadowing.
+    (6502 targets only) Tells the ``64tass`` assembler to issue warning messages about symbol shadowing.
     These *can* be problematic, but usually aren't because prog8 has different scoping rules
     than the assembler has.
     You may want to watch out for shadowing of builtin names though. Especially 'a', 'x' and 'y',
@@ -456,12 +466,12 @@ compilation like ``#ifdef``/``#endif`` in C.
 
 .. _debugging:
 
-Debugging (with VICE or Box16)
-------------------------------
+Debugging
+---------
 
 .. index:: single: Usage; Debugging
 
-There's support for using the monitor and debugging capabilities of the rather excellent
+On the **6502 targets**, there's support for using the monitor and debugging capabilities of the rather excellent
 `VICE emulator <http://vice-emu.sourceforge.net/>`_.
 
 The ``%breakpoint`` directive (see :ref:`directives`) in the source code instructs the compiler to put
@@ -483,6 +493,11 @@ If your running program hits one of the breakpoints, VICE will halt execution an
 
 Box16 is the alternative emulator for the Commander X16 and it also includes debugging facilities
 that support these symbol and breakpoint lists.
+
+On the **m68k targets**, no ``.vice-mon-list`` file is produced; ``%breakpoint`` emits an ``illegal``
+CPU instruction directly. For ``amiga500`` and ``amiga1200``, `Copperline <https://copperline.dev/>`_
+provides a built-in debugger, and the ``emudbg`` standard library module offers ``debug_printf`` and
+related Copperline debug-port helpers (see :doc:`libraries`).
 
 
 Troubleshooting
@@ -520,9 +535,9 @@ Compiler doesn't run, complains about "UnsupportedClassVersionError"
 You need to install and use JDK version 17 or newer to run the prog8 compiler. Check this with "java -version".
 See :ref:`requirements`.
 
-The computer resets after running my program
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-In the default compiler configuration, it is not safely possible to return back to the BASIC prompt when
+The computer resets after running my program (6502 targets)
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+In the default compiler configuration on the 6502/CBM targets, it is not safely possible to return back to the BASIC prompt when
 your program exits. The only reliable thing to do is to reboot the system.
 This is due to the fact that in this mode, prog8 will overwrite important BASIC and Kernal variables in zero page memory.
 To avoid the reset from happening, use an empty ``repeat`` loop at the end of your program to keep it from exiting.
@@ -530,11 +545,12 @@ Alternatively, if you want your program to exit cleanly back to the BASIC prompt
 you have to use ``%zeropage basicsafe``, see :ref:`directives`.
 The reason this is not the default is that it is very beneficial to have more zeropage space available to the program,
 and programs that have to return cleanly to the BASIC prompt are considered to be the exception.
+(This does not apply to the m68k targets, which have no BASIC or zero page.)
 
 
-Odd text and screen colors at start
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-Prog8 will reset the screen mode and colors to a uniform well-known state. If you don't like the
+Odd text and screen colors at start (6502 targets)
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+On the 6502/CBM targets, Prog8 will reset the screen mode and colors to a uniform well-known state. If you don't like the
 default text and screen colors, you can simply change them yourself to whatever you want at the
 start of your program. It depends on the computer system how you do this but there are some
 routines in the textio module to help you with this.
@@ -547,6 +563,8 @@ Are you getting an assembler error about undefined symbols such as ``not defined
 This happens when your program uses floating point values, and you forgot to import ``floats`` library.
 If you use floating points, the compiler needs routines from that library.
 Fix it by adding an ``%import floats``.
+Note for ``amiga500``: using floats causes the compiler to assemble with ``-m68020 -m68881``,
+so the resulting executable requires a 68020 CPU with a 68881/68882 FPU rather than a stock 68000 Amiga 500.
 
 Gradle error when building the compiler yourself
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -557,15 +575,16 @@ You will need a Java JDK version 17 or higher to build and run the compiler.
 Strange assembler errors
 ^^^^^^^^^^^^^^^^^^^^^^^^
 If the compilation of your program fails in the assembly step, please check that you have
-the required version of the 64tass assembler installed. See :ref:`requirements`.
-Also make sure that inside hand-written inlined assembly,
+the required assembler installed on your PATH: ``64tass`` (version 1.58.0 or newer) for 6502 targets,
+or ``vasmm68k_mot`` (and ``vlink`` for ``qemu68k``) for m68k targets. See :ref:`requirements`.
+On 6502 targets, also make sure that inside hand-written inlined assembly,
 you don't use symbols named just a single letter (especially 'a', 'x' and 'y').
 Sometimes these are interpreted as the CPU register of that name. To avoid such confusions,
 always use 2 or more letters for symbols in your assembly code.
 
-'shadowing' warnings from the assembler
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-Avoid using 'a', 'x' or 'y' as symbols in your inlined assembly code.
+'shadowing' warnings from the assembler (6502 targets)
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Avoid using 'a', 'x' or 'y' as symbols in your inlined 6502 assembly code.
 Also avoid using 64tass' built-in function or type names as symbols in your inlined assembly code.
 The 64tass manual contains `a list of those <https://tass64.sourceforge.net/#functions>`_.
 
@@ -573,9 +592,10 @@ Program loads but crashes immediately on startup
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 Assuming there are no programming errors in the code and the compiler has no code generation bugs, there can be various factors that cause this:
 
-#. you are using ``%option no_sysinit`` but the program might depend on proper initialization of the system before it can run.
+#. you are using ``%option no_sysinit`` but the program might depend on proper initialization of the system before it can run
+   (for example, on ``amiga500``/``amiga1200``, ``no_sysinit`` skips opening the standard AmigaOS libraries and CLI argument setup).
    Try removing this directive to see if it helps.
-#. the ``main`` block is too large for default system RAM, causing the vital program startup routines that Prog8 requires
+#. (6502 targets) the ``main`` block is too large for default system RAM, causing the vital program startup routines that Prog8 requires
    to move outside of the default RAM area, making them inaccessible. For example on the C128 this can occur quite quickly
    because in the default memory configuration, the BASIC ROM already appears at $4000, leaving *very* little space for your
    program code by default. Prog8 attempts to reconfigure the memory but it can't because the routine doing that is not
@@ -594,7 +614,7 @@ A bunch of example programs can be found in the :source:`examples` directory of 
 (Or download the source archive from there to get all the files at once).
 
 There are cross-platform examples that can be compiled for various systems unaltered,
-and there are also examples specific to certain computers (C64, X16, etcetera).
+and there are also examples specific to certain systems (C64, X16, Amiga in ``examples/amiga/``, QEMU m68k in ``examples/qemu68k/``, etcetera).
 So for instance, to compile and run the Commodore 64 rasterbars example program, use this command:
 
 .. code-block:: bash
@@ -606,3 +626,9 @@ or:
 .. code-block:: bash
 
     $ /path/to/prog8c -target c64 -emu examples/c64/rasterbars.p8
+
+Or for an Amiga 500 example:
+
+.. code-block:: bash
+
+    $ /path/to/prog8c -target amiga500 -emu examples/amiga/circles.p8

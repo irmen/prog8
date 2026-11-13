@@ -305,7 +305,8 @@ Directives
     is only used in such assembly code.
 
     .. note::
-        64tass syntax is required for the assembly code. As such, mnemonics need to be written in lowercase.
+        On 6502 targets, 64tass syntax is required for the assembly code (mnemonics in lowercase).
+        On m68k targets, ``vasm`` Motorola syntax (``vasmm68k_mot``) is required instead.
 
     .. caution::
         Avoid using single-letter symbols in included assembly code, as they could be confused with CPU registers.
@@ -872,16 +873,17 @@ rather than having fixed gotos or subroutine calls::
     if xx==3  yy = 4 else  aa = 2
 
 
-Conditional jumps (``if condition goto label``) are compiled using 6502's branching instructions (such as ``bne`` and ``bcc``) so
-the rather strict limit on how *far* it can jump applies. The compiler itself can't figure this
+Conditional jumps (``if condition goto label``) are compiled using the CPU's branching instructions (such as ``bne`` and ``bcc`` on 6502, or ``bne`` and ``bcs`` on m68k) so
+the limit on how *far* a branch can jump applies. On 6502 targets the compiler itself can't figure this
 out unfortunately, so it is entirely possible to create code that cannot be assembled successfully.
 Thankfully the ``64tass`` assembler that is used has the option to automatically
 convert such branches to their opposite + a normal jmp. This is slower and takes up more space
 and you will get warning printed if this happens. You may then want to restructure your branches (place target labels closer to the branch,
 or reduce code complexity).
+On m68k targets, ``vasm`` automatically picks the optimal branch size and falls back to ``jmp`` if out of range.
 
 
-There is a special form of the if-statement that immediately translates into one of the 6502's branching instructions.
+There is a special form of the if-statement that immediately translates into one of the CPU's branching instructions.
 This allows you to write a conditional jump or block execution directly acting on the current values of the CPU's status register bits.
 The eight branching instructions of the CPU each have an if-equivalent (and there are some easier to understand aliases):
 

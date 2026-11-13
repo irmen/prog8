@@ -377,14 +377,14 @@ Directly Accessible Registers
 -----------------------------
 .. index:: single: Targets; CPU Registers
 
-The hardware CPU registers (A, X, Y) are not directly accessible from regular Prog8 code.
+The hardware CPU registers (A, X, Y on 6502; D0-D7, A0-A7 on m68k) are not directly accessible from regular Prog8 code.
 If you need to work with them, you'll have to use some inline assembly with ``%asm``.
 Or, if they are required to have a value as arguments to some external kernal or library assembly routine,
 just use a normal subroutine call to an ``extsub`` that correctly specifies what registers go where.
 The compiler will then take care of loading the arguments into the required registers and returning
 any response value(s) back to the prog8 code.
 
-The status register (P) carry flag and interrupt disable flag *can* be written via a couple of special
+The CPU status register (P on 6502; CCR/SR on m68k) carry flag and interrupt disable flag *can* be written via a couple of special
 builtin functions (``set_carry()``, ``clear_carry()``, ``set_irqd()``,  ``clear_irqd()``),
 and read via the ``read_flags()`` function.  With the special status branch statements like ``if_cc``,
 ``if_cs`` etc you can branch directly on the status of the flags.

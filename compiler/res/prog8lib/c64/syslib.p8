@@ -57,7 +57,7 @@ cbm {
 
 ; ---- CBM ROM kernal routines (C64 addresses) ----
 
-extsub $AB1E = STROUT(str strptr @ AY) clobbers(A, X, Y)      ; print null-terminated string (use txt.print instead)
+extsub $AB1E = STROUT(str strptr @ AY) clobbers(A, X, Y)      ; print null-terminated string via CHROUT from any address (useful for inline/embedded strings in hand-written asm). txt.print is the preferred Prog8-level wrapper (works with Prog8 string values).
 extsub $E544 = CLEARSCR() clobbers(A,X,Y)                       ; clear the screen
 extsub $E566 = HOMECRSR() clobbers(A,X,Y)                       ; cursor to top left of screen
 extsub $EA31 = IRQDFRT() clobbers(A,X,Y)                        ; default IRQ routine
@@ -93,7 +93,7 @@ extsub $FFD2 = CHROUT(ubyte character @ A)                      ; (via 806 ($326
 extsub $FFD5 = LOAD(ubyte verify @ A, uword address @ XY) -> bool @Pc, ubyte @ A, uword @ XY     ; (via 816 ($330)) load from device
 extsub $FFD8 = SAVE(ubyte zp_startaddr @ A, uword endaddr @ XY) -> bool @ Pc, ubyte @ A          ; (via 818 ($332)) save to a device
 extsub $FFDB = SETTIM(ubyte low @ A, ubyte middle @ X, ubyte high @ Y)      ; set the software clock
-extsub $FFDE = RDTIM() -> ubyte @ A, ubyte @ X, ubyte @ Y       ; read the software clock (A=lo,X=mid,Y=high)
+extsub $FFDE = RDTIM() -> ubyte @ A, ubyte @ X, ubyte @ Y       ; read the software clock (A=lo,X=mid,Y=high). Use RDTIM_safe() for an IRQ-safe read.
 extsub $FFE1 = STOP() clobbers(X) -> bool @ Pz, ubyte @ A       ; (via 808 ($328)) check the STOP key (and some others in A)     also see STOP2
 extsub $FFE4 = GETIN() clobbers(X,Y) -> bool @Pc, ubyte @ A     ; (via 810 ($32A)) get a character       also see GETIN2
 extsub $FFE7 = CLALL() clobbers(A,X)                            ; (via 812 ($32C)) close all files
