@@ -10,6 +10,14 @@ blitter {
     ; masked blits and line drawing with the MINTERM logic modes below.
     ; No OS calls; safe after custom.grab_system(). CPU and blitter run
     ; concurrently by design (see WAITING BEHAVIOR below).
+    ;
+    ; SCREEN LAYOUT: Designed for traditional non-interleaved planar bitmaps,
+    ; with independently allocated contiguous bitplanes. Rectangle and BOB
+    ; primitives process one plane per call. This keeps plane addressing flexible
+    ; and lets masked BOBs share one mask without interleaving assets or replicating
+    ; the mask. The tradeoff is one blit setup per plane; line-interleaved screens
+    ; can reduce setups with taller blits, but require matching interleaved source
+    ; data and repeated masks, and reduce the maximum blit height by the plane count.
 
     ; WARNING: All pointers passed to blitter routines MUST point to CHIP RAM.
     ; The Amiga blitter hardware can only access CHIP RAM directly.
@@ -70,6 +78,7 @@ blitter {
     ; Only channels A and D are set up, so minterm must be A-only:
     ; MINTERM_A_ONLY (copy), MINTERM_NOT_A (invert), MINTERM_CLEAR,
     ; MINTERM_SET. Minterms referencing B or C read unset channels.
+    ; The blit width must be <= the destination screen width (modulo >= 0).
     ; Waits for blitter idle before programming it, returns immediately after triggering the blit.
     asmsub copy_rect(pointer src @A0, pointer dst @A1, uword width_words @D0, uword height @D1, uword src_mod @D2, uword dst_mod @D3, uword minterm @D4, ubyte descending @D5) {
         %asm {{
@@ -131,6 +140,7 @@ blitter {
     }
 
     ; Fill a rectangular block with a pattern.
+    ; The blit width must be <= the destination screen width (modulo >= 0).
     ; Waits for blitter idle before programming it, returns immediately after triggering the blit.
     asmsub fill_rect(pointer dst @A0, uword width_words @D0, uword height @D1, uword pattern @D2, uword modulo @D3) {
         %asm {{
@@ -347,26 +357,86 @@ OctTbl:
         }}
     }
 
-    ; Waits for blitter idle before programming it, returns immediately after triggering the blit.
-    asmsub masked_blit(pointer src @A0, pointer mask @A1, pointer dst @A2, uword width_words @D0, uword height @D1, uword src_mod @D2, uword mask_mod @D3, uword dst_mod @D4) {
+    ; Cookie-cut a barrel-shifted masked BOB: dst = (mask AND src) OR (NOT mask AND dst).
+    ; Blits one bitplane; call once per plane for a multiplane BOB, using the same mask.
+    ; mask must be non-null. Use copy_rect() for unmasked copies.
+    ; width_words is the original source and destination row width; no guard word is needed.
+    ; For position (x,y), pass dst = bitplane + y*pitch + (x/16)*2 and shift = x & 15.
+    ; Shifted pixels past the original right edge are clipped.
+    ; Each modulo is that channel's row pitch in bytes minus width_words*2; tightly packed
+    ; source and mask rows use src_mod = mask_mod = 0.
+    ; Screen-edge clipping is the caller's responsibility; every destination word must
+    ; remain valid. Clip top/bottom by adjusting row pointers and height, and clip right
+    ; by reducing width_words and recomputing all modulos. Direct left clipping is only
+    ; word-aligned: advance src/mask, reduce width_words and use shift = 0. Other negative
+    ; x positions need offscreen left padding or a dedicated left-clipping routine.
+    ; width_words must be 1..64 and the blit must fit the destination (dst_mod >= 0).
+    ; Waits for blitter idle at entry; returns immediately after triggering.
+    asmsub masked_blit(pointer src @A0, pointer mask @A1, pointer dst @A2, uword width_words @D0, uword height @D1, uword src_mod @D2, uword mask_mod @D3, uword dst_mod @D4, ubyte shift @D5) {
         %asm {{
+        move.l  d6,-(sp)
+        lsl.w   #6,d1
+        andi.w  #$003f,d0            ; hardware encodes width 64 as zero
+        or.w    d0,d1                ; d1 = BLTSIZE, d0 is now scratch
+        moveq   #0,d0
+        move.b  d5,d0
+        andi.w  #$000f,d0
+        moveq   #-1,d6
+        lsl.w   d0,d6                ; clear last-word bits that would carry into the next row
+        ror.w   #4,d0                ; ASHIFT/BSHIFT = shift << 12
 .wait_blt:
         btst.b  #6,custom.DMACONR
         bne.s   .wait_blt
+        move.w  d0,custom.BLTCON1
+        or.w    #custom.BC0F_SRCA|custom.BC0F_SRCB|custom.BC0F_SRCC|custom.BC0F_DEST|blitter.MINTERM_MASKED,d0
         move.w  d2,custom.BLTBMOD
         move.w  d3,custom.BLTAMOD
         move.w  d4,custom.BLTDMOD
         move.w  d4,custom.BLTCMOD
         move.w  #$ffff,custom.BLTAFWM
-        move.w  #$ffff,custom.BLTALWM
+        move.w  d6,custom.BLTALWM
         move.l  a1,custom.BLTAPT
         move.l  a0,custom.BLTBPT
         move.l  a2,custom.BLTCPT
         move.l  a2,custom.BLTDPT
-        move.l  #(((custom.BC0F_SRCA|custom.BC0F_SRCB|custom.BC0F_SRCC|custom.BC0F_DEST|blitter.MINTERM_MASKED)<<16)|$0800),custom.BLTCON0
-        lsl.w   #6,d1
-        or.w    d0,d1
+        move.w  d0,custom.BLTCON0
         move.w  d1,custom.BLTSIZE
+        move.l  (sp)+,d6
+        rts
+        }}
+    }
+
+    ; Clear destination pixels where the shifted mask is set: dst = (NOT mask) AND dst.
+    ; This erases to zero; it does not restore saved background imagery.
+    ; Mask, width, modulo, shift and blitter-wait conventions match masked_blit().
+    asmsub erase(pointer mask @A0, pointer dst @A1, uword width_words @D0, uword height @D1, uword mask_mod @D2, uword dst_mod @D3, ubyte shift @D4) {
+        %asm {{
+        move.l  d6,-(sp)
+        lsl.w   #6,d1
+        andi.w  #$003f,d0            ; hardware encodes width 64 as zero
+        or.w    d0,d1                ; d1 = BLTSIZE, d0 is now scratch
+        moveq   #0,d0
+        move.b  d4,d0
+        andi.w  #$000f,d0
+        moveq   #-1,d6
+        lsl.w   d0,d6                ; clear last-word bits that would carry into the next row
+        ror.w   #4,d0                ; ASHIFT = shift << 12
+        or.w    #custom.BC0F_SRCA|custom.BC0F_SRCC|custom.BC0F_DEST|blitter.MINTERM_ERASE,d0
+.wait_blt:
+        btst.b  #6,custom.DMACONR
+        bne.s   .wait_blt
+        move.w  #0,custom.BLTCON1
+        move.w  d2,custom.BLTAMOD
+        move.w  d3,custom.BLTDMOD
+        move.w  d3,custom.BLTCMOD
+        move.w  #$ffff,custom.BLTAFWM
+        move.w  d6,custom.BLTALWM
+        move.l  a0,custom.BLTAPT
+        move.l  a1,custom.BLTCPT
+        move.l  a1,custom.BLTDPT
+        move.w  d0,custom.BLTCON0
+        move.w  d1,custom.BLTSIZE
+        move.l  (sp)+,d6
         rts
         }}
     }
@@ -385,6 +455,7 @@ OctTbl:
     ; mod is the row modulo in bytes (bitplane pitch minus region width).
     ; After drawing a polygon outline with line_draw(..., fill=true),
     ; call this to fill it solid.
+    ; The blit width must be <= the destination screen width (modulo >= 0).
     ; Waits for blitter idle before programming it, returns immediately after triggering.
     asmsub area_fill(pointer src @A0, uword width_words @D0, uword height @D1, uword mod @D2) {
         %asm {{
@@ -569,4 +640,3 @@ OctTbl:
     }
 
 }
-

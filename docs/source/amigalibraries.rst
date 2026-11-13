@@ -189,8 +189,23 @@ modules. Import them the same way as any other library::
 ``blitter``
     Bare-metal blitter programming, no OS calls: ``copy_rect()`` and
     ``fill_rect()`` (use pattern ``$0000`` to clear or ``$ffff`` to fill),
-    ``masked_blit()``, and the line drawer (``line_init()``, ``line_draw()``,
-    ``line_color()``).
+    ``masked_blit()`` and mask-based ``erase()`` for BOBs, and the line drawer
+    (``line_init()``, ``line_draw()``, ``line_color()``).
+    The module is designed for traditional non-interleaved planar screens, with
+    independently allocated contiguous bitplanes. The rectangle and BOB primitives
+    process one plane per call, so an 8-plane BOB requires eight blits. This costs
+    per-plane setup, but keeps plane addressing flexible and lets every plane share
+    one mask without interleaving assets or replicating the mask. Line-interleaved
+    screens can reduce the number of setups by treating planes as additional blit
+    rows, but require matching interleaved source data and repeated masks, reduce
+    the maximum blit height by the plane count, and still need the per-plane DMA.
+    ``masked_blit()`` clips shifted pixels at the BOB's original right edge, but
+    neither it nor ``erase()`` clips against screen or bitmap edges. The caller must
+    keep every destination word valid. Clip top or bottom by adjusting row pointers
+    and height, and clip right by reducing ``width_words`` and recomputing all modulos.
+    Direct left clipping is only word-aligned: advance the source and mask, reduce
+    ``width_words``, and use shift zero. Other negative X positions require offscreen
+    left padding or a dedicated left-clipping routine.
     For polygon filling, ``line_draw(..., fill=true)`` draws top-to-bottom
     XOR boundaries, omits each edge's first pixel, and skips horizontal edges.
     Call ``area_fill()`` and then redraw the complete outline with
