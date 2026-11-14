@@ -11,6 +11,7 @@ internal class IfExpressionAsmGen(private val asmgen: AsmGen6502Internal, privat
 
     internal fun assignIfExpression(target: AsmAssignTarget, expr: PtIfExpression) {
         require(target.datatype==expr.type ||
+                target.datatype.isByteOrBool && expr.type.isByteOrBool ||
                 target.datatype.isUnsignedWord && (expr.type.isString || expr.type.isPointer) ||
                 target.datatype.isPointer && (expr.type.isUnsignedWord || expr.type.isPointer || expr.type.isString))
         val falseLabel = asmgen.makeLabel("ifexpr_false")
