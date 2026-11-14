@@ -158,7 +158,9 @@ internal class AssignmentGen(private val codeGen: IRCodeGen, private val exprGen
         else null to null
         val m68kSlot3 = slot3?.takeIf { it.value >= 10 }
         if (m68kSlot3 != null) {
-            addInstr(result, IRInstructions.hardwareLoad(codeGen.irType(returns.type), regNum, m68kSlot3), null)
+            // the captured value must not be colored into a register that a not-yet-read
+            // return value still occupies; MUST_SPILL removes the ordering dependency
+            addInstr(result, IRInstructions.hardwareLoad(codeGen.irType(returns.type), regNum, m68kSlot3, AllocationHint.MUST_SPILL), null)
         } else when(returns.register.registerOrPair) {
             RegisterOrPair.A -> addInstr(result, IRInstructions.hardwareLoad(IRDataType.BYTE, regNum, CallingConventionSlot(0)), null)
             RegisterOrPair.X -> addInstr(result, IRInstructions.hardwareLoad(IRDataType.BYTE, regNum, CallingConventionSlot(1)), null)

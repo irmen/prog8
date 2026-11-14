@@ -52,8 +52,10 @@ enum class OperandRole {
     INDIRECT_TARGET, CALL_ARGUMENT, CALL_RESULT
 }
 
-/** hint for machine register allocators (data register vs address register on m68k, for instance) */
-enum class AllocationHint { NONE, PREFER_DATA, PREFER_ADDRESS }
+/** hint for machine register allocators (data register vs address register on m68k, for instance).
+ *  MUST_SPILL marks a vreg that must never be colored into a physical register (spill to memory),
+ *  e.g. a value captured from a call's return registers that must not overwrite a not-yet-read source. */
+enum class AllocationHint { NONE, PREFER_DATA, PREFER_ADDRESS, MUST_SPILL }
 
 /** Returns the role-based default allocation hint. */
 fun defaultAllocationHint(role: OperandRole): AllocationHint = when (role) {

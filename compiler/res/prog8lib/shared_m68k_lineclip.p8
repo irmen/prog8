@@ -95,28 +95,12 @@ lineclip {
             return ax, ay
 
             ; (int16_t)((int32_t)dist * num / den)
-            ; Uses mulu.w (16x16→32) + divu.w (32/16→16) — works on all 68000-family CPUs
-            sub frac(word dist, word num, word den) -> word {
-                %option noframe
-                uword adist = abs(dist) as uword
-                uword anum = abs(num) as uword
-                uword aden = abs(den) as uword
-                uword result_u
-
+            ; Signed multiply/divide avoid absolute values and sign fixup on all 68000-family CPUs.
+            inline asmsub frac(word dist @D0, word num @D1, word den @D2) -> word @D0 {
                 %asm {{
-                    moveq  #0,d0
-                    move.w p8b_lineclip.p8s_clip.p8s_clip_one.p8s_frac.p8v_adist,d0
-                    moveq  #0,d1
-                    move.w p8b_lineclip.p8s_clip.p8s_clip_one.p8s_frac.p8v_anum,d1
-                    mulu.w d1,d0
-                    move.w p8b_lineclip.p8s_clip.p8s_clip_one.p8s_frac.p8v_aden,d1
-                    divu.w d1,d0
-                    move.w d0,p8b_lineclip.p8s_clip.p8s_clip_one.p8s_frac.p8v_result_u
+                    muls.w  d1,d0
+                    divs.w  d2,d0
                 }}
-
-                if (dist < 0) xor (num < 0) xor (den < 0)
-                    return -(result_u as word)
-                return result_u as word
             }
         }
     }

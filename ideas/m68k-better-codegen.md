@@ -57,6 +57,31 @@ complexity/impact.
   undefined symbol.
 - **Effort**: medium, depends on 4.1/4.2.
 
+### 4.6 Interprocedural unpreserved-register propagation [low priority]
+- **Problem**: callers of multi-return subroutines save the callee's return
+  registers (d2-d4 for `bool,word,word,word,word`) unconditionally, even when
+  nothing is live in them. The saves exist because a caller's caller may hold
+  values in those registers across the call, and caller liveness is invisible
+  from the callee's frame. A local fix (skipping the saves at multi-return
+  call boundaries) is unsafe: it corrupts values one frame up.
+- **Fix**: propagate an "unpreserved set" over the call graph as a fixpoint:
+  `unpreserved(S) = returnRegisters(S) ∪ ⋃ unpreserved(ordinary callees)`.
+  Call sites to S clobber `unpreserved(S)` (live values forbidden there,
+  spilling instead of saving), and multi-return boundaries stop contributing
+  to the caller's save set. Depends only on signatures and the call graph,
+  not on allocation results, so one fixpoint pass before allocation suffices.
+- **Where**: new pass next to the call-graph analysis in
+  `StackFrameLayout.kt`, which already computes call sites per caller,
+  indirect callers, dispatch targets and SCCs (recursion handling);
+  `M68kRegisterAllocator` consumes the result.
+- Gates: `noframe` callees, address-taken/indirect-called subroutines
+  (conservative: keep the saves), same gates as the re-entrancy check.
+- **Benefit**: removes up to three `movem` registers per invocation in every
+  intermediate caller of a multi-return subroutine; measured cost of the
+  current conservative behavior is small (~8 bytes, ~48 cycles per
+  invocation, zero for callers already using d2-d6), hence low priority.
+- **Effort**: medium.
+
 ## Tier 5 - Bigger structural work (months)
 
 ### 5.1 Better D0 reload cache
@@ -83,6 +108,24 @@ complexity/impact.
   with a `.l` index, ~1.7x on 68000); helps all m68k programs using
   pointer-indexed loops.
 - **Effort**: large.
+
+### 5.4 Memory-based multi-value return convention [low priority]
+- **Problem**: multi-return subroutines return their values in d0, d1, d2, ...
+  (fp0.. for floats). Values beyond d1 land in callee-saved pool registers, so
+  the callee clobbers them, forcing callers to save/restore them and the
+  allocator to force-spill every transfer temporary (see 4.6 for the
+  propagation alternative).
+- **Fix**: return multi-values through a caller-provided result area instead
+  (hidden pointer argument, e.g. in a0, pointing at caller frame slots). The
+  callee writes results to memory directly: no d2+ clobber, no caller saves,
+  and today's d-register -> memory force-spill round trip disappears.
+- Scope/gate: changes the ABI of every multi-return signature. Touches
+  `returnsWhatWhere` (`AstStatements.kt`), `AssignmentGen` (LOADHR captures
+  become memory reads), `IRCodeGen` (STOREHR emission for `return a, b, ...`
+  and multi-value forwarding), `ExpressionGen` (call-site result slots), the
+  6502 convention is unaffected but the shared code paths are. Re-entrancy is
+  preserved because the result area lives in the caller's frame.
+- **Effort**: large; supersedes 4.6 if ever done (4.6 becomes unnecessary).
 
 ## Assembly codegen improvements
 

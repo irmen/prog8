@@ -15,6 +15,7 @@ import prog8.code.ast.PtReturn
 import prog8.code.ast.PtSub
 import prog8.code.core.BaseDataType
 import prog8.code.core.DataType
+import prog8.code.target.Amiga500Target
 import prog8.code.target.C64Target
 import prog8.code.target.VMTarget
 import prog8.compiler.astprocessing.hasRtsInAsm
@@ -383,6 +384,61 @@ main {
 }"""
         compileText(C64Target(), false, src, outputDir, writeAssembly = true).shouldNotBeNull()
         compileText(VMTarget(), false, src, outputDir, writeAssembly = true).shouldNotBeNull()
+    }
+
+    test("multi-value return values survive calls and the callee epilogue on m68k") {
+        val src = """
+main {
+    sub start() {
+        bool passed
+        word x1, y1, x2, y2
+        passed, x1, y1, x2, y2 = endpoints(5, 6, 10, 20)
+        if passed and x1 == 5 and y1 == 6 and x2 == 10 and y2 == 20
+            sys.exit(0)
+        else
+            sys.exit(1)
+    }
+
+    sub endpoints(word x1, word y1, word x2, word y2) -> bool, word, word, word, word {
+        return true, x1, y1, x2, y2
+    }
+}"""
+        val asmDir = tempdir().toPath()
+        compileText(Amiga500Target(), false, src, asmDir, writeAssembly = true, assemble = false).shouldNotBeNull()
+        val lines = asmDir.toFile().listFiles { it.name.endsWith(".asm") }!!.single()
+            .readText().lines().map { it.trim() }
+
+        val callIndex = lines.indexOfFirst { Regex("""bsr\s+p8b_main\.p8s_endpoints\b""").containsMatchIn(it) }
+        (callIndex >= 0) shouldBe true
+        // the caller captures the five return registers in one contiguous move block
+        var index = callIndex + 1
+        while (index < lines.size && !lines[index].startsWith("move")) index++
+        val returnedRegisters = buildSet {
+            while (index < lines.size && lines[index].startsWith("move")) {
+                Regex("""move\.[bw]\s+(d[0-4]),""").find(lines[index])?.groupValues?.get(1)?.let { add(it) }
+                index++
+            }
+        }
+        returnedRegisters shouldBe setOf("d0", "d1", "d2", "d3", "d4")
+
+        val calleeStart = lines.indexOf("p8b_main.p8s_endpoints:")
+        val calleeEnd = lines.indexOfFirst { it == "; End of subroutine: p8b_main.p8s_endpoints" }
+        (calleeStart >= 0 && calleeEnd > calleeStart) shouldBe true
+        // no callee epilogue restore may touch the return registers (d0-d4)
+        fun movemRegisters(line: String): Set<String> {
+            val match = Regex("""movem\.l\s+\(sp\)\+,(\S+)""").find(line) ?: return emptySet()
+            return match.groupValues[1].split("/").flatMap { token ->
+                val range = Regex("""([da][0-7])-([da][0-7])""").find(token)
+                if (range == null)
+                    listOf(token)
+                else {
+                    val (start, end) = range.destructured
+                    (start[1].digitToInt()..end[1].digitToInt()).map { "${start[0]}$it" }
+                }
+            }.toSet()
+        }
+        val restored = lines.subList(calleeStart, calleeEnd).flatMap { movemRegisters(it) }.toSet()
+        (restored intersect setOf("d0", "d1", "d2", "d3", "d4")) shouldBe emptySet()
     }
 
     test("multi-value returns from builtin function") {

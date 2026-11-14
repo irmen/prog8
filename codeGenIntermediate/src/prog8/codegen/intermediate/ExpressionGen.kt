@@ -1044,10 +1044,24 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
                     }
                 }
                 // return value(s)
-                // TODO: for current implementation of the call convention in case of multiple return values,
-                // a list of Ir virtual registers to hold the results is NOT correct (they're loaded into AY + R15..R0 instead!)
-                // So we use an empty list to avoid confusion here.   This may change in a future version.
-                val returnResults: List<CallResult> = if(fcall.void || callTarget.returns.size>1) emptyList() else {
+                // Multi-return values are never captured as IR virtual registers: they are
+                // transferred through CPU registers (6502/virtual: A or AY + R15..R0, M68K:
+                // D0..D7 / FP0..FP7) and read back with hardware loads. On M68K the hardware
+                // outputs are recorded as null-destination CallResults so that register
+                // allocation treats those registers as clobbered by the call.
+                val returnResults: List<CallResult> = if(callTarget.returns.size>1) {
+                    if (codeGen.options.compTarget.cpu == CpuType.M68000 || codeGen.options.compTarget.cpu == CpuType.M68020) {
+                        val astNode = callTarget.astNode
+                            ?: throw AssemblyError("multi-return subroutine ${fcall.name} has no AST node ${fcall.position}")
+                        (astNode as IPtSubroutine).returnsWhatWhere(codeGen.options.compTarget).map {
+                            val (slot, _) = registerOrStatusflagToSlotAndFlag(it.first)
+                            CallResult(null, CallLocation.HardwareRegister(slot
+                                ?: throw AssemblyError("M68K multi-return value has no hardware register")))
+                        }
+                    } else {
+                        emptyList()
+                    }
+                } else if(fcall.void) emptyList() else {
                     callTarget.returns.map {
                         val returnIrType = codeGen.irType(it)
                         Calls.result(codeGen.registers.next(returnIrType), returnIrType)

@@ -676,6 +676,113 @@ class TestM68kRegisterAllocator : FunSpec({
         listOf("d2", "d3", "d4", "d5", "d6").contains(alloc[VirtualRegister.int(7)]) shouldBe true
     }
 
+    test("multi-return LOADHR captures are spilled instead of clobbering return slots") {
+        val options = CompilationOptions.builder(Qemu68kTarget())
+            .output(OutputType.RAW).zeropage(ZeropageType.FLOATSAFE)
+            .compilerVersion("test").memtopAddress(0xffffu).optimize(true).build()
+        val program = IRProgram("test", IRSymbolTable(), options, DummyStringEncoder)
+        val chunk = IRCodeChunk(null, null)
+        val results = (10..14).map {
+            CallResult(null, CallLocation.HardwareRegister(CallingConventionSlot(it)))
+        }
+        chunk.instructions.add(IRInstructions.call(Opcode.CALL, CallSite(
+            CallTarget.Direct(CodeReference.Label("test.callee", 0)),
+            results = results
+        )))
+        for (i in 0..4) {
+            val vreg = i + 1
+            // the IR generator marks multi-value return captures with MUST_SPILL
+            chunk.instructions.add(IRInstructions.hardwareLoad(IRDataType.WORD, vreg, CallingConventionSlot(10 + i), AllocationHint.MUST_SPILL))
+            chunk.instructions.add(IRInstructions.storeMemory(
+                Opcode.STOREM,
+                IRDataType.WORD,
+                vreg,
+                IRMemory.direct("p8b_test.p8v_out$i")
+            ))
+        }
+        val caller = IRSubroutine("test.start", emptyList(), emptyList(), Position.DUMMY)
+        caller.chunks.add(chunk)
+        val callee = IRSubroutine("test.callee", emptyList(), emptyList(), Position.DUMMY)
+        callee.chunks.add(IRCodeChunk(null, null))
+        val block = IRBlock("test", false, IRBlock.Options(), Position.DUMMY)
+        block.children.add(caller)
+        block.children.add(callee)
+        program.blocks.add(block)
+
+        val allocation = M68kRegisterAllocator(program).allocate()
+        val spilled = allocation.spilledVregsBySub[caller]!!
+        (1..5).all { VirtualRegister.int(it) in spilled } shouldBe true
+    }
+
+    test("MUST_SPILL captures are spilled regardless of their position relative to the call") {
+        // robustness: the spill decision keys off the LOADHR's own hint, not off a
+        // positional pairing with the preceding multi-return CALL
+        val options = CompilationOptions.builder(Qemu68kTarget())
+            .output(OutputType.RAW).zeropage(ZeropageType.FLOATSAFE)
+            .compilerVersion("test").memtopAddress(0xffffu).optimize(true).build()
+        val program = IRProgram("test", IRSymbolTable(), options, DummyStringEncoder)
+        val chunk = IRCodeChunk(null, null)
+        val results = (10..14).map {
+            CallResult(null, CallLocation.HardwareRegister(CallingConventionSlot(it)))
+        }
+        chunk.instructions.add(IRInstructions.call(Opcode.CALL, CallSite(
+            CallTarget.Direct(CodeReference.Label("test.callee", 0)),
+            results = results
+        )))
+        // unrelated code between the call and the captures
+        chunk.instructions.add(IRInstructions.load(IRDataType.WORD, 20, 77))
+        for (i in 0..4) {
+            val vreg = i + 1
+            chunk.instructions.add(IRInstructions.load(IRDataType.WORD, 21, 88))
+            chunk.instructions.add(IRInstructions.hardwareLoad(IRDataType.WORD, vreg, CallingConventionSlot(10 + i), AllocationHint.MUST_SPILL))
+            chunk.instructions.add(IRInstructions.storeMemory(
+                Opcode.STOREM,
+                IRDataType.WORD,
+                vreg,
+                IRMemory.direct("p8b_test.p8v_out$i")
+            ))
+        }
+        val caller = IRSubroutine("test.start", emptyList(), emptyList(), Position.DUMMY)
+        caller.chunks.add(chunk)
+        val callee = IRSubroutine("test.callee", emptyList(), emptyList(), Position.DUMMY)
+        callee.chunks.add(IRCodeChunk(null, null))
+        val block = IRBlock("test", false, IRBlock.Options(), Position.DUMMY)
+        block.children.add(caller)
+        block.children.add(callee)
+        program.blocks.add(block)
+
+        val allocation = M68kRegisterAllocator(program).allocate()
+        val spilled = allocation.spilledVregsBySub[caller]!!
+        (1..5).all { VirtualRegister.int(it) in spilled } shouldBe true
+        (VirtualRegister.int(20) in spilled) shouldBe false
+        (VirtualRegister.int(21) in spilled) shouldBe false
+    }
+
+    test("multi-return registers are not restored over the return values") {
+        val options = CompilationOptions.builder(Qemu68kTarget())
+            .output(OutputType.RAW).zeropage(ZeropageType.FLOATSAFE)
+            .compilerVersion("test").memtopAddress(0xffffu).optimize(true).build()
+        val program = IRProgram("test", IRSymbolTable(), options, DummyStringEncoder)
+        val chunk = IRCodeChunk(null, null)
+        val returnTypes = listOf(DataType.BOOL, DataType.WORD, DataType.WORD, DataType.WORD, DataType.WORD)
+        for (i in returnTypes.indices) {
+            val type = if (i == 0) IRDataType.BYTE else IRDataType.WORD
+            chunk.instructions.add(IRInstructions.load(type, i + 1, i + 1))
+            chunk.instructions.add(IRInstructions.hardwareStore(type, i + 1, CallingConventionSlot(10 + i)))
+        }
+        chunk.instructions.add(IRInstructions.simple(Opcode.RETURN))
+        val sub = IRSubroutine("test.multi", emptyList(), returnTypes, Position.DUMMY)
+        sub.chunks.add(chunk)
+        val block = IRBlock("test", false, IRBlock.Options(), Position.DUMMY)
+        block.children.add(sub)
+        program.blocks.add(block)
+
+        val allocation = M68kRegisterAllocator(program).allocate()
+        val saved = allocation.calleeSavedBySub[sub]!!
+        saved.intersect(setOf("d2", "d3", "d4")) shouldBe emptySet()
+        (1..5).all { VirtualRegister.int(it) in allocation.spilledVregsBySub[sub]!! } shouldBe true
+    }
+
     test("asmsub that follows the register rule keeps pool values live across it") {
         // An asmsub body saves every callee-saved register it writes, so a call only
         // destroys the caller-saved set and live values can stay in the pool.

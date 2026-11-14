@@ -95,34 +95,29 @@ lineclip {
 
             ; (int16_t)((int32_t)dist * num / den)
             sub frac(word dist, word num, word den) -> word {
-                ; 16×16→32 multiply, R starts as upper word of product
-                alias Q_lo = cx16.r0
-                alias Q_hi = cx16.r1
+                ; 16x16->32 multiply; R starts as upper word, quotient holds lower word
+                alias quotient = cx16.r0
                 alias R = cx16.r2
                 alias aden = cx16.r3
 
                 ; No long division available on 6502, so we use restoring division 32/16->16
                 aden = abs(den) as uword
-                Q_hi = abs(dist) * abs(num)
+                quotient = abs(dist) * abs(num)
                 R = math.mul16_last_upper()
-                Q_lo = 0
                 repeat 16 {
                     R = R << 1
-                    if (Q_hi & $8000) != 0
+                    if (quotient & $8000) != 0
                         R |= 1
-                    Q_hi <<= 1
-                    if (Q_lo & $8000) != 0
-                        Q_hi |= 1
-                    Q_lo <<= 1
+                    quotient <<= 1
                     if R >= aden {
                         R -= aden
-                        Q_lo |= 1
+                        quotient |= 1
                     }
                 }
 
                 if (dist < 0) xor (num < 0) xor (den < 0)
-                    return -(Q_lo as word)
-                return Q_lo as word
+                    return -(quotient as word)
+                return quotient as word
 
                 /*
                 here is the implementation using a 32/32 long division (shorter but less efficient than 32/16):

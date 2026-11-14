@@ -1,5 +1,6 @@
 package prog8.codegen.m68k
 
+import prog8.code.core.m68kReturnRegisters
 import prog8.intermediate.*
 
 /**
@@ -77,6 +78,9 @@ class M68kRegisterAllocator(val program: IRProgram) {
         if (label !in subByLabel || label in asmSubByLabel) return null
         return label
     }
+
+    private fun returnRegisters(sub: IRSubroutine): Set<String> =
+        m68kReturnRegisters(sub.returns).mapTo(mutableSetOf()) { it.first }
 
     // Per-call-site fixed-register boundary metadata, or null for ordinary Prog8
     // subroutine calls (uniform caller-saved kill set, no table entry needed).
@@ -216,6 +220,7 @@ class M68kRegisterAllocator(val program: IRProgram) {
             spilledVregsBySub[sub] = emptyList()
             return
         }
+        val returnedRegisters = returnRegisters(sub)
         val n = chunks.size
         val succ = buildCfg(chunks)
         val (gens, kills) = chunks.map { genKill(it) }.unzip()
@@ -247,12 +252,16 @@ class M68kRegisterAllocator(val program: IRProgram) {
 
         // ---- class constraints from allocation hints: PREFER_ADDRESS wins, PREFER_DATA is the index default ----
         val hints = mutableMapOf<VirtualRegister, AllocationHint>()
+        // Vregs marked MUST_SPILL (e.g. multi-value return captures) must never be colored:
+        // a resident copy could overwrite a return register another capture has yet to read.
+        val mustSpill = mutableSetOf<VirtualRegister>()
         for (chunk in chunks) {
             for (ins in chunk.instructions) {
                 for (ra in ins.registerAccesses) {
                     when (ra.resolvedAllocationHint) {
                         AllocationHint.PREFER_ADDRESS -> hints[ra.register] = AllocationHint.PREFER_ADDRESS
                         AllocationHint.PREFER_DATA -> hints.putIfAbsent(ra.register, AllocationHint.PREFER_DATA)
+                        AllocationHint.MUST_SPILL -> mustSpill.add(ra.register)
                         AllocationHint.NONE -> {}
                     }
                 }
@@ -305,6 +314,18 @@ class M68kRegisterAllocator(val program: IRProgram) {
                 require(callerSavedKillSet.none { it in dataRegs || it in addrRegs || it in fpRegs }) {
                     "allocatable pool overlaps caller-saved kill set"
                 }
+            }
+        }
+
+        // Return values stored by this subroutine itself: their source temps must not be
+        // colored into a return register an earlier STOREHR has already written.
+        for (chunk in chunks) {
+            for (ins in chunk.instructions) {
+                if (ins.opcode != Opcode.STOREHR)
+                    continue
+                val slot = ins.hardwareSlot?.slot ?: continue
+                if (M68kRegisterConvention.fixedRegister(slot) in returnedRegisters)
+                    ins.srcA?.register?.let { mustSpill.add(it) }
             }
         }
 
@@ -375,6 +396,20 @@ class M68kRegisterAllocator(val program: IRProgram) {
                     interference.getOrPut(list[a]) { mutableSetOf() }.add(list[b])
                     interference.getOrPut(list[b]) { mutableSetOf() }.add(list[a])
                 }
+                // Any STOREHR into an allocatable pool register is a caller-visible ABI write,
+                // not just the multi-return case: marshalling asmsub arguments from spilled
+                // sources into d2-d6/a2-a4/fp2-fp7 clobbers a register the caller expects
+                // preserved. Mark it callModifiedPool (so the epilogue saves/restores it) and
+                // forbid other live values from sitting there. Conservative-correct; this
+                // deliberately broadens some save sets beyond the multi-return case.
+                if (ins.opcode == Opcode.STOREHR) {
+                    val fixedRegister = M68kRegisterConvention.fixedRegister(ins.requireHardwareSlot().slot)
+                    if (fixedRegister in allocatablePool) {
+                        callModifiedPool.add(fixedRegister)
+                        for (v in live)
+                            forbiddenByVreg.getOrPut(v) { mutableSetOf() }.add(fixedRegister)
+                    }
+                }
                 // Fixed-register call boundaries: values surviving the call cannot sit in registers it touches.
                 ins.callSite?.let { cs ->
                     val ordinaryTarget = ordinaryCallLabel(cs)
@@ -392,6 +427,9 @@ class M68kRegisterAllocator(val program: IRProgram) {
                         val clobberedPool = if (unknownCallee) allocatablePool
                             else (effects.reads + effects.defined + effects.destroys).intersect(allocatablePool)
                         if (clobberedPool.isNotEmpty()) {
+                            // Clobbers here (e.g. multi-return output registers) must be saved for this
+                            // sub's own callers, which cannot be seen from this frame. Accepted for now;
+                            // removing the saves safely needs interprocedural "unpreserved set" propagation.
                             callModifiedPool.addAll(clobberedPool)
                             for (v in live - defs) {
                                 forbiddenByVreg.getOrPut(v) { mutableSetOf() }.addAll(clobberedPool)
@@ -407,9 +445,9 @@ class M68kRegisterAllocator(val program: IRProgram) {
 
         val forwarded = forwardedCallArgVregs(chunks)
         // Greedy coloring per class, highest degree first
-        val ordered = vregs.filter { it !in forwarded }.sortedByDescending { interference[it]!!.size }
+        val ordered = vregs.filter { it !in forwarded && it !in mustSpill }.sortedByDescending { interference[it]!!.size }
         val color = mutableMapOf<VirtualRegister, String>()
-        var spills = 0
+        var spills = mustSpill.size
         for (v in ordered) {
             val cls = vregClass(v)
             val pool = when (cls) { 0 -> dataRegs; 1 -> addrRegs; 2 -> fpRegs; else -> dataRegs }
@@ -423,7 +461,7 @@ class M68kRegisterAllocator(val program: IRProgram) {
         for ((v, p) in color) mapBySub.getOrPut(sub) { mutableMapOf() }[v] = p
         // Fixed-register calls can modify pool registers not holding this sub's vregs.
         // Allocated registers must be saved regardless of current callers' liveness to honor the ABI.
-        calleeSavedBySub[sub] = color.values.toSet() + callModifiedPool
+        calleeSavedBySub[sub] = (color.values.toSet() + callModifiedPool) - returnedRegisters
         spillDemandBySub[sub] = spills
         val spilled = vregs.filter { it !in color && it !in forwarded }.toList()
         spilledVregsBySub[sub] = spilled

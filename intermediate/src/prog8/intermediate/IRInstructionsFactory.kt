@@ -353,10 +353,10 @@ object IRInstructions {
         IRInstruction(Opcode.POP, type, dest = operandFor(Opcode.POP, type, InstructionSlot.DEST, destination))
 
     /** LOADHR: load a cpu hardware register (calling convention slot) into a virtual register */
-    fun hardwareLoad(type: IRDataType, destination: Int, slot: CallingConventionSlot) =
+    fun hardwareLoad(type: IRDataType, destination: Int, slot: CallingConventionSlot, hint: AllocationHint = AllocationHint.NONE) =
         IRInstruction(
             Opcode.LOADHR, type,
-            dest = operandFor(Opcode.LOADHR, type, InstructionSlot.DEST, destination),
+            dest = operandFor(Opcode.LOADHR, type, InstructionSlot.DEST, destination).copy(allocationHint = hint),
             hardwareSlot = HardwareSlotOperand(slot, type)
         )
 

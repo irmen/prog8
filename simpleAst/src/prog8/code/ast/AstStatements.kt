@@ -120,30 +120,8 @@ class PtSubSignature(val returns: List<DataType>, position: Position): PtNode(po
 
     private fun returnsWhatWhereM68k(): List<Pair<RegisterOrStatusflag, DataType>> {
         if (returns.isEmpty()) return emptyList()
-
-        val availableDataRegs = mutableListOf(
-            RegisterOrPair.D0, RegisterOrPair.D1, RegisterOrPair.D2, RegisterOrPair.D3,
-            RegisterOrPair.D4, RegisterOrPair.D5, RegisterOrPair.D6, RegisterOrPair.D7
-        )
-        val availableFloatRegs = mutableListOf(
-            RegisterOrPair.FP0, RegisterOrPair.FP1, RegisterOrPair.FP2, RegisterOrPair.FP3,
-            RegisterOrPair.FP4, RegisterOrPair.FP5, RegisterOrPair.FP6, RegisterOrPair.FP7
-        )
-
-        return returns.map { type ->
-            when {
-                type.isFloat -> {
-                    val reg = availableFloatRegs.removeFirstOrNull()
-                        ?: throw AssemblyError("out of fp registers for return type $type $position")
-                    RegisterOrStatusflag(reg, null) to type
-                }
-                type.isNumericOrBool || type.isPointer -> {
-                    val reg = availableDataRegs.removeFirstOrNull()
-                        ?: throw AssemblyError("out of data registers for return type $type $position")
-                    RegisterOrStatusflag(reg, null) to type
-                }
-                else -> throw AssemblyError("unsupported return type $type $position")
-            }
+        return m68kReturnRegisters(returns, position.toString()).map { (name, type) ->
+            RegisterOrStatusflag(RegisterOrPair.valueOf(name.uppercase()), null) to type
         }
     }
 
