@@ -174,7 +174,7 @@ main {
         long done_frames = 0
         while done_frames < total_frames {
             long frames = (total_frames - done_frames)
-            long limit = BUFFERSIZE / 2
+            const long limit = BUFFERSIZE / 2
             if frames > limit
                 frames = limit
             long bytes = frames * 2
@@ -269,7 +269,7 @@ main {
         long done_frames = 0
         while done_frames < total_frames {
             long frames = (total_frames - done_frames)
-            long limit = BUFFERSIZE / 4
+            const long limit = BUFFERSIZE / 4
             if frames > limit
                 frames = limit
             long bytes = frames * 4
@@ -342,7 +342,7 @@ main {
             long block_in_chunk = 0
             pointer chunkptr = &copy_buffer
             while block_in_chunk < blocks_in_chunk {
-                long decoded_size = 1010 as long
+                const long decoded_size = 1010 as long
                 if output_offset + decoded_size > OUTPUT_BUFFERSIZE {
                     long write_n = dos.Write(outfile, &output_buffer, output_offset)
                     txt.chrout('.')
@@ -402,7 +402,6 @@ main {
             txt.print_l(remainder)
             txt.print(" bytes\n")
         }
-        long pcm_data_size = blocks * 996 as long
 
         pointer outl = dos.Open("out_left.pcm", dos.MODE_NEWFILE)
         if outl==0 {
@@ -419,8 +418,6 @@ main {
         txt.print_l(blocks)
         txt.print(" ADPCM blocks...\n")
         long total_written = 0
-        long output_offset = 0
-        pointer outputptr = &output_buffer
         long remaining = wavfile.data_size
         while remaining > 0 {
             long chunk = remaining
@@ -437,11 +434,11 @@ main {
             long block_in_chunk = 0
             pointer chunkptr = &copy_buffer
             while block_in_chunk < blocks_in_chunk {
-                long decoded_size = 996 as long
+                const long decoded_size = 996 as long
                 adpcm.decode_block_stereo(chunkptr, &output_buffer)
                 ; decoder output is already native big-endian; deinterleave only.
                 wavfile.deinterleave_16bit_stereo_be(&output_buffer, &left_buffer, &right_buffer, (decoded_size / 4) as long)
-                long half = decoded_size / 2 as long
+                const long half = decoded_size / 2 as long
                 long wl = dos.Write(outl, &left_buffer, half)
                 long wr = dos.Write(outr, &right_buffer, half)
                 if wl != half or wr != half {

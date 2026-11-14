@@ -81,7 +81,7 @@ class IRFileWriter(private val irProgram: IRProgram, outfileOverride: Path?) {
 
         val used = irProgram.registersUsed()
         val numberUsed = (used.readRegs.keys + used.writeRegs.keys).size
-        if(!irProgram.options.quiet)
+        if(!irProgram.options.quiet && !irProgram.options.asmQuiet)
             println("($numInstr instructions in $numChunks chunks, $numberUsed registers)")
         return outfile
     }

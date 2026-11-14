@@ -85,7 +85,7 @@ class M68kCodeGenerator(val retainSSA: Boolean): ICodeGeneratorBackend {
 
         // Aggregate register-allocation statistics (printed for every m68k compile, unless quiet).
         // Safe to print after the IR is written: this block has no side effects.
-        if (!options.quiet) {
+        if (!options.quiet && !options.asmQuiet) {
             val stats = allocation.statsBySub
             val totalSubs = stats.size
             val totalVregs = allocation.mapBySub.values.sumOf { it.size }
