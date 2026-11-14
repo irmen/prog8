@@ -1846,25 +1846,24 @@ class IRCodeGen(
                     else -> throw AssemblyError("unexpected subroutine type for multi-value return ${ret.position}")
                 }
                 
-                // Move each return value from the called function's return registers to our return registers
+                // Move each return value from the called function's return registers to our return registers.
+                // Float stores into FP0 are deferred to the end: the float STOREHR staging runs
+                // through fp0, which would clobber an already-written fp0 return value.
+                val deferredFp0Forwards = mutableListOf<Pair<RegisterOrStatusflag, Int>>()
                 calledReturnRegs.zip(returnRegs).forEachIndexed { index, (fromRegTo, toRegTo) ->
                     val (fromReg, fromType) = fromRegTo
                     val (toReg, toType) = toRegTo
                     require(fromType == toType) { "return type mismatch at position $index" }
 
                     if(fromType.isFloat) {
-                        // For float returns, use FAC1/FAC2
+                        // load from the source's float return register to a temp, then store to our return register;
+                        // works for both the 6502 FAC registers and the m68k FP0-FP7 slots
                         val tempFpReg = registers.next(IRDataType.FLOAT)
-                        when(fromReg.registerOrPair) {
-                            RegisterOrPair.FAC1 -> addInstr(result, IRInstructions.unary(Opcode.LOADHFACZERO, IRDataType.FLOAT, tempFpReg), null)
-                            RegisterOrPair.FAC2 -> addInstr(result, IRInstructions.unary(Opcode.LOADHFACONE, IRDataType.FLOAT, tempFpReg), null)
-                            else -> throw AssemblyError("unexpected FP return register $fromReg")
-                        }
-                        when(toReg.registerOrPair) {
-                            RegisterOrPair.FAC1 -> addInstr(result, storeHwFac(Opcode.STOREHFACZERO, tempFpReg), null)
-                            RegisterOrPair.FAC2 -> addInstr(result, storeHwFac(Opcode.STOREHFACONE, tempFpReg), null)
-                            else -> throw AssemblyError("unexpected FP return register $toReg")
-                        }
+                        result += loadFromCpuRegister(fromReg, fromType, tempFpReg)
+                        if(toReg.registerOrPair == RegisterOrPair.FP0)
+                            deferredFp0Forwards += toReg to tempFpReg
+                        else
+                            result += setCpuRegister(toReg, IRDataType.FLOAT, -1, tempFpReg)
                     } else {
                         // For non-float returns, load from source to temp IR register, then store to destination
                         val tempReg = registers.next(irType(fromType))
@@ -1872,35 +1871,40 @@ class IRCodeGen(
                         result += setCpuRegister(toReg, irType(toType), tempReg, -1)
                     }
                 }
+                for ((toReg, tempFpReg) in deferredFp0Forwards)
+                    result += setCpuRegister(toReg, IRDataType.FLOAT, -1, tempFpReg)
                 addInstr(result, IRInstructions.returnVoid(), null)
                 return result
             }
 
             val values = ret.children.zip(returnRegs)
-            // first all but the first return values
-            for ((value, register) in values.drop(1)) {
-                val tr = expressionEval.translateExpression(value as PtExpression)
+            // Float stores into FP0 are deferred to the end: the float STOREHR staging runs
+            // through fp0, which would clobber an already-written fp0 return value.
+            val deferredFp0Stores = mutableListOf<Pair<RegisterOrStatusflag, ExpressionCodeResult>>()
+
+            fun storeReturnValue(register: Pair<RegisterOrStatusflag, DataType>, tr: ExpressionCodeResult) {
                 if(register.second.isFloat) {
                     addToResult(result, tr, -1, tr.resultFpReg)
-                    result += setCpuRegister(register.first, IRDataType.FLOAT, -1, tr.resultFpReg)
+                    if(register.first.registerOrPair == RegisterOrPair.FP0)
+                        deferredFp0Stores += register.first to tr
+                    else
+                        result += setCpuRegister(register.first, IRDataType.FLOAT, -1, tr.resultFpReg)
                 }
                 else {
                     addToResult(result, tr, tr.resultReg, -1)
                     result += setCpuRegister(register.first, irType(register.second), tr.resultReg, -1)
                 }
             }
+
+            // first all but the first return values
+            for ((value, register) in values.drop(1))
+                storeReturnValue(register, expressionEval.translateExpression(value as PtExpression))
             // finally do the first of the return values (this avoids clobbering of its value in AY)
             values.first().also { (value, register) ->
-                val tr = expressionEval.translateExpression(value as PtExpression)
-                if(register.second.isFloat) {
-                    addToResult(result, tr, -1, tr.resultFpReg)
-                    result += setCpuRegister(register.first, IRDataType.FLOAT, -1, tr.resultFpReg)
-                }
-                else {
-                    addToResult(result, tr, tr.resultReg, -1)
-                    result += setCpuRegister(register.first, irType(register.second), tr.resultReg, -1)
-                }
+                storeReturnValue(register, expressionEval.translateExpression(value as PtExpression))
             }
+            for ((register, tr) in deferredFp0Stores)
+                result += setCpuRegister(register, IRDataType.FLOAT, -1, tr.resultFpReg)
             addInstr(result, IRInstructions.returnVoid(), null)
             return result
         }
@@ -2136,7 +2140,10 @@ class IRCodeGen(
         else null to null
         val m68kSlot = slot?.takeIf { it.value >= 10 }
         if (m68kSlot != null) {
-            chunk += IRInstructions.hardwareStore(paramDt, resultReg, m68kSlot)
+            // float values live in FPx slots and are sourced from the float register file
+            val source = if (paramDt == IRDataType.FLOAT) resultFpReg else resultReg
+            require(source >= 0) { "no source register for m68k $paramDt store into $m68kSlot" }
+            chunk += IRInstructions.hardwareStore(paramDt, source, m68kSlot)
         } else when(registerOrFlag.registerOrPair) {
             RegisterOrPair.A -> chunk += IRInstructions.hardwareStore(IRDataType.BYTE, resultReg, CallingConventionSlot(0))
             RegisterOrPair.X -> chunk += IRInstructions.hardwareStore(IRDataType.BYTE, resultReg, CallingConventionSlot(1))

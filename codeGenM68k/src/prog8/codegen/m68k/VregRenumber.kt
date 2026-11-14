@@ -10,9 +10,12 @@ import prog8.intermediate.*
 // Reserved vregs (>= 99000, syscall slots) keep their numbers; sub ranges start above the highest
 // number used outside subroutines, so they can never collide. Different subs intentionally share
 // numbers: every consumer of vreg-number-keyed state is per-subroutine (allocation map, spill slots,
-// callee-saved sets, d0 cache). Under allocation no sub vreg resolves to BSS, hence the permissive
-// registersUsed() mode set via wasPackingApplied. Raw (non-IR) inline asm naming
-// p8_regfile/p8_fregfile would observe the new layout, so renumbering bails out then.
+// callee-saved sets, d0 cache). Within one sub, ints and floats are compacted into disjoint ranges
+// (floats after ints) so a number identifies exactly one vreg: the A5 frame spill slots are keyed by
+// number alone and must not hand an int vreg and a float vreg the same slot. Under allocation no sub
+// vreg resolves to BSS, hence the permissive registersUsed() mode set via wasPackingApplied. Raw
+// (non-IR) inline asm naming p8_regfile/p8_fregfile would observe the new layout, so renumbering
+// bails out then.
 
 /** vreg numbers at or above this are reserved (syscall slots) and never renumbered. */
 private const val RESERVED_VREG_START = 99000
@@ -53,10 +56,14 @@ internal fun renumberVregsPerSubroutine(program: IRProgram): Map<VirtualRegister
             }
         }
         if (intNums.isEmpty() && floatNums.isEmpty()) continue
+        // Floats are renumbered into a range disjoint from the ints: both classes compact
+        // to the same numbers otherwise, and number-keyed per-sub state (the A5 frame
+        // spill slots) would give an int vreg and a float vreg the same slot.
+        val floatBase = maxOutside + intNums.size
         val intMap = intNums.sorted().withIndex()
             .associate { (i, old) -> VirtualRegister.int(old) to VirtualRegister.int(maxOutside + i + 1) }
         val floatMap = floatNums.sorted().withIndex()
-            .associate { (i, old) -> VirtualRegister.float(old) to VirtualRegister.float(maxOutside + i + 1) }
+            .associate { (i, old) -> VirtualRegister.float(old) to VirtualRegister.float(floatBase + i + 1) }
         require(intMap.values.all { it.num < RESERVED_VREG_START }) { "renumbered int vreg collides with reserved range" }
         require(floatMap.values.all { it.num < RESERVED_VREG_START }) { "renumbered float vreg collides with reserved range" }
         if (intMap.values.toSet() == intMap.keys && floatMap.values.toSet() == floatMap.keys) continue

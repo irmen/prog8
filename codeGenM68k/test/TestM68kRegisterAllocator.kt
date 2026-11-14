@@ -893,7 +893,7 @@ class TestM68kRegisterAllocator : FunSpec({
         alloc.spilledVregsBySub[sub] shouldBe emptyList()
     }
 
-    test("renumber compacts vreg numbers per subroutine, ints and floats separately") {
+    test("renumber compacts vreg numbers per subroutine, floats in a range disjoint from ints") {
         val options = CompilationOptions.builder(Qemu68kTarget())
             .output(OutputType.RAW).zeropage(ZeropageType.FLOATSAFE)
             .compilerVersion("test").memtopAddress(0xffffu).optimize(true).build()
@@ -918,9 +918,11 @@ class TestM68kRegisterAllocator : FunSpec({
                 else intNums.add(ra.register.num)
             }
         }
-        // ints {5,9,13} compacted to {1,2,3} in order; float {fr7} to {fr1}
+        // ints {5,9,13} compacted to {1,2,3} in order; float {fr7} to {fr4}:
+        // floats start after the highest renumbered int so the two classes never share a number
         intNums shouldBe setOf(1, 2, 3)
-        floatNums shouldBe setOf(1)
+        floatNums shouldBe setOf(4)
+        (intNums intersect floatNums) shouldBe emptySet()
         // rebuilt type map covers the renumbered vregs and verifies cleanly
         program.verifyRegisterTypes(types!!)
     }
