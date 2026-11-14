@@ -21,6 +21,8 @@ strings {
         ; Also, you have to make sure yourself that length is smaller or equal to the length of the source string.
         ; Modifies in-place, doesn’t return a value (so can’t be used in an expression).
         target[slen] = 0
+        if slen==0
+            return
         ubyte ix
         for ix in 0 to slen-1 {
             target[ix] = source[ix]
@@ -32,6 +34,10 @@ strings {
         ; It is assumed the target string buffer is large enough to contain the result.
         ; Also, you have to make sure yourself that length is smaller or equal to the length of the source string.
         ; Modifies in-place, doesn’t return a value (so can’t be used in an expression).
+        if slen==0 {
+            target[0] = 0
+            return
+        }
         ubyte offset = length(source)-slen
         ubyte ix
         for ix in 0 to slen-1 {
@@ -46,6 +52,10 @@ strings {
         ; It is assumed the target string buffer is large enough to contain the result.
         ; Also, you have to make sure yourself that start and length are within bounds of the strings.
         ; Modifies in-place, doesn’t return a value (so can’t be used in an expression).
+        if slen==0 {
+            target[0] = 0
+            return
+        }
         ubyte ix
         for ix in 0 to slen-1 {
             target[ix] = source[ix+start]
@@ -56,8 +66,13 @@ strings {
     sub find(str st, ubyte character) -> ubyte, bool {
         ; Locates the first position of the given character in the string,
         ; returns index in A, and boolean if found or not.  (when false A will also be 255,  an invalid index).
+        ubyte n = length(st)
+        if n==0 {
+            sys.clear_carry()
+            return 255, false
+        }
         ubyte ix
-        for ix in 0 to length(st)-1 {
+        for ix in 0 to n-1 {
             if st[ix]==character {
                 sys.set_carry()
                 return ix, true
@@ -71,8 +86,13 @@ strings {
         ; Locates the position of the first End Of Line character in the string.
         ; This is a convenience function that looks for both a CR or LF (byte 13 or byte 10) as being a possible Line Ending.
         ; returns index in A, and boolean if found or not.  (when false A will also be 255,  an invalid index).
+        ubyte n = length(st)
+        if n==0 {
+            sys.clear_carry()
+            return 255, false
+        }
         ubyte ix
-        for ix in 0 to length(st)-1 {
+        for ix in 0 to n-1 {
             if st[ix] in "\x0a\x0d" {
                 sys.set_carry()
                 return ix, true
@@ -85,8 +105,13 @@ strings {
     sub rfind(str stringptr, ubyte character) -> ubyte, bool {
         ; Locates the first position of the given character in the string, starting from the right.
         ; returns index in A, and boolean if found or not.  (when false A will also be 255,  an invalid index).
+        ubyte n = length(stringptr)
+        if n==0 {
+            sys.clear_carry()
+            return 255, false
+        }
         ubyte ix
-        for ix in length(stringptr)-1 downto 0 {
+        for ix in n-1 downto 0 {
             if stringptr[ix]==character {
                 sys.set_carry()
                 return ix, true
@@ -282,6 +307,10 @@ strings {
         ; or if needle doesn't occur in haystack it returns Carry clear and 255 (an invalid index.)
         ubyte haystack_len = length(haystack)
         ubyte needle_len = length(needle)
+        if needle_len == 0 {
+            sys.set_carry()
+            return 0
+        }
         if needle_len <= haystack_len {
             ubyte idx
             haystack_len = haystack_len - needle_len + 1

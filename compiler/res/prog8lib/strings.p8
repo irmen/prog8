@@ -268,12 +268,11 @@ _found      tya
             jsr  length
             sty  P8ZP_SCRATCH_B1
             cpx  P8ZP_SCRATCH_B1
-            beq  _max_too_small
-            bmi  _max_too_small
+            bcc  _max_too_small
             txa
             sec
             sbc  P8ZP_SCRATCH_B1
-            sta  P8ZP_SCRATCH_B1
+            tax
             tya
             clc
             adc  cx16.r0
@@ -283,13 +282,13 @@ _found      tya
             sta  P8ZP_SCRATCH_W1+1
             lda  cx16.r1
             ldy  cx16.r1+1
-            ldx  P8ZP_SCRATCH_B1
             jsr  prog8_lib.strncpy
             tya
             clc
             adc  P8ZP_SCRATCH_B1
             rts
 _max_too_small
+            lda  P8ZP_SCRATCH_B1
             rts
         }}
     }
@@ -846,6 +845,10 @@ _yes        sec
         ; or if needle doesn't occur in haystack it returns Carry clear and 255 (an invalid index.)
         cx16.r2L = length(haystack)
         cx16.r3L = length(needle)
+        if cx16.r3L == 0 {
+            sys.set_carry()
+            return 0
+        }
         if cx16.r3L <= cx16.r2L {
             cx16.r2L = cx16.r2L-cx16.r3L+1
             cx16.r3 = haystack

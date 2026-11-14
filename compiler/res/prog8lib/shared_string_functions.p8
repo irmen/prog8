@@ -18,17 +18,17 @@ strings {
 
         while numparts < maxparts {
             skipwhitespace()
-            if s[index]!=0 {
-                parts^^ = s+index
-                numparts++
-                parts++
-                skipchars()
-                if s[index]==0
-                    break
-                if numparts < maxparts
-                    s[index] = 0
-                index++
-            }
+            if s[index]==0
+                break
+            parts^^ = s+index
+            numparts++
+            parts++
+            skipchars()
+            if s[index]==0
+                break
+            if numparts < maxparts
+                s[index] = 0
+            index++
         }
         if numparts>0 {
             parts--
@@ -56,14 +56,14 @@ strings {
 
     sub rstrip(str s) {
         ; -- gets rid of whitespace and other non-visible characters at the end of the string
-        if s[0]==0
-            return
-        cx16.r0L = length(s)
-        do {
-            cx16.r0L--
-            cx16.r1L = s[cx16.r0L]
-        } until cx16.r0L==0 or isprint(cx16.r1L) and not isspace(cx16.r1L)
-        s[cx16.r0L+1] = 0
+        ubyte n = length(s)
+        while n>0 {
+            ubyte c = s[n-1]
+            if isprint(c) and not isspace(c)
+                break
+            n--
+        }
+        s[n] = 0
     }
 
     sub lstripped(str s) -> str {
@@ -86,14 +86,13 @@ strings {
 
     sub rtrim(str s) {
         ; -- gets rid of whitespace characters at the end of the string
-        if s[0]==0
-            return
-        cx16.r0L = length(s)
-        do {
-            cx16.r0L--
-            cx16.r1L = s[cx16.r0L]
-        } until cx16.r0L==0 or not isspace(cx16.r1L)
-        s[cx16.r0L+1] = 0
+        ubyte n = length(s)
+        while n>0 {
+            if not isspace(s[n-1])
+                break
+            n--
+        }
+        s[n] = 0
     }
 
     sub ltrimmed(str s) -> str {
@@ -134,21 +133,39 @@ strings {
         else
             last_token_source = source
 
-        if last_token_source^^ == 0
+        ^^ubyte scan = last_token_source
+        ^^ubyte dptr
+
+        ; skip leading delimiter characters
+        while scan^^ != 0 {
+            dptr = delimiters
+            while dptr^^ != 0 {
+                if scan^^ == dptr^^
+                    break
+                dptr += 1
+            }
+            if dptr^^ == 0
+                break
+            scan += 1
+        }
+        last_token_source = scan
+        if scan^^ == 0
             return 0
 
-        while last_token_source^^ != 0 {
-            ^^ubyte dptr = delimiters
+        source = scan
+        while scan^^ != 0 {
+            dptr = delimiters
             while dptr^^ != 0 {
-                if last_token_source^^ == dptr^^ {
-                    last_token_source^^ = 0
-                    last_token_source += 1
+                if scan^^ == dptr^^ {
+                    scan^^ = 0
+                    last_token_source = scan + 1
                     return source
                 }
                 dptr += 1
             }
-            last_token_source += 1
+            scan += 1
         }
+        last_token_source = scan
         return source
     }
     ^^ubyte last_token_source

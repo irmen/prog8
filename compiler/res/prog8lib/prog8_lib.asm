@@ -244,6 +244,13 @@ strncpy		.proc
 		; returns the length of the string that was copied in Y.
 		sta  P8ZP_SCRATCH_W2
 		sty  P8ZP_SCRATCH_W2+1
+		cpx  #0
+		bne  _nonzero
+		ldy  #0
+		lda  #0
+		sta  (P8ZP_SCRATCH_W1),y
+		rts
+_nonzero
 		ldy  #$ff
 -		iny
 		lda  (P8ZP_SCRATCH_W2),y
