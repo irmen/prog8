@@ -1950,13 +1950,16 @@ as ROM/Kernal subroutine definitions, memory location constants, and utility sub
 Many of these definitions overlap for the C64 and Commander X16 targets so it is still possible
 to write programs that work on both targets without modifications.
 
-This module is usually imported automatically and can provide definitions in the ``sys``, ``cbm``, ``c64``, ``cx16``, ``c128`` blocks
+This module is always imported automatically and can provide definitions in the ``sys``, ``cbm``, ``c64``, ``cx16``, ``c128`` blocks
 depending on the chosen compilation target. Read the :source:`sys lib source code <compiler/res/prog8lib>` for the correct compilation target to see exactly what is there.
 
 
 sys (part of syslib)
 ^^^^^^^^^^^^^^^^^^^^
 .. index:: pair: Libraries; sys
+
+This module is part of syslib and is always imported automatically; you never need to ``%import``
+it to use its routines, which are available on all targets.
 
 miscellaneous
 ~~~~~~~~~~~~~

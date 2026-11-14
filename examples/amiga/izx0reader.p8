@@ -33,6 +33,7 @@ main {
             txt.print("error: could not read izx0 image header\n")
             return
         }
+        defer izx0.closeFile()
         if izx0.numPlanes==0 or izx0.numPlanes>8 {
             txt.print("error: unsupported plane count (1-8)\n")
             return
@@ -75,7 +76,7 @@ main {
             if myWindow!=0 {
 
                 ^^graphics.BitMap bm = intuition.GetScreenBitMap(myScreen)
-                if izx0.readPlanes(imagefile, &bm.Planes) {
+                if izx0.readPlanes(&bm.Planes) {
                     if izx0.isAga != 0
                         graphics.load_palette(vp, izx0.palette as ^^long, izx0.numColors)
                     else
@@ -110,17 +111,27 @@ izx0 {
 
     pointer header = memory("izx0_header", HEADER_SIZE, 0)
     pointer palette = memory("izx0_palette", MAX_PALETTE_SIZE, 0)
+    pointer izxFile          ; the open input file, held between readHeader() and readPlanes()
+
+    sub closeFile() {
+        ; release the input file if it is still open (readPlanes() closes it itself)
+        if izxFile != 0
+            void dos.Close(izxFile)
+        izxFile = 0
+    }
 
     sub clearPalette() {
         sys.memset(palette, MAX_PALETTE_SIZE, 0)
     }
 
     sub readHeader(str filename) -> bool {
-        ; parse just the 60-byte header into the module variables above
+        ; parse just the 60-byte header into the module variables above.
+        ; On success the file stays open (positioned after the header) so that
+        ; readPlanes() can continue reading from it; closeFile() releases it.
         bool success = false
-        pointer file = dos.Open(filename, dos.MODE_OLDFILE)
-        if file != 0 {
-            if dos.Read(file, header, HEADER_SIZE) == HEADER_SIZE {
+        izxFile = dos.Open(filename, dos.MODE_OLDFILE)
+        if izxFile != 0 {
+            if dos.Read(izxFile, header, HEADER_SIZE) == HEADER_SIZE {
                 if peekl(header) == $495A5830 {         ; 'IZX0'
                     imageWidth = peekw(header + 4)
                     imageHeight = peekw(header + 6)
@@ -136,94 +147,83 @@ izx0 {
                     success = true
                 }
             }
-            void dos.Close(file)
+            if not success {
+                void dos.Close(izxFile)
+                izxFile = 0
+            }
         }
         return success
     }
 
-    sub readPlanes(str filename, ^^long bitplanepointers) -> bool {
+    sub readPlanes(^^long bitplanepointers) -> bool {
         ; Decode into the given screen planes, clipping the image to the
         ; 320x256 screen so nothing is ever written outside the screen edges.
         ; bitplanepointers must have room for numPlanes screen planes
         ; (320/8 = 40 bytes per row).
+        ; The 60-byte header and its fields were already read by readHeader(),
+        ; which left izxFile open and positioned right after the header.
         const uword SCREEN_WIDTH = 320
         const uword SCREEN_HEIGHT = 256
         const uword SCREEN_STRIDE = 40
         bool success = false
-        pointer file = dos.Open(filename, dos.MODE_OLDFILE)
-        if file != 0 {
-            long bytesRead = dos.Read(file, header, HEADER_SIZE)
-            if bytesRead == HEADER_SIZE {
-                if peekl(header) == $495A5830 {         ; 'IZX0'
-                    imageWidth = peekw(header + 4)
-                    imageHeight = peekw(header + 6)
-                    originX = peekw(header + 8) as word
-                    originY = peekw(header + 10) as word
-                    numPlanes = peekw(header + 12)
-                    isAga = @(header + 14)
-                    numColors = peekw(header + 16)
-                    uword paletteSize = peekw(header + 18)
+        if izxFile != 0 {
+            uword paletteSize = peekw(header + 18)
+            if paletteSize <= MAX_PALETTE_SIZE
+                    and numPlanes != 0 and numPlanes <= 8
+                    and imageWidth != 0 and imageHeight != 0 {
+                ; clip to the screen edges
+                uword srcStride = (imageWidth + 15) / 16 * 2
+                uword copyRows = imageHeight
+                if copyRows > SCREEN_HEIGHT
+                    copyRows = SCREEN_HEIGHT
+                uword copyBytes = srcStride
+                if copyBytes > SCREEN_STRIDE
+                    copyBytes = SCREEN_STRIDE
 
-                    if paletteSize>MAX_PALETTE_SIZE
-                        return false
-                    if numPlanes==0 or numPlanes>8
-                        return false
-                    if imageWidth==0 or imageHeight==0
-                        return false
-
-                    ; clip to the screen edges
-                    uword srcStride = (imageWidth + 15) / 16 * 2
-                    uword copyRows = imageHeight
-                    if copyRows > SCREEN_HEIGHT
-                        copyRows = SCREEN_HEIGHT
-                    uword copyBytes = srcStride
-                    if copyBytes > SCREEN_STRIDE
-                        copyBytes = SCREEN_STRIDE
-
-                    ; palette follows the header
-                    clearPalette()
-                    bytesRead = dos.Read(file, palette, paletteSize)
-                    if bytesRead == paletteSize {
-                        ; buffer all compressed planes before decoding
-                        long compressedSize = peekl(header + TOTAL_COMPRESSED_SIZE_OFFSET)
-                        if compressedSize > 0 and bitplanepointers!=0 {
-                            pointer compressedBuffer = exec.AllocVec(compressedSize, exec.MEMF_PUBLIC)
-                            pointer tempPlane = exec.AllocVec(srcStride as long * imageHeight as long, exec.MEMF_PUBLIC)
-                            if compressedBuffer != 0 and tempPlane != 0 {
-                                bytesRead = dos.Read(file, compressedBuffer, compressedSize)
-                                if bytesRead == compressedSize {
-                                    pointer compressedPlane = compressedBuffer
-                                    for plane in 0 to numPlanes - 1 {
-                                        long streamSize = peekl(header + 24 + plane * 4)
-                                        long bitplane = peekp(bitplanepointers)
-                                        ; decode one plane into the temp buffer,
-                                        ; then copy the visible rows clipped to 40 bytes
-                                        if bitplane!=0 {
-                                            compression.unZX0(compressedPlane, tempPlane)
-                                            pointer src = tempPlane
-                                            long dest = bitplane
-                                            for row in 0 to copyRows-1 {
-                                                sys.memcopy(src as long, dest, copyBytes as long)
-                                                src += srcStride
-                                                dest += SCREEN_STRIDE
-                                            }
+                ; palette follows the header
+                clearPalette()
+                long bytesRead = dos.Read(izxFile, palette, paletteSize)
+                if bytesRead == paletteSize {
+                    ; buffer all compressed planes before decoding
+                    long compressedSize = peekl(header + TOTAL_COMPRESSED_SIZE_OFFSET)
+                    if compressedSize > 0 and bitplanepointers != 0 {
+                        pointer compressedBuffer = exec.AllocVec(compressedSize, exec.MEMF_PUBLIC)
+                        pointer tempPlane = exec.AllocVec(srcStride as long * imageHeight as long, exec.MEMF_PUBLIC)
+                        if compressedBuffer != 0 and tempPlane != 0 {
+                            bytesRead = dos.Read(izxFile, compressedBuffer, compressedSize)
+                            if bytesRead == compressedSize {
+                                pointer compressedPlane = compressedBuffer
+                                for plane in 0 to numPlanes - 1 {
+                                    long streamSize = peekl(header + 24 + plane * 4)
+                                    long bitplane = peekp(bitplanepointers)
+                                    ; decode one plane into the temp buffer,
+                                    ; then copy the visible rows clipped to 40 bytes
+                                    if bitplane != 0 {
+                                        compression.unZX0(compressedPlane, tempPlane)
+                                        pointer src = tempPlane
+                                        long dest = bitplane
+                                        for row in 0 to copyRows-1 {
+                                            sys.memcopy(src as long, dest, copyBytes as long)
+                                            src += srcStride
+                                            dest += SCREEN_STRIDE
                                         }
-                                        compressedPlane += streamSize
-                                        bitplanepointers++
                                     }
-                                    ; a mask stream after the color planes is not
-                                    ; image data: skip it here (use it as the
-                                    ; blitter cookie-cut mask instead).
-                                    success = true
+                                    compressedPlane += streamSize
+                                    bitplanepointers++
                                 }
-                                exec.FreeVec(compressedBuffer)
-                                exec.FreeVec(tempPlane)
+                                ; a mask stream after the color planes is not
+                                ; image data: skip it here (use it as the
+                                ; blitter cookie-cut mask instead).
+                                success = true
                             }
+                            exec.FreeVec(compressedBuffer)
+                            exec.FreeVec(tempPlane)
                         }
                     }
                 }
             }
-            void dos.Close(file)
+            void dos.Close(izxFile)
+            izxFile = 0
         }
         return success
     }

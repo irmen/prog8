@@ -83,14 +83,8 @@ main {
             starfieldPtr4=star4Reset
 
         ; 2 static stars that flicker
-        if rasterCount >= 230
-            @(staticStar1) = 0
-        else
-            @(staticStar1) = 192
-        if rasterCount ^ $80 >= 230
-            @(staticStar2) = 0
-        else
-            @(staticStar2) = 192
+        @(staticStar1) = if rasterCount >= 230 then 0 else 192
+        @(staticStar2) = if (rasterCount ^ $80) >= 230 then 0 else 192
 
         ; Plot new stars
         @(starfieldPtr1) |= 3
@@ -115,12 +109,8 @@ main {
 
         uword @zp ptr
         for x in 0 to 39 {
-            ubyte limit
             ubyte char = starfieldRow[x]
-            if char >= 58+25
-                limit = 58+50
-            else
-                limit = 58+25
+            ubyte limit = if char >= 58+25 then 58+50 else 58+25
             ubyte start = limit - 25
             ptr = starScreenChar
             repeat 25 {

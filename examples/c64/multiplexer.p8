@@ -46,9 +46,7 @@ main {
                         raster_line += 256
 
                     ; Smart timing: immediate if passed, minimum 3 lines if too close
-                    if raster_line >= target_line {
-                        ; Already past target, update immediately
-                    } else {
+                    if raster_line < target_line {
                         uword gap = target_line - raster_line
                         if gap < 3 {
                             target_line = raster_line + 3

@@ -78,7 +78,7 @@ main {
             ubyte r = ((c as uword) * 8) as ubyte
             ubyte g = (((c * 37) as uword) & 255) as ubyte
             ubyte b = (((c * 97) as uword) & 255) as ubyte
-            custom.set_aga_color(c as ubyte, ((r as long) << 16) | ((g as long) << 8) | (b as long))
+            custom.set_aga_color(c as ubyte, mklong(0, r, g, b))
         }
     }
 

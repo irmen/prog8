@@ -10,7 +10,7 @@ main {
     bool do_char_scroll = false
 
     sub start() {
-        uword moon_x = 310
+        word moon_x = 310
         sys.memcopy(&spritedata.balloonsprite, $2000, 64)     ; copy the sprites to 64-byte aligned addresses outside the VIC character ROM window ($1000-$1fff)
         sys.memcopy(&spritedata.moonsprite, $2040, 64)
         c64.set_sprite_ptr(0, $2000)       ; alternatively, set directly:  c64.SPRPTR[0] = $0f00 / 64
@@ -20,7 +20,7 @@ main {
         c64.SP1COL = 7
         c64.SPXY[0] = 80
         c64.SPXY[1] = 100
-        set_moon_pos(moon_x)
+        set_moon_pos(moon_x as uword)
 
         c64.SCROLX &= %11110111     ; 38 column mode
         sys.set_rasterirq(&irq.irqhandler, 250)     ; enable animation via raster interrupt
@@ -66,9 +66,9 @@ main {
                 c64.SPXY[1] --
 
             moon_x--
-            if msb(moon_x)==255
+            if moon_x < 0
                 moon_x = 340
-            set_moon_pos(moon_x)
+            set_moon_pos(moon_x as uword)
 
             ; draw new mountain etc.
             const RIGHT_COLUMN = 39

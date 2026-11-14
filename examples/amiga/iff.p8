@@ -140,14 +140,14 @@ main {
         decode(header, bodyBuffer)
         return true
 
-        sub decode(^^BMHDheader hdr, ^^ubyte @shared body) {
-            long @shared bytesPerRow = ((hdr.w + 15) / 16) * 2
+        sub decode(^^BMHDheader hdr, ^^ubyte body) {
+            long bytesPerRow = ((hdr.w + 15) / 16) * 2
             ^^graphics.BitMap bm = intuition.GetScreenBitMap(scr)
             ubyte compressionType = hdr.compression
 
             for y in 0 to hdr.h-1 {
                 for plane in 0 to hdr.nPlanes-1 {
-                    ^^ubyte @shared target = bm.Planes[plane] + y*bytesPerRow
+                    ^^ubyte target = bm.Planes[plane] + y*bytesPerRow
                     when compressionType {
                         0 -> {
                             ; non-compressed

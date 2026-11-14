@@ -129,21 +129,13 @@ main {
                 word rz = Azx * vx[i] + Azy * vy[i] + Azz * vz[i]
 
                 ; Perspective projection: positive Z is nearer to the camera.
-                word persp = PERSPECTIVE_DISTANCE - (rz >> 8)
-                if persp < 32
-                    persp = 32
+                word persp = max(PERSPECTIVE_DISTANCE - (rz >> 8), 32)
 
                 ; Compute final screen coordinates (aspect-corrected X).
                 px[i] = border_left + cx + (((rx / persp) as long * xscale >> 7) as word)
                 py[i] = border_top + cy - (ry / persp)
-                if px[i] < border_left
-                    px[i] = border_left
-                if px[i] > xmax
-                    px[i] = xmax
-                if py[i] < border_top
-                    py[i] = border_top
-                if py[i] > ymax
-                    py[i] = ymax
+                px[i] = clamp(px[i], border_left, xmax)
+                py[i] = clamp(py[i], border_top, ymax)
             }
 
             ; Draw the dodecahedron skeleton with graphics.library line routines.

@@ -86,21 +86,7 @@ main {
         ; (col, row) under client coords, or (-1, -1) when outside the grid.
         if mx < BX or mx >= BX+3*CELL or my < BY or my >= BY+3*CELL
             return -1, -1
-        byte col = 0
-        if mx >= BX+2*CELL
-            col = 2
-        else {
-            if mx >= BX+CELL
-                col = 1
-        }
-        byte row = 0
-        if my >= BY+2*CELL
-            row = 2
-        else {
-            if my >= BY+CELL
-                row = 1
-        }
-        return col, row
+        return ((mx - BX) / CELL) as byte, ((my - BY) / CELL) as byte
     }
 
     sub check_win() -> ubyte {
@@ -170,14 +156,8 @@ main {
                         over = true
                     }
                     else -> {
-                        if turn == Player::X
-                            turn = Player::O
-                        else
-                            turn = Player::X
-                        if turn == Player::X
-                            status("X to move - click a square")
-                        else
-                            status("O to move - click a square")
+                        turn = if turn == Player::X then Player::O else Player::X
+                        status(if turn == Player::X then "X to move - click a square" else "O to move - click a square")
                     }
                 }
             }

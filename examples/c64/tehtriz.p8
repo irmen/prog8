@@ -32,73 +32,70 @@ main {
 
 
     sub start() {
-        ;@(650) = 128        ; set all keys to repeat
         sound.init()
+
+        ; show the initial "game over, press F1" screen and wait for a key
         newGame()
         drawBoard()
         gameOver()
 
-newgame:
-        newGame()
-        drawBoard()
-        spawnNextBlock()
+        repeat {
+            newGame()
+            drawBoard()
+            spawnNextBlock()
 
-waitkey:
-        if cbm.TIME_LO>=(60-4*speedlevel) {
-            cbm.TIME_LO = 0
+            repeat {
+                if cbm.TIME_LO>=(60-4*speedlevel) {
+                    cbm.TIME_LO = 0
 
-            drawBlock(xpos, ypos, 32) ; hide block
-            if blocklogic.noCollision(xpos, ypos+1) {
-                ; slowly move the block down
-                ypos++
-                drawBlock(xpos, ypos, 160)  ; show block on new position
-            } else {
-                ; block can't move further down!
-                ; check if the game area is full, if not, spawn the next block at the top.
-                if blocklogic.isGameOver(xpos, ypos) {
-                    gameOver()
-                    goto newgame
-                } else {
-                    sound.blockrotate()
-                    checkForLines()
-                    spawnNextBlock()
-                    score++
+                    drawBlock(xpos, ypos, 32) ; hide block
+                    if blocklogic.noCollision(xpos, ypos+1) {
+                        ; slowly move the block down
+                        ypos++
+                        drawBlock(xpos, ypos, 160)  ; show block on new position
+                    } else {
+                        ; block can't move further down!
+                        ; check if the game area is full, if not, spawn the next block at the top.
+                        if blocklogic.isGameOver(xpos, ypos) {
+                            gameOver()
+                            break
+                        } else {
+                            sound.blockrotate()
+                            checkForLines()
+                            spawnNextBlock()
+                            score++
+                        }
+                    }
+
+                    drawScore()
                 }
+
+                ubyte key
+                void, key=cbm.GETIN()
+                if key != 0
+                    keypress(key)
             }
-
-            drawScore()
         }
-
-        ubyte key
-        void, key=cbm.GETIN()
-        if key==0 goto waitkey
-
-        keypress(key)
-
-        goto waitkey
-
     }
 
-    sub move_left() {
-        drawBlock(xpos, ypos, 32)
-        if blocklogic.noCollision(xpos-1, ypos) {
-            xpos--
-        }
-        drawBlock(xpos, ypos, 160)
+    enum MoveDir {
+        LEFT,
+        RIGHT,
+        DOWN
     }
 
-    sub move_right() {
+    sub move(ubyte direction) {
         drawBlock(xpos, ypos, 32)
-        if blocklogic.noCollision(xpos+1, ypos) {
-            xpos++
+        ubyte nx = xpos
+        ubyte ny = ypos
+        when direction {
+            MoveDir::LEFT -> nx = xpos-1
+            MoveDir::RIGHT -> nx = xpos+1
+            MoveDir::DOWN -> ny = ypos+1
         }
-        drawBlock(xpos, ypos, 160)
-    }
-
-    sub move_down_faster() {
-        drawBlock(xpos, ypos, 32)
-        if blocklogic.noCollision(xpos, ypos+1) {
-            ypos++
+        if blocklogic.noCollision(nx, ny) {
+            xpos = nx
+            ypos = ny
         }
         drawBlock(xpos, ypos, 160)
     }
@@ -126,9 +123,9 @@ waitkey:
 
     sub keypress(ubyte key) {
         when key {
-            157, ',' -> move_left()
-            29, '/'  -> move_right()
-            17, '.'  -> move_down_faster()
+            157, ',' -> move(MoveDir::LEFT)
+            29, '/'  -> move(MoveDir::RIGHT)
+            17, '.'  -> move(MoveDir::DOWN)
             145, ' ' -> drop_down_immediately()
             'z' -> {
                 ; no joystick equivalent (there is only 1 fire button)
@@ -210,9 +207,11 @@ waitkey:
             else
                 sound.lineclear()
             sys.wait(20)    ; slight delay to flash the line
-            for linepos in complete_lines
-                if linepos!=0 and blocklogic.isLineFull(linepos)
+            for i in 0 to num_lines-1 {
+                linepos = complete_lines[i]
+                if blocklogic.isLineFull(linepos)
                     blocklogic.collapse(linepos)
+            }
             lines += num_lines
             uword[] scores = [10, 25, 50, 100]      ; can never clear more than 4 lines at once
             score += scores[num_lines-1]
@@ -316,7 +315,6 @@ waitkey:
 
         txt.setcc(boardOffsetX-1, boardOffsetY-1, 108, 12)
         txt.setcc(boardOffsetX+boardWidth, boardOffsetY-1, 123, 12)
-        txt.setcc(boardOffsetX+boardWidth, boardOffsetY-1, 123, 12)
         txt.setcc(boardOffsetX-1, boardOffsetY+boardHeight, 124, 12)
         txt.setcc(boardOffsetX+boardWidth, boardOffsetY+boardHeight, 126, 12)
         ubyte i
@@ -358,11 +356,8 @@ waitkey:
             txt.setcc(x, nextBlockYpos+1, ' ', 0)
         }
 
-        ; reuse the normal block draw routine (because we can't manipulate array pointers yet)
-        ubyte prev = blocklogic.currentBlockNum
-        blocklogic.newCurrentBlock(nextBlock)
-        drawBlock(nextBlockXpos, nextBlockYpos, 160)
-        blocklogic.newCurrentBlock(prev)
+        ; reuse the normal block draw routine, temporarily switching block
+        drawPreviewBlock(nextBlock, nextBlockXpos, nextBlockYpos)
     }
 
     sub drawHoldBlock() {
@@ -373,13 +368,8 @@ waitkey:
             txt.setcc(x, holdBlockYpos, '@', 0)
             txt.setcc(x, holdBlockYpos+1, '@', 0)
         }
-        if holding < 7 {
-            ; reuse the normal block draw routine (because we can't manipulate array pointers yet)
-            ubyte prev = blocklogic.currentBlockNum
-            blocklogic.newCurrentBlock(holding)
-            drawBlock(holdBlockXpos, holdBlockYpos, 160)
-            blocklogic.newCurrentBlock(prev)
-        }
+        if holding < 7
+            drawPreviewBlock(holding, holdBlockXpos, holdBlockYpos)
     }
 
     sub drawBlock(ubyte x, ubyte y, ubyte character) {
@@ -389,6 +379,14 @@ waitkey:
             if c!=0
                 txt.setcc((i&3)+x, (i/4)+y, character, c)
         }
+    }
+
+    sub drawPreviewBlock(ubyte block, ubyte x, ubyte y) {
+        ; temporarily switch to another block, draw it, then restore the current one
+        ubyte prev = blocklogic.currentBlockNum
+        blocklogic.newCurrentBlock(block)
+        drawBlock(x, y, 160)
+        blocklogic.newCurrentBlock(prev)
     }
 }
 

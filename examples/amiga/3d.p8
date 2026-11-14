@@ -110,19 +110,11 @@ main {
                 word rz = Azx * vx[i] + Azy * vy[i] + Azz * vz[i]
 
                 ; Perspective projection: positive Z is nearer to the camera.
-                word persp = PERSPECTIVE_DISTANCE - (rz >> 8)
-                if persp < 32
-                    persp = 32
+                word persp = max(PERSPECTIVE_DISTANCE - (rz >> 8), 32)
                 px[i] = rx / persp + CX
                 py[i] = CY - ry / persp
-                if px[i] < 0
-                    px[i] = 0
-                if px[i] > 319
-                    px[i] = 319
-                if py[i] < 0
-                    py[i] = 0
-                if py[i] > TEXT_Y - 1
-                    py[i] = TEXT_Y - 1
+                px[i] = clamp(px[i], 0, 319)
+                py[i] = clamp(py[i], 0, TEXT_Y - 1)
             }
 
             blitter.line_init($ffff, $8000, $ffff, 40)

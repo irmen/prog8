@@ -86,13 +86,6 @@ main {
         if branch_len >= minimum_branch {
             word new_len = ((branch_len as long) * 2 / 3) as word
             draw_branch(x2, y2, angle - delta_theta, new_len)
-
-            ; x1, y1, angle and branch_len are untouched by the call above, so the same expressions
-            ; give the same x2 and y2 again
-            x2 = x1 + dx
-            y2 = y1 - dy
-            draw_segment(x1, y1, x2, y2)
-
             draw_branch(x2, y2, angle + delta_theta, new_len)
         }
     }

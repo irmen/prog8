@@ -102,8 +102,7 @@ main {
 
     sub make_palette() {
         ; pens 0..31: the monster's real colors, with pen 0 black.
-        for uword i in 0 to 31
-            palette[i] = monster_palette[i]
+        sys.memcopy(&monster_palette as long, &palette as long, 32 * 4)
         ; pens 32..255: a 224-color full-saturation HSV rainbow.
         ubyte r,g,b
         for uword i in 32 to NUM_COLORS-1 {
