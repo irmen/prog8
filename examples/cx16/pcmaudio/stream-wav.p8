@@ -123,7 +123,8 @@ main {
             uword block_size = 1024
             if wavfile.wavefmt==wavfile.Format::DVI_ADPCM
                 block_size = 512      ; read 2 adpcm blocks at a time (2*256 bytes)
-            void diskio.f_read(music.buffer, wavfile.data_offset)       ; skip to actual sample data start
+            ; skip to actual sample data start (note: assumes header fits in the 1024-byte buffer; large metadata/artwork chunks could overflow it)
+            void diskio.f_read(music.buffer, wavfile.data_offset)
             music.pre_buffer(block_size)
             cx16.VERA_AUDIO_RATE = vera_rate    ; start audio playback
 

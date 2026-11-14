@@ -89,6 +89,8 @@ main {
 
                 ; draw new mountain etc.
                 draw_column++
+                if draw_column >= 128
+                    draw_column = 0
                 ubyte yy
                 for yy in 0 to active_height-1 {
                     txt.setcc(draw_column, yy, 32, 2)         ; clear top of screen

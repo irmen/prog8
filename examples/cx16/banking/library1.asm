@@ -5,7 +5,7 @@
 
 CHROUT = $ffd2
 
-message_pointer = $02
+message_pointer = $30
 
 routine1:
 	lda  #<message

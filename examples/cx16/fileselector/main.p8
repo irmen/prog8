@@ -23,6 +23,8 @@ main {
 }
 
 fselector {
+    ; NOTE: the exported routines also clobber virtual registers R0-R5 and R15 (see fselector.p8 header).
+    ; Prog8's clobbers() cannot express R0-R15, so callers must not rely on those across calls.
     ; The library uses/modifies ZERO PAGE LOCATIONS: R0-R5,R15 ($02-$0d and $20-$21)
 
     const ubyte TYPE_ALL = 0

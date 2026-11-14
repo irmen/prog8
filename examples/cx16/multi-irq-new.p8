@@ -21,12 +21,12 @@ main {
 }
 
 irq {
+    private uword delaycounter
+
     sub vsync_irq() -> bool {
         cx16.save_vera_context()
         palette.set_color(0, $f00)
-        repeat 1000 {
-            cx16.r0++
-        }
+        repeat 1000  delaycounter++
         palette.set_color(0, $000)
         cx16.restore_vera_context()
         return true
@@ -41,9 +41,7 @@ irq {
             palette.set_color(0, $00f)
             sys.set_rasterline(150)     ; back to first line irq
         }
-        repeat 500 {
-            cx16.r0++
-        }
+        repeat 500  delaycounter++
         palette.set_color(0, $000)
         cx16.restore_vera_context()
         return false

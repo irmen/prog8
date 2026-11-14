@@ -80,7 +80,8 @@ main {
         frame_count++
         if frame_count >= 3 {
             frame_count = 0
-            num_bobs++
+            if num_bobs < 9999
+                num_bobs++
         }
 
         vmembase = backbuffer*4                     ; 2048 * 4 per backbuffer

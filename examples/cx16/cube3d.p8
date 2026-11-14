@@ -29,6 +29,7 @@ main {
         ubyte @zp i
         word @zp rz
 
+        ; (screenx/screeny stay within the visible area for this cube, so the byte->ubyte cast never reinterprets a negative; guard omitted for speed)
         for i in 0 to len(matrix_math.xcoor)-1 {
             rz = matrix_math.rotatedz[i]
             if rz >= 10 {

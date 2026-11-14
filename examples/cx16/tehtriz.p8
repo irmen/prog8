@@ -37,14 +37,14 @@ main {
         txt.clear_screen()
 
         ; gimmick: make a mirrored R
-        cx16.vpoke(1,$f000+sc:'r'*8+0, %00111110)
-        cx16.vpoke(1,$f000+sc:'r'*8+1, %01100110)
-        cx16.vpoke(1,$f000+sc:'r'*8+2, %01100110)
-        cx16.vpoke(1,$f000+sc:'r'*8+3, %00111110)
-        cx16.vpoke(1,$f000+sc:'r'*8+4, %00011110)
-        cx16.vpoke(1,$f000+sc:'r'*8+5, %00110110)
-        cx16.vpoke(1,$f000+sc:'r'*8+6, %01100110)
-        cx16.vpoke(1,$f000+sc:'r'*8+7, %00000000)
+        cx16.vpoke(1,$f000+(sc:'r' as uword) * 8+0, %00111110)
+        cx16.vpoke(1,$f000+(sc:'r' as uword) * 8+1, %01100110)
+        cx16.vpoke(1,$f000+(sc:'r' as uword) * 8+2, %01100110)
+        cx16.vpoke(1,$f000+(sc:'r' as uword) * 8+3, %00111110)
+        cx16.vpoke(1,$f000+(sc:'r' as uword) * 8+4, %00011110)
+        cx16.vpoke(1,$f000+(sc:'r' as uword) * 8+5, %00110110)
+        cx16.vpoke(1,$f000+(sc:'r' as uword) * 8+6, %01100110)
+        cx16.vpoke(1,$f000+(sc:'r' as uword) * 8+7, %00000000)
 
         sound.init()
 
@@ -68,7 +68,7 @@ main {
                     ticks_since_previous_move=255
 
                 ubyte time_lo = lsb(cbm.RDTIM16())
-                if time_lo>=(60-4*speedlevel) {
+                if time_lo>=(60 as word - 4*(speedlevel as word)) {
                     cbm.SETTIM(0,0,0)
 
                     drawBlock(xpos, ypos, true) ; hide block
@@ -196,6 +196,7 @@ main {
                 holding = blocklogic.currentBlockNum
                 drawBlock(xpos, ypos, true)
                 spawnNextBlock()
+                holdingAllowed = false
             }
             drawHoldBlock()
         }

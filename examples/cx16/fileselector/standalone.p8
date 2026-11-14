@@ -17,7 +17,7 @@
 main {
     sub start() {
         ; some configuration, optional
-        fileselector.configure_settings(8, 3, 2)
+        fileselector.configure_settings(8, 3)
         fileselector.configure_appearance(10, 10, 20, $b3, $d0)
 
         ; show all files, using just the * wildcard
@@ -49,7 +49,7 @@ fileselector {
     ubyte max_lines = 20
     ubyte colors_normal = $b3
     ubyte colors_selected = $d0
-    ubyte buffer_rambank = 1    ; default hiram bank to use for the data buffers
+    ; (buffer_rambank removed: buffers are always accessed in the current bank via $a000/$be00)
     ubyte show_what = 3         ; dirs and files
     ubyte chr_topleft, chr_topright, chr_botleft, chr_botright, chr_horiz_top, chr_horiz_other, chr_vert, chr_jointleft, chr_jointright
 
@@ -57,10 +57,9 @@ fileselector {
     ^^ubyte name_ptr
 
 
-    sub configure_settings(ubyte drivenumber, ubyte show_types, ubyte rambank) {
+    sub configure_settings(ubyte drivenumber, ubyte show_types) {
         ; show_types is a bit mask , bit 0 = include files in list, bit 1 = include dirs in list,   0 (or 3)=show everything.
         diskio.drivenumber = drivenumber
-        buffer_rambank = rambank
         show_what = show_types
         if_z
             show_what = 3

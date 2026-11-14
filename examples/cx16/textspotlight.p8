@@ -19,7 +19,7 @@ main {
 
             x += dx as ubyte
             if_neg {
-                x = 1
+                x = 1    ; symmetric bounce: column 0 is the turnaround (visited once), so reset to 1
                 dx = 1
             } else if x==txt.DEFAULT_WIDTH-30 {
                 x = txt.DEFAULT_WIDTH-31
@@ -28,7 +28,7 @@ main {
 
             y += dy as ubyte
             if_neg {
-                y = 1
+                y = 1    ; symmetric bounce: row 0 is the turnaround (visited once), so reset to 1
                 dy = 1
             } else if y==txt.DEFAULT_HEIGHT-30 {
                 y = txt.DEFAULT_HEIGHT-31

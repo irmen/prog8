@@ -320,7 +320,7 @@ main {
         testlib("1.7014118345e+38")
         testlib("-1.7014118345e+38")
         testlib("1e-38")
-        testlib("9.999999e+37")  ; DISABLED: causes overflow
+        testlib("9.999999e+37")
         testlib("1.7e38")
         testlib("-1.7e38")
         testlib("0.5")

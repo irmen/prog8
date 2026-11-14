@@ -63,13 +63,13 @@ main {
             uword @zp half = s + (e-s) / 2
             if half!=s and half!=e {
                 ; displace the terrain
-                uword t = terrain[half]
+                word t = terrain[half] as word
                 ubyte d = math.rnd() % displacement
                 if math.rnd() & 1 == 1
                     t += d
                 else
                     t -= d
-                terrain[half] = clamp(lsb(t), 10, 230)
+                terrain[half] = clamp(t, 10, 230) as ubyte
                 interpolate(s, half)
                 interpolate(half, e)
 

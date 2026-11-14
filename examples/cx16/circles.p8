@@ -60,6 +60,7 @@ main {
         }
 
         sub distance(ubyte cix) -> uword {
+            ; note: word squares overflow when circle centers are >~181 px apart (320-wide screen), underestimating distance; kept as word for speed
             word dx = x as word - circle_x[cix]
             word dy = y as word - circle_y[cix]
             uword sqx = dx*dx as uword

@@ -37,7 +37,7 @@ main {
 
 fileselector {
     ; these buffer sizes are chosen to fill up the rest of the hiram bank after the fileselector code
-    const uword filenamesbuf_size = $d80
+    const uword filenamesbuf_size = $d60
     const ubyte max_num_files = 128
 
     uword @shared filenamesbuffer = memory("filenames_buffer", filenamesbuf_size, 0)

@@ -27,7 +27,6 @@ main $0830 {
 
 	asmsub callback_handler(ubyte prio @X, ubyte type @Y, ubyte arg @A) {
 		%asm {{
-            brk
 			cpy #1
 			beq _loop
 			cpy #2

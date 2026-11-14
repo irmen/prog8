@@ -24,7 +24,7 @@ zsmkit {
 	extsub zsmjmp + 17*3 = zsm_setloop(ubyte prio @X, bool loop @Pc) clobbers(A, X, Y)
 	extsub zsmjmp + 18*3 = zsm_opmatten(ubyte prio @X, ubyte channel @Y, ubyte value @A) clobbers(A, X, Y)
 	extsub zsmjmp + 19*3 = zsm_psgatten(ubyte prio @X, ubyte channel @Y, ubyte value @A) clobbers(A, X, Y)
-	extsub zsmjmp + 29*3 = zsm_pcmatten(ubyte prio @X, ubyte value @A) clobbers(A, X, Y)
+	extsub zsmjmp + 20*3 = zsm_pcmatten(ubyte prio @X, ubyte value @A) clobbers(A, X, Y)
 	extsub zsmjmp + 21*3 = zsm_set_int_rate(ubyte value @A, ubyte frac @Y) clobbers(A, X, Y)
 
 	extsub zsmjmp + 25*3 = zcm_setmem(ubyte slot @X, uword data_ptr @AY) clobbers(A)

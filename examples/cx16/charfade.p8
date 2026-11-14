@@ -68,7 +68,7 @@ main {
         }
 
         sub find_darker(ubyte color_index) -> ubyte {
-            uword darker_rgb = darken(palette[index])
+            uword darker_rgb = darken(palette[color_index])
             if darker_rgb == 0
                 return 0
             ubyte closest, second

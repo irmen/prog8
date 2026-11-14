@@ -25,6 +25,7 @@ main {
     ubyte num_adpcm_blocks
     uword adpcm_size
     uword @requirezp nibblesptr
+    bool restart_msg
 
     sub start() {
         if not wavfile.parse_header(&wavdata.wav_data) {
@@ -108,14 +109,15 @@ main {
             cx16.VERA_AUDIO_DATA = 0
         }
 
+        cx16.enable_irq_handlers(true)
         when wavfile.nchannels {
             1 -> {
                 cx16.VERA_AUDIO_CTRL = %10101011        ; mono 16 bit, volume 11
-                cbm.CINV = &mono.irq_handler
+                cx16.set_aflow_irq_handler(&mono.irq_handler)
             }
             2 -> {
                 cx16.VERA_AUDIO_CTRL = %10111011        ; stereo 16 bit, volume 11
-                cbm.CINV = &stereo.irq_handler
+                cx16.set_aflow_irq_handler(&stereo.irq_handler)
             }
         }
 
@@ -127,6 +129,10 @@ main {
 
         repeat {
             ; audio will play via the IRQ.
+            if main.restart_msg {
+                txt.print("end of data, restarting.\n")
+                main.restart_msg = false
+            }
         }
 
         ; not reached:
@@ -147,7 +153,7 @@ mono {
         }
     }
 
-    sub irq_handler() {
+    sub irq_handler() -> bool {
         if cx16.VERA_ISR & %00001000 !=0 {
             ; AFLOW irq.
             ;; cx16.vpoke(1,$fa0c, $a0)    ; paint a screen color
@@ -159,7 +165,7 @@ mono {
                 ; restart adpcm data from the beginning
                 main.nibblesptr = &wavdata.wav_data + wavfile.data_offset
                 main.adpcm_blocks_left = main.num_adpcm_blocks
-                txt.print("end of data, restarting.\n")
+                main.restart_msg = true
             }
 
         } else {
@@ -168,12 +174,7 @@ mono {
 
         ;; cx16.vpoke(1,$fa0c, 0)      ; back to other screen color
 
-        %asm {{
-            ply
-            plx
-            pla
-            rti
-        }}
+        return false
     }
 
 }
@@ -190,7 +191,7 @@ stereo {
         }
     }
 
-    sub irq_handler() {
+    sub irq_handler() -> bool {
         if cx16.VERA_ISR & %00001000 !=0 {
             ; AFLOW irq.
     	    ;; cx16.vpoke(1,$fa0c, $a0)    ; paint a screen color
@@ -202,7 +203,7 @@ stereo {
                 ; restart adpcm data from the beginning
                 main.nibblesptr = &wavdata.wav_data + wavfile.data_offset
                 main.adpcm_blocks_left = main.num_adpcm_blocks
-                txt.print("end of data, restarting.\n")
+                main.restart_msg = true
             }
 
         } else {
@@ -211,12 +212,7 @@ stereo {
 
         ;; cx16.vpoke(1,$fa0c, 0)      ; back to other screen color
 
-        %asm {{
-            ply
-	        plx
-	        pla
-	        rti
-        }}
+        return false
     }
 
 }
