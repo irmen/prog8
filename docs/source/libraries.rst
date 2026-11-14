@@ -653,6 +653,14 @@ Routines to convert strings to numbers or vice versa.
 - numbers to strings, in various formats (binary, hex, decimal)
 - strings in decimal, hex and binary format into numbers (bytes, words, longs)
 
+``str_ulhex(long value) -> str``
+    Format the 32 bits of the value as 8 hexadecimal digits, without a sign.
+    Use this to display a ``long`` as an unsigned 32-bit quantity. There is no
+    unsigned decimal formatter; ``str_l`` prints the same value as signed decimal.
+
+``str_l(long value) -> str``
+    Format the value as signed decimal, with a minus sign when negative.
+
 Read the :source:`conv source code <compiler/res/prog8lib/conv.p8>`
 to see what's in there.
 
@@ -2165,6 +2173,10 @@ dealing with text-based input and output (to the screen). Such as
 - scrolling the text on the screen
 - placing individual characters on the screen
 - convert petscii to screencode characters
+
+For 32-bit values, ``print_ulhex`` prints the value as 8 hexadecimal digits (with an
+optional ``$`` prefix), treating the ``long`` as an unsigned 32-bit quantity. ``print_l``
+prints the same value as signed decimal. There is no unsigned decimal printer.
 
 All routines work with Screencode character encoding, except ``print``, ``chrout`` and ``input_chars``, these work with PETSCII encoding instead.
 

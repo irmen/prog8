@@ -190,7 +190,7 @@ syntax feature that you could not verify against one of these sources.
      amount of hand-written code.
    Also scan for re-implementations of the smaller modules: `conv`
    (number-to-string and string-to-number conversions such as `str_ub`,
-   `str_uwhex`, `str2uword`), `sorting` (gnome and shell sort, including
+   `str_uwhex`, `str_ulhex`, `str2uword`), `sorting` (gnome and shell sort, including
    sort-by-key variants), `buffers` (ready-made stack and ringbuffer blocks),
    `lists` (linked list helpers), `compression` (RLE, zx0, tscrunch decoders),
    `coroutines` (cooperative tasks), `lineclip`, `bcd`, `floats` (`minf`,
@@ -202,7 +202,8 @@ syntax feature that you could not verify against one of these sources.
    source-level shape matters. Look for:
    - the same non-trivial subexpression evaluated repeatedly in a condition or
      loop body instead of stored once in a variable
-   - signed integer math where unsigned would do (larger and slower code), and
+   - signed integer math where unsigned would do (larger and slower code; this
+     applies to byte and word values, there is no unsigned long type), and
      `long` or `float` math in code that does not need the range or precision
    - generic pointer or struct field access where a typed pointer or a plain
      array would generate less code; `structs`/pointers are not free on 6502
@@ -342,6 +343,35 @@ syntax feature that you could not verify against one of these sources.
      space on 6502; `pointer` adapts automatically (see `sys.SIZEOF_POINTER`).
      This applies to variables, parameters, return values, struct fields, and
      arrays of addresses.
+   - `long` used as an unsigned 32-bit container. This is legitimate for
+     storage, `+`, `-`, `++`/`--`, equality, bitwise operators, `<<`, and the
+     low 32 bits of `*`, so do not flag those as sign confusion. Relational
+     compares, `/`, `%`, `>>`, float conversion, signed math builtins, and
+     decimal printing are signed: flag them when the value is meant as
+     unsigned. There is no unsigned long type; suggest `conv.str_ulhex` /
+     `txt.print_ulhex` for display, and `math.mul32`, `log2l`,
+     `popcount(long)`, `ctzl`, `reversel`, `crc32` for bit work.
+   - a 32-bit quantity split into two `uword` variables (high/low words,
+     segment/offset, or two halves always stored, passed, compared, or converted
+     together). On M68K and virtual targets, use `pointer` when it is really an
+     address; otherwise a single `long` states the intent and enables the 32-bit
+     library helpers. If a specific word or byte is needed, `lsw()` / `msw()` /
+     `lmh()` extract it, and `mklong(msb, b2, b1, lsb)` / `mklong2(msw, lsw)`
+     build it back, so no separate storage is required. On 6502 targets a
+     `long` is larger and much slower than two-word arithmetic, so suggest this
+     only when the pair is treated as one opaque value and the rewrite
+     simplifies the code, not in a hot loop that deliberately works on 16-bit
+     halves.
+   - the same for a 16-bit quantity split into two `ubyte` variables, or into
+     parallel high/low `ubyte` arrays used as one word table. Prefer a single
+     `uword` (or `word` when signed), or `pointer` when it is an address; a
+     `uword[]` already uses the split LSB/MSB layout on 6502 and a sequential
+     layout on M68K, so the compiler handles the bookkeeping. If a specific byte
+     is genuinely needed, use the `lsb()` / `msb()` builtins, and
+     `mkword(msb, lsb)` to build the word back, instead of keeping separate
+     byte variables. Only suggest this when the bytes are genuinely one
+     value or table; leave code alone that deliberately processes bytes
+     separately for speed, endianness, or hardware access.
    - untyped `uword`/`long`/`pointer` variables used as pointers where a typed
      pointer (`^^ubyte`, `^^Sprite`, ...) would state the intent and let the
      compiler scale indexing and pointer arithmetic correctly, and reject

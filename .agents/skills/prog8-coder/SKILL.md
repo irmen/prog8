@@ -63,7 +63,9 @@ runtime values unless its documented argument constraints say otherwise.
 - Math: `abs`, `clamp(value, min, max)`, `divmod` (one division, two results),
   `gcd`, `max`, `min`, `sgn`, `sqrt`.
 - Bytes and words: `lsb`, `lsw`, `msb`, `msw`, `lmh` (low/mid/high bytes of a
-  long), `mkword`, `mklong`, `mklong2`.
+  long) extract bytes, while `mkword(msb, lsb)`, `mklong(msb, b2, b1, lsb)` and
+  `mklong2(msw, lsw)` assemble a value from its bytes - most significant part
+  first, unlike the lsb-first convention of many other 8-bit toolchains.
 - Bit rotation: `rol`, `rol2`, `ror`, `ror2`.
 - Other: `len`, `offsetof(Struct.field)`, `peek`/`peekw`/`peekl`/`peekp`,
   `peekbool`, `cmp` (result via CPU flags; prefer `sgn(x - y)` when a value is
@@ -76,7 +78,16 @@ runtime values unless its documented argument constraints say otherwise.
   `float`, `str`, and `pointer`.
 - `pointer` is target-sized: 16-bit on 6502 targets and 32-bit on M68K and
   virtual targets. Use it for portable addresses, not `uword` or `long` chosen
-  by assumption.
+  by assumption. On 32-bit targets it is 4 bytes, like `long`; prefer it over
+  `long` for addresses, and use `long` for non-address 32-bit values.
+- There is no unsigned long type: `long` is signed for relational compares,
+  `/`, `%`, `>>`, float conversion, signed math builtins, and decimal printing.
+  Storage, `+`, `-`, `++`/`--`, `+=`/`-=`, equality, bitwise operators, `<<`,
+  and the low 32 bits of `*` are bit-identical for signed and unsigned values,
+  so a `long` works as an unsigned 32-bit accumulator or bit container.
+  Use `conv.str_ulhex` / `txt.print_ulhex` for unsigned hex output, and
+  `math.mul32`, `log2l`, `popcount(long)`, `ctzl`, `reversel`, `crc32` for bit
+  work. Long `%` is rejected on 6502 targets.
 - M68000 targets are big-endian and use 32-bit pointers. Load the `m68k-coder`
   skill for assembly details.
 - `float` requires `%import floats`.

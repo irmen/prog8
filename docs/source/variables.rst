@@ -371,12 +371,33 @@ to be done on word values, and don't want to explicitly have to cast everything 
     stick to unsigned integers for efficiency.
 
 .. attention::
-    Not all operations on Long integers are supported at the moment, although most common
-    operations should work fine. Notably absent for now are multiplication and division of longs.
-    There is no unsigned long type at the moment, but you can sometimes simply treat the signed
-    long value as an unsigned 32 bits value just fine.
+    There is no unsigned long type at the moment. A ``long`` is signed wherever the
+    operation inspects the sign bit: relational comparisons (``<``, ``<=``, ``>``, ``>=``),
+    division and remainder (``/``, ``%``), right shift (``>>``), conversion to float, signed
+    math routines such as ``abs``, ``min``, ``max``, ``clamp``, ``sgn`` and ``math.diffl``,
+    and decimal printing (``conv.str_l`` / ``txt.print_l``). Do not use those when you expect
+    unsigned 32-bit behavior.
+
+    Everything that merely moves or combines the 32 bits behaves the same for signed and
+    unsigned values: storage, ``+``, ``-``, unary ``-``, ``++``/``--``, ``+=``/``-=``,
+    equality, ``&``, ``|``, ``^``, ``~``, ``<<``, and the low 32 bits of a multiplication.
+    A ``long`` therefore works fine as an unsigned 32-bit accumulator or bit container,
+    as long as it is not compared, divided, right-shifted or printed as decimal. Constants
+    such as ``$ffffffff`` store the expected bit pattern (the value is -1 when read as signed).
+    For hexadecimal output use ``conv.str_ulhex`` / ``txt.print_ulhex``; for bit algorithms
+    the ``math`` module has ``mul32``, ``log2l``, ``popcount(long)``, ``ctzl``, ``reversel``
+    and ``crc32``.
+
+    On 6502 targets, the remainder operator (``%``) cannot be used on ``long`` values.
     Operations on long integers take a lot of instructions on 8 bit CPUs so code that uses them
     a lot will be much slower than when you restrict yourself to 8 or 16 bit values. Use long values sparingly.
+
+.. note::
+    On 32-bit targets (m68k and virtual), a ``pointer`` is 4 bytes, just like a ``long``
+    (see :ref:`pointer_size`). If the 32-bit value is actually a memory address, prefer
+    ``pointer`` or a typed ``^^type`` pointer over ``long``: it expresses the intent, and it is
+    target-sized, so the same source uses a 2-byte pointer on 6502 targets. Use ``long`` when
+    you need exactly 32 bits on every target, or when the value is not an address.
 
 .. danger::
     **longs and cx16.R12,R13,R14,R15**:
