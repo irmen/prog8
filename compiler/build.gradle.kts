@@ -19,7 +19,7 @@ dependencies {
     implementation("com.github.ajalt.clikt:clikt:5.1.0") {
         exclude(group = "com.github.ajalt.mordant", module = "mordant")
     }
-    implementation("com.github.ajalt.mordant:mordant-core:3.1.0")
+    implementation("com.github.ajalt.mordant:mordant-core:3.1.1")
     implementation("com.michael-bull.kotlin-result:kotlin-result-jvm:2.3.1")
 
     testImplementation(project(":codeCore"))
