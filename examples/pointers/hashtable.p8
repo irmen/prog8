@@ -93,7 +93,7 @@ cache {
 
     sub init() {
         ; Initialize hash table buckets to null
-        sys.memsetw(hash_table, HASH_TABLE_SIZE, 0)
+        sys.memset(hash_table, len(hash_table) * sizeof(^^Entry), 0)
     }
 
     sub add(str name, str job, ubyte age) {

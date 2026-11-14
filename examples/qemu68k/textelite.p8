@@ -645,12 +645,9 @@ galaxy {
         seed[2] = temp
     }
 
-    sub twist(uword x) -> uword {
-        ubyte xh = msb(x)
-        ubyte xl = lsb(x)
-        xh <<= 1        ; make sure carry flag is not used on first shift!
-        rol(xl)
-        return mkword(xh, xl)
+    inline sub twist(uword x) -> uword {
+        rol2(x)
+        return x
     }
 }
 

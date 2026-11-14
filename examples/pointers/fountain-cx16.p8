@@ -61,10 +61,10 @@ main  {
     sub initparticle(^^Particle pp) {
         pp.x = 160
         pp.y = 238
-        pp.speedx = math.rnd() % 10 as byte -5
+        pp.speedx = math.randrange(10) as byte -5
         if pp.speedx==0
            pp.speedx=1
-        pp.speedy = -10 - math.rnd() % 12
+        pp.speedy = -10 - math.randrange(12)
         pp.brightness = 255
     }
 

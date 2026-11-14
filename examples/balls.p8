@@ -1,5 +1,6 @@
 %import textio
 %import math
+%import conv
 %zeropage basicsafe
 
 ; Note: this program can be compiled for multiple target systems.

@@ -41,10 +41,10 @@ main  {
     sub initparticle(ubyte pi) {
         particleX[pi] = 160
         particleY[pi] = 238
-        particleSpeedX[pi] = math.rnd() % 10 as byte -5
+        particleSpeedX[pi] = math.randrange(10) as byte -5
         if particleSpeedX[pi]==0
             particleSpeedX[pi]=1
-        particleSpeedY[pi] = -10 - math.rnd() % 12
+        particleSpeedY[pi] = -10 - math.randrange(12)
         particleBrightness[pi] = 255
     }
 

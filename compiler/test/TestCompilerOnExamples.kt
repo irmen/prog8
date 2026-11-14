@@ -160,7 +160,7 @@ class TestCompilerOnExamplesC64: FunSpec({
             ExampleSizes("rasterbars", c64SizeOptimized=776, c64SizeUnoptimized=2319),
             ExampleSizes("simplemultiplexer", c64SizeOptimized=924, c64SizeUnoptimized=986),
             ExampleSizes("sprites", c64SizeOptimized=959, c64SizeUnoptimized=2826),
-            ExampleSizes("starfield", c64SizeOptimized=737, c64SizeUnoptimized=758),
+            ExampleSizes("starfield", c64SizeOptimized=725, c64SizeUnoptimized=746),
             ExampleSizes("vera64-balloonflight", c64SizeOptimized=4638, c64SizeUnoptimized=9410),
             ExampleSizes("vera64-bobs", c64SizeOptimized=2707, c64SizeUnoptimized=4387),
             ExampleSizes("vera64-kefrenbars", c64SizeOptimized=2627, c64SizeUnoptimized=6129),
@@ -195,7 +195,7 @@ class TestCompilerOnExamplesCx16: FunSpec({
     val onlyCx16 = cartesianProduct(
         listOf(
             ExampleSizes("vtui/testvtui", cx16SizeOptimized=3041, cx16SizeUnoptimized=3041),
-            ExampleSizes("pcmaudio/play-adpcm", cx16SizeOptimized=37714, cx16SizeUnoptimized=38170),
+            ExampleSizes("pcmaudio/play-adpcm", cx16SizeOptimized=37994, cx16SizeUnoptimized=38450),
             ExampleSizes("pcmaudio/stream-wav", cx16SizeOptimized=8026, cx16SizeUnoptimized=10081),
             ExampleSizes("pcmaudio/stream-simple-aflow", cx16SizeOptimized=1842, cx16SizeUnoptimized=3612),
             ExampleSizes("pcmaudio/stream-simple-poll", cx16SizeOptimized=1556, cx16SizeUnoptimized=3322),
@@ -209,16 +209,16 @@ class TestCompilerOnExamplesCx16: FunSpec({
             // zsmkit_v2/zsmkit doesn't compile (empty source file)
             ExampleSizes("banking/program", cx16SizeOptimized=665, cx16SizeUnoptimized=2510),
             ExampleSizes("dynamicbanking/program", cx16SizeOptimized=1211, cx16SizeUnoptimized=3089),
-            ExampleSizes("fileselector/standalone", cx16SizeOptimized=4135, cx16SizeUnoptimized=6070),
+            ExampleSizes("fileselector/standalone", cx16SizeOptimized=4110, cx16SizeUnoptimized=6054),
             ExampleSizes("fileselector/main", cx16SizeOptimized=480, cx16SizeUnoptimized=2314),
             // fileselector/fselector and fileselector/namesorting don't compile (empty source files)
-            ExampleSizes("pointers/fountain-cx16", cx16SizeOptimized=1239, cx16SizeUnoptimized=3326),
+            ExampleSizes("pointers/fountain-cx16", cx16SizeOptimized=1269, cx16SizeUnoptimized=3354),
             ExampleSizes("amiga", cx16SizeOptimized=7619, cx16SizeUnoptimized=11610),
             ExampleSizes("audioroutines", cx16SizeOptimized=948, cx16SizeUnoptimized=1244),
             ExampleSizes("automatons", cx16SizeOptimized=1037, cx16SizeUnoptimized=3094),
-            ExampleSizes("balloonflight", cx16SizeOptimized=4131, cx16SizeUnoptimized=6933),
+            ExampleSizes("balloonflight", cx16SizeOptimized=4139, cx16SizeUnoptimized=6941),
             ExampleSizes("bdmusic", cx16SizeOptimized=2339, cx16SizeUnoptimized=2704),
-            ExampleSizes("bobs", cx16SizeOptimized=2976, cx16SizeUnoptimized=4840),
+            ExampleSizes("bobs", cx16SizeOptimized=2987, cx16SizeUnoptimized=4851),
             ExampleSizes("bubbleuniverse", cx16SizeOptimized=1367, cx16SizeUnoptimized=1883),
             ExampleSizes("charfade", cx16SizeOptimized=1054, cx16SizeUnoptimized=3120),
             ExampleSizes("charsets", cx16SizeOptimized=1125, cx16SizeUnoptimized=1417),
@@ -233,11 +233,11 @@ class TestCompilerOnExamplesCx16: FunSpec({
             ExampleSizes("interpolation", cx16SizeOptimized=3606, cx16SizeUnoptimized=6247),
             ExampleSizes("kefrenbars", cx16SizeOptimized=2273, cx16SizeUnoptimized=5764),
             ExampleSizes("keyboardhandler", cx16SizeOptimized=412, cx16SizeUnoptimized=717),
-            ExampleSizes("landscape", cx16SizeOptimized=1634, cx16SizeUnoptimized=3730),
+            ExampleSizes("landscape", cx16SizeOptimized=1675, cx16SizeUnoptimized=3773),
             ExampleSizes("life", cx16SizeOptimized=1320, cx16SizeUnoptimized=3407),
             ExampleSizes("mandelbrot", cx16SizeOptimized=1120, cx16SizeUnoptimized=1434),
-            ExampleSizes("multi-irq-new", cx16SizeOptimized=1073, cx16SizeUnoptimized=1519),
-            ExampleSizes("multi-irq-old", cx16SizeOptimized=962, cx16SizeUnoptimized=1410),
+            ExampleSizes("multi-irq-new", cx16SizeOptimized=1073, cx16SizeUnoptimized=1527),
+            ExampleSizes("multi-irq-old", cx16SizeOptimized=962, cx16SizeUnoptimized=1418),
             ExampleSizes("plasma", cx16SizeOptimized=1579, cx16SizeUnoptimized=3424),
             ExampleSizes("rasterbars", cx16SizeOptimized=1200, cx16SizeUnoptimized=3112),
             ExampleSizes("serialdownload", cx16SizeOptimized=2887, cx16SizeUnoptimized=4034),
@@ -278,7 +278,7 @@ class TestCompilerOnExamplesBothC64andCx16: FunSpec({
     val bothCx16AndC64 = cartesianProduct(
         listOf(
             ExampleSizes("balls", c64SizeOptimized=885, c64SizeUnoptimized=2671, cx16SizeOptimized=874, cx16SizeUnoptimized=2948),
-            ExampleSizes("boingball", c64SizeOptimized=1487, c64SizeUnoptimized=1553, cx16SizeOptimized=1463, cx16SizeUnoptimized=1944),
+            ExampleSizes("boingball", c64SizeOptimized=1493, c64SizeUnoptimized=1559, cx16SizeOptimized=1463, cx16SizeUnoptimized=1944),
             ExampleSizes("cube3d", c64SizeOptimized=2538, c64SizeUnoptimized=3820, cx16SizeOptimized=2477, cx16SizeUnoptimized=4031),
             ExampleSizes("cube3d-float", c64SizeOptimized=2390, c64SizeUnoptimized=2441, cx16SizeOptimized=2283, cx16SizeUnoptimized=2606),
             ExampleSizes("cube3d-gfx", c64SizeOptimized=3648, c64SizeUnoptimized=4966, cx16SizeOptimized=2318, cx16SizeUnoptimized=3852),
@@ -295,13 +295,13 @@ class TestCompilerOnExamplesBothC64andCx16: FunSpec({
             ExampleSizes("screencodes", c64SizeOptimized=639, c64SizeUnoptimized=655, cx16SizeOptimized=647, cx16SizeUnoptimized=951),
             ExampleSizes("swirl", c64SizeOptimized=1010, c64SizeUnoptimized=2273, cx16SizeOptimized=1039, cx16SizeUnoptimized=2584),
             ExampleSizes("swirl-float", c64SizeOptimized=664, c64SizeUnoptimized=690, cx16SizeOptimized=528, cx16SizeUnoptimized=838),
-            ExampleSizes("tehtriz", c64SizeOptimized=4325, c64SizeUnoptimized=6349, cx16SizeOptimized=6154, cx16SizeUnoptimized=8438),
-            ExampleSizes("textelite", c64SizeOptimized=11227, c64SizeUnoptimized=12146, cx16SizeOptimized=10746, cx16SizeUnoptimized=12788),
+            ExampleSizes("tehtriz", c64SizeOptimized=4300, c64SizeUnoptimized=6328, cx16SizeOptimized=6154, cx16SizeUnoptimized=8495),
+            ExampleSizes("textelite", c64SizeOptimized=11174, c64SizeUnoptimized=13831, cx16SizeOptimized=10710, cx16SizeUnoptimized=14444),
             ExampleSizes("pointers/animalgame", c64SizeOptimized=1965, c64SizeUnoptimized=2521, cx16SizeOptimized=1991, cx16SizeUnoptimized=2801),
             ExampleSizes("pointers/binarytree", c64SizeOptimized=2672, c64SizeUnoptimized=2735, cx16SizeOptimized=2175, cx16SizeUnoptimized=2487),
-            ExampleSizes("pointers/hashtable", c64SizeOptimized=3388, c64SizeUnoptimized=4207, cx16SizeOptimized=2911, cx16SizeUnoptimized=3782),
-            ExampleSizes("pointers/sortedlist", c64SizeOptimized=1353, c64SizeUnoptimized=3137, cx16SizeOptimized=1291, cx16SizeUnoptimized=3358),
-            ExampleSizes("pointers/sorting", c64SizeOptimized=1776, c64SizeUnoptimized=2523, cx16SizeOptimized=1788, cx16SizeUnoptimized=2653),
+            ExampleSizes("pointers/hashtable", c64SizeOptimized=3296, c64SizeUnoptimized=4119, cx16SizeOptimized=2822, cx16SizeUnoptimized=3695),
+            ExampleSizes("pointers/sortedlist", c64SizeOptimized=1393, c64SizeUnoptimized=3179, cx16SizeOptimized=1324, cx16SizeUnoptimized=3389),
+            ExampleSizes("pointers/sorting", c64SizeOptimized=1653, c64SizeUnoptimized=2387, cx16SizeOptimized=1679, cx16SizeUnoptimized=2536),
         ),
         listOf(false, true),
         listOf(C64Target(), Cx16Target())
@@ -335,7 +335,7 @@ class TestCompilerOnExamplesVirtual: FunSpec({
         listOf(
             ExampleSizes("bouncegfx", virtualInstrCountOptimized=197, virtualInstrCountUnoptimized=821, virtualRegCountOptimized=69, virtualRegCountUnoptimized=354),
             ExampleSizes("bsieve", virtualInstrCountOptimized=262, virtualInstrCountUnoptimized=1900, virtualRegCountOptimized=74, virtualRegCountUnoptimized=800),
-            ExampleSizes("fountain", virtualInstrCountOptimized=187, virtualInstrCountUnoptimized=800, virtualRegCountOptimized=80, virtualRegCountUnoptimized=347),
+            ExampleSizes("fountain", virtualInstrCountOptimized=194, virtualInstrCountUnoptimized=800, virtualRegCountOptimized=80, virtualRegCountUnoptimized=347),
             ExampleSizes("pixelshader", virtualInstrCountOptimized=84, virtualInstrCountUnoptimized=210, virtualRegCountOptimized=17, virtualRegCountUnoptimized=60),
             ExampleSizes("sincos", virtualInstrCountOptimized=300, virtualInstrCountUnoptimized=907, virtualRegCountOptimized=115, virtualRegCountUnoptimized=386),
             ExampleSizes("pointers/animalgame", virtualInstrCountOptimized=437, virtualInstrCountUnoptimized=2076, virtualRegCountOptimized=158, virtualRegCountUnoptimized=882),
@@ -343,7 +343,7 @@ class TestCompilerOnExamplesVirtual: FunSpec({
             ExampleSizes("pointers/hashtable", virtualInstrCountOptimized=665, virtualInstrCountUnoptimized=2241, virtualRegCountOptimized=279, virtualRegCountUnoptimized=987),
             ExampleSizes("pointers/sortedlist", virtualInstrCountOptimized=400, virtualInstrCountUnoptimized=2476, virtualRegCountOptimized=133, virtualRegCountUnoptimized=1061),
             ExampleSizes("pointers/fountain-virtual", virtualInstrCountOptimized=216, virtualInstrCountUnoptimized=819, virtualRegCountOptimized=88, virtualRegCountUnoptimized=348),
-            ExampleSizes("pointers/sorting", virtualInstrCountOptimized=479, virtualInstrCountUnoptimized=2195, virtualRegCountOptimized=159, virtualRegCountUnoptimized=931)
+            ExampleSizes("pointers/sorting", virtualInstrCountOptimized=452, virtualInstrCountUnoptimized=2163, virtualRegCountOptimized=141, virtualRegCountUnoptimized=915)
         ),
         listOf(false, true)
     )

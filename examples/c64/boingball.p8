@@ -63,7 +63,7 @@ main {
                     ubyte lat_idx = ((phi + half_π) / floats.π * lat_divs + 0.5) as ubyte
 
                     ; ubyte color = if (lon_idx + lat_idx) % 2 == 0 then 1 else 2
-                    txt.setcc(x + 8, y, 160, 1 + ((lon_idx + lat_idx) & 1))
+                    txt.setcc(x + 8, y, 160, if (lon_idx + lat_idx) & 1 == 0 then 1 else 2)
                 }
             }
         }

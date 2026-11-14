@@ -22,7 +22,7 @@ main {
         repeat 10 {
             new = arena.alloc(sizeof(slist.Node))
             new.size = math.rndw() % 1000
-            new.letter = math.rnd() % 26 + 'a'
+            new.letter = math.randrange(26) + 'a'
             slist.add(new)
         }
         txt.print("\nafter inserting 10 more random elements:\n")

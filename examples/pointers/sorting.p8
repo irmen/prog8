@@ -40,56 +40,30 @@ main{
         txt.print("UNSORTED:\n")
         dump()
 
-        sort_by_population()
+sort_by(1)
         txt.print("\nSORTED BY POPULATION:\n")
         dump()
 
-        sort_by_area()
+sort_by(2)
         txt.print("\nSORTED BY AREA:\n")
         dump()
 
-        sort_by_name()
+sort_by(0)
         txt.print("\nSORTED BY NAME:\n")
         dump()
     }
 
-    sub sort_by_name() {
+    sub sort_by(ubyte key) {
         ; stupid slow bubble sort
         ubyte n = len(countries)
         do {
             ubyte newn=0
             for i in 1 to n-1 {
-                if strings.compare(countries[i-1].name, countries[i].name) > 0 {
-                    swap(countries[i], countries[i-1])
-                    newn = i
-                }
-            }
-            n = newn
-        } until n<=1
-    }
-
-    sub sort_by_population() {
-        ; stupid slow bubble sort
-        ubyte n = len(countries)
-        do {
-            ubyte newn=0
-            for i in 1 to n-1 {
-                if countries[i-1].population < countries[i].population {
-                    swap(countries[i], countries[i-1])
-                    newn = i
-                }
-            }
-            n = newn
-        } until n<=1
-    }
-
-    sub sort_by_area() {
-        ; stupid slow bubble sort
-        ubyte n = len(countries)
-        do {
-            ubyte newn=0
-            for i in 1 to n-1 {
-                if countries[i-1].area < countries[i].area {
+                bool swap_needed = if key==0
+                        then strings.compare(countries[i-1].name, countries[i].name) > 0
+                        else if key==1 then countries[i-1].population < countries[i].population
+                        else countries[i-1].area < countries[i].area
+                if swap_needed {
                     swap(countries[i], countries[i-1])
                     newn = i
                 }
