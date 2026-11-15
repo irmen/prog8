@@ -2679,8 +2679,26 @@ internal class AstChecker(private val program: Program,
         val left = address.left
         val right = address.right
         val rightValue = right.constValue(program)
-        if(rightValue!=null)
-            return
+        if(rightValue!=null) {
+            if(left.constValue(program)!=null)
+                return
+            val base = rightValue.number.toLong()
+            // A zero-page cursor plus a byte offset, and the reversed P4 form, are cheap.
+            val leftPointer = left as? IdentifierReference
+            if(leftPointer!=null && isDefinitelyInZeropage(leftPointer) && base in 0L..0xffL)
+                return
+            if(base in 0x100L..0xffffL) {
+                val byteIndex = when(left) {
+                    is IdentifierReference -> left.takeIf { it.inferType(program).getOrUndef().isUnsignedByte }
+                    is TypecastExpression -> (left.expression as? IdentifierReference)?.takeIf {
+                        it.inferType(program).getOrUndef().isUnsignedByte
+                    }
+                    else -> null
+                }
+                if(byteIndex!=null)
+                    return
+            }
+        }
 
         val rightType = right.inferType(program).getOrUndef()
         val offsetIsByte = when(right) {

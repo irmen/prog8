@@ -1093,6 +1093,37 @@ class TestExecution6502 : FunSpec({
         }
     }
 
+    test("adjacent numeric-base stores on 65C02 with optimizations disabled") {
+        val src = $$"""
+            %option no_sysinit
+            %launcher none
+            %address $1000
+
+            main {
+                &ubyte poweroff = $f203
+
+                sub start() {
+                    uword @shared offset = 7
+                    ubyte @shared col = $55
+                    @(1024 + offset) = $2a
+                    @(1280 + offset) = col
+                    @(1026 + offset) = $2b
+                    @(1285 + offset) = col
+                    poweroff = 1
+                }
+            }
+        """.trimIndent()
+
+        for (optimize in listOf(false, true)) {
+            val compileResult = compileText(Cx16Target(), optimize, src, outputDir)!!
+            val machine = compileResult.simulate()
+            machine.assertMemory(0x0407, 0x2a)
+            machine.assertMemory(0x0507, 0x55)
+            machine.assertMemory(0x0409, 0x2b)
+            machine.assertMemory(0x050c, 0x55)
+        }
+    }
+
     test("union zero-init via memory, write byte and read overlapping word") {
         val src = $$"""
             %option no_sysinit

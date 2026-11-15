@@ -118,8 +118,15 @@ If you are on Linux, there's probably a "64tass" package in the repositories, bu
 For the **m68k targets** (``amiga500``, ``amiga1200`` and ``qemu68k``):
 
 `vasm <http://sun.hasenbraten.de/vasm/>`_ - cross assembler. Prog8 uses the ``vasmm68k_mot`` executable, which must be installed somewhere on your shell's search path.
+*You need at least version 2.0c of this assembler.* Prog8 passes the ``-warnunaligned`` option, which was introduced in that release,
+and older versions reject it as an unknown option. Version 2.0f or newer is recommended, because it no longer reports ``LEA`` and ``PEA``
+as unaligned accesses.
+If the author's site is unavailable, there is a mirror of the vasm sources at
+`https://github.com/siemens-mobile-hacks/vasm <https://github.com/siemens-mobile-hacks/vasm>`_.
 
 `vlink <http://sun.hasenbraten.de/vlink/>`_ - linker. This is required for the ``qemu68k`` target, which produces ELF executables. The ``amiga500`` and ``amiga1200`` targets produce Amiga Hunk executables directly with vasm.
+If the author's site is unavailable, there is a mirror of the vlink sources at
+`https://github.com/siemens-mobile-hacks/vlink <https://github.com/siemens-mobile-hacks/vlink>`_.
 
 The ``-emu`` / ``-emu2`` options have these additional optional dependencies for the m68k targets:
 

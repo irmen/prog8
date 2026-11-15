@@ -456,6 +456,29 @@ main {
         errors.warnings.all { "scratch pointer" in it } shouldBe true
     }
 
+    test("slow store with a constant on the right is warned") {
+        val src = $$"""
+            %zeropage basicsafe
+            main {
+                sub start() {
+                    uword @shared word_offset = 7
+                    ubyte @shared byte_offset = 3
+                    uword @requirezp zp_cursor = $2000
+                    @(word_offset + 1024) = 1
+                    @(byte_offset + 1024) = 2
+                    @(1024 + 5) = 3
+                    @(zp_cursor + 4) = 4
+                }
+            }
+        """.trimIndent()
+
+        val errors = ErrorReporterForTests(keepMessagesAfterReporting = true)
+        compileText(C64Target(), false, src, outputDir, writeAssembly = false, errors = errors) shouldNotBe null
+        errors.errors.size shouldBe 0
+        errors.warnings.size shouldBe 1
+        errors.warnings[0] shouldContain "scratch pointer"
+    }
+
     test("reg params R0-R15 cannot be used for invalid types") {
         val src="""
 main {

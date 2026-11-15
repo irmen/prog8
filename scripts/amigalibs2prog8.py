@@ -1161,9 +1161,6 @@ LIBRARY_HELPERS = {
     const ubyte LACE = $0004
     const ubyte SUPERHIRES = $20
 
-    ; Static scratch tables for load_palette (avoid per-call heap allocation).
-    ; AGA: 1 header long + 256*3 RGB longs + 1 terminator = 770 longs.
-    ; ECS: 32 $0RGB UWORDs.
     sub load_palette(^^ViewPort vp, ^^long rgb24, uword count) {
         ; Canonical $00RRGGBB palette loader. Builds a LoadRGB32/LoadRGB4
         ; table in a static buffer and loads all entries in a single

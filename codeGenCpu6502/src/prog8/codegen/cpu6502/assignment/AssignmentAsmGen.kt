@@ -55,9 +55,10 @@ internal class AssignmentAsmGen(
             return false
 
         val delta = (secondAddress.first - firstAddress.first) and 0xffff
+        val firstBaseOnLeft = (firstTarget.memory!!.address as? PtBinaryExpression)?.left is PtNumber
         asmgen.outputSourceLine(first)
-        asmgen.outputSourceLine(second)
         translate(first)
+        asmgen.outputSourceLine(second)
         val deltaLow = delta and 0xff
         val deltaHigh = delta shr 8 and 0xff
         if(deltaLow==0) {
@@ -77,7 +78,9 @@ internal class AssignmentAsmGen(
                 sta  P8ZP_SCRATCH_W2+1""")
         }
         assignExpressionToRegister(second.value, RegisterOrPair.A, false)
-        // Y carries the base's low byte for the existing scratch-pointer store form.
+        // Y holds the base low byte on the fast path; 65C02 sta (zp) leaves it undefined.
+        if(firstBaseOnLeft && asmgen.isTargetCpu(CpuType.CPU65C02))
+            asmgen.out("  ldy  #0")
         asmgen.out("  sta  (P8ZP_SCRATCH_W2),y")
         return true
     }
