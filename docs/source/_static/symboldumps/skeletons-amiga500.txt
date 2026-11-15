@@ -5290,10 +5290,26 @@ mobs  {
     struct Bob
     struct Mob
     struct Sprite
+    bottom  (^^mobs.Mob m) -> word
+    center_x  (^^mobs.Mob m) -> word
+    center_y  (^^mobs.Mob m) -> word
+    chebyshev_distance  (^^mobs.Mob a, ^^mobs.Mob b) -> uword
     collides  (^^mobs.Mob a @A0, ^^mobs.Mob b @A1) -> bool @Pz
+    collides_circle  (^^mobs.Mob a, ^^mobs.Mob b) -> bool
+    contains_circle  (^^mobs.Mob m, word px, word py) -> bool
     contains_point  (^^mobs.Mob m @A0, word px @D0, word py @D1) -> bool @Pz
+    delta  (^^mobs.Mob a, ^^mobs.Mob b) -> word, word
+    delta_x  (^^mobs.Mob a, ^^mobs.Mob b) -> word
+    delta_y  (^^mobs.Mob a, ^^mobs.Mob b) -> word
+    direction_to  (^^mobs.Mob a @A0, ^^mobs.Mob b @A1) -> ubyte @D0
     distance  (^^mobs.Mob a, ^^mobs.Mob b) -> uword
     distance_sq  (^^mobs.Mob a, ^^mobs.Mob b) -> long
+    intersection_box  (^^mobs.Mob a, ^^mobs.Mob b) -> word, word, word, word
+    left  (^^mobs.Mob m) -> word
+    manhattan_distance  (^^mobs.Mob a, ^^mobs.Mob b) -> uword
+    right  (^^mobs.Mob m) -> word
+    top  (^^mobs.Mob m) -> word
+    union_box  (^^mobs.Mob a, ^^mobs.Mob b) -> word, word, word, word
 }
 
 

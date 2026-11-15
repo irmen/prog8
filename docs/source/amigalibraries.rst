@@ -223,14 +223,24 @@ modules. Import them the same way as any other library::
 
 ``mobs``
     Shared movable-object descriptor types for the Amiga bare-metal helpers:
-    ``mobs.Mob`` (id, x/y position, anchor offsets, width, height, state),
-    ``mobs.Bob`` (a ``Mob`` plus bitplane depth, data and mask pointers) and
-    ``mobs.Sprite`` (a ``Mob`` plus a data pointer, with AGA-specific fields
-    still to be added). Pure data, no OS or library dependencies; ``blitter``
-    and ``sprites`` build on top of ``Mob``. Client code owns animation timing,
-    frame selection and positions. ``collides(a, b)`` and
-    ``contains_point(m, px, py)`` provide origin-aware AABB tests, each with a
-    fast path when the origin is (0, 0).
+    ``mobs.Mob`` (id, x/y position, anchor offsets, width, height, collision
+    radius, state), ``mobs.Bob`` (a ``Mob`` plus bitplane depth, data and mask
+    pointers) and ``mobs.Sprite`` (a ``Mob`` plus a data pointer, with
+    AGA-specific fields still to be added). Pure data, no OS or library
+    dependencies; ``blitter`` and ``sprites`` build on top of ``Mob``. Client
+    code owns animation timing, frame selection and positions.
+    Geometry helpers are integer-only and read the anchor and box fields:
+    ``collides(a, b)`` and ``contains_point(m, px, py)`` are origin-aware AABB
+    tests, each with a fast path when the origin is (0, 0).
+    ``collides_circle(a, b)`` and ``contains_circle(m, px, py)`` use the
+    ``radius`` field (0 falls back to the AABB tests). ``left()``, ``top()``,
+    ``right()``, ``bottom()``, ``center_x()`` and ``center_y()`` give the
+    origin-adjusted box edges without retyping the origin adds.
+    ``delta(a, b)`` returns the signed displacement, ``direction_to(a, b)`` a
+    0-23 compass direction (N=0, clockwise; an 8-way facing derives as
+    ``((d+1)/3) & 7``), ``manhattan_distance()`` and ``chebyshev_distance()``
+    replace the square root with adds/compares, and ``union_box()`` /
+    ``intersection_box()`` combine two boxes into left/top/right/bottom.
 
 ``blitter``
     Bare-metal blitter programming, no OS calls: ``copy_rect()`` and
