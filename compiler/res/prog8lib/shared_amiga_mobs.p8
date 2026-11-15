@@ -1,28 +1,25 @@
-; mobs - shared movable-object descriptors and pure-integer geometry helpers.
-; Shared by amiga500 and amiga1200 targets.
+; mobs - shared movable-object descriptors and integer geometry helpers.
+; Available for both amiga500 and amiga1200.
 
 %import math
 
 mobs {
     %option merge, no_symbol_prefixing, ignore_unused
 
-    ; mobs - shared movable-object descriptor types for the Amiga bare-metal
-    ; helpers. Pure data, no OS or library dependencies: the metadata (Mob) is
-    ; shared by the renderers, and each renderer-specific struct (Bob, Sprite)
-    ; embeds a Mob plus its own image pointers. Keeping all three together means
-    ; a program that uses both BOBs and sprites imports one types module.
+    ; Shared object metadata and renderer descriptors for Amiga bare-metal
+    ; helpers. Bob and Sprite each reference a Mob and hold their own image
+    ; pointers. Keeping the types together lets programs using both renderers
+    ; import a single module.
     ;
-    ; Client code owns animation timing, frame selection and positions; these
-    ; structs never mutate themselves and carry no hidden state. Image pointers
-    ; are always in chip RAM unless noted.
+    ; Client code owns animation timing, frame selection and positions. These
+    ; structs have no hidden state. Renderer data pointers must point to chip
+    ; RAM unless noted.
 
     struct Mob {
-        ; Movable-object metadata shared by every renderer. No bitmap pointers,
-        ; no OS dependencies.
-        ; x_pos/y_pos is the screen position of the anchor (origin point);
-        ; origin_x/origin_y is the offset from that anchor to the image's
-        ; top-left, so the top-left is (x_pos + origin_x, y_pos + origin_y).
-        ; With origin (0, 0) the anchor is the top-left.
+        ; Metadata shared by every renderer. No bitmap pointers or OS dependencies.
+        ; x_pos/y_pos locate the screen anchor; origin_x/origin_y offset the
+        ; image's top-left from it. The top-left is (x_pos + origin_x,
+        ; y_pos + origin_y). With a zero origin, the anchor is the top-left.
         uword id
         word x_pos
         word y_pos
@@ -30,14 +27,15 @@ mobs {
         word origin_y
         uword width
         uword height
-        uword radius ; circle collision radius centred on the anchor; 0 = not set, box routines are used instead
+        ; Circle radius about the anchor. Zero means unset, so box routines are used.
+        uword radius
         uword state
     }
 
     struct Bob {
-        ; Blitter object. References a Mob for position/size and carries the
-        ; plane-major image data and its separate mask. Client code updates
-        ; data and mask before drawing when switching frames.
+        ; Blitter object. References a Mob for position and size, and holds
+        ; plane-major image data plus a separate mask. Update data and mask
+        ; before drawing a new frame.
         ^^mobs.Mob mob
         uword depth
         pointer data
@@ -45,27 +43,27 @@ mobs {
     }
 
     struct Sprite {
-        ; Hardware sprite descriptor. References a Mob for position/size.
-        ; Sprite-specific payload fields are still being defined; the data
-        ; pointer is the only one that is settled so far.
+        ; Hardware sprite descriptor. References a Mob for position and size.
+        ; The data pointer is defined; sprite-specific fields are still being designed.
         ^^mobs.Mob mob
         pointer data
-        ; TODO: aga width bits (32/64 px), palette bank (BPLCON4), FMODE
-        ;       fetch width, and any cached SPRxCTL control word. None of
-        ;       these are needed for the 16-pixel 4-colour OCS path.
+        ; TODO: AGA width (32/64 px), palette bank (BPLCON4), FMODE fetch
+        ; width and any cached SPRxCTL control word. These are not needed for
+        ; the 16-pixel, 4-colour OCS path.
     }
 
     asmsub collides(^^mobs.Mob a @A0, ^^mobs.Mob b @A1) -> bool @Pz {
-        ; Axis-aligned bounding-box overlap, origin-aware. The box of a is
-        ; [a.x_pos + a.origin_x, a.x_pos + a.origin_x + a.width) x
-        ; [a.y_pos + a.origin_y, a.y_pos + a.origin_y + a.height), and
-        ; likewise for b. When both origins are zero the adds are skipped.
+        ; Tests overlap between two origin-aware axis-aligned bounding boxes.
+        ; Mob a's box is [a.x_pos + a.origin_x, a.x_pos + a.origin_x + a.width)
+        ; x [a.y_pos + a.origin_y, a.y_pos + a.origin_y + a.height), and b's
+        ; box is defined the same way. If both Mobs have zero origins, the fast
+        ; path skips the origin additions.
         ; Z set = the two boxes overlap, Z clear = they do not.
-        ; Broad phase only: non-rectangular shapes pass this test when their
-        ; boxes overlap. Use CLXCON/CLXDAT for pixel-perfect sprite
-        ; collision, or a bitmask AND of the masks for BOBs.
+        ; Broad-phase test only: overlapping boxes do not guarantee that the
+        ; objects overlap. Use CLXCON/CLXDAT for pixel-exact sprite collisions,
+        ; or AND the BOB masks.
         %asm {{
-            ; fast path: both origins zero on both mobs
+            ; fast path: both Mobs have zero origins
             tst.w   mobs.Mob.p8v_origin_x(a0)
             bne.s   .full
             tst.w   mobs.Mob.p8v_origin_y(a0)
@@ -74,7 +72,7 @@ mobs {
             bne.s   .full
             tst.w   mobs.Mob.p8v_origin_y(a1)
             bne.s   .full
-            ; fast path: boxes are [x_pos, x_pos+width) x [y_pos, y_pos+height); d0/d1 only
+            ; fast path: zero-origin boxes; uses only d0 and d1
             move.w  mobs.Mob.p8v_x_pos(a0),d0       ; a.x (= a.left)
             add.w   mobs.Mob.p8v_width(a0),d0       ; a.right
             move.w  mobs.Mob.p8v_x_pos(a1),d1       ; b.x (= b.left)
@@ -128,18 +126,18 @@ mobs {
     }
 
     asmsub contains_point(^^mobs.Mob m @A0, word px @D0, word py @D1) -> bool @Pz {
-        ; Point-in-box test, origin-aware. The box of m is
+        ; Tests whether a point is inside an origin-aware box. The box of m is
         ; [m.x_pos + m.origin_x, m.x_pos + m.origin_x + m.width) x
         ; [m.y_pos + m.origin_y, m.y_pos + m.origin_y + m.height).
-        ; When origin is (0,0) the adds are skipped.
+        ; When the origin is zero, the fast path skips the origin additions.
         ; Z set = the point is inside, Z clear = outside.
         %asm {{
-            ; fast path: origin (0,0)
+            ; fast path: zero origin
             tst.w   mobs.Mob.p8v_origin_x(a0)
             bne.s   .full
             tst.w   mobs.Mob.p8v_origin_y(a0)
             bne.s   .full
-            ; fast path: box = [x_pos, x_pos+width) x [y_pos, y_pos+height); d0/d1 only
+            ; fast path: zero-origin box; uses only d0 and d1
             sub.w   mobs.Mob.p8v_x_pos(a0),d0       ; px - x_pos
             blt.s   .no
             cmp.w   mobs.Mob.p8v_width(a0),d0       ; (px - x_pos) - width
@@ -170,8 +168,10 @@ mobs {
     }
 
     sub distance_sq(^^mobs.Mob a, ^^mobs.Mob b) -> long {
-        ; Squared distance between the two anchors (x_pos, y_pos). No sqrt, so this is the cheap form for comparisons.
-        ; dx/dy can reach ±$ffff from word coords, whose square overflows signed long; fine for real screen sizes.
+        ; Squared distance between the anchors. Use it for comparisons that do
+        ; not need a square root.
+        ; Word coordinates can produce dx/dy up to ±$ffff, whose squares
+        ; overflow a signed long. That is acceptable for real screen sizes.
         long dx = a.x_pos - b.x_pos
         long dy = a.y_pos - b.y_pos
         return dx * dx + dy * dy
@@ -183,12 +183,12 @@ mobs {
     }
 
     inline sub left(^^mobs.Mob m) -> word {
-        ; Real left edge of the mob's box: x_pos + origin_x.
+        ; Left edge of the Mob's box: x_pos + origin_x.
         return m.x_pos + m.origin_x
     }
 
     inline sub top(^^mobs.Mob m) -> word {
-        ; Real top edge of the mob's box: y_pos + origin_y.
+        ; Top edge of the Mob's box: y_pos + origin_y.
         return m.y_pos + m.origin_y
     }
 
@@ -213,8 +213,8 @@ mobs {
     }
 
     sub delta(^^mobs.Mob a, ^^mobs.Mob b) -> word, word {
-        ; Signed displacement from a's anchor to b's anchor: dx, dy (b minus a).
-        ; Use delta_x/delta_y when you need the values inside an expression.
+        ; Signed displacement from a's anchor to b's: dx, dy (b minus a).
+        ; Use delta_x/delta_y to access either value in an expression.
         return b.x_pos - a.x_pos, b.y_pos - a.y_pos
     }
 
@@ -224,12 +224,12 @@ mobs {
     }
 
     inline sub delta_y(^^mobs.Mob a, ^^mobs.Mob b) -> word {
-        ; Vertical signed displacement from a's anchor to b's anchor (screen y, down is positive).
+        ; Vertical displacement from a's anchor to b's (screen y grows down).
         return b.y_pos - a.y_pos
     }
 
     inline sub manhattan_distance(^^mobs.Mob a, ^^mobs.Mob b) -> uword {
-        ; |dx| + |dy| between the anchors: grid walking distance, no multiply or sqrt.
+        ; |dx| + |dy| between anchors: grid distance, with no multiply or sqrt.
         return abs(a.x_pos - b.x_pos) + abs(a.y_pos - b.y_pos)
     }
 
@@ -239,12 +239,12 @@ mobs {
     }
 
     sub collides_circle(^^mobs.Mob a, ^^mobs.Mob b) -> bool {
-        ; Circle collision using each mob's radius field: do the two circles
-        ; centred on the anchors overlap? Compares squared distances with
-        ; 16x16 multiplies, so no sqrt and no 32-bit multiply helper.
-        ; Touching exactly (distance == ra + rb) counts as colliding.
-        ; A radius of 0 means "not set": when either mob has none, this
-        ; falls back to the rectangular collides() test.
+        ; Tests whether the circles centred on the anchors overlap, using each
+        ; Mob's radius. Compares squared distances with 16x16 multiplies, so it
+        ; needs neither a square root nor a 32-bit multiply helper.
+        ; Touching circles count as colliding.
+        ; A zero radius means unset; if either radius is zero, this falls back
+        ; to the rectangular collides() test.
         if a.radius == 0 or b.radius == 0 {
             return collides(a, b)
         }
@@ -255,9 +255,10 @@ mobs {
     }
 
     sub contains_circle(^^mobs.Mob m, word px, word py) -> bool {
-        ; Is the point inside the circle centred on the mob anchor with its
-        ; radius field? Squared comparison, no sqrt; exact boundary counts.
-        ; A radius of 0 falls back to the rectangular contains_point() test.
+        ; Tests whether a point is inside the circle centred on the Mob's anchor
+        ; with its radius. Uses squared distance, with no square root; points on
+        ; the boundary count as inside.
+        ; A zero radius falls back to the rectangular contains_point() test.
         if m.radius == 0 {
             return contains_point(m, px, py)
         }
@@ -267,12 +268,12 @@ mobs {
     }
 
     asmsub direction_to(^^mobs.Mob a @A0, ^^mobs.Mob b @A1) -> ubyte @D0 {
-        ; 24-way direction from a's anchor towards b's anchor, as a compass
-        ; sector 0-23 clockwise from north on a standard screen (y grows
-        ; downward): N=0, NE=3, E=6, SE=9, S=12, SW=15, W=18, NW=21.
-        ; Sector centres are exact; band edges are approximated with the
-        ; ratio thresholds 1.25, 2.5 and 7.5 (same scheme as the 6502-only
-        ; math.direction_qd, but word inputs and the compass wheel).
+        ; 24-way compass direction from a's anchor to b's. Sectors run
+        ; clockwise from north on a standard screen, where y grows downward:
+        ; N=0, NE=3, E=6, SE=9, S=12, SW=15, W=18, NW=21.
+        ; Compass directions are exact; sector boundaries use approximate
+        ; ratios 1.25, 2.5 and 7.5, following the 6502-only math.direction_qd
+        ; scheme with word inputs and 24 compass sectors.
         ; An 8-way facing can be derived as ((direction_to(a, b) + 1) / 3) & 7.
         ; Coincident anchors return 0 (N) by convention.
         %asm {{
@@ -375,8 +376,8 @@ _mobs_direction24_table:
     }
 
     sub union_box(^^mobs.Mob a, ^^mobs.Mob b) -> word, word, word, word {
-        ; Smallest box covering both mobs: left, top, right, bottom.
-        ; Origin-aware (uses the box accessors); right and bottom are exclusive.
+        ; Returns the smallest box containing both Mobs as left, top, right,
+        ; bottom. Accounts for origins; right and bottom are exclusive.
         word l = min(left(a), left(b))
         word t = min(top(a), top(b))
         word r = max(right(a), right(b))
@@ -385,9 +386,9 @@ _mobs_direction24_table:
     }
 
     sub intersection_box(^^mobs.Mob a, ^^mobs.Mob b) -> word, word, word, word {
-        ; Overlap region of two mobs: left, top, right, bottom.
-        ; Origin-aware. When the boxes do not overlap the result is an empty
-        ; box (right <= left or bottom <= top), so check for that if needed.
+        ; Returns the overlap of two Mobs as left, top, right, bottom.
+        ; Accounts for origins. If the boxes do not overlap, the result is an
+        ; empty box (right <= left or bottom <= top).
         word l = max(left(a), left(b))
         word t = max(top(a), top(b))
         word r = min(right(a), right(b))

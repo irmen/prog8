@@ -43,7 +43,7 @@ main {
 
         ; Copy the square to position (20,20) - note: 20px is not word-aligned, using 16px (1 word)
         pointer dest_square = bitplane + (20 * 40) + (1 * 2)  ; line 20, word 1
-        blitter.copy_rect(middle_square, dest_square, 7, 100, 26, 26, blitter.MINTERM_A_ONLY, 0)
+        blitter.copy_rect(middle_square, dest_square, 7, 100, 26, 26, blitter.MINTERM_A_ONLY, false)
         blitter.wait()
 
         ; Draw 16 lines from center (160, 128) to points evenly spaced

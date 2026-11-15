@@ -642,6 +642,7 @@ blitter  {
     const uword  MINTERM_SET
     area_fill  (long src @A0, uword width_words @D0, uword height @D1, uword mod @D2)
     copy_rect  (long src @A0, long dst @A1, uword width_words @D0, uword height @D1, uword src_mod @D2, uword dst_mod @D3, uword minterm @D4, ubyte descending @D5)
+    draw_bob  (^^mobs.Bob bob @A0, ^^pointer planes @A1, uword row_bytes @D0)
     erase  (long mask @A0, long dst @A1, uword width_words @D0, uword height @D1, uword mask_mod @D2, uword dst_mod @D3, ubyte shift @D4)
     fill_rect  (long dst @A0, uword width_words @D0, uword height @D1, uword pattern @D2, uword modulo @D3)
     horiz_line  (long dst @A1, uword x1 @D0, uword x2 @D2, uword y @D1, uword pattern @D3, bool erase @D5)

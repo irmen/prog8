@@ -43,6 +43,7 @@ Open source Software :index:`License`
     binlibrary.rst
     libraries.rst
     amigalibraries.rst
+    amigabobsprites.rst
     targetsystem.rst
     technical.rst
     profiling.rst

@@ -184,6 +184,18 @@ playfield {
         back = tmp
     }
 
+    sub flip_copper(^^uword copper, uword base) {
+        ; Flip buffers and re-patch the copper list's plane slots. Waits for
+        ; the blitter first; call once per frame after waitvsync.
+        %asm {{
+.waitblt_flipcopper:
+            btst.b  #6,custom.DMACONR
+            bne.s   .waitblt_flipcopper
+        }}
+        flip()
+        patch_copper(copper, base)
+    }
+
     private inline sub clear() {
         ; Zero the front bitmap, row by row (a whole plane may exceed a uword).
         ; Setup-time helper for create(); per-frame clears should use

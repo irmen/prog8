@@ -245,7 +245,9 @@ modules. Import them the same way as any other library::
 ``blitter``
     Bare-metal blitter programming, no OS calls: ``copy_rect()`` and
     ``fill_rect()`` (use pattern ``$0000`` to clear or ``$ffff`` to fill),
-    ``masked_blit()`` and mask-based ``erase()`` for BOBs, and the line drawer
+    ``masked_blit()`` and mask-based ``erase()`` for BOBs, ``draw_bob()`` for a
+    whole ``mobs.Bob`` (one masked blit per plane, position, shift and source
+    plane stride derived from the Mob), and the line drawer
     (``line_init()``, ``line_draw()``, ``line_color()``).
     The module is designed for traditional non-interleaved planar screens, with
     independently allocated contiguous bitplanes. The rectangle and BOB primitives
@@ -255,8 +257,9 @@ modules. Import them the same way as any other library::
     screens can reduce the number of setups by treating planes as additional blit
     rows, but require matching interleaved source data and repeated masks, reduce
     the maximum blit height by the plane count, and still need the per-plane DMA.
-    ``masked_blit()`` clips shifted pixels at the BOB's original right edge, but
-    neither it nor ``erase()`` clips against screen or bitmap edges. The caller must
+    ``masked_blit()`` uses the Jones trick (shifted blits are one word wider,
+    no guard word stored), but neither it nor ``erase()`` clips against screen
+    or bitmap edges. The caller must
     keep every destination word valid. Clip top or bottom by adjusting row pointers
     and height, and clip right by reducing ``width_words`` and recomputing all modulos.
     Direct left clipping is only word-aligned: advance the source and mask, reduce
@@ -288,8 +291,10 @@ modules. Import them the same way as any other library::
     ``patch_copper_at()`` patches scrolled plane addresses into a copper
     list. ``waitvsync()`` aliases the frame pacer. For double buffering,
     ``create_backplane()`` allocates a matching second buffer, ``flip()`` swaps
-    the two, and ``clear_backplane()``/``destroy_backplane()`` manage it
-    (see ``examples/amiga/3d.p8``). Kickstart 1.3 compatible
+    the two (or ``flip_copper()`` to wait, swap and re-patch a copper list in
+    one call), and ``clear_backplane()``/
+    ``destroy_backplane()`` manage it (see ``examples/amiga/3d.p8`` and the
+    double-buffered BOB recipe in :ref:`amiga-bobs`). Kickstart 1.3 compatible
     (the ``AllocBitMap`` fast path is only
     used on 3.0+). See ``examples/amiga/custominputs.p8`` for
     the equivalent manual setup (raw copper words and ``AllocMem`` bitplanes).

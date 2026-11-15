@@ -38,9 +38,9 @@ main {
         ; Copy the generated monochrome message into the reserved bottom strip of BOTH bitplanes.
         pointer text_screen1 = playfield.bitmap.Planes[0] + (TEXT_Y * 40)
         pointer text_screen2 = playfield.back.Planes[0] + (TEXT_Y * 40)
-        blitter.copy_rect(textdata.text_bitmap_words, text_screen1, textdata.TEXT_WIDTH_WORDS, textdata.TEXT_HEIGHT, 0, 26, blitter.MINTERM_A_ONLY, 0)
+        blitter.copy_rect(textdata.text_bitmap_words, text_screen1, textdata.TEXT_WIDTH_WORDS, textdata.TEXT_HEIGHT, 0, 26, blitter.MINTERM_A_ONLY, false)
         blitter.wait()
-        blitter.copy_rect(textdata.text_bitmap_words, text_screen2, textdata.TEXT_WIDTH_WORDS, textdata.TEXT_HEIGHT, 0, 26, blitter.MINTERM_A_ONLY, 0)
+        blitter.copy_rect(textdata.text_bitmap_words, text_screen2, textdata.TEXT_WIDTH_WORDS, textdata.TEXT_HEIGHT, 0, 26, blitter.MINTERM_A_ONLY, false)
         blitter.wait()
 
         const ubyte EDGE_COUNT = 30
@@ -73,10 +73,8 @@ main {
 
             ; Wait for vertical blank, then ensure blitter is done before swapping.
             custom.waitvsync()
-            blitter.wait()
             ; Flip the buffers and point the copper list at the new front.
-            playfield.flip()
-            playfield.patch_copper(copper.list, planeBase)
+            playfield.flip_copper(copper.list, planeBase)
             pointer backplane = playfield.back.Planes[0]
 
             ; Clear the back buffer and prepare for drawing.

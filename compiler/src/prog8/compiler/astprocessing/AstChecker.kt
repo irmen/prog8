@@ -2801,8 +2801,12 @@ internal class AstChecker(private val program: Program,
         }
 
         struct.fields.forEach { field ->
-            if(!validFieldType(field))
-                errors.err("invalid struct field type at '${field.name}'", struct.position)
+            if(!validFieldType(field)) {
+                if(field.type.isStructInstance)
+                    errors.err("no support for nested structs at '${field.name}'", struct.position)
+                else
+                    errors.err("invalid struct field type at '${field.name}'", struct.position)
+            }
             if(field.isArray) {
                 val size = field.constSize()
                 if(size==null)
