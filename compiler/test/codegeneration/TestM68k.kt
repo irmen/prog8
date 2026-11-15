@@ -395,9 +395,9 @@ main {
     }
 
     test("struct and union type symbols are emitted for inline asm on m68k") {
-        // The m68k codegen must emit vasm 'equ' symbols for struct/union sizes and member
-        // offsets, using the same dotted scoped names as the 64tass-based backends, so that
-        // inline asm can reference them. Offsets use the packed layout (no alignment padding).
+        // The m68k codegen must emit vasm RS structure definitions for struct/union sizes and
+        // member offsets, using the same dotted scoped names as the 64tass-based backends, so
+        // that inline asm can reference them. Offsets use the packed layout (no alignment padding).
         val src = """
 main {
     struct Sprite {
@@ -409,6 +409,11 @@ main {
         uword combined
         ubyte[2] bytes
     }
+    struct Arrays {
+        ubyte[5] bytes
+        uword[4] words
+        long[2] longs
+    }
 
     sub start() {
         ^^Sprite sp = 4
@@ -416,6 +421,8 @@ main {
         sp.xpos = 2
         ^^Fill ff = 6
         ff.combined = 3
+        ^^Arrays ar = 8
+        ar.words[0] = 1
     }
 }
 """
@@ -425,13 +432,20 @@ main {
                 result shouldNotBe null
                 val asm = result!!.compilationOptions.outputDir.resolve("${result.compilerAst.name}.asm").toFile().readText()
                 val lines = asm.lines().map { it.trim() }
-                lines.any { it == "p8b_main.p8t_Sprite_size equ 11" } shouldBe true
-                lines.any { it == "p8b_main.p8t_Sprite.p8v_flags equ 0" } shouldBe true
-                lines.any { it == "p8b_main.p8t_Sprite.p8v_xpos equ 1" } shouldBe true
-                lines.any { it == "p8b_main.p8t_Sprite.p8v_name equ 3" } shouldBe true
-                lines.any { it == "p8b_main.p8t_Fill_size equ 2" } shouldBe true
-                lines.any { it == "p8b_main.p8t_Fill.p8v_combined equ 0" } shouldBe true
-                lines.any { it == "p8b_main.p8t_Fill.p8v_bytes equ 0" } shouldBe true
+                lines.any { it == "RSRESET" } shouldBe true
+                lines.any { it == "p8b_main.p8t_Sprite.p8v_flags RS.B 1" } shouldBe true
+                lines.any { it == "p8b_main.p8t_Sprite.p8v_xpos RS.W 1" } shouldBe true
+                lines.any { it == "p8b_main.p8t_Sprite.p8v_name RS.B 8" } shouldBe true
+                lines.any { it == "p8b_main.p8t_Sprite_size RS.B 0" } shouldBe true
+                lines.any { it == "p8b_main.p8t_Fill.p8v_combined RS.W 1" } shouldBe true
+                lines.any { it == "p8b_main.p8t_Fill.p8v_bytes RS.B 2" } shouldBe true
+                lines.any { it == "RSSET 2" } shouldBe true
+                lines.any { it == "p8b_main.p8t_Fill_size RS.B 0" } shouldBe true
+                lines.any { it == "p8b_main.p8t_Arrays.p8v_bytes RS.B 5" } shouldBe true
+                lines.any { it == "p8b_main.p8t_Arrays.p8v_words RS.W 4" } shouldBe true
+                lines.any { it == "p8b_main.p8t_Arrays.p8v_longs RS.L 2" } shouldBe true
+                lines.any { it == "p8b_main.p8t_Arrays_size RS.B 0" } shouldBe true
+                lines.none { it.contains("p8t_Sprite") && it.contains(" equ ") } shouldBe true
             }
         }
     }
@@ -447,6 +461,7 @@ main {
         result shouldNotBe null
         val asm = result!!.compilationOptions.outputDir.resolve("${result.compilerAst.name}.asm").toFile().readText()
         val lines = asm.lines().map { it.trim() }
+        lines.count { it == "RSRESET" } shouldBe 0
         lines.count { it.contains("_size equ") } shouldBe 0
     }
 
@@ -473,9 +488,9 @@ main {
         result shouldNotBe null
         val asm = result!!.compilationOptions.outputDir.resolve("${result.compilerAst.name}.asm").toFile().readText()
         val lines = asm.lines().map { it.trim() }
-        lines.any { it == "mymod.Point_size equ 2" } shouldBe true
-        lines.any { it == "mymod.Point.p8v_x equ 0" } shouldBe true
-        lines.any { it == "mymod.Point.p8v_y equ 1" } shouldBe true
+        lines.any { it == "mymod.Point.p8v_x RS.B 1" } shouldBe true
+        lines.any { it == "mymod.Point.p8v_y RS.B 1" } shouldBe true
+        lines.any { it == "mymod.Point_size RS.B 0" } shouldBe true
     }
 
     test("struct field offsets above 255 are emitted correctly on m68k") {
@@ -499,9 +514,9 @@ main {
             result shouldNotBe null
             val asm = result!!.compilationOptions.outputDir.resolve("${result.compilerAst.name}.asm").toFile().readText()
             val lines = asm.lines().map { it.trim() }
-            lines.any { it == "p8b_main.p8t_Big_size equ 302" } shouldBe true
-            lines.any { it == "p8b_main.p8t_Big.p8v_pad equ 0" } shouldBe true
-            lines.any { it == "p8b_main.p8t_Big.p8v_val equ 300" } shouldBe true
+            lines.any { it == "p8b_main.p8t_Big.p8v_pad RS.B 300" } shouldBe true
+            lines.any { it == "p8b_main.p8t_Big.p8v_val RS.W 1" } shouldBe true
+            lines.any { it == "p8b_main.p8t_Big_size RS.B 0" } shouldBe true
         }
     }
 
@@ -563,7 +578,7 @@ main {
         result shouldNotBe null
         val asm = result!!.compilationOptions.outputDir.resolve("${result.compilerAst.name}.asm").toFile().readText()
         val lines = asm.lines().map { it.trim() }
-        val sizeIdx = lines.indexOfFirst { it == "p8b_main.p8t_Point_size equ 2" }
+        val sizeIdx = lines.indexOfFirst { it == "p8b_main.p8t_Point_size RS.B 0" }
         val startIdx = lines.indexOfFirst { it == "prog8_program_start:" }
         sizeIdx shouldBeGreaterThan -1
         startIdx shouldBeGreaterThan -1

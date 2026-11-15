@@ -66,63 +66,63 @@ mobs {
         ; collision, or a bitmask AND of the masks for BOBs.
         %asm {{
             ; fast path: both origins zero on both mobs
-            tst.w   6(a0)
+            tst.w   mobs.Mob.p8v_origin_x(a0)
             bne.s   .full
-            tst.w   8(a0)
+            tst.w   mobs.Mob.p8v_origin_y(a0)
             bne.s   .full
-            tst.w   6(a1)
+            tst.w   mobs.Mob.p8v_origin_x(a1)
             bne.s   .full
-            tst.w   8(a1)
+            tst.w   mobs.Mob.p8v_origin_y(a1)
             bne.s   .full
             ; fast path: boxes are [x_pos, x_pos+width) x [y_pos, y_pos+height); d0/d1 only
-            move.w  2(a0),d0            ; a.x (= a.left)
-            add.w   10(a0),d0           ; a.right
-            move.w  2(a1),d1            ; b.x (= b.left)
-            cmp.w   d1,d0               ; a.right - b.left
+            move.w  mobs.Mob.p8v_x_pos(a0),d0       ; a.x (= a.left)
+            add.w   mobs.Mob.p8v_width(a0),d0       ; a.right
+            move.w  mobs.Mob.p8v_x_pos(a1),d1       ; b.x (= b.left)
+            cmp.w   d1,d0                           ; a.right - b.left
             ble.s   .no
-            add.w   10(a1),d1           ; b.right
-            cmp.w   2(a0),d1            ; b.right - a.left
+            add.w   mobs.Mob.p8v_width(a1),d1       ; b.right
+            cmp.w   mobs.Mob.p8v_x_pos(a0),d1       ; b.right - a.left
             ble.s   .no
-            move.w  4(a0),d0            ; a.y (= a.top)
-            add.w   12(a0),d0           ; a.bottom
-            move.w  4(a1),d1            ; b.y (= b.top)
-            cmp.w   d1,d0               ; a.bottom - b.top
+            move.w  mobs.Mob.p8v_y_pos(a0),d0       ; a.y (= a.top)
+            add.w   mobs.Mob.p8v_height(a0),d0      ; a.bottom
+            move.w  mobs.Mob.p8v_y_pos(a1),d1       ; b.y (= b.top)
+            cmp.w   d1,d0                           ; a.bottom - b.top
             ble.s   .no
-            add.w   12(a1),d1           ; b.bottom
-            cmp.w   4(a0),d1            ; b.bottom - a.top
+            add.w   mobs.Mob.p8v_height(a1),d1      ; b.bottom
+            cmp.w   mobs.Mob.p8v_y_pos(a0),d1       ; b.bottom - a.top
             ble.s   .no
-            moveq   #0,d0               ; Z set = collision
+            moveq   #0,d0                           ; Z set = collision
             rts
 .no:
-            moveq   #1,d0               ; Z clear = no collision
+            moveq   #1,d0                           ; Z clear = no collision
             rts
 .full:
             ; origin-aware path: box = [x_pos+origin, x_pos+origin+size)
-            move.w  2(a0),d0            ; a.x
-            add.w   6(a0),d0            ; a.left
-            add.w   10(a0),d0           ; a.right
-            move.w  2(a1),d1            ; b.x
-            add.w   6(a1),d1            ; b.left
-            cmp.w   d1,d0               ; a.right - b.left
+            move.w  mobs.Mob.p8v_x_pos(a0),d0       ; a.x
+            add.w   mobs.Mob.p8v_origin_x(a0),d0    ; a.left
+            add.w   mobs.Mob.p8v_width(a0),d0       ; a.right
+            move.w  mobs.Mob.p8v_x_pos(a1),d1       ; b.x
+            add.w   mobs.Mob.p8v_origin_x(a1),d1    ; b.left
+            cmp.w   d1,d0                           ; a.right - b.left
             ble.s   .no
-            add.w   10(a1),d1           ; b.right
-            move.w  2(a0),d0            ; a.x
-            add.w   6(a0),d0            ; a.left
-            cmp.w   d0,d1               ; b.right - a.left
+            add.w   mobs.Mob.p8v_width(a1),d1       ; b.right
+            move.w  mobs.Mob.p8v_x_pos(a0),d0       ; a.x
+            add.w   mobs.Mob.p8v_origin_x(a0),d0    ; a.left
+            cmp.w   d0,d1                           ; b.right - a.left
             ble.s   .no
-            move.w  4(a0),d0            ; a.y
-            add.w   8(a0),d0            ; a.top
-            add.w   12(a0),d0           ; a.bottom
-            move.w  4(a1),d1            ; b.y
-            add.w   8(a1),d1            ; b.top
-            cmp.w   d1,d0               ; a.bottom - b.top
+            move.w  mobs.Mob.p8v_y_pos(a0),d0       ; a.y
+            add.w   mobs.Mob.p8v_origin_y(a0),d0    ; a.top
+            add.w   mobs.Mob.p8v_height(a0),d0      ; a.bottom
+            move.w  mobs.Mob.p8v_y_pos(a1),d1       ; b.y
+            add.w   mobs.Mob.p8v_origin_y(a1),d1    ; b.top
+            cmp.w   d1,d0                           ; a.bottom - b.top
             ble.s   .no
-            add.w   12(a1),d1           ; b.bottom
-            move.w  4(a0),d0            ; a.y
-            add.w   8(a0),d0            ; a.top
-            cmp.w   d0,d1               ; b.bottom - a.top
+            add.w   mobs.Mob.p8v_height(a1),d1      ; b.bottom
+            move.w  mobs.Mob.p8v_y_pos(a0),d0       ; a.y
+            add.w   mobs.Mob.p8v_origin_y(a0),d0    ; a.top
+            cmp.w   d0,d1                           ; b.bottom - a.top
             ble.s   .no
-            moveq   #0,d0               ; Z set = collision
+            moveq   #0,d0                           ; Z set = collision
             rts
         }}
     }
@@ -135,36 +135,36 @@ mobs {
         ; Z set = the point is inside, Z clear = outside.
         %asm {{
             ; fast path: origin (0,0)
-            tst.w   6(a0)
+            tst.w   mobs.Mob.p8v_origin_x(a0)
             bne.s   .full
-            tst.w   8(a0)
+            tst.w   mobs.Mob.p8v_origin_y(a0)
             bne.s   .full
             ; fast path: box = [x_pos, x_pos+width) x [y_pos, y_pos+height); d0/d1 only
-            sub.w   2(a0),d0            ; px - x_pos
+            sub.w   mobs.Mob.p8v_x_pos(a0),d0       ; px - x_pos
             blt.s   .no
-            cmp.w   10(a0),d0           ; (px - x_pos) - width
+            cmp.w   mobs.Mob.p8v_width(a0),d0       ; (px - x_pos) - width
             bge.s   .no
-            sub.w   4(a0),d1            ; py - y_pos
+            sub.w   mobs.Mob.p8v_y_pos(a0),d1       ; py - y_pos
             blt.s   .no
-            cmp.w   12(a0),d1           ; (py - y_pos) - height
+            cmp.w   mobs.Mob.p8v_height(a0),d1      ; (py - y_pos) - height
             bge.s   .no
-            moveq   #0,d0               ; Z set = inside
+            moveq   #0,d0                           ; Z set = inside
             rts
 .no:
-            moveq   #1,d0               ; Z clear = outside
+            moveq   #1,d0                           ; Z clear = outside
             rts
 .full:
-            sub.w   2(a0),d0            ; px - x_pos
-            sub.w   6(a0),d0            ; px - left
+            sub.w   mobs.Mob.p8v_x_pos(a0),d0       ; px - x_pos
+            sub.w   mobs.Mob.p8v_origin_x(a0),d0    ; px - left
             blt.s   .no
-            cmp.w   10(a0),d0           ; (px - left) - width
+            cmp.w   mobs.Mob.p8v_width(a0),d0       ; (px - left) - width
             bge.s   .no
-            sub.w   4(a0),d1            ; py - y_pos
-            sub.w   8(a0),d1            ; py - top
+            sub.w   mobs.Mob.p8v_y_pos(a0),d1       ; py - y_pos
+            sub.w   mobs.Mob.p8v_origin_y(a0),d1    ; py - top
             blt.s   .no
-            cmp.w   12(a0),d1           ; (py - top) - height
+            cmp.w   mobs.Mob.p8v_height(a0),d1      ; (py - top) - height
             bge.s   .no
-            moveq   #0,d0               ; Z set = inside
+            moveq   #0,d0                           ; Z set = inside
             rts
         }}
     }
@@ -277,14 +277,14 @@ mobs {
         ; Coincident anchors return 0 (N) by convention.
         %asm {{
             movem.l d2-d5,-(sp)
-            move.w  2(a1),d0
+            move.w  mobs.Mob.p8v_x_pos(a1),d0
             ext.l   d0
-            move.w  2(a0),d2
+            move.w  mobs.Mob.p8v_x_pos(a0),d2
             ext.l   d2
             sub.l   d2,d0               ; dx = b.x - a.x (long, no wrap)
-            move.w  4(a1),d1
+            move.w  mobs.Mob.p8v_y_pos(a1),d1
             ext.l   d1
-            move.w  4(a0),d2
+            move.w  mobs.Mob.p8v_y_pos(a0),d2
             ext.l   d2
             sub.l   d2,d1               ; dy
             move.l  d0,d2

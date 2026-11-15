@@ -425,9 +425,9 @@ audio {
         ; Calls the device's BeginIO vector directly, instead of exec DoIO/SendIO,
         ; because those clear io_Flags which would wipe ADIOF_PERVOL and friends.
         %asm {{
-            move.l  d6,-(sp)            ; OS calls do not preserve d6
-            move.l  20(a1), a6          ; a6 = io_Device (offset 20 in IORequest)
-            jsr     -30(a6)             ; device BeginIO vector
+            move.l  d6,-(sp)                            ; OS calls do not preserve d6
+            move.l  audio.IOAudio.p8v_Device(a1),a6     ; a6 = io_Device
+            jsr     -30(a6)                             ; device BeginIO vector
             move.l  (sp)+,d6
             rts
         }}

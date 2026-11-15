@@ -1877,25 +1877,38 @@ internal class AsmGen(val program: IRProgram, internal val target: ICompilationT
             emitRaw("")
     }
 
-    // Emit the size and member offsets of all struct/union types as vasm 'equ' symbols, so inline
-    // asm can reference them by name. Offsets use the same packed layout (no alignment padding)
-    // that the compiler's own member-access codegen uses.
+    // Emit struct/union types as vasm RS structure definitions, so inline asm can reference the
+    // size and member offsets by name. RS only defines symbols (no bytes emitted); the counter
+    // uses the same packed layout (no alignment padding) as the compiler's member-access codegen.
     private fun emitStructDefs() {
         val structs = program.st.allStructDefs().toList()
         if (structs.isEmpty()) return
         emitRaw("; struct type definitions")
         for (sd in structs) {
             val base = fixNameSymbols(sd.name)
-            emitRaw("${base}_size equ ${sd.size}")
-            var offset = 0
-            for (field in sd.fields) {
-                emitRaw("${base}.p8v_${field.name} equ $offset")
-                if (!sd.isUnion)
-                    offset += target.memorySize(field.type, field.arraySize ?: 1)
+            emitRaw("            RSRESET")
+            for ((index, field) in sd.fields.withIndex()) {
+                if (sd.isUnion && index > 0)
+                    emitRaw("            RSRESET")
+                emitRaw("${base}.p8v_${field.name} ${rsFieldSize(field)}")
             }
+            if (sd.isUnion)
+                emitRaw("            RSSET ${sd.size}")
+            emitRaw("${base}_size RS.B 0")
             emitRaw("")
         }
         emitRaw("")
+    }
+
+    private fun rsFieldSize(field: IRStStructField): String {
+        val elementSize = target.memorySize(field.type, 1)
+        val count = field.arraySize ?: 1
+        return when (elementSize) {
+            1 -> "RS.B $count"
+            2 -> "RS.W $count"
+            4 -> "RS.L $count"
+            else -> "RS.B ${elementSize * count}"
+        }
     }
 
 

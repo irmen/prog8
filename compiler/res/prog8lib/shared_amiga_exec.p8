@@ -9,11 +9,10 @@ exec {
     asmsub NewList(^^List list @A0) {
         ; manually added utility routine to initialize new exec linked lists
         %asm {{
-            addq.l  #4, a0              ; Point to lh_Tail
-            move.l  a0, -4(a0)          ; lh_Head = &lh_Tail
-            clr.l   (a0)                ; lh_Tail = NULL
-            subq.l  #4, a0              ; Point back to &lh_Head
-            move.l  a0, 8(a0)           ; lh_TailPred = &lh_Head
+            lea     exec.List.p8v_Tail(a0),a1           ; a1 = &lh_Tail
+            move.l  a1, exec.List.p8v_Head(a0)          ; lh_Head = &lh_Tail
+            clr.l   exec.List.p8v_Tail(a0)              ; lh_Tail = NULL
+            move.l  a0, exec.List.p8v_TailPred(a0)      ; lh_TailPred = &lh_Head
             rts
         }}
     }

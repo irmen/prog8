@@ -17,30 +17,9 @@ in vasm mot syntax only; do not target or reference Dragonball/ColdFire.
 
 ## Shared object metadata
 
-Keep movable-object metadata separate from renderer-specific image data. `Mob`
-lives in the lightweight `mobs` types module imported by `sprites` and
-`blitter`; it contains no bitmap pointers and requires no OS libraries.
-
-```prog8
-struct Mob {
-    uword id
-    word x_pos
-    word y_pos
-    word origin_x
-    word origin_y
-    uword width
-    uword height
-    uword state
-}
-
-```
-
-`x_pos`/`y_pos` are the screen coordinates of the image's anchor (origin
-point); `origin_x`/`origin_y` is the offset from that anchor to the image's
-top-left, so the top-left is at `(x_pos + origin_x, y_pos + origin_y)` and
-the collision box is `[x_pos + origin_x, x_pos + origin_x + width)` by
-`[y_pos + origin_y, y_pos + origin_y + height)`. With origin `(0, 0)` the
-anchor is the top-left and the box simplifies to `[x_pos, x_pos + width)`.
+Implemented: the `mobs` module (`amiga500`/`amiga1200`, `%import mobs`) holds
+`Mob`, `Bob`, `Sprite` and the integer-only geometry helpers. See the library
+reference for the struct layouts and routine list.
 
 ## Sprite Helper Library
 
@@ -366,6 +345,9 @@ not a separate module.
 
 ### BOB data descriptors
 
+The `Bob` descriptor is already implemented: it lives in `mobs` (see above),
+not in the blitter module. The rest of this section describes its data layout.
+
 Use Prog8 `snake_case` names, following the Amiga `graphics.BitMap` concepts.
 All BOB data is uncompressed, planar, and in CHIP RAM. Within each frame, store
 each color plane contiguously in plane-major order. The mask, when present, is
@@ -384,24 +366,9 @@ in the final image word as transparent. Rows are left-justified: the leftmost
 pixel is bit 15 of the first word; unused low bits in a partial final word are
 zero, followed by the guard word.
 
-`Bob` references the shared `Mob` and stores BOB-specific image metadata and
-pointers:
-
-```prog8
-struct Bob {
-    ^^mobs.Mob mob
-    uword depth
-    pointer data
-    pointer mask
-}
-```
-
-`mob` is required. `data` points to plane 0 of the currently selected frame, and
-`mask` points to that frame's separate mask or is null for an opaque BOB. Color
-plane `p` starts at `data + p * plane_bytes`. Client code owns animation timing
-and frame selection, updating `data` and `mask` before drawing. The multi-plane
-BOB draw helper accepts a full `^^Bob` so it can read both the Mob metadata and
-the image pointers; it does not mutate either.
+`mobs.Bob` already carries the `Mob` reference plus `depth`, `data` and `mask`
+(see the library reference). A multi-plane BOB draw helper that takes a full
+`^^Bob` is still to be added to the blitter module.
 
 Sprite sheets are input assets, not a runtime BOB layout. Extracting and
 repacking their cells into the required plane-major frames is the responsibility

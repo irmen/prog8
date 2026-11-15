@@ -170,6 +170,15 @@ Fields in a struct are 'packed' (meaning the values are placed back-to-back in m
 The size of a struct cannot exceed 256 bytes on 6502-based targets (C64, CX16, C128, PET32 - one memory page).
 On 32-bit targets the limit is much larger: 32768 bytes on Amiga/Qemu68k and 65535 bytes on the virtual target.
 
+.. caution::
+    Because fields are packed, keeping multi-byte fields on a suitable address is your own responsibility.
+    The 68000 CPU (Amiga 500 and other 68000-based machines) raises an address-error exception on an
+    unaligned ``word``, ``long``, ``float`` or pointer access: such a field must start on an even offset.
+    Order the fields accordingly, or insert ``ubyte`` filler fields - for example a
+    ``ubyte flags`` followed by a ``uword xpos`` puts ``xpos`` on offset 1, which faults on a 68000.
+    The 68020 and later CPUs tolerate unaligned accesses (at a speed penalty), and on 6502-based
+    targets alignment doesn't matter for correctness at all.
+
 You can copy the whole contents of a struct to another one by assigning the dereferenced pointers::
 
     ^^Enemy e1,e2
@@ -535,9 +544,16 @@ You can do the same in assembly code if needed: the struct definition gets writt
     lda  #p8t_Node.p8v_value
     lda  #p8t_Node.p8v_flag
 
-On the m68k targets, the compiler instead emits ``vasm`` ``equ`` symbols for the size and each field offset::
+On the m68k targets, the compiler instead emits a ``vasm`` ``RS`` structure definition block.
+``RS`` only defines symbols (it emits no data bytes), and the offsets follow the same packed layout as on the other targets::
 
-    p8b_main.p8t_Node_size equ 4
-    p8b_main.p8t_Node.p8v_type equ 0
-    p8b_main.p8t_Node.p8v_value equ 1
-    p8b_main.p8t_Node.p8v_flag equ 3
+            RSRESET
+    p8b_main.p8t_Node.p8v_type RS.B 1
+    p8b_main.p8t_Node.p8v_value RS.W 1
+    p8b_main.p8t_Node.p8v_flag RS.B 1
+    p8b_main.p8t_Node_size RS.B 0
+
+``RS.B``, ``RS.W`` and ``RS.L`` advance an internal offset counter by 1, 2 or 4 bytes per element
+(and multiply that by the field's array size), a leading ``RSRESET`` restarts the counter at 0,
+and the trailing ``RS.B 0`` defines the total size without advancing it.
+The symbols can be used anywhere in inline assembly, for example ``move.w p8b_main.p8t_Node.p8v_value(a0),d0``.
