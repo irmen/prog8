@@ -337,70 +337,26 @@ m68k targets have no `sys.set_irq` helpers, see `targetsystem.rst`).
 - `playfield.waitvsync` stays the polling fallback; document when the IRQ
   version pays off (frame time too tight to spin on the beam).
 
-## CIA timer IRQ helpers
+## CIA timer interrupt helpers
 
-Same gap one layer down: `custom` exposes the CIA registers
-(`CIAA_TALO/TAHI/CRA/ICR`, same for CIA-B) so hand-rolled setup is possible,
-and `lowlevel-timer.p8` covers the OS path via `lowlevel.library`, but no
-bare-metal helper or example exists.
+Interrupt-driven CIA timer support, the part that needs design decisions
+rather than register pokes:
 
-- Load latch (TALO/TAHI), force-load and start mode via CRA/CRB, enable via
-  ICR with bit 7 set.
 - Route to CPU levels 2 (CIA-A) / 6 (CIA-B) through `INTENA` PORTS/EXTER,
   install the handler via `custom.cpuVBR`, acknowledge by *reading* ICR,
   return with `rte`, restore on exit.
 - Keep the handler minimal (tick counter / frame flag), like the VERTB one.
-
-### TOD counters (bare-metal only, not a time-of-day clock)
-
-The 8520 TOD is a 24-bit **binary** counter, not the 6526/C64-style BCD
-hours:minutes:seconds.tenths clock. What it counts is wired differently per
-CIA, and on the Amiga the OS owns both:
-
-| CIA | Counts | Owner while the OS runs |
-| --- | --- | --- |
-| A | 50/60 Hz events: power-line tick (A1000), VSync (A500), jumper (A2000) | `timer.device` tick behind `GetSysTime`/`ReadEClock` |
-| B | horizontal sync events (~15.7 kHz) | `graphics.library` video beam follower |
-
-Registers (named as in ``custom``): `CIAA_TODLOW/MID/HI` ($bfe801/$bfe901/$bfea01)
-and `CIAB_TODLOW/MID/HI` ($bfd800/$bfd900/$bfda00). CIA-A sits on the odd byte
-lane, CIA-B on the even one, hence the different low address bit.
-
-Neither TOD is free while the OS is running: touching CIA-A breaks
-`timer.device`, touching CIA-B breaks beam-synced blits (`QBSBlit` and the
-graphics.library ALRM machinery). Use `timer.device`/`ReadEClock` instead. The
-wall clock is a separate battery-backed chip (`battclock.resource`), not a TOD.
-Both counters become available only after `grab_system()`.
-
-Helpers to provide (bare-metal only, documented as such, CIA selector first):
-- `cia.tod_read(cia) -> long` - raw 24-bit count. Read TODHI first (latches all
-  three bytes), then TODMID, then TODLOW (unlatches). Reading in any other
-  order gives a torn value.
-- `cia.tod_write(cia, value)` - set the count. Any write stops the counter; it
-  restarts on the TODLOW write, so write HI -> MID -> LOW.
-- `cia.tod_alarm(cia, value)` - set the alarm register instead of the counter
-  (CRB bit 7 = 1). Fires ICR bit 2 (`CIAICRB_ALRM`), on CPU level 2 for CIA-A
-  and level 6 for CIA-B.
-- `cia.tod_alarm_enable(cia, bool)` - enable/disable the alarm interrupt via
-  ICR bit 2 with bit 7 (SETCLR) set.
-
-Notes:
-- There is no start/stop bit: the counter free-runs on positive edges of the TOD
-  pin, and freezes if those edges stop (no video timing). Reads never stop it;
-  an MSB read only latches a snapshot until the LSB read.
-- Any write to a TOD address halts the counter - time or alarm, since both live
-  at the same addresses - and it only restarts on the TODLOW write. So a stray
-  alarm write silently stalls the count until the LSB is written.
-- The OS does not just own the registers, it owns the values: timer.device arms
-  CIA-A's alarm at $001000 and the handler rolls the counter back to 0 on every
-  match, while graphics.library reloads CIA-B from the vertical beam position.
-- The counter wraps at $FFFFFF; there is no date and no h/m/s interpretation.
-  Deriving elapsed time means handling the wrap yourself.
-- Rate is whatever the input is: mains frequency (drifts with the power grid),
-  VSync, or horizontal sync. At 15.7 kHz the 24-bit counter wraps in about
-  17.8 minutes; at 50/60 Hz it wraps in a few days.
-- CRB bit 7 selects counter vs alarm for writes only; reads always read the
-  counter.
+- Decide the callback shape: a Prog8 `sub` pointer called from the stub (needs
+  a register contract the stub upholds), a bare address of hand-written asm, or
+  an `exec.Interrupt`-like node the user fills in.
+- Decide the OS story: `cia.resource/AddICRVector` and `RemICRVector` are not
+  wrapped anywhere in the library (only `ptplayer` calls them from inline asm),
+  while `timer.device` claims CIA-A Timer A and Timer B for its microhertz unit
+  and the 50/60 Hz tick. Direct ICR writes while the OS runs are explicitly
+  discouraged, so this helper can only be bare-metal until someone wraps
+  `cia.resource`.
+- Name it once it exists: something like `cia.timer_irq`, kept separate from
+  the polling helpers.
 
 ## BOB helpers (extensions to shared_amiga_blitter.p8)
 

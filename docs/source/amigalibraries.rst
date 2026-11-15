@@ -186,6 +186,41 @@ modules. Import them the same way as any other library::
     with a divisor of 1 and returns zero.
     Poll mouse deltas once per frame because each hardware counter is 8-bit.
 
+    Both CIA TOD counters are reachable through ``tod_read(cia)``,
+    ``tod_write(cia, count)``, ``tod_alarm_set(cia, count)`` and
+    ``tod_alarm_enable(cia, bool)``, where ``cia`` is ``custom.CIA::A`` or
+    ``custom.CIA::B``. A TOD is a 24-bit binary *event* counter, not a clock:
+    CIA-A counts 50/60 Hz events (mains tick, or VSync on later machines) and
+    CIA-B counts horizontal sync at about 15.7 kHz, which makes it a line
+    counter rather than a time of day. ``tod_read`` returns the raw count, keeps
+    the latched HI, MID, LOW read order for you and wraps at ``$ffffff``; there
+    is no hours/minutes/seconds decoding anywhere. Reading is harmless while the
+    OS runs, but writing reloads and therefore disturbs a counter the OS owns:
+    ``timer.device`` drives its system tick from CIA-A and ``graphics.library``
+    uses CIA-B as its video beam follower, so ``tod_write`` and
+    ``tod_alarm_set`` belong after ``custom.grab_system()``. Timed waits under
+    the OS should use ``timer.device`` (``timer``) or ``ReadEClock`` instead.
+    ``tod_alarm_set`` loads the alarm register and ``tod_alarm_enable`` masks
+    the resulting interrupt (ICR bit 2, ``custom.CIAICRF_ALRM``); with the mask
+    off the alarm flag can still be polled from ``CIAA_ICR``/``CIAB_ICR``,
+    since reading an ICR acknowledges it.
+
+    The two 16-bit interval timers of each CIA are reachable through
+    ``timer_start(cia, timer, reload, continuous)``, ``timer_stop(cia, timer)``,
+    ``timer_value(cia, timer)`` and ``timer_flag(cia, timer)``, with ``timer``
+    one of ``custom.TIMER::A`` or ``custom.TIMER::B``. They count the ~7 MHz
+    ø2 clock (7.09 MHz PAL, 7.16 MHz NTSC) down from the loaded value: 65535
+    ticks is about 9.2 ms, so they are for short precise waits and cycle-level
+    measurement, not for long delays. One-shot mode stops after the underflow,
+    continuous mode reloads and runs again. ``timer_value`` returns what is
+    left of the count, so elapsed cycles are the loaded value minus that.
+    These are polling helpers only: ``timer_flag`` tests (and acknowledges)
+    the underflow flag by reading the CIA ICR, and Prog8 cannot install a CIA
+    interrupt handler yet, so nothing here hooks one up. Like ``tod_write``,
+    they poke registers the OS owns, so use them after ``grab_system()``.
+    ``PBON`` is always left off, which keeps the timers from driving the
+    CIA port B pins.
+
 ``blitter``
     Bare-metal blitter programming, no OS calls: ``copy_rect()`` and
     ``fill_rect()`` (use pattern ``$0000`` to clear or ``$ffff`` to fill),

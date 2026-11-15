@@ -23,6 +23,10 @@ custom {
     ;     - grab_system()/restore_system() and direct writes to DMACON,
     ;       INTENA, BLTCON0, AUDxPER, COP1LC, etc. must NOT be used while the
     ;       OS is running - they take over or conflict with OS drivers.
+    ;     - the tod_* helpers: reading a TOD counter is harmless, but writing
+    ;       one is not. timer.device owns CIA-A's counter and graphics.library
+    ;       owns CIA-B's (it is their video beam follower), so tod_write() and
+    ;       tod_alarm_set() are only for use after grab_system().
     ;   Rule of thumb: use custom for input reading alongside the OS for
     ;   joystick/mouse, but for keyboard and timers pick one owner (OS input
     ;   or custom hardware polling), never both. Games that need raw keyboard
@@ -826,6 +830,239 @@ GfxVBlankFrequency = $212
             andi.w  #$4500,d1
             eori.w  #$4500,d1
             or.w    d1,d0
+            rts
+        }}
+    }
+
+    ; ========== CIA TOD event counters ==========
+    ; The 8520 TOD is a 24-bit binary event counter, not a clock: CIA-A counts
+    ; 50/60 Hz events, CIA-B horizontal sync.
+    ; The CIA register select lines hang off address lines A11-A8, so its 16
+    ; registers are $100 apart from the chip base, which is the address of its
+    ; PRA ($bfe001 on the odd byte lane, $bfd000 on the even one). The offsets
+    ; used below are those of hardware/cia.i: ciatodlow $800, ciatodmid $900,
+    ; ciatodhi $a00, ciaicr $d00 and ciacrb $f00.
+
+    enum CIA {
+        A,
+        B
+    }
+
+    const ubyte CIAICRF_ALRM = %00000100   ; ICR bit and mask of the TOD alarm
+
+    asmsub tod_read(ubyte cia @D0) -> long @D0 {
+        ; Raw 24-bit count. Reading ciatodhi latches ciatodmid and ciatodlow
+        ; until ciatodlow is read, so the order below matters; the counter
+        ; keeps running while latched, so reading is always safe.
+        %asm {{
+            lea     custom.CIAA_PRA,a0      ; CIA-A base
+            cmp.b   #1,d0
+            bne.s   .latch
+            lea     custom.CIAB_PRA,a0      ; CIA-B base
+.latch:
+            moveq   #0,d0
+            move.b  $a00(a0),d0         ; ciatodhi, latches
+            moveq   #0,d1
+            move.b  $900(a0),d1         ; ciatodmid
+            lsl.l   #8,d0
+            or.l    d1,d0
+            moveq   #0,d1
+            move.b  $800(a0),d1         ; ciatodlow, unlatches
+            lsl.l   #8,d0
+            or.l    d1,d0
+            rts
+        }}
+    }
+
+    asmsub tod_write(ubyte cia @D0, long count @D1) {
+        ; Load the counter. Writing ciatodhi stops it and the ciatodlow write
+        ; restarts it, so the count always starts from the value just loaded.
+        ; ciacrb bit 7 must be clear, otherwise the writes go to the alarm.
+        %asm {{
+            lea     custom.CIAA_PRA,a0
+            cmp.b   #1,d0
+            bne.s   .load
+            lea     custom.CIAB_PRA,a0
+.load:
+            andi.b  #$7f,$f00(a0)       ; ciacrb: write the counter, not the alarm
+            move.l  d1,d0
+            swap    d0
+            move.b  d0,$a00(a0)         ; ciatodhi, stops
+            move.l  d1,d0
+            lsr.l   #8,d0
+            move.b  d0,$900(a0)         ; ciatodmid
+            move.b  d1,$800(a0)         ; ciatodlow, restarts
+            rts
+        }}
+    }
+
+    asmsub tod_alarm_set(ubyte cia @D0, long count @D1) {
+        ; Load the alarm register; the count reaching it sets ICR bit 2. Alarm
+        ; writes leave the counter running, and ciacrb bit 7 is cleared again
+        ; afterwards so a later tod_write does not have to know about it.
+        %asm {{
+            lea     custom.CIAA_PRA,a0
+            cmp.b   #1,d0
+            bne.s   .load
+            lea     custom.CIAB_PRA,a0
+.load:
+            ori.b   #$80,$f00(a0)       ; ciacrb: write the alarm
+            move.l  d1,d0
+            swap    d0
+            move.b  d0,$a00(a0)         ; ciatodhi
+            move.l  d1,d0
+            lsr.l   #8,d0
+            move.b  d0,$900(a0)         ; ciatodmid
+            move.b  d1,$800(a0)         ; ciatodlow
+            andi.b  #$7f,$f00(a0)       ; back to counter mode
+            rts
+        }}
+    }
+
+    asmsub tod_alarm_enable(ubyte cia @D0, bool enable @D1) {
+        ; Enable or disable the alarm interrupt mask bit (ciaicr bit 2). The
+        ; ICR read acknowledges an already pending alarm, so enabling cannot
+        ; fire immediately on a stale flag. With the mask off the counter
+        ; still runs and its alarm flag stays pollable.
+        %asm {{
+            lea     custom.CIAA_PRA,a0
+            cmp.b   #1,d0
+            bne.s   .ack
+            lea     custom.CIAB_PRA,a0
+.ack:
+            tst.b   $d00(a0)            ; read ciaicr: clears the pending flags
+            moveq   #custom.CIAICRF_ALRM,d0
+            tst.b   d1
+            beq.s   .mask
+            ori.b   #$80,d0             ; set, rather than clear, the mask bit
+.mask:
+            move.b  d0,$d00(a0)
+            rts
+        }}
+    }
+
+    ; ========== CIA interval timers (polling only) ==========
+    ; Timer A and B are 16-bit down counters; the two latch registers are
+    ; write-only and the counter itself is what reads back, so a measurement
+    ; is 'latch - counter'. Underflow sets ciaicr bit 0 (A) or 1 (B).
+    ; These helpers never touch the interrupt mask: there is no way to install
+    ; a CIA interrupt handler from Prog8 yet, so the only way to notice an
+    ; underflow is to poll the flag (see timer_flag).
+
+    enum TIMER {
+        A,
+        B
+    }
+
+
+    asmsub timer_start(ubyte cia @D0, ubyte timer @D1, uword reload @D2, bool continuous @D3) {
+        ; Load the latch and go. The timer is stopped first because the latch
+        ; only reaches the counter on the high-byte write while the timer is
+        ; halted. One-shot stops at underflow, continuous reloads and repeats.
+        ; PBON stays off, so the timer does not take over its CIA port B pin.
+        %asm {{
+            lea     custom.CIAA_PRA,a0
+            cmp.b   #1,d0
+            bne.s   .timer
+            lea     custom.CIAB_PRA,a0
+.timer:
+            moveq   #0,d0
+            move.b  d1,d0                   ; timer number
+            lsl.l   #8,d0                   ; $000 or $100
+            move.l  d0,a1
+            adda.l  #$e00,a1
+            adda.l  a0,a1                   ; a1 = ciacra or ciacrb
+            add.l   d0,d0
+            add.l   #$400,d0
+            adda.l  d0,a0                   ; a0 = ciatalo or ciatblo
+            bclr.b  #0,(a1)                 ; stop: the latch reaches the
+                                            ; counter only while halted
+            move.b  d2,(a0)                 ; latch low
+            move.l  d2,d1
+            lsr.l   #8,d1                   ; reload is a word: bits 8-15 only
+            move.b  d1,$100(a0)             ; latch high
+            move.b  (a1),d1                 ; control: keep bit 7 only
+                                            ; (ciacrb ALARM, unused on ciacra)
+            andi.b  #$80,d1                 ; INMODE, PBON, OUTMODE off
+            moveq   #1,d1                   ; START, counting ø2 pulses
+            tst.b   d3
+            bne.s   .go                     ; continuous: RUNMODE stays 0
+            ori.b   #%00001000,d1           ; one-shot stops at underflow
+.go:
+            move.b  d1,(a1)
+            rts
+        }}
+    }
+
+    asmsub timer_stop(ubyte cia @D0, ubyte timer @D1) {
+        ; Clear the START bit only; the latch and the counter keep their
+        ; contents, so timer_value still reports where it stopped.
+        %asm {{
+            lea     custom.CIAA_PRA,a0
+            cmp.b   #1,d0
+            bne.s   .timer
+            lea     custom.CIAB_PRA,a0
+.timer:
+            moveq   #0,d0
+            move.b  d1,d0
+            lsl.l   #8,d0
+            adda.l  #$e00,a0
+            adda.l  d0,a0
+            andi.b  #$fe,(a0)               ; START off
+            rts
+        }}
+    }
+
+    asmsub timer_value(ubyte cia @D0, ubyte timer @D1) -> uword @D0 {
+        ; Current counter, read again around the high byte so an underflow
+        ; between the two reads cannot yield a mixed value.
+        %asm {{
+            lea     custom.CIAA_PRA,a0
+            cmp.b   #1,d0
+            bne.s   .timer
+            lea     custom.CIAB_PRA,a0
+.timer:
+            moveq   #0,d0
+            move.b  d1,d0                   ; timer number
+            lsl.l   #8,d0                   ; $000 or $100
+            add.l   d0,d0
+            add.l   #$400,d0
+            adda.l  d0,a0                   ; a0 = ciatalo or ciatblo
+            move.l  a0,a1
+            adda.l  #$100,a1                ; a1 = ciatahi or ciatbhi
+            move.l  d2,-(sp)
+.again:
+            moveq   #0,d0
+            move.b  (a1),d0                 ; high byte
+            move.b  (a0),d2                 ; low byte
+            cmp.b   (a1),d0                 ; high byte unchanged?
+            bne.s   .again
+            lsl.l   #8,d0
+            or.b    d2,d0
+            move.l  (sp)+,d2
+            rts
+        }}
+    }
+
+    asmsub timer_flag(ubyte cia @D0, ubyte timer @D1) -> bool @Pz {
+        ; True when the timer has underflowed since the last read. Reading the
+        ; ICR acknowledges every CIA flag on that chip, not just this timer's;
+        ; the hardware offers no way to test one bit without clearing them all.
+        %asm {{
+            lea     custom.CIAA_PRA,a0
+            cmp.b   #1,d0
+            bne.s   .timer
+            lea     custom.CIAB_PRA,a0
+.timer:
+            move.b  d1,d0                   ; timer number
+            move.b  $d00(a0),d1             ; read ciaicr: acknowledges
+            add.b   d0,d0                   ; 1 bit left: the timer's flag
+            and.b   d0,d1
+            beq.s   .absent
+            moveq   #0,d1                   ; raised: Z set
+            rts
+.absent:
+            moveq   #1,d1                   ; not raised: Z clear
             rts
         }}
     }

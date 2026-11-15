@@ -1,6 +1,6 @@
 
 Prog8 compiler v14.0-BETA3 by Irmen de Jong (irmen@razorvine.net)
-Prerelease version from git commit 5bfeb173 in branch master
+Prerelease version from git commit b7579321 in branch master
 This software is licensed under the GNU GPL 3.0, see https://www.gnu.org/licenses/gpl.html
 
 Compiling program import-all-amiga1200.p8
@@ -958,6 +958,8 @@ custom  {
     const ubyte  CHIPSET::AGA
     const ubyte  CHIPSET::ECS
     const ubyte  CHIPSET::OCS
+    const ubyte  CIA::A
+    const ubyte  CIA::B
     &ubyte  CIAA_CRA
     &ubyte  CIAA_CRB
     &ubyte  CIAA_DDRA
@@ -988,6 +990,7 @@ custom  {
     &ubyte  CIAB_TODHI
     &ubyte  CIAB_TODLOW
     &ubyte  CIAB_TODMID
+    const ubyte  CIAICRF_ALRM
     &uword  CLXCON
     &uword  CLXDAT
     &uword  COLOR00
@@ -1320,6 +1323,8 @@ custom  {
     &uword  STRHOR
     &uword  STRLONG
     &uword  STRVBL
+    const ubyte  TIMER::A
+    const ubyte  TIMER::B
     &uword  VBSTOP
     &uword  VBSTRT
     &uword  VHPOSR
@@ -1359,6 +1364,14 @@ custom  {
     set_aga_color  (ubyte color_index @D0, long rgb24 @D1)
     set_color  (ubyte index, long rgb24)
     set_ocs_color  (ubyte index, long rgb24)
+    timer_flag  (ubyte cia @D0, ubyte timer @D1) -> bool @Pz
+    timer_start  (ubyte cia @D0, ubyte timer @D1, uword reload @D2, bool continuous @D3)
+    timer_stop  (ubyte cia @D0, ubyte timer @D1)
+    timer_value  (ubyte cia @D0, ubyte timer @D1) -> uword @D0
+    tod_alarm_enable  (ubyte cia @D0, bool enable @D1)
+    tod_alarm_set  (ubyte cia @D0, long count @D1)
+    tod_read  (ubyte cia @D0) -> long @D0
+    tod_write  (ubyte cia @D0, long count @D1)
     waitvsync  ()
 }
 
