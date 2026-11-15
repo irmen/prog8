@@ -28,7 +28,7 @@ cannot be carried across statements or loop iterations.
 
 | id | change | kind | fraction of a drawn screen (measured) | verified state | effort |
 |---|---|---|---|---|---|
-| P1 | load a constant store value after the pointer build | codegen path | ~6% | partially present, one shape missing | hours |
+| P1 | load a constant store value after the pointer build | codegen path | ~6% | IMPLEMENTED for numeric bases requiring pointer construction | done |
 | P2 | hoist index and constant across consecutive absolute-indexed stores | asm peephole | applies to code using fixed-address arrays | not present, addable | hours to 1 day |
 | P3 | build the address once for two stores to different bases | Simple AST | ~7% | not present, cannot be a peephole | days |
 | P4 | `@(const + ubyte_expr)` emits absolute indexing | codegen rule | closes the last fast-form gap | IMPLEMENTED for numeric bases with byte-variable indexes | done |
@@ -43,9 +43,9 @@ cannot be carried across statements or loop iterations.
 
 The single most important correction from verification: P7 (both halves) is the
 general solution for removing repeated address rebuilds across wide-offset loops
-and calls. P4 also removes the rebuild for byte indexes against numeric bases;
-the remaining items mostly shave a few cycles per store. P4 is implemented.
-P1 and P9 are the remaining cheap, local changes.
+and calls. P4 removes the rebuild for byte indexes against numeric bases, while
+P1 removes the save/restore around constant stores that still need a pointer build.
+P1 and P4 are implemented; P9 is the remaining cheap, local diagnostic.
 
 ---
 
@@ -280,7 +280,7 @@ should do, the expected saving, the safety conditions, and how it would be
 tested. Examples are generic; `BASE`, `BASE2`, `OFFSET` and `VALUE` stand for
 any constant base, offset variable and value.
 
-### P1. Load a constant store value after the pointer build
+### P1. Load a constant store value after the pointer build (IMPLEMENTED)
 
 Target: default backend.
 
@@ -289,22 +289,22 @@ Where: the store value path is
 on the address shape (:2025-2111) and reaches
 `AssignmentAsmGen.storeByteInAToAddressExpression` (:658).
 
-Current state, verified: two fast paths already exist, and both only cover the
-case where the base is a pointer *variable*:
+Original failure: two fast paths already existed, and both only covered the
+case where the base was a pointer *variable*:
 
 - `AssignmentAsmGen.kt:667-692`: when the address expression is
   `identifier + index`, a constant value emits the pointer setup first and then
   `lda #VALUE`, deliberately avoiding a register round trip. A helper,
   `isConstReloadableAddress` (:650-656), is the predicate that decides whether an
-  address expression is capable of this; it currently requires
+  address expression is capable of this; before P1 it required
   `left is PtIdentifier` and a byte or word index.
 - `PrimitiveAssignmentsGen.kt:2089-2105`: the same idea for `pointer + constant`
   offsets, with the comment "need to load constant after setting up pointer, not
   before".
 
-Neither matches a **numeric constant base**. `isConstReloadableAddress` returns
-false, `saveA` is therefore true (`PrimitiveAssignmentsGen.kt:2020-2021`), and
-the code falls through to the generic tail of `storeByteInAToAddressExpression`
+Neither matched a **numeric constant base**. `isConstReloadableAddress` returned
+false, `saveA` was therefore true (`PrimitiveAssignmentsGen.kt:2020-2021`), and
+the code fell through to the generic tail of `storeByteInAToAddressExpression`
 (`AssignmentAsmGen.kt:731-734`):
 
 ```
@@ -314,39 +314,34 @@ the code falls through to the generic tail of `storeByteInAToAddressExpression`
     asmgen.storeAIntoZpPointerVar("P8ZP_SCRATCH_W2", false)
 ```
 
-which is where the observed `lda #VALUE / pha / ... / pla / sta (W2),y` comes
-from, 29 cycles.
+which is where `lda #VALUE / pha / ... / pla / sta (W2),y` came from.
 
-Proposed: extend the existing constant-value handling to the numeric-base shape
-so the pointer is built first and the constant loaded afterwards. The value is
-a compile-time constant, so it never needs to be preserved across the address
-computation. In practice this means widening `isConstReloadableAddress`
-(`AssignmentAsmGen.kt:650-656`) to accept a numeric base, and adding the
-matching emission branch in `storeByteInAToAddressExpression`. Two other callers
-of that predicate (`PrimitiveAssignmentsGen.kt:1663` for `stz` on 65C02, `:1717`
-for constant stores) then benefit automatically, so the predicate should be
-changed in one place and all three sites re-tested.
+Implemented: `isConstReloadableAddress` now accepts a numeric `PtNumber` base
+with an unsigned-word offset. When that address still needs a full pointer build,
+`storeByteInAToAddressExpression` computes the address into `P8ZP_SCRATCH_W2`,
+then loads the constant and stores it. This avoids the `pha`/`pla` pair. The
+existing callers for 65C02 `stz` and constant stores use the widened predicate.
+P4 handles the byte-index case directly; P1 covers numeric-base cases that still
+need a pointer, such as a word index.
 
 ```
-        lda  #<BASE
-        ldy  #>BASE
-        sta  SCRATCH
-        sty  SCRATCH+1
-        ldy  OFFSET
+        ; compute the complete address into SCRATCH
         lda  #VALUE
+        ldy  #0
         sta  (SCRATCH),y
 ```
 
-Saving: 7 cycles per constant store. A 1,000-iteration fill with two arrays does
-this twice per iteration: about 14,000 cycles, 6% of screen construction in the
-measured workload. For non-constant values the existing `tax`/`txa` form stays.
+Saving: 7 cycles per affected constant store by removing `pha`/`pla`. A
+1,000-iteration fill with two arrays does this twice per iteration: about 14,000
+cycles, 6% of screen construction in the measured workload. For non-constant
+values the existing `tax`/`txa` form stays.
 
 Conditions: none beyond "the value is a constant". The value expression must not
 read the scratch pair.
 
-Tests: extend the existing assembly-output tests for constant stores; assert no
-`pha`/`pla` pair around the pointer setup for a numeric base, and that the
-constant is loaded after the `sty`/`sta` pair.
+Tests: `TestExecution6502` checks optimized and unoptimized C64 builds, verifies
+that the constant is loaded after pointer setup with no `pha`/`pla`, and checks
+the written memory byte.
 
 ### P2. Hoist index and constant across consecutive absolute-indexed stores
 
@@ -1000,7 +995,7 @@ compiling test programs with the local build.
 
 | id | verified state | where |
 |---|---|---|
-| P1 | partially implemented: constant-after-pointer paths exist only for a pointer identifier base | `AssignmentAsmGen.kt:658,667-692,731-733`; `PrimitiveAssignmentsGen.kt:2089-2105` |
+| P1 | IMPLEMENTED: numeric constant bases reload constant stores after pointer setup without `pha`/`pla` | `AssignmentAsmGen.kt:660-666,668-748`; `PrimitiveAssignmentsGen.kt:1654-1761,2013-2122`; `TestExecution6502.kt` |
 | P2 | not implemented; the existing index-reload pass cannot match the shape because `lda #imm` sits between `ldy` and the store | `AsmOptimizer.kt:480-501,503-591,249-264` |
 | P3 | not possible as a peephole: `Modification` only supports remove/replace | `AsmOptimizer.kt:73,90-113` |
 | P4 | IMPLEMENTED: numeric-base byte-indexed reads and stores use absolute indexing; zero-page bases retain pointer lowering | `PrimitiveAssignmentsGen.kt:2055-2095`; `AssignmentAsmGen.kt:573-605`; `TestExecution6502.kt` |

@@ -661,7 +661,8 @@ internal class AssignmentAsmGen(
         // addresses for which storeByteInAToAddressExpression can reload a constant byte
         // itself (after computing the pointer), avoiding a tax/txa round-trip through X
         return address is PtBinaryExpression && address.operator=="+" &&
-                address.left is PtIdentifier && address.right.type.isUnsignedWord &&
+                (address.left is PtIdentifier || address.left is PtNumber) &&
+                address.right.type.isUnsignedWord &&
                 (address.right is PtIdentifier || address.right is PtNumber)
     }
 
@@ -738,9 +739,11 @@ internal class AssignmentAsmGen(
 //              // does this ever occur? we could optimize it too, but it seems like a pathological case
 //          }
         }
-        if(saveA) asmgen.out("  pha")
+        if(byteValue==null && saveA) asmgen.out("  pha")
         assignExpressionToVariable(address, "P8ZP_SCRATCH_W2", DataType.UWORD)
-        if(saveA) asmgen.out("  pla")
+        if(byteValue!=null) {
+            asmgen.out("  lda  #${byteValue.toHex()}")
+        } else if(saveA) asmgen.out("  pla")
         asmgen.storeAIntoZpPointerVar("P8ZP_SCRATCH_W2", false)
     }
 

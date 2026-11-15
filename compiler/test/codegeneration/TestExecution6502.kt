@@ -872,6 +872,49 @@ class TestExecution6502 : FunSpec({
         }
     }
 
+    test("constant stores to a numeric base reload after pointer setup") {
+        val src = $$"""
+            %option no_sysinit
+            %launcher none
+            %address $1000
+
+            main {
+                &ubyte poweroff = $f203
+
+                sub start() {
+                    uword @shared index = 7
+                    @(1024 + index) = $2a
+                    poweroff = 1
+                }
+            }
+        """.trimIndent()
+
+        for (optimize in listOf(false, true)) {
+            val compileResult = compileText(C64Target(), optimize, src, outputDir, writeAssembly=true)!!
+            val asmFile = compileResult.compilationOptions.outputDir.resolve(compileResult.compilerAst.name + ".asm")
+            val lines = Files.readAllLines(asmFile).map { it.trim() }
+            val start = lines.indexOfFirst { it.startsWith("p8s_start") && it.endsWith(".proc") }
+            start shouldNotBe -1
+            val end = lines.drop(start + 1).indexOf(".pend")
+            end shouldNotBe -1
+            val subroutine = lines.subList(start + 1, start + 1 + end)
+
+            val pointerHighStore = subroutine.indexOfFirst {
+                (it.startsWith("sta") || it.startsWith("sty")) && it.contains("P8ZP_SCRATCH_W2+1")
+            }
+            val constantLoad = subroutine.indexOf($$"lda  #$2a")
+            val indirectStore = subroutine.indexOfFirst { it.startsWith("sta") && it.contains("(P8ZP_SCRATCH_W2),y") }
+            pointerHighStore shouldNotBe -1
+            constantLoad shouldNotBe -1
+            indirectStore shouldNotBe -1
+            (pointerHighStore < constantLoad && constantLoad < indirectStore) shouldBe true
+            subroutine.count { it == "pha" || it == "pla" } shouldBe 0
+
+            val machine = compileResult.simulate()
+            machine.assertMemory(0x0407, 0x2a)
+        }
+    }
+
     test("union zero-init via memory, write byte and read overlapping word") {
         val src = $$"""
             %option no_sysinit
