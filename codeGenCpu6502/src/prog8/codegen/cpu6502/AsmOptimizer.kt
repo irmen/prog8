@@ -50,6 +50,7 @@ internal fun optimizeAssembly(lines: MutableList<String>, machine: ICompilationT
         var linesByFourteen = getLinesBy(pretrimmed, lines, 14)
         linesByFourteen = runPass(optimizeSameAssignments(linesByFourteen, machine, symbolTable), 14, linesByFourteen)
         linesByFourteen = runPass(optimizeSamePointerIndexingAndUselessBeq(linesByFourteen, machine, symbolTable), 14, linesByFourteen)
+        linesByFourteen = runPass(optimizeSameIndexedConstantStores(linesByFourteen, machine, symbolTable), 14, linesByFourteen)
         linesByFourteen = runPass(optimizeAddWordToSameVariableOrExtraRegisterLoadInWordStore(linesByFourteen), 14, linesByFourteen)
 
         if(!modified)
@@ -498,6 +499,64 @@ private fun canDropIndexReload(
         if (base != NO_MEMORY_WRITE && line.mayWriteBase(base)) return false
     }
     return isNonVolatileIndexOperand(indexLine, machine, symbolTable)
+}
+
+private fun TrimmedLine.isAbsoluteYIndexedStore(): Boolean {
+    if(!instruction.startsWith("sta "))
+        return false
+    val operand = instruction.extractOperandTrimmed()
+    return operand.endsWith(",y") && !operand.startsWith("(")
+}
+
+private fun optimizeSameIndexedConstantStores(
+    linesByFourteen: Sequence<List<TrimmedLine>>,
+    machine: ICompilationTarget,
+    symbolTable: SymbolTable
+): List<Modification> {
+    val mods = linkedMapOf<Int, Modification>()
+    for (lines in linesByFourteen) {
+        for (firstIdx in 0 until lines.size - 5) {
+            val indexLine = lines[firstIdx]
+            val valueLine = lines[firstIdx + 1]
+            val storeLine = lines[firstIdx + 2]
+            if(!indexLine.instruction.startsWith("ldy ") ||
+                    !valueLine.instruction.startsWith("lda ") || !storeLine.isAbsoluteYIndexedStore())
+                continue
+
+            val indexOperand = indexLine.instruction.extractOperandTrimmed()
+            val valueOperand = valueLine.instruction.extractOperandTrimmed()
+            if(indexOperand.isEmpty() || !valueOperand.startsWith("#") || valueOperand.length == 1)
+                continue
+
+            for (reloadIdx in firstIdx + 3 until lines.size - 2) {
+                val reloadLine = lines[reloadIdx]
+                val reloadValueLine = lines[reloadIdx + 1]
+                val reloadStoreLine = lines[reloadIdx + 2]
+                if(!reloadLine.instruction.startsWith("ldy ") ||
+                        reloadLine.instruction.extractOperandTrimmed() != indexOperand ||
+                        !reloadValueLine.instruction.startsWith("lda ") ||
+                        reloadValueLine.instruction.extractOperandTrimmed() != valueOperand ||
+                        !reloadStoreLine.isAbsoluteYIndexedStore() ||
+                        reloadLine.hasLabel() || reloadValueLine.hasLabel())
+                    continue
+
+                val betweenLoads = lines.subList(firstIdx + 2, reloadIdx + 1)
+                if(betweenLoads.any {
+                    val mnemonic = it.mnemonic()
+                    mnemonic != "sta" && mnemonic != "ldy"
+                })
+                    continue
+                val indexWindow = lines.subList(firstIdx, reloadIdx + 1)
+                if(!canDropIndexReload(indexWindow, reloadIdx - firstIdx, indexLine, machine, symbolTable))
+                    continue
+
+                mods.putIfAbsent(reloadLine.index, Modification(reloadLine.index, true, null))
+                mods.putIfAbsent(reloadValueLine.index, Modification(reloadValueLine.index, true, null))
+                break
+            }
+        }
+    }
+    return mods.values.toList()
 }
 
 private fun optimizeSamePointerIndexingAndUselessBeq(linesByFourteen: Sequence<List<TrimmedLine>>, machine: ICompilationTarget, symbolTable: SymbolTable): List<Modification> {

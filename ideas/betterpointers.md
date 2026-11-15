@@ -29,7 +29,7 @@ cannot be carried across statements or loop iterations.
 | id | change | kind | fraction of a drawn screen (measured) | verified state | effort |
 |---|---|---|---|---|---|
 | P1 | load a constant store value after the pointer build | codegen path | ~6% | IMPLEMENTED for numeric bases requiring pointer construction | done |
-| P2 | hoist index and constant across consecutive absolute-indexed stores | asm peephole | applies to code using fixed-address arrays | not present, addable | hours to 1 day |
+| P2 | hoist index and constant across consecutive absolute-indexed stores | asm peephole | applies to code using fixed-address arrays | IMPLEMENTED for repeated absolute-indexed stores | done |
 | P3 | build the address once for two stores to different bases | Simple AST | ~7% | not present, cannot be a peephole | days |
 | P4 | `@(const + ubyte_expr)` emits absolute indexing | codegen rule | closes the last fast-form gap | IMPLEMENTED for numeric bases with byte-variable indexes | done |
 | P5 | pass three byte arguments in A/X/Y | calling convention | ~3-4% | two-argument cliff | 2-3 days |
@@ -45,7 +45,7 @@ The single most important correction from verification: P7 (both halves) is the
 general solution for removing repeated address rebuilds across wide-offset loops
 and calls. P4 removes the rebuild for byte indexes against numeric bases, while
 P1 removes the save/restore around constant stores that still need a pointer build.
-P1, P4, and P9 are implemented.
+P1, P2, P4, and P9 are implemented.
 
 ---
 
@@ -343,15 +343,15 @@ Tests: `TestExecution6502` checks optimized and unoptimized C64 builds, verifies
 that the constant is loaded after pointer setup with no `pha`/`pla`, and checks
 the written memory byte.
 
-### P2. Hoist index and constant across consecutive absolute-indexed stores
+### P2. Hoist index and constant across consecutive absolute-indexed stores (IMPLEMENTED)
 
 Target: default backend, assembly peephole.
 
-Where: `AsmOptimizer.kt` (pass driver at :16-56, `Modification` at :73,
-existing index-reload pass at :503-591 with `canDropIndexReload` at :480-501).
+Where: `optimizeSameIndexedConstantStores` in `AsmOptimizer.kt`, registered in
+the 14-line peephole passes.
 
-Current state, verified: nothing removes the redundancy, and the reason is
-pattern shape, not a missing guard. For
+Original state: the existing index-reload pass could not match this shape because
+`lda #IMM` sits between `ldy` and the store:
 
 ```
         ldy  i
@@ -362,27 +362,12 @@ pattern shape, not a missing guard. For
         sta  PAGE1,y
 ```
 
-- `optimizeSamePointerIndexingAndUselessBeq` requires the instruction right
-  after the first `ldy` to be the indexed access (`lda base,y` or `sta base,y`).
-  Here it is `lda #$20`, so no arm matches at any window offset, and the
-  `canDropIndexReload` guards are never consulted.
-- `optimizeSameAssignments` arm 2 is the right idea for the repeated `lda #imm`
-  but requires `lda/sta/lda/sta` to be adjacent; the interspersed `ldy` defeats
-  it.
-
-Proposed: a new removal-only pass, registered in the driver next to the other
-14-line passes (or in a new window size of 9 for three stores):
-
-- Match a run of `ldy IDX / lda #IMM / sta BASE,y` groups within one window.
-- For each group after the first with the same `IDX` operand and the same `IMM`
-  operand, remove the repeated `ldy` and `lda` lines.
-- Reuse `canDropIndexReload` for the index removal, with the pattern widened to
-  allow the `lda #IMM` line between the index load and the store. Its existing
-  checks already cover Y-clobbering instructions, control flow, labels, writes
-  to the index variable, and indirect-store aliasing.
-- A value reload may only be removed if no intervening line writes A; add a
-  small "writes A" helper, or restrict the pass to runs where the only
-  intervening mnemonics are `sta` and `ldy`.
+Implemented: the pass matches repeated `ldy IDX / lda #IMM / sta BASE,y`
+sequences within a 14-line window. It removes the later `ldy` and `lda` only
+when the index and immediate operands match and intervening instructions preserve
+A. The shared `canDropIndexReload` guard keeps the optimization from crossing
+Y changes, control flow, labels, writes to the index operand, or volatile IO
+reads. Indirect stores are treated conservatively as possible aliases.
 
 Saving: measured on a four-page clear, 101 to about 53 cycles per iteration,
 i.e. 25,000 to 13,500 cycles for 1,000 cells, equal to hand-written cost per
@@ -392,10 +377,9 @@ general `@(BASE + offset)` shape is not affected.
 Conditions: store order is preserved (this is load elimination only). Removal is
 by line index and applied in reverse, so each removed line must be emitted once.
 
-Tests: `TestAsmOptimizer.kt` has 104 cases, including every guard of
-`canDropIndexReload`. Add cases for the hoisted form, for a volatile/IO index,
-for an intervening `iny`, for an intervening indirect store, and for a different
-immediate between groups (must not merge).
+Tests: `TestAsmOptimizer.kt` covers a three-store run, volatile IO indexes,
+intervening `iny`, possible aliasing via indirect stores, and differing
+immediates. Store order is unchanged.
 
 ### P3. Build the address once for two stores to different bases
 
@@ -980,7 +964,7 @@ compiling test programs with the local build.
 | id | verified state | where |
 |---|---|---|
 | P1 | IMPLEMENTED: numeric constant bases reload constant stores after pointer setup without `pha`/`pla` | `AssignmentAsmGen.kt:660-666,668-748`; `PrimitiveAssignmentsGen.kt:1654-1761,2013-2122`; `TestExecution6502.kt` |
-| P2 | not implemented; the existing index-reload pass cannot match the shape because `lda #imm` sits between `ldy` and the store | `AsmOptimizer.kt:480-501,503-591,249-264` |
+| P2 | IMPLEMENTED: removes repeated index and constant loads across safe absolute-indexed stores | `AsmOptimizer.kt:511-560`; `TestAsmOptimizer.kt` |
 | P3 | not possible as a peephole: `Modification` only supports remove/replace | `AsmOptimizer.kt:73,90-113` |
 | P4 | IMPLEMENTED: numeric-base byte-indexed reads and stores use absolute indexing; zero-page bases retain pointer lowering | `PrimitiveAssignmentsGen.kt:2055-2095`; `AssignmentAsmGen.kt:573-605`; `TestExecution6502.kt` |
 | P5 | two-argument cliff confirmed | `FunctionCallAsmGen.kt:29-38,212-244,242`; `ProgramAndVarsGen.kt:564-594,592`; `technical.rst:407-432` |
@@ -997,9 +981,8 @@ Two further facts that affect planning:
 - The assembly optimiser runs for all 6502 targets whenever optimisations are
   enabled (`AsmGen.kt:124-132`) and is only disabled globally by `-noopt`; there
   is no per-pass switch.
-- Its test suite is `codeGenCpu6502/test/TestAsmOptimizer.kt` (104 cases,
-  including every `canDropIndexReload` guard), which is the natural place for
-  P2 tests.
+- Its test suite is `codeGenCpu6502/test/TestAsmOptimizer.kt` (109 cases,
+  including every `canDropIndexReload` guard and P2 regressions).
 
 Behavioural checks run while verifying (compiled with the local build, target
 c64, assembly inspected):

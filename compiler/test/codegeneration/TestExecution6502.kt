@@ -915,6 +915,52 @@ class TestExecution6502 : FunSpec({
         }
     }
 
+    test("same constant and index loads are reused for fixed-address array stores") {
+        val src = $$"""
+            %option no_sysinit
+            %launcher none
+            %address $1000
+
+            main {
+                &ubyte[256] page0 = $0400
+                &ubyte[256] page1 = $0500
+                &ubyte poweroff = $f203
+
+                sub start() {
+                    ubyte @shared index = 7
+                    page0[index] = $20
+                    page1[index] = $20
+                    poweroff = 1
+                }
+            }
+        """.trimIndent()
+
+        for (optimize in listOf(false, true)) {
+            val compileResult = compileText(C64Target(), optimize, src, outputDir, writeAssembly=true)!!
+            val asmFile = compileResult.compilationOptions.outputDir.resolve(compileResult.compilerAst.name + ".asm")
+            val lines = Files.readAllLines(asmFile).map { it.trim() }
+            val start = lines.indexOfFirst { it.startsWith("p8s_start") && it.endsWith(".proc") }
+            start shouldNotBe -1
+            val end = lines.drop(start + 1).indexOf(".pend")
+            end shouldNotBe -1
+            val subroutine = lines.subList(start + 1, start + 1 + end)
+
+            val indexLoads = subroutine.count { it.startsWith("ldy") && it.contains("p8v_index") }
+            val constantLoads = subroutine.count { it == $$"lda  #$20" }
+            val page0Store = subroutine.indexOfFirst { it.startsWith("sta") && it.contains("p8v_page0,y") }
+            val page1Store = subroutine.indexOfFirst { it.startsWith("sta") && it.contains("p8v_page1,y") }
+            indexLoads shouldBe if (optimize) 1 else 2
+            constantLoads shouldBe if (optimize) 1 else 2
+            page0Store shouldNotBe -1
+            page1Store shouldNotBe -1
+            (page0Store < page1Store) shouldBe true
+
+            val machine = compileResult.simulate()
+            machine.assertMemory(0x0407, 0x20)
+            machine.assertMemory(0x0507, 0x20)
+        }
+    }
+
     test("union zero-init via memory, write byte and read overlapping word") {
         val src = $$"""
             %option no_sysinit

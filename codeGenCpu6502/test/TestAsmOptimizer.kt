@@ -279,6 +279,70 @@ class TestAsmOptimizer: FunSpec({
     fun paddedAfterDrop(vararg body: String): MutableList<String> =
         (body.toList() + List(13 - body.size) { "  nop" }).toMutableList()
 
+    fun paddedAfterDrops(removed: Int, vararg body: String): MutableList<String> =
+        (body.toList() + List(14 - removed - body.size) { "  nop" }).toMutableList()
+
+    test("sameIndexedConstantStores: hoists index and constant loads across a run") {
+        val lines = padded(
+            "  ldy  i", $$"  lda  #$20", "  sta  PAGE0,y",
+            "  ldy  i", $$"  lda  #$20", "  sta  PAGE1,y",
+            "  ldy  i", $$"  lda  #$20", "  sta  PAGE2,y", "  rts"
+        )
+        optimize(lines)
+        lines shouldBe paddedAfterDrops(4,
+            "  ldy  i", $$"  lda  #$20", "  sta  PAGE0,y",
+            "  sta  PAGE1,y", "  sta  PAGE2,y", "  rts"
+        )
+    }
+
+    test("sameIndexedConstantStores: keeps loads for a volatile IO index") {
+        val lines = padded(
+            $$"  ldy  c64.$d020", $$"  lda  #$20", "  sta  PAGE0,y",
+            $$"  ldy  c64.$d020", $$"  lda  #$20", "  sta  PAGE1,y", "  rts"
+        )
+        optimize(lines)
+        lines shouldBe padded(
+            $$"  ldy  c64.$d020", $$"  lda  #$20", "  sta  PAGE0,y",
+            $$"  ldy  c64.$d020", $$"  lda  #$20", "  sta  PAGE1,y", "  rts"
+        )
+    }
+
+    test("sameIndexedConstantStores: keeps loads when Y is changed in between") {
+        val lines = padded(
+            "  ldy  i", $$"  lda  #$20", "  sta  PAGE0,y", "  iny",
+            "  ldy  i", $$"  lda  #$20", "  sta  PAGE1,y", "  rts"
+        )
+        optimize(lines)
+        lines shouldBe padded(
+            "  ldy  i", $$"  lda  #$20", "  sta  PAGE0,y", "  iny",
+            "  ldy  i", $$"  lda  #$20", "  sta  PAGE1,y", "  rts"
+        )
+    }
+
+    test("sameIndexedConstantStores: keeps loads when an indirect store may alias the index") {
+        val lines = padded(
+            "  ldy  i", $$"  lda  #$20", "  sta  PAGE0,y", "  sta  (ptr),y",
+            "  ldy  i", $$"  lda  #$20", "  sta  PAGE1,y", "  rts"
+        )
+        optimize(lines)
+        lines shouldBe padded(
+            "  ldy  i", $$"  lda  #$20", "  sta  PAGE0,y", "  sta  (ptr),y",
+            "  ldy  i", $$"  lda  #$20", "  sta  PAGE1,y", "  rts"
+        )
+    }
+
+    test("sameIndexedConstantStores: does not merge different constants") {
+        val lines = padded(
+            "  ldy  i", $$"  lda  #$20", "  sta  PAGE0,y",
+            "  ldy  i", $$"  lda  #$21", "  sta  PAGE1,y", "  rts"
+        )
+        optimize(lines)
+        lines shouldBe padded(
+            "  ldy  i", $$"  lda  #$20", "  sta  PAGE0,y",
+            "  ldy  i", $$"  lda  #$21", "  sta  PAGE1,y", "  rts"
+        )
+    }
+
     test("samePointerIndexing: KEEPS reload when the index variable is written in between") {
         val lines = padded("  ldy  i", "  lda  arr,y", "  inc  i", "  ldy  i", "  sta  arr,y", "  rts")
         optimize(lines)
