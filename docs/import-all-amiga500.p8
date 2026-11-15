@@ -18,6 +18,7 @@
 %import lists
 %import lineclip
 %import math
+%import mobs
 %import prog8_lib
 %import sorting
 %import strings

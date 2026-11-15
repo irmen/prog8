@@ -1456,6 +1456,16 @@ class TestInstructionSelectionOptimizations : FunSpec({
         lines.any { it.contains("move.w  (sp)+,d7") } shouldBe true
     }
 
+    test("square of long uses the software helper on 68000 instead of mulu.l") {
+        val lines = generateAsm(
+            tempRoot.resolve("test-m68k-long-square"),
+            listOf(IRInstructions.binary(Opcode.SQUARE, IRDataType.LONG, 1, 2)),
+            Amiga500Target()
+        )
+        lines.any { it.contains("bsr  p8_umult32") } shouldBe true
+        lines.count { it.contains("mulu.l") } shouldBe 0
+    }
+
     test("dbra peephole does not trigger when body reads the counter slot") {
         val lines = mutableListOf(
             "    move.w  #100,p8b_main.p8v_count",

@@ -500,7 +500,7 @@ class Prog8TextDocumentService: TextDocumentService {
                         "conv", "copper", "coroutines", "custom", "cx16logo", "datatypes",
                         "diskfont", "diskio", "dos", "easygfx", "emudbg", "exec",
                         "floats", "gfx_hires", "gfx_lores", "graphics", "icon", "iffparse",
-                        "intuition", "lineclip", "lists", "lowlevel", "math", "monogfx",
+                        "intuition", "lineclip", "lists", "lowlevel", "math", "mobs", "monogfx",
                         "palette", "petgfx", "petsnd", "playfield", "prog8_lib", "prog8_math",
                         "psg", "ptplayer", "serial", "sorting", "sound",
                         "sprites", "strings", "syslib", "test_stack", "text", "textio",

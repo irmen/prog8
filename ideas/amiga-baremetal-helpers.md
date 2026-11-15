@@ -18,7 +18,7 @@ in vasm mot syntax only; do not target or reference Dragonball/ColdFire.
 ## Shared object metadata
 
 Keep movable-object metadata separate from renderer-specific image data. `Mob`
-lives in the lightweight `amiga_objects` types module imported by `sprites` and
+lives in the lightweight `mobs` types module imported by `sprites` and
 `blitter`; it contains no bitmap pointers and requires no OS libraries.
 
 ```prog8
@@ -35,11 +35,12 @@ struct Mob {
 
 ```
 
-`x_pos`/`y_pos` are the screen coordinates of the image's top-left; the
-client-selected anchor is at `(x_pos + origin_x, y_pos + origin_y)`. Width is
-the exact pixel width and height is in rows. `Mob.state` is a client-defined
-state identifier, independent of rendering. Client code owns animation timing
-and frame selection; image/frame pointers stay in each renderer-specific object.
+`x_pos`/`y_pos` are the screen coordinates of the image's anchor (origin
+point); `origin_x`/`origin_y` is the offset from that anchor to the image's
+top-left, so the top-left is at `(x_pos + origin_x, y_pos + origin_y)` and
+the collision box is `[x_pos + origin_x, x_pos + origin_x + width)` by
+`[y_pos + origin_y, y_pos + origin_y + height)`. With origin `(0, 0)` the
+anchor is the top-left and the box simplifies to `[x_pos, x_pos + width)`.
 
 ## Sprite Helper Library
 
@@ -388,7 +389,7 @@ pointers:
 
 ```prog8
 struct Bob {
-    ^^amiga_objects.Mob mob
+    ^^mobs.Mob mob
     uword depth
     pointer data
     pointer mask

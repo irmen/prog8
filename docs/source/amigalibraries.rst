@@ -221,6 +221,17 @@ modules. Import them the same way as any other library::
     ``PBON`` is always left off, which keeps the timers from driving the
     CIA port B pins.
 
+``mobs``
+    Shared movable-object descriptor types for the Amiga bare-metal helpers:
+    ``mobs.Mob`` (id, x/y position, anchor offsets, width, height, state),
+    ``mobs.Bob`` (a ``Mob`` plus bitplane depth, data and mask pointers) and
+    ``mobs.Sprite`` (a ``Mob`` plus a data pointer, with AGA-specific fields
+    still to be added). Pure data, no OS or library dependencies; ``blitter``
+    and ``sprites`` build on top of ``Mob``. Client code owns animation timing,
+    frame selection and positions. ``collides(a, b)`` and
+    ``contains_point(m, px, py)`` provide origin-aware AABB tests, each with a
+    fast path when the origin is (0, 0).
+
 ``blitter``
     Bare-metal blitter programming, no OS calls: ``copy_rect()`` and
     ``fill_rect()`` (use pattern ``$0000`` to clear or ``$ffff`` to fill),
@@ -337,7 +348,7 @@ modules. Import them the same way as any other library::
     ``imsg_poll()``/``imsg_reply()`` in animation loops. ``imsg_wait()`` blocks
     until a message arrives. The ``rastport`` and ``window`` variables expose the
     handles for direct library calls and IDCMP message handling. See
-    ``examples/amiga/penrose-triangle-os.p8`` for a polling loop. Kickstart 1.3
+    ``examples/amiga/penrose-triangle.p8`` for a polling loop. Kickstart 1.3
     compatible.
 
 Manual additions and tweaks

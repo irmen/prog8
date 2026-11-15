@@ -1,6 +1,6 @@
 
 Prog8 compiler v14.0-BETA3 by Irmen de Jong (irmen@razorvine.net)
-Prerelease version from git commit b7579321 in branch master
+Prerelease version from git commit 93bab5be in branch master
 This software is licensed under the GNU GPL 3.0, see https://www.gnu.org/licenses/gpl.html
 
 Compiling program import-all-amiga1200.p8
@@ -5506,6 +5506,20 @@ math  {
     sin8u  (ubyte angle) -> ubyte
     sinr8  (ubyte radians) -> byte
     sinr8u  (ubyte radians) -> ubyte
+}
+
+
+LIBRARY MODULE NAME: mobs
+-------------------------
+
+mobs  {
+    struct Bob
+    struct Mob
+    struct Sprite
+    collides  (^^mobs.Mob a @A0, ^^mobs.Mob b @A1) -> bool @Pz
+    contains_point  (^^mobs.Mob m @A0, word px @D0, word py @D1) -> bool @Pz
+    distance  (^^mobs.Mob a, ^^mobs.Mob b) -> uword
+    distance_sq  (^^mobs.Mob a, ^^mobs.Mob b) -> long
 }
 
 

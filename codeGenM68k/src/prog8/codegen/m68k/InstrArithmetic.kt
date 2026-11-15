@@ -277,16 +277,27 @@ internal fun AsmGen.translateArithmetic(insn: IRInstruction) {
                     emitStoreD0(dstReg, IRDataType.WORD)
                 }
                 IRDataType.LONG, IRDataType.POINTER -> {
-                    directDataPair(dstReg, srcReg, IRDataType.LONG)?.let { (d, s) ->
-                        if (s != d) emitLine("move.l  $s, $d")
-                        emitLine("mulu.l  $d, $d")
+                    if (program.options.compTarget.cpu < CpuType.M68020) {
+                        // 68000: no mulu.l; square via the software helper (d0 = value, d1 = value).
+                        emitLoadD0(srcReg, IRDataType.LONG)
+                        emitLine("move.l  $SCRATCH_D0, $SCRATCH_D1")
                         invalidateD0Cache()
-                        return
+                        emitLine("movem.l  d2-d7,-(sp)")
+                        emitLine("bsr  p8_umult32")
+                        emitLine("movem.l  (sp)+,d2-d7")
+                        emitStoreD0(dstReg, IRDataType.LONG)
+                    } else {
+                        directDataPair(dstReg, srcReg, IRDataType.LONG)?.let { (d, s) ->
+                            if (s != d) emitLine("move.l  $s, $d")
+                            emitLine("mulu.l  $d, $d")
+                            invalidateD0Cache()
+                            return
+                        }
+                        emitLoadD0(srcReg, IRDataType.LONG)
+                        emitLine("mulu.l  $SCRATCH_D0, $SCRATCH_D0")
+                        invalidateD0Cache()
+                        emitStoreD0(dstReg, IRDataType.LONG)
                     }
-                    emitLoadD0(srcReg, IRDataType.LONG)
-                    emitLine("mulu.l  $SCRATCH_D0, $SCRATCH_D0")
-                    invalidateD0Cache()
-                    emitStoreD0(dstReg, IRDataType.LONG)
                 }
             }
         }
