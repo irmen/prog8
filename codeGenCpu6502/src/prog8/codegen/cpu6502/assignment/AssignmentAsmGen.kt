@@ -592,6 +592,16 @@ internal class AssignmentAsmGen(
                         return
                     }
                 }
+
+                val numericBase = result.first as? PtNumber
+                val byteIndex = result.second as? PtIdentifier
+                // Keep zero-page bases on the pointer path; zp,X wraps within page 0.
+                if(numericBase!=null && numericBase.number.toUInt() >= 0x100u && byteIndex!=null) {
+                    val indexName = asmgen.asmVariableName(byteIndex)
+                    asmgen.out("  ldx  $indexName |  lda  ${numericBase.number.toHex()},x")
+                    assignRegisterByte(target, CpuRegister.A, false, true)
+                    return
+                }
             }
 
             if(asmgen.tryOptimizedPointerAccessWithA(address, false)) {

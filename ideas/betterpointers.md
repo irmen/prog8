@@ -31,7 +31,7 @@ cannot be carried across statements or loop iterations.
 | P1 | load a constant store value after the pointer build | codegen path | ~6% | partially present, one shape missing | hours |
 | P2 | hoist index and constant across consecutive absolute-indexed stores | asm peephole | applies to code using fixed-address arrays | not present, addable | hours to 1 day |
 | P3 | build the address once for two stores to different bases | Simple AST | ~7% | not present, cannot be a peephole | days |
-| P4 | `@(const + ubyte_expr)` emits absolute indexing | codegen rule | closes the last fast-form gap | detector present, store path not using it | 1-2 days |
+| P4 | `@(const + ubyte_expr)` emits absolute indexing | codegen rule | closes the last fast-form gap | IMPLEMENTED for numeric bases with byte-variable indexes | done |
 | P5 | pass three byte arguments in A/X/Y | calling convention | ~3-4% | two-argument cliff | 2-3 days |
 | P6 | prefer inline shift-add over a library call for `*const` | codegen policy | ~1% | deliberate size choice, no policy knob | hours |
 | P7a | address strength reduction within a loop | IR / Simple AST | ~20% for bulk fill loops | not present | 1 week |
@@ -42,9 +42,10 @@ cannot be carried across statements or loop iterations.
 | P11 | inline small leaf subroutines | optimiser | ~8-10%, enables P7b | inliner exists, blocked by a 6502 parameter limit | 1 week |
 
 The single most important correction from verification: P7 (both halves) is the
-only item that removes the per-store address rebuild. Everything else shaves a
-few cycles per store. P1, P4 and P9 are cheap and should be done first because
-they are local and low risk.
+general solution for removing repeated address rebuilds across wide-offset loops
+and calls. P4 also removes the rebuild for byte indexes against numeric bases;
+the remaining items mostly shave a few cycles per store. P4 is implemented.
+P1 and P9 are the remaining cheap, local changes.
 
 ---
 
@@ -435,17 +436,19 @@ general base difference, a 16-bit add still beats a rebuild.
 Saving: about 9 cycles per cell pair, roughly 7% of screen construction.
 
 Conditions: same offset expression, no call between the stores (a call may
-clobber the shared scratch pair). If P4 lands, this item becomes much less
-important for byte-sized offsets, because those become two 5-cycle absolute
-indexed stores with no pointer at all. Do P4 first and re-measure.
+clobber the shared scratch pair). With P4 implemented, this item is much less
+important for byte-sized offsets, because those become absolute-indexed stores
+with no pointer at all. Re-measure before implementing P3.
 
 Tests: assembly-output test for the pair; a case where the low bytes differ (use
 the 16-bit adjust, not the high-byte-only form); a case with an intervening call
 (must rebuild).
 
-### P4. `@(const + ubyte_expr)` should use absolute indexing
+### P4. `@(const + ubyte_expr)` uses absolute indexing (IMPLEMENTED)
 
 Target: default backend.
+
+Status: IMPLEMENTED in the default 6502 backend.
 
 Where: `AsmGen.pointerViaIndexRegisterPossible` (:2256-2290) already detects
 `word|pointer + ubyte` and returns the pair. The array store path uses it:
@@ -453,39 +456,37 @@ Where: `AsmGen.pointerViaIndexRegisterPossible` (:2256-2290) already detects
 `addressOfIdentifier != null`. The read side has an analogous fast path in
 `AssignmentAsmGen.kt:574-600`.
 
-Current state, verified: for a numeric base the detection succeeds, but the
-callers immediately cast the left side to `PtAddressOf` and require an
-identifier, which a `PtNumber` is not. Control then falls through to
-`tryOptimizedPointerAccessWithA` and finally to the scratch rebuild, so the
-29-cycle form is used even though the index is a byte.
+Original failure: for a numeric base the detection succeeded, but the callers
+immediately cast the left side to `PtAddressOf` and require an identifier,
+which a `PtNumber` is not. Control then fell through to
+`tryOptimizedPointerAccessWithA` and finally to the scratch rebuild.
 
-Proposed: add a numeric-base branch wherever the array branch exists, emitting
-absolute indexed addressing:
+Implemented: both the byte read and store paths now recognize a numeric
+`PtNumber` base and byte-index identifier, and emit absolute indexed access:
 
 ```
         ldx  OFFSET
-        lda  #VALUE
-        sta  BASE,x        ; 5 cycles plus the index load
+        lda  BASE,x
+        ; or sta BASE,x when storing
 ```
 
-For the store path that means `PrimitiveAssignmentsGen.kt` (the `PtNumber`
-case next to the identifier case) and the equivalent early branch in
-`AssignmentAsmGen.kt:574` for reads.
+The store value is already in A or is loaded as needed. More complex byte-index
+expressions retain the existing fallback. Bases below `$0100` also retain the
+pointer path: `zp,X` wraps within zero page instead of carrying into `$0100`.
 
-Saving: for byte-sized offsets, 29 to about 7 cycles per store. This is the
-single cheapest change per line of code in the plan. It does not help the
-general word-offset shape, but it closes the last gap: after P4, `@(BASE + (i))`
-costs the same as the `uword base` idiom of section 2.6, without requiring a
+The absolute-indexed store itself is 5 cycles; loading X and the store value
+adds to the complete source-level cost. In the small read/write test, the
+generated code shrank from 170 to 154 bytes. This does not help the general
+word-offset shape, but closes the byte-index gap without requiring a pointer
 variable or a lucky zero page promotion.
 
-Conditions: 8-bit index, constant base, and the natural 64K wrap is acceptable
-(which is what absolute indexing does). `BASE + 255` must not cross into a
-region the caller does not expect; since the index is a byte this is the same
-guarantee absolute indexed addressing gives for arrays, so no new restriction.
+Conditions: 8-bit index, numeric constant base at or above `$0100`, and the
+natural 64K wrap is acceptable (which is what absolute indexing does).
+`BASE + 255` must not cross into a region the caller does not expect.
 
-Tests: assembly-output tests for store and read with a byte index and a numeric
-base; a case with a uword index (must keep the current path); a case where the
-base is a pointer identifier (must keep the existing path).
+Tests: `TestExecution6502` checks generated reads and stores plus memory results
+for optimized and unoptimized C64 builds. It also checks that a zero-page base
+whose byte index crosses `$00ff` retains 16-bit carry behavior.
 
 ### P5. Pass three byte arguments in A/X/Y
 
@@ -765,7 +766,7 @@ of screen construction.
 
 Conditions: must not fire for the already-fast forms (`@(zp_cursor)`, a
 pointer-identifier base with a constant offset, a variable base definitely in zero
-page, or a byte index once P4 lands).
+page, or a byte-indexed numeric base handled by P4).
 
 Tests: add AstChecker tests that assert the warning fires for the slow shape and
 does not fire for the fast shapes.
@@ -935,8 +936,8 @@ suite, not just this workload.
   syntax?** Fixed-address page arrays already reach 5 to 6 cycles per store and
   need no compiler work; a better diagnostic plus P4 may be enough to steer
   users there, with P7 and P10 as the deeper fixes.
-- **Open question: P3 after P4.** If P4 makes byte-indexed pairs two absolute
-  indexed stores, P3 only remains for word offsets. Re-measure before
+- **Open question: P3 after P4.** P4 makes byte-indexed pairs absolute-indexed
+  accesses, so P3 mainly remains for word offsets. Re-measure before
   implementing P3 at all.
 - **Open question: is the 256-byte cap on byte arrays load bearing?** If it
   exists only because of the 8-bit index, P4 makes it less relevant; if it
@@ -1002,7 +1003,7 @@ compiling test programs with the local build.
 | P1 | partially implemented: constant-after-pointer paths exist only for a pointer identifier base | `AssignmentAsmGen.kt:658,667-692,731-733`; `PrimitiveAssignmentsGen.kt:2089-2105` |
 | P2 | not implemented; the existing index-reload pass cannot match the shape because `lda #imm` sits between `ldy` and the store | `AsmOptimizer.kt:480-501,503-591,249-264` |
 | P3 | not possible as a peephole: `Modification` only supports remove/replace | `AsmOptimizer.kt:73,90-113` |
-| P4 | detector exists, callers require an identifier so a numeric base falls through | `AsmGen.kt:2256-2290`; `PrimitiveAssignmentsGen.kt:2049-2080`; `AssignmentAsmGen.kt:574-600` |
+| P4 | IMPLEMENTED: numeric-base byte-indexed reads and stores use absolute indexing; zero-page bases retain pointer lowering | `PrimitiveAssignmentsGen.kt:2055-2095`; `AssignmentAsmGen.kt:573-605`; `TestExecution6502.kt` |
 | P5 | two-argument cliff confirmed | `FunctionCallAsmGen.kt:29-38,212-244,242`; `ProgramAndVarsGen.kt:564-594,592`; `technical.rst:407-432` |
 | P6 | deliberate size choice; inline expansion exists but is not preferred for the 13 table constants | `AsmGen.kt:56,60`; `BinaryOpAssignmentsGen.kt:457-536`; `ConstMultiply.kt:17-18,25` |
 | P7a | not implemented; only 14 free ZP bytes, three 2-byte slots | `VariableAllocator.kt:49-121,137-170`; `AstPreprocessor.kt:308-317`; `TestZeropageAllocation.kt:119,181-185` |

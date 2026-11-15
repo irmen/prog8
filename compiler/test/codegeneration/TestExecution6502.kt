@@ -6,6 +6,7 @@ import io.kotest.matchers.collections.shouldNotBeEmpty
 import io.kotest.matchers.longs.shouldBeLessThan
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.shouldNotBe
+import prog8.code.target.C64Target
 import prog8.code.target.Cx16Target
 import prog8tests.helpers.CapturingSerialIO
 import prog8tests.helpers.ErrorReporterForTests
@@ -825,6 +826,49 @@ class TestExecution6502 : FunSpec({
             machine.assertMemory(0x2200, 160)    // Point.x lsb
             machine.assertMemory(0x2201, 0)      // Point.x msb
             machine.assertMemory(0x2202, 120)    // Point.y
+        }
+    }
+
+    test("constant address plus byte index uses absolute indexed access") {
+        val src = $$"""
+            %option no_sysinit
+            %launcher none
+            %address $1000
+
+            main {
+                const uword low_base = 248
+                &ubyte poweroff = $f203
+                &ubyte result = $3000
+
+                sub start() {
+                    ubyte @shared index = 7
+                    ubyte @shared low_index = 16
+
+                    @(1024 + index) = $2a
+                    result = @(1024 + index)
+                    @(low_base + low_index) = $55
+                    poweroff = 1
+                }
+            }
+        """.trimIndent()
+
+        for (optimize in listOf(false, true)) {
+            val compileResult = compileText(C64Target(), optimize, src, outputDir, writeAssembly=true)!!
+            val asmFile = compileResult.compilationOptions.outputDir.resolve(compileResult.compilerAst.name + ".asm")
+            val lines = Files.readAllLines(asmFile).map { it.trim() }
+            val start = lines.indexOfFirst { it.startsWith("p8s_start") && it.endsWith(".proc") }
+            start shouldNotBe -1
+            val end = lines.drop(start + 1).indexOf(".pend")
+            end shouldNotBe -1
+            val subroutine = lines.subList(start + 1, start + 1 + end)
+
+            subroutine.count { it.startsWith("sta") && it.contains("0400") && it.endsWith(",x") } shouldBe 1
+            subroutine.count { it.startsWith("lda") && it.contains("0400") && it.endsWith(",x") } shouldBe 1
+
+            val machine = compileResult.simulate()
+            machine.assertMemory(0x0407, 0x2a)
+            machine.assertMemory(0x3000, 0x2a)
+            machine.assertMemory(0x0108, 0x55)
         }
     }
 

@@ -2083,6 +2083,16 @@ internal class PrimitiveAssignmentsGen(
                             return
                         }
                     }
+                    val numericBase = result.first as? PtNumber
+                    val byteIndex = result.second as? PtIdentifier
+                    // Keep zero-page bases on the pointer path; zp,X wraps within page 0.
+                    if(numericBase!=null && numericBase.number.toUInt() >= 0x100u && byteIndex!=null) {
+                        val indexName = asmgen.asmVariableName(byteIndex)
+                        asmgen.out("  ldx  $indexName")
+                        if(byteValue!=null) asmgen.out("  lda  #${byteValue.toHex()}")
+                        asmgen.out("  sta  ${numericBase.number.toHex()},x")
+                        return
+                    }
                 }
 
                 if(byteValue!=null) {
