@@ -37,7 +37,7 @@ cannot be carried across statements or loop iterations.
 | P7a | address strength reduction within a loop | IR / Simple AST | ~20% for bulk fill loops | not present | 1 week |
 | P7b | the same across a call boundary | IR / Simple AST | ~10-15% for cell-by-cell drawing | not present, needs P11 or a cache | 1-2 weeks |
 | P8 | branch-chain compound conditions | codegen (port from IR) | ~1% here, general | not present, algorithm exists in the IR backend | 2-5 days |
-| P9 | lint: warn on scratch-pointer stores | diagnostics | locates the problem in user code | no such lint exists | hours |
+| P9 | lint: warn on scratch-pointer stores | diagnostics | locates the problem in user code | IMPLEMENTED for slow 6502 direct stores | done |
 | P10 | split loops at page boundaries (stretch) | Simple AST / IR | up to ~30% for bulk fills | not present | weeks |
 | P11 | inline small leaf subroutines | optimiser | ~8-10%, enables P7b | inliner exists, blocked by a 6502 parameter limit | 1 week |
 
@@ -45,7 +45,7 @@ The single most important correction from verification: P7 (both halves) is the
 general solution for removing repeated address rebuilds across wide-offset loops
 and calls. P4 removes the rebuild for byte indexes against numeric bases, while
 P1 removes the save/restore around constant stores that still need a pointer build.
-P1 and P4 are implemented; P9 is the remaining cheap, local diagnostic.
+P1, P4, and P9 are implemented.
 
 ---
 
@@ -723,48 +723,32 @@ a compound condition, asserting that no `lda #1`/`lda #0` materialisation appear
 in a condition context. `simulate()` tests for truth values, especially
 short-circuit cases with side effects in the right operand.
 
-### P9. Lint warning on scratch-pointer stores
+### P9. Lint warning on scratch-pointer stores (IMPLEMENTED)
 
 Target: diagnostics.
 
-Where: `AstChecker` (`compiler/.../astprocessing/AstChecker.kt:18`, run twice
-from `processAst`/`postprocessAst`). Warnings go through
-`errors.warn(msg, position)` (`IErrorReporter.kt:3-7`,
-`ErrorReporter.kt:21-23`); positions are full file/line/column. There is no
-per-message ID registry and no per-line suppression; existing categories are
-gated by flags such as `-ignorefootguns` (`CompilerMain.kt:86`,
-`AstChecker.kt:758`), which is the precedent to follow.
+Where: `AstChecker.visit(DirectMemoryWrite)` in
+`compiler/src/prog8/compiler/astprocessing/AstChecker.kt`. Warnings go through
+`errors.warn(msg, position)` and are gated by `-ignorefootguns`.
 
-Current state, verified: there is no lint of any kind for `@(...)` accesses,
-memory-mapped declarations (only hard errors for illegal declarations,
-`AstChecker.kt:1085-1093`), or address arithmetic. Existing performance
-diagnostics are unrelated (`AstChecker.kt:549-550` warns about many parameters).
+Original state: there was no lint for slow `@(...)` stores or address arithmetic.
 
-Proposed: when a store targets `@(constant + variable)` where the variable is not
-byte-sized, or where the base is not a pointer identifier, emit:
+Implemented: on 6502-family targets, direct stores with a dynamic `+` address
+offset warn when they may rebuild a scratch pointer. The checker skips library
+code, constant offsets, the P4 absolute-indexed form, and byte-indexed accesses
+through a base known to be in zero page.
 
-> this store goes through a rebuilt scratch pointer (26 to 29 cycles). Consider
-> keeping the base in a `uword` variable (ideally `@zp`) and indexing it with a
-> byte, which becomes `sta (zp),y` (10 cycles), or use a fixed-address page array
+The diagnostic is:
+
+> this store may rebuild a scratch pointer (many cpu cycles); consider a
+> zero-page uword base with a byte index, or a fixed-address page array
 > (`&ubyte[256] page = ADDRESS`).
 
-The first suggestion matters because it is available today and needs no new
-compiler feature (see 2.6); the second is the alternative that reaches absolute
-indexed stores. Gate the warning behind a flag in the style of `-ignorefootguns`
-if it proves noisy, and consider `errors.info` rather than `errors.warn` for the
-first release: the inliner already uses `info` for a similar advisory
-(`Inliner.kt:386`).
+It is advisory only; it does not change code generation.
 
-Saving: no cycles, but it points users at the exact source locations that
-dominate runtime. In the measured workload three locations account for about 40%
-of screen construction.
-
-Conditions: must not fire for the already-fast forms (`@(zp_cursor)`, a
-pointer-identifier base with a constant offset, a variable base definitely in zero
-page, or a byte-indexed numeric base handled by P4).
-
-Tests: add AstChecker tests that assert the warning fires for the slow shape and
-does not fire for the fast shapes.
+Tests: `TestAstChecks` verifies warnings for word-indexed numeric bases and
+non-zero-page pointer bases, and no warning for the P4 byte-indexed path,
+constant offsets, or a required-zero-page cursor.
 
 ### P10 (stretch). Split loops at page boundaries
 
@@ -1004,7 +988,7 @@ compiling test programs with the local build.
 | P7a | not implemented; only 14 free ZP bytes, three 2-byte slots | `VariableAllocator.kt:49-121,137-170`; `AstPreprocessor.kt:308-317`; `TestZeropageAllocation.kt:119,181-185` |
 | P7b | not implemented; blocked on inlining or on a callee-side cache | as P7a, plus `Inliner.kt:283-319` |
 | P8 | not implemented; the IR backend already has the recursive algorithm | `BinaryOpAssignmentsGen.kt:1617-1765`; `IfElseAsmGen.kt:55-67,290-307,339-340`; `CodeDesugarer.kt:188-201`; `IRCodeGen.kt:1501-1542` |
-| P9 | no lint for `@(...)` exists; warnings go through `AstChecker` and `errors.warn` | `AstChecker.kt:18,1085-1093,758`; `IErrorReporter.kt:3-7` |
+| P9 | IMPLEMENTED: warns on slow 6502 direct memory stores; `-ignorefootguns` suppresses it | `AstChecker.kt:2672-2733`; `TestAstChecks.kt` |
 | P10 | not implemented | - |
 | P11 | inliner exists and is on by default, but 6502 is limited to one parameter | `Inliner.kt:166-186,271-346,283-319`; `Extensions.kt:60-62`; grammar `:362,:379` |
 

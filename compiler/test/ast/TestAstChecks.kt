@@ -428,6 +428,34 @@ main {
         errors.warnings[2] shouldContain "footgun"
     }
 
+    test("slow direct memory stores are warned, fast forms are not") {
+        val src = $$"""
+            %zeropage basicsafe
+            main {
+                sub start() {
+                    uword @shared word_offset = 7
+                    ubyte @shared byte_offset = 7
+                    uword @requirezp zp_cursor = $2000
+                    uword @shared @nozp non_zp_cursor = $2100
+
+                    @(1024 + word_offset) = 42
+                    @(1024 + byte_offset) = 43
+                    @(zp_cursor) = 48
+                    @(zp_cursor + 4) = 44
+                    @(zp_cursor + byte_offset) = 45
+                    @(non_zp_cursor + byte_offset) = 46
+                    @(zp_cursor + word_offset) = 47
+                }
+            }
+        """.trimIndent()
+
+        val errors = ErrorReporterForTests(keepMessagesAfterReporting = true)
+        compileText(C64Target(), false, src, outputDir, writeAssembly = false, errors = errors) shouldNotBe null
+        errors.errors.size shouldBe 0
+        errors.warnings.size shouldBe 3
+        errors.warnings.all { "scratch pointer" in it } shouldBe true
+    }
+
     test("reg params R0-R15 cannot be used for invalid types") {
         val src="""
 main {
