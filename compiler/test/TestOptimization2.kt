@@ -418,6 +418,42 @@ main {
         binExpr.right shouldBe instanceOf<NumericLiteral>()
     }
 
+    test("inline call with pointer struct parameter substitutes the deref chain base") {
+        // Regression: inlining a sub whose body accesses p.field left the formal
+        // parameter name in the PtrDereference chain, breaking both the inlined
+        // expression and the 'same argument' optimizer check.
+        val src = """
+main {
+    struct Point {
+        word x
+        word y
+    }
+    inline sub fx(^^Point p) -> word { return p.x }
+    sub start() {
+        ^^Point p1 = memory("p1", 2, 1)
+        ^^Point p2 = memory("p2", 2, 1)
+        word m = fx(p1)
+        word n = fx(p2)
+        if m != n {
+            cx16.r0 = 1
+        }
+    }
+}"""
+        val result = compileText(Cx16Target(), true, src, outputDir, writeAssembly = false)!!
+        val startSub = result.compilerAst.entrypoint
+        val derefs = mutableListOf<PtrDereference>()
+        object : IAstVisitor {
+            override fun visit(ptrDereference: PtrDereference) {
+                derefs.add(ptrDereference)
+                super.visit(ptrDereference)
+            }
+        }.let { visitor -> startSub.accept(visitor) }
+        derefs.size shouldBe 2
+        val bases = derefs.map { it.chain.first() }.sorted()
+        bases shouldBe listOf("p1", "p2")
+        derefs.all { it.chain.last() == "x" } shouldBe true
+    }
+
     xtest("inline call with two return values and two parameters") {
         // Tests that function calls returning two values with two parameters are inlined
         // and that both parameters are correctly substituted

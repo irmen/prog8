@@ -666,6 +666,35 @@ class Inliner(private val program: Program, private val options: CompilationOpti
                 is BinaryExpression -> BinaryExpression(substitute(n.left) as Expression, n.operator, substitute(n.right) as Expression, n.position)
                 is PrefixExpression -> PrefixExpression(n.operator, substitute(n.expression) as Expression, n.position)
                 is DirectMemoryRead -> DirectMemoryRead(substitute(n.addressExpression) as Expression, n.position)
+                is PtrDereference -> {
+                    // chain[0] is the base variable; when it names a parameter, splice the
+                    // argument's identifier path in front of the field segments (the same
+                    // pattern as alias un-rewriting in LiteralsToAutoVarsAndRecombineIdentifiers).
+                    val baseTarget = n.firstTarget()
+                    if (baseTarget is VarDecl && baseTarget in paramMap) {
+                        val arg = paramMap[baseTarget]!!
+                        if (arg is IdentifierReference)
+                            PtrDereference(arg.nameInSource + n.chain.drop(1), n.derefLast, n.position)
+                        else throw CannotInlineException()
+                    } else n.copy()
+                }
+                is ArrayIndexedPtrDereference -> {
+                    val headName = n.chain.firstOrNull()?.first
+                    val baseTarget = headName?.let { n.definingScope.lookup(it) }
+                    val tail = n.chain.drop(1).map { elem ->
+                        elem.first to elem.second?.let { ArrayIndex(substitute(it.indexExpr) as Expression, it.position) }
+                    }
+                    if (baseTarget is VarDecl && baseTarget in paramMap) {
+                        val arg = paramMap[baseTarget]!!
+                        if (arg is IdentifierReference && n.chain.first().second == null)
+                            ArrayIndexedPtrDereference(arg.nameInSource.map { it to (null as ArrayIndex?) } + tail, n.derefLast, n.position)
+                        else throw CannotInlineException()
+                    } else {
+                        val head = n.chain.firstOrNull()
+                            ?.let { elem -> elem.first to elem.second?.let { ArrayIndex(substitute(it.indexExpr) as Expression, it.position) } }
+                        ArrayIndexedPtrDereference(listOfNotNull(head) + tail, n.derefLast, n.position)
+                    }
+                }
                 is ArrayIndexedExpression -> ArrayIndexedExpression(
                     n.plainarrayvar?.let {
                         val subId = substitute(it)
