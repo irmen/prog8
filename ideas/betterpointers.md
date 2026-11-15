@@ -30,7 +30,7 @@ cannot be carried across statements or loop iterations.
 |---|---|---|---|---|---|
 | P1 | load a constant store value after the pointer build | codegen path | ~6% | IMPLEMENTED for numeric bases requiring pointer construction | done |
 | P2 | hoist index and constant across consecutive absolute-indexed stores | asm peephole | applies to code using fixed-address arrays | IMPLEMENTED for repeated absolute-indexed stores | done |
-| P3 | build the address once for two stores to different bases | Simple AST | ~7% | not present, cannot be a peephole | days |
+| P3 | build the address once for two stores to different bases | codegen | ~7% | IMPLEMENTED for adjacent numeric-base stores with a shared word index | done |
 | P4 | `@(const + ubyte_expr)` emits absolute indexing | codegen rule | closes the last fast-form gap | IMPLEMENTED for numeric bases with byte-variable indexes | done |
 | P5 | pass three byte arguments in A/X/Y | calling convention | ~3-4% | two-argument cliff | 2-3 days |
 | P6 | prefer inline shift-add over a library call for `*const` | codegen policy | ~1% | deliberate size choice, no policy knob | hours |
@@ -45,7 +45,7 @@ The single most important correction from verification: P7 (both halves) is the
 general solution for removing repeated address rebuilds across wide-offset loops
 and calls. P4 removes the rebuild for byte indexes against numeric bases, while
 P1 removes the save/restore around constant stores that still need a pointer build.
-P1, P2, P4, and P9 are implemented.
+P1, P2, P3, P4, and P9 are implemented.
 
 ---
 
@@ -381,25 +381,21 @@ Tests: `TestAsmOptimizer.kt` covers a three-store run, volatile IO indexes,
 intervening `iny`, possible aliasing via indirect stores, and differing
 immediates. Store order is unchanged.
 
-### P3. Build the address once for two stores to different bases
+### P3. Build the address once for two stores to different bases (IMPLEMENTED)
 
-Target: default backend, Simple AST or codegen. **Corrected: this cannot be an
-assembly peephole.**
+Target: default backend codegen.
 
-Where: address lowering for assignment groups. Related existing helpers:
-`AsmGen.pointerViaIndexRegisterPossible` (:2256) and the two explicit fast paths
-listed under P1.
+Where: adjacent-statement pairing in `AsmGen.translateStatements` and
+`AssignmentAsmGen.tryTranslateMemoryStorePair`.
 
-Current state, verified: `Modification` in `AsmOptimizer.kt:73` supports only
-remove and replace of existing lines; `apply` (:90-113) does `removeAt`/`set`.
-There is no insertion, and every pass assumes a fixed-size window whose length
-does not change. Building a pointer and switching the stores to `(zp),y` is a
-structural rewrite, so it does not belong in that file.
+Implemented: consecutive direct byte stores with a shared `uword` identifier
+offset and numeric bases at or above `$0100` share the first computed address.
+The second base difference adjusts the scratch pointer by one byte when its low
+byte is zero, or by the full word otherwise. Calls and non-matching statement
+shapes retain ordinary address lowering. Simple variable and literal byte
+values are accepted; complex values fall back to the regular path.
 
-Proposed: at the point where an assignment group is translated, detect that a
-second store in the same statement sequence uses an address expression equal to
-the first plus a constant, and materialise the first pointer once, then adjust
-the high byte for the second. Concretely, for the screen/colour pair:
+For the screen/colour pair:
 
 ```
         lda  OFFSET / sta SCRATCH / lda OFFSET+1 / clc / adc #>BASE / sta SCRATCH+1
@@ -414,14 +410,15 @@ general base difference, a 16-bit add still beats a rebuild.
 
 Saving: about 9 cycles per cell pair, roughly 7% of screen construction.
 
-Conditions: same offset expression, no call between the stores (a call may
-clobber the shared scratch pair). With P4 implemented, this item is much less
-important for byte-sized offsets, because those become absolute-indexed stores
-with no pointer at all. Re-measure before implementing P3.
+Conditions: the statements must be adjacent, use the same word-index variable,
+and have simple values. The `BASE >= $0100` guard avoids confusing the common
+zero-page-pointer-plus-small-offset form with a numeric base. With P4
+implemented, byte-sized offsets to numeric bases continue to use absolute
+indexing instead.
 
-Tests: assembly-output test for the pair; a case where the low bytes differ (use
-the 16-bit adjust, not the high-byte-only form); a case with an intervening call
-(must rebuild).
+Tests: `TestExecution6502` checks the high-byte-only adjustment, the full
+16-bit adjustment when low bytes differ, and fallback across an intervening
+call. Both optimized and unoptimized builds are simulated for the primary pair.
 
 ### P4. `@(const + ubyte_expr)` uses absolute indexing (IMPLEMENTED)
 
@@ -816,7 +813,7 @@ are measured.
 | 0 | today | 100% (reference) | - |
 | 1 | P9 | no change; the problem becomes visible | none |
 | 2 | P1, P4 | about 12% faster | low, local codegen |
-| 3 | P3 (re-measure after P4; may largely be subsumed) | up to 7% | low |
+| 3 | P3 | up to 7% | low |
 | 4 | P2 | nothing for `@(...)` code; large for array-based drawing | low |
 | 5 | P8 | about 1-2% here, more in condition-heavy code | low |
 | 6 | P5 | about 4% | medium: calling convention |
@@ -899,9 +896,8 @@ suite, not just this workload.
   syntax?** Fixed-address page arrays already reach 5 to 6 cycles per store and
   need no compiler work; a better diagnostic plus P4 may be enough to steer
   users there, with P7 and P10 as the deeper fixes.
-- **Open question: P3 after P4.** P4 makes byte-indexed pairs absolute-indexed
-  accesses, so P3 mainly remains for word offsets. Re-measure before
-  implementing P3 at all.
+- **P3 after P4.** P4 handles byte-indexed pairs as absolute-indexed accesses;
+  P3 remains useful for word offsets and is implemented for that case.
 - **Open question: is the 256-byte cap on byte arrays load bearing?** If it
   exists only because of the 8-bit index, P4 makes it less relevant; if it
   exists for layout reasons, a memory-mapped array spanning pages would need its
@@ -965,7 +961,7 @@ compiling test programs with the local build.
 |---|---|---|
 | P1 | IMPLEMENTED: numeric constant bases reload constant stores after pointer setup without `pha`/`pla` | `AssignmentAsmGen.kt:660-666,668-748`; `PrimitiveAssignmentsGen.kt:1654-1761,2013-2122`; `TestExecution6502.kt` |
 | P2 | IMPLEMENTED: removes repeated index and constant loads across safe absolute-indexed stores | `AsmOptimizer.kt:511-560`; `TestAsmOptimizer.kt` |
-| P3 | not possible as a peephole: `Modification` only supports remove/replace | `AsmOptimizer.kt:73,90-113` |
+| P3 | IMPLEMENTED: adjacent same-offset direct stores reuse one scratch pointer | `AsmGen.kt`; `AssignmentAsmGen.kt`; `TestExecution6502.kt` |
 | P4 | IMPLEMENTED: numeric-base byte-indexed reads and stores use absolute indexing; zero-page bases retain pointer lowering | `PrimitiveAssignmentsGen.kt:2055-2095`; `AssignmentAsmGen.kt:573-605`; `TestExecution6502.kt` |
 | P5 | two-argument cliff confirmed | `FunctionCallAsmGen.kt:29-38,212-244,242`; `ProgramAndVarsGen.kt:564-594,592`; `technical.rst:407-432` |
 | P6 | deliberate size choice; inline expansion exists but is not preferred for the 13 table constants | `AsmGen.kt:56,60`; `BinaryOpAssignmentsGen.kt:457-536`; `ConstMultiply.kt:17-18,25` |

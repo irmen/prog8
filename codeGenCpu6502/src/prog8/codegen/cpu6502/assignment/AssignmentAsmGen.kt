@@ -36,6 +36,73 @@ internal class AssignmentAsmGen(
         translateNormalAssignment(assign, assignment.definingISub())
     }
 
+    internal fun tryTranslateMemoryStorePair(first: PtAssignment, second: PtAssignment): Boolean {
+        if(first.multiTarget || second.multiTarget)
+            return false
+        val firstTarget = first.target
+        val secondTarget = second.target
+        if(firstTarget.memory==null || secondTarget.memory==null ||
+                !isSimpleByteValue(second.value))
+            return false
+
+        val firstAddress = numericBaseAndWordIndex(firstTarget.memory!!.address) ?: return false
+        val secondAddress = numericBaseAndWordIndex(secondTarget.memory!!.address) ?: return false
+        if(firstAddress.second.name != secondAddress.second.name ||
+                firstAddress.second.type != secondAddress.second.type ||
+                // Small constants are more likely pointer-field offsets than numeric bases.
+                firstAddress.first < 0x100 || secondAddress.first < 0x100 ||
+                firstAddress.first == secondAddress.first)
+            return false
+
+        val delta = (secondAddress.first - firstAddress.first) and 0xffff
+        asmgen.outputSourceLine(first)
+        asmgen.outputSourceLine(second)
+        translate(first)
+        val deltaLow = delta and 0xff
+        val deltaHigh = delta shr 8 and 0xff
+        if(deltaLow==0) {
+            asmgen.out("""
+                lda  P8ZP_SCRATCH_W2+1
+                clc
+                adc  #${deltaHigh.toHex()}
+                sta  P8ZP_SCRATCH_W2+1""")
+        } else {
+            asmgen.out("""
+                clc
+                lda  P8ZP_SCRATCH_W2
+                adc  #${deltaLow.toHex()}
+                sta  P8ZP_SCRATCH_W2
+                lda  P8ZP_SCRATCH_W2+1
+                adc  #${deltaHigh.toHex()}
+                sta  P8ZP_SCRATCH_W2+1""")
+        }
+        assignExpressionToRegister(second.value, RegisterOrPair.A, false)
+        // Y carries the base's low byte for the existing scratch-pointer store form.
+        asmgen.out("  sta  (P8ZP_SCRATCH_W2),y")
+        return true
+    }
+
+    private fun numericBaseAndWordIndex(address: PtExpression): Pair<Int, PtIdentifier>? {
+        val expression = address as? PtBinaryExpression ?: return null
+        if(expression.operator!="+")
+            return null
+        val (base, index) = when {
+            expression.left is PtNumber -> expression.left as PtNumber to expression.right
+            expression.right is PtNumber -> expression.right as PtNumber to expression.left
+            else -> return null
+        }
+        val baseValue = base.asConstInteger() ?: return null
+        if(baseValue !in 0..0xffff)
+            return null
+        val identifier = index as? PtIdentifier ?: return null
+        if(!identifier.type.isUnsignedWord)
+            return null
+        return baseValue to identifier
+    }
+
+    private fun isSimpleByteValue(value: PtExpression): Boolean =
+        value is PtNumber || value is PtBool || value is PtIdentifier && value.type.isByteOrBool
+
     fun translate(augmentedAssign: PtAugmentedAssign) {
         val target = AsmAssignTarget.fromAstAssignment(augmentedAssign.target, augmentedAssign.definingISub(), asmgen)
         val source = AsmAssignSource.fromAstSource(augmentedAssign.value, program, asmgen).adjustSignedUnsigned(target)

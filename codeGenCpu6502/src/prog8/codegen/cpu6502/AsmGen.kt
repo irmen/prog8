@@ -544,12 +544,26 @@ class AsmGen6502Internal (
             is PtVariable, is PtConstant, is PtMemMapped -> { /* do nothing; variables are handled elsewhere */ }
             is PtBlock -> throw AssemblyError("block should have been handled elsewhere")
             is PtDefer -> throw AssemblyError("defer should have been transformed")
-            is PtNodeGroup -> stmt.children.forEach { translate(it) }
+            is PtNodeGroup -> translateStatements(stmt.children)
             is PtJmpTable -> translate(stmt)
             is PtSwap -> translate(stmt)
             is PtMemorySlabReservation -> { /* handled via symbol table */ }
             is PtNop, is PtStructDecl, is PtSubSignature -> {}
             else -> throw AssemblyError("missing asm translation for $stmt")
+        }
+    }
+
+    internal fun translateStatements(statements: List<PtNode>) {
+        var index = 0
+        while(index < statements.size) {
+            val first = statements[index] as? PtAssignment
+            val second = statements.getOrNull(index + 1) as? PtAssignment
+            if(first!=null && second!=null && assignmentAsmGen.tryTranslateMemoryStorePair(first, second)) {
+                index += 2
+            } else {
+                translate(statements[index])
+                index++
+            }
         }
     }
 

@@ -594,7 +594,7 @@ internal class ProgramAndVarsGen(
         }
 
         asmgen.out("; statements")
-        sub.children.forEach { asmgen.translate(it) }
+        asmgen.translateStatements(sub.children)
 
         asmgen.out("; variables")
         asmgen.out("    .section BSS_NOCLEAR")      // these extra vars are initialized before use
