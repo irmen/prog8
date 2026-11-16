@@ -699,7 +699,8 @@ internal class AssignmentGen(private val codeGen: IRCodeGen, private val exprGen
                         constInt != null -> {
                             val v = when(targetDt) {
                                 IRDataType.BYTE -> constInt and 0xff
-                                IRDataType.WORD, IRDataType.POINTER -> constInt and 0xffff
+                                IRDataType.WORD -> constInt and 0xffff
+                                IRDataType.POINTER -> if(codeGen.options.compTarget.POINTER_MEM_SIZE > 2u) constInt else constInt and 0xffff
                                 IRDataType.LONG -> constInt
                                 else -> throw AssemblyError("invalid target dt $targetDt for const store")
                             }
@@ -746,7 +747,8 @@ internal class AssignmentGen(private val codeGen: IRCodeGen, private val exprGen
                                 constInt != null -> {
                                     val v = when(targetDt) {
                                         IRDataType.BYTE -> constInt and 0xff
-                                        IRDataType.WORD, IRDataType.POINTER -> constInt and 0xffff
+                                        IRDataType.WORD -> constInt and 0xffff
+                                        IRDataType.POINTER -> if(codeGen.options.compTarget.POINTER_MEM_SIZE > 2u) constInt else constInt and 0xffff
                                         IRDataType.LONG -> constInt
                                     }
                                     IRInstructions.storeImmediate(targetDt, v, IRMemory.direct(constAddress.number.toUInt().toAddress()))

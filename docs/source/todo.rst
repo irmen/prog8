@@ -1,6 +1,8 @@
 TODO
 ====
 
+- Amiga: confirm the sprite horizontal screen offset: ``sprites.pos()`` adds 128 to the visible x coordinate, one less than the lores ``hstart`` of 129 (``$81``) used by ``custom.compute_display()``. Verify on the emulator whether this is intentional (sprites may overlap the left border) or a one-pixel misalignment, and align it with DIWSTRT if it is a bug.
+
 Future Things and Ideas
 ^^^^^^^^^^^^^^^^^^^^^^^
 - extend the ``-gendoc`` command to generate user reference documentation from Markdown docstrings; see ``ideas/markdown-docstrings-and-reference-docs.md`` for the plan.
@@ -37,7 +39,7 @@ Libraries
 ^^^^^^^^^
 - Add split-word array sorting routines to sorting module by adding copies of the existing non-split routines that are split-aware (split words are stored as separate lsb/msb arrays, so the split-aware routines must index into both halves).
 - add an IFF ANIM5 playback helper module for the Amiga targets (a separate concern from the bare-metal hardware helpers): in-memory IFF chunk walker (BMHD/CMAP/CAMG/BODY plus per-frame ANHD/DLTA), ByteRun1 decoder, op5 byte-vertical delta decoder (unvscomp-style), and a small double-buffer/interleave state machine with ANHD ``reltime`` pacing via vblank waits. CMAP loading is already covered by ``custom.load_iff_cmap()`` (bare metal) and ``graphics.load_iff_cmap()`` (Intuition screens). Usable both OS-friendly (drawing into a ``playfield``) and bare-metal (chip-RAM planes plus ``copper.set_planes`` for the flip). A working C reference implementation is in ``ideas/anim5player.c``: SDL2 + libiff, but structured the way an on-system player must work (two screens, page flip per frame, op5 deltas decoded on demand, no frame cache), so the decode loop and the double-buffer/interleave recipe can be ported from it directly.
-- implement the remaining Amiga bare-metal hardware helpers; see ``ideas/amiga-baremetal-helpers.md`` for the designs and status. Remaining: sprite attachment (OCS/ECS), AGA wide sprites and ``FMODE`` fetch width, and IRQ/VERTB/CIA/TOD handling.
+- implement the remaining Amiga bare-metal hardware helpers; see ``ideas/amiga-baremetal-helpers.md`` for the designs and status. Remaining: AGA wide sprites and ``FMODE`` fetch width, and IRQ/VERTB/CIA/TOD handling.
 
 Optimizations
 ^^^^^^^^^^^^^

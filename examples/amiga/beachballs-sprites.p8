@@ -69,7 +69,7 @@ main {
         sprites.set_colors(2, $0f00, $0ff0, $00f0)
         sprites.set_colors(3, $0f00, $0ff0, $00f0)
         draw_starburst()
-        gfxtext.print(20, 20, iso:"Beachball sprites", 1)
+        gfxtext.print(20, 20, iso:"Beachball sprites, OCS 4 colors", 1)
         blitter.wait()
         sprites.enable()
 

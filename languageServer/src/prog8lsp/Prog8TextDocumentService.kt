@@ -499,11 +499,11 @@ class Prog8TextDocumentService: TextDocumentService {
                         "audio", "bcd", "blitter", "bmx", "buffers", "compression",
                         "conv", "copper", "coroutines", "custom", "cx16logo", "datatypes",
                         "diskfont", "diskio", "dos", "easygfx", "emudbg", "exec",
-                        "floats", "gfx_hires", "gfx_lores", "graphics", "icon", "iffparse",
+                        "floats", "gfx_hires", "gfx_lores", "gfxtext", "graphics", "icon", "iffparse",
                         "intuition", "lineclip", "lists", "lowlevel", "math", "mobs", "monogfx",
                         "palette", "petgfx", "petsnd", "playfield", "prog8_lib", "prog8_math",
                         "psg", "ptplayer", "serial", "sorting", "sound",
-                        "sprites", "strings", "syslib", "test_stack", "text", "textio",
+                        "sprites", "strings", "syslib", "test_stack", "textio",
                         "timer", "trackdisk", "utility", "vera", "vera_gfx", "vera_palette",
                         "vera_psg", "vera_sprites", "vera_text", "verafx", "wavfile"
                     )

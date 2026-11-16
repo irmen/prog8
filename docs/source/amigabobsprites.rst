@@ -380,9 +380,11 @@ Library support
 ~~~~~~~~~~~~~~~
 
 The ``sprites`` module provides bare-metal OCS/ECS ``init()``, ``pos()``,
-``enable()``, ``disable()``, ``hide()`` and ``set_priority(pairs_in_front)``
-helpers for ``mobs.Sprite`` descriptors. ``disable()`` stops sprite DMA globally;
-``hide(sprite)`` hides one sprite while DMA remains enabled.
+``enable()``, ``disable()``, ``hide()``, ``set_priority(pairs_in_front)``,
+``set_colors(pair, c1, c2, c3)``, ``set_colors16(colors)`` and
+``attach(odd_sprite, on)`` helpers for ``mobs.Sprite`` descriptors.
+``disable()`` stops sprite DMA globally; ``hide(sprite)`` hides one sprite
+while DMA remains enabled.
 ``pairs_in_front`` ranges from 0 (playfield in
 front) to 4 (all sprite pairs in front). The hardware orders pairs 0/1, 2/3,
 4/5 and 6/7, so only a leading number of pairs can be placed ahead of the
@@ -395,7 +397,17 @@ that channel's pointer. ``hide(sprite)`` terminates its data header; another
 ``pos(sprite)`` writes the position header again and shows it.
 ``copper.base_list()`` leaves BPLCON2 alone. Set priority with the CPU helper
 or add a BPLCON2 MOVE to the Copper list if priority should change by scanline.
-AGA width, palette-bank and fetch-mode helpers are not implemented yet.
+
+For colours, ``set_colors(pair, c1, c2, c3)`` writes the three visible 12-bit
+``$0RGB`` values of a 4-colour pair (colour 0 stays transparent). For 16-colour
+attached sprites, ``attach(odd_sprite, true)`` sets the attach bit in the odd
+channel's control word (call it after ``init()``), and ``set_colors16(colors)``
+writes all 16 colours of the single shared bank, COLOR16-31. ``pos()`` keeps the
+attach bit when it rewrites the control word, so a single ``pos()`` works for
+attached and normal sprites. Colours are OCS/ECS 12-bit values; AGA palette banks
+are not handled. AGA width, palette-bank and fetch-mode helpers are not
+implemented yet. See ``examples/amiga/beachballs-sprites.p8`` for 4-colour and
+``examples/amiga/beachballs-sprites16.p8`` for 16-colour attached sprites.
 
 .. seealso::
     ``examples/amiga/agabobs.p8`` demonstrates BOBs on an AGA planar playfield.

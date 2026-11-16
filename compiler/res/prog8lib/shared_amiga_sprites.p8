@@ -19,8 +19,9 @@ sprites {
     const uword SPRITE_H_OFFSET = 128
     const uword SPRITE_V_OFFSET = 44
 
-    ; Primitives only: init/pos/enable/disable. No state, animation, or
-    ; multiplexing. The caller owns sprite data in chip RAM and positions.
+    ; Primitives only: init/pos/enable/disable/hide, plus color setup and
+    ; 16-color attach. No state, animation, or multiplexing. The caller owns
+    ; sprite data in chip RAM and positions.
     ; Sprite data must start with two control words (POS, CTL) followed by
     ; the bitplane data: one word per bitplane per scanline (2 words/line for
     ; the 4-color OCS format).
@@ -47,7 +48,8 @@ sprites {
         p[1] = ((hstart >> 1) & $ff) as ubyte
         ; CTL word with high bits and odd HSTART.
         p[2] = (vstop & $ff) as ubyte
-        p[3] = (((vstart & $100) >> 6) | ((vstop & $100) >> 7) | (hstart & 1)) as ubyte
+        ; Preserve the attach bit (bit 7) so attached (16-color) sprites keep it.
+        p[3] = ((((vstart & $100) >> 6) | ((vstop & $100) >> 7) | (hstart & 1)) | (p[3] & $80)) as ubyte
     }
 
     sub enable() {
@@ -90,5 +92,43 @@ sprites {
         base[0] = c1
         base[1] = c2
         base[2] = c3
+    }
+
+    ; Set all 16 colors of attached (16-color) sprites.
+    ; colors points to 16 uwords -> COLOR16..31 (the single shared sprite bank).
+    sub set_colors16(^^uword colors) {
+        ^^uword base = &custom.COLOR16
+        for i in 0 to 15 {
+            base[i] = colors[i]
+        }
+    }
+
+    ; Attach/detach an odd sprite to the preceding even sprite (16-color mode).
+    ; Must be called after init(); pos() preserves the bit each frame.
+    sub attach(^^mobs.Sprite odd_spr, bool on) {
+        if odd_spr.slot < 8 {
+            pointer p = odd_spr.data
+            if on
+                p[3] = p[3] | $80
+            else
+                p[3] = p[3] & $7f
+        }
+    }
+
+    ; Initialize an attached (16-color) sprite pair. even_spr.slot must be set;
+    ; the odd sprite gets the following slot. Attaches, inits and positions both.
+    sub init_attached(^^mobs.Sprite even_spr, ^^mobs.Sprite odd_spr) {
+        odd_spr.slot = even_spr.slot + 1
+        attach(odd_spr, true)
+        init(even_spr)
+        init(odd_spr)
+        pos(even_spr)
+        pos(odd_spr)
+    }
+
+    ; Position both sprites of an attached pair.
+    sub pos_attached(^^mobs.Sprite even_spr, ^^mobs.Sprite odd_spr) {
+        pos(even_spr)
+        pos(odd_spr)
     }
 }

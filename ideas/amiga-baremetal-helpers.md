@@ -24,8 +24,11 @@ reference for the struct layouts and routine list.
 ## Remaining Sprite Enhancements
 
 The OCS/ECS 16-pixel, 4-color sprite helpers are implemented in
-`compiler/res/prog8lib/shared_amiga_sprites.p8`. The remaining sprite work is
-optional attachment and AGA-specific modes.
+`compiler/res/prog8lib/shared_amiga_sprites.p8`. Attachment is implemented too
+(`attach()`, `init_attached()`, `pos_attached()`, `set_colors16()`). The
+remaining sprite work is the AGA-specific modes: wide (32/64px) sprites and the
+`FMODE` fetch-width setting, to be exposed as `aga_`-prefixed routines in the
+same module.
 
 ### Sprite attachment (OCS/ECS and AGA)
 
@@ -37,20 +40,24 @@ odd one) into a single sprite with double the color depth:
 - AGA: attached pair = 8 bitplanes = 256 colors.
 - Enabled by setting the attach bit in the odd sprite's `SPRxCTL` control word;
   the odd sprite's control word still carries the position/size data.
-- Data layout doubles: an attached 16px sprite stores 4 words per line
-  (OCS/ECS) instead of 2.
+- Data layout (OCS/ECS 16-color case): each channel keeps its own 2-plane data
+  (2 words per line at 16px); the attached pair together contributes 4 words
+  per line (4 planes). AGA 256-color attachment uses 4-plane channels instead.
+  Each channel's data structure has its own POS/CTL header and must be kept at
+  the same screen position or attachment stops working.
 
-The helper should expose this as an opt-in (e.g. `sprite.attach(num)` for the
-even channel) rather than making it the default, and document the slot cost and
-the doubled data width. Attachment works on all Amiga chipsets, including
-original OCS, so it is not AGA-only.
+Implemented as an opt-in: `attach(odd, on)` sets the bit, and
+`init_attached()` / `pos_attached()` handle the even+odd pair. Attachment works
+on all Amiga chipsets, including original OCS, so it is not AGA-only. The
+caller pays the two-slot cost and provides one data block per channel.
 
 ### AGA vs OCS sprite modes
 
 AGA is backward compatible with OCS. OCS programs run unmodified on AGA
 because the hardware defaults to OCS compatibility mode (2 bitplanes, 4 colors,
-16px wide) until AGA-specific registers are written. The switch to AGA sprite
-mode happens when you write to registers that don't exist on OCS.
+16px wide) until an AGA-only register is written. The switch to AGA sprite
+mode happens on the first write to a register that does not exist on OCS, for
+example `FMODE` or `BPLCON4`.
 
 **OCS sprites (default/compatibility mode):**
 - 2 bitplanes = 4 colors (color 0 = transparent)
@@ -61,45 +68,110 @@ mode happens when you write to registers that don't exist on OCS.
 
 **AGA sprites (enhanced mode):**
 - 4 bitplanes = 16 colors (color 0 = transparent)
-- 16, 32, or 64 pixels wide
-- 4 data words per line (for 4 bitplanes)
-- Colors from 256-color palette, bank selectable via BPLCON4
+- 16, 32, or 64 pixels wide (global, see `FMODE`)
+- 4 data words per line for 4 bitplanes at 16px
+- Colors from the 256-color palette, bank selectable via `BPLCON4`
 - Attached sprites give 256 colors (8 bitplanes) but cost 2 sprite slots
 
-**Switching to AGA mode requires writing to AGA-only registers:**
-- `BPLCON4` ($dff10c) — enables AGA sprite color banking; writing to it
-  signals "this program knows about AGA"
-- `SPRxCTL` width bits — bits in the sprite control word select 16/32/64px
-- `FMODE` ($dff1fc) bits 0-1 — sprite DMA fetch mode (16/32/64-bit)
+**FMODE ($dff1fc) bit fields relevant to sprites:**
+- bits 3-2 (SPAGEM/SPR32): sprite fetch/display width. `00` = 16 bits,
+  `01` = 32 bits, `10` = 32 bits in page mode, `11` = 64 bits.
+- bits 1-0: bitplane fetch width (not sprite).
+- The width is **global**: all eight channels use it. You cannot mix 16/32/64
+  px sprites in one display (the Copper can change `FMODE` mid-frame only with
+  careful DMA timing).
 
-Without these writes, sprites stay in OCS compatibility mode (2 bitplanes, 4
-colors, 16px). This is why OCS games work unmodified on AGA hardware.
+There are no per-sprite width bits in `SPRxCTL`. Setting `FMODE` bits 3-2 is
+what selects the width, and the control-word and per-line data layout change
+with it.
 
-**FMODE sprite DMA modes:**
+**Control-word header and per-line layout by width**
 
-| FMODE bits 0-1 | Fetch width | Supports |
-|---|---|---|
-| 00 | 16-bit | 16px sprites (OCS compatible) |
-| 01 | 32-bit | 16px or 32px sprites |
-| 10 | 64-bit | 16px, 32px, or 64px sprites |
+Each sprite/channel data block starts with a header of `2 * (width/16)` words:
+the POS word first, the CTL word in the middle, zero padding around them.
+After the header come the image words, grouped per plane, and the block ends
+with a terminator of the same size as the header (all zero words).
 
-FMODE controls DMA fetch width, NOT sprite width. The sprite control words
-determine the actual displayed width. They must be set consistently — FMODE
-too low for the sprite width causes garbled/partial sprites.
+Let N = width/16 (1, 2 or 4) and P = number of planes in that channel
+(2 for OCS/attached 2-plane channels, 4 for AGA 4-plane sprites).
 
-**Sprite data word layout:**
+| Width | N | Header size | POS at | CTL at | Data starts | Pointer alignment | Words per plane per line |
+|---|---|---|---|---|---|---|---|
+| 16px | 1 | 2 words (4 bytes) | +0 | +2 | +4 | 2 bytes | 1 |
+| 32px | 2 | 4 words (8 bytes) | +0 | +4 | +8 | 4 bytes | 2 |
+| 64px | 4 | 8 words (16 bytes) | +0 | +8 | +16 | 8 bytes | 4 |
 
-| Width | Bitplanes | Words per plane | Total words per line |
-|---|---|---|---|
-| 16px | 2 (OCS) | 1 | 2 (SPRxDATA, SPRxDATB) |
-| 16px | 4 (AGA) | 1 | 4 (planes 0-3) |
-| 32px | 4 (AGA) | 2 | 8 (planes 0-3, 2 words each) |
-| 64px | 4 (AGA) | 4 | 16 (planes 0-3, 4 words each) |
+The header is literally `POS, 0..., CTL, 0...` (for 64px:
+`POS, 0, 0, 0, CTL, 0, 0, 0`). The terminator after the last line is
+`2*N` zero words (4 words for 32px, 8 words for 64px).
 
-For AGA 4-bitplane sprites, each line stores 4/8/16 words (planes 0-3,
-interleaved by plane). Width is encoded in the SPRxCTL control word; the number
-of data words stored must match. FMODE sprite DMA mode must be set high enough
-to fetch all words per line within the available DMA time.
+Per line, the words are grouped by plane: all words of plane 0 for that line,
+then all words of plane 1, and so on. So:
+
+- line words = P * N
+- line bytes = P * N * 2
+- total block words = 2*N (header) + height * P * N + 2*N (terminator)
+- total block bytes = total words * 2
+
+Examples:
+- 16px, 2 planes, height 16: header 2 + 16*2 + term 2 = 36 words (72 bytes).
+- 32px, 2 planes, height 16: header 4 + 16*4 + term 4 = 72 words (144 bytes).
+- 64px, 2 planes, height 16: header 8 + 16*8 + term 8 = 144 words (288 bytes).
+- 64px, 4 planes, height 16: header 8 + 16*16 + term 8 = 272 words (544 bytes).
+
+For an attached pair, each channel keeps its own 2-plane block; the two
+channels together form the 4 planes. Both channels must use the same width and
+stay at the same position. (256-color AGA attached mode uses two 4-plane
+channels, i.e. 8 planes across the pair.)
+
+**API: keep one module, prefix the AGA routines with `aga_`**
+
+Do not add a separate module. Put the AGA extensions in the existing
+`shared_amiga_sprites.p8` block and prefix them with `aga_`, so one
+`%import sprites` covers both and the AGA dependency is visible at each call
+site. Unused `aga_*` subroutines are stripped on ECS builds by the block's
+`%option ignore_unused`, so `amiga500` pays nothing.
+
+- `enum AgaWidth { W16 = 0, W32 = 1, W64 = 3 }` (the values are `FMODE`
+  bits 3-2; `W32` may also be 2 for page mode).
+- `aga_set_width(AgaWidth width)` — sets `FMODE` bits 3-2, preserves the
+  bitplane bits, and records the selected width in a private module variable
+  (declared like `blitter.line_mod`) for the wide routines to use.
+- `aga_init(^^mobs.Sprite spr)` — pointer setup plus the width-specific header
+  (same role as `init()`, but the caller must have called `aga_set_width`).
+- `aga_pos(^^mobs.Sprite spr)` — wide-aware replacement for `pos()`.
+- `aga_hide(^^mobs.Sprite spr)` — wide-aware replacement for `hide()`.
+- `aga_set_resolution(ubyte res)` — sprite resolution via `BPLCON3`.
+- `aga_set_bank(ubyte even_bank, ubyte odd_bank)` — `BPLCON4` palette banks.
+- Reuse the existing `attach()`, `set_colors16()`, `enable()` and `disable()`
+  where the width does not matter. Keep the 16px `init()`/`pos()`/`hide()`
+  unchanged so OCS/ECS code is unaffected.
+
+Store the width as a private variable named e.g. `aga_width`. The caller must
+call `aga_set_width()` before any wide sprite use and reset it to `W16` (and
+`FMODE` to 0) before returning to OCS mode.
+
+**Implementation notes**
+
+- `aga_pos()` must write the POS word at data+0 and the CTL word at the width's
+  CTL offset (`+2`, `+4` or `+8`), not always at `+2`. Leave the padding words
+  zero. `aga_hide()` must terminate the block with `2*N` zero words.
+- The attach bit is still bit 7 of the CTL word.
+- Keep the sprite data pointer aligned to 2/4/8 bytes (word/longword/quadword)
+  for 16/32/64 px. Prog8 arrays are not guaranteed to be 8-byte aligned, so the
+  wide helper should align the data pointer (or allocate the buffers with an
+  alignment-aware mechanism) before handing it to `SPRxPT`.
+- Set `FMODE` bits 3-2 before enabling sprite DMA. Writing any AGA register
+  switches the chip out of OCS compatibility mode; reset `FMODE` to 0 (and
+  `BPLCON4` as needed) when returning to OCS mode.
+
+**CTL word bits in AGA mode (lores use)**
+
+`SPRxCTL` bits 15-8 = VSTOP low 8 bits, bit 7 = attach, bits 6/5 = VSTART/
+VSTOP 10th bit, bits 4/3 = 70ns/35ns horizontal start bits, bit 2 = VSTART
+9th bit, bit 1 = VSTOP 9th bit, bit 0 = HSTART low bit (140ns). The existing
+lores formula (bits 2, 1, 0) is unchanged; leave bits 6-3 zero unless using
+hires/superhires positioning.
 
 **Registers available in custom.p8 (shared_amiga_custom.p8):**
 
@@ -107,9 +179,10 @@ All of the following are already defined and usable from Prog8:
 
 - `BPLCON4` ($dff10c) — sprite color banking + resolution (AGA)
 - `BPLCON3` ($dff106) — palette control 3 (AGA, includes sprite resolution)
-- `FMODE` ($dff1fc) — fetch mode (AGA, bits 0-1 = sprite DMA fetch width)
-- `SPR0CTL`..`SPR7CTL` ($dff142, $dff14a, ...) — sprite control words
-  (AGA width bits are in the upper bits of the control word)
+- `FMODE` ($dff1fc) — fetch mode (AGA; bits 3-2 = sprite fetch/display width,
+  bits 1-0 = bitplane fetch width)
+- `SPR0CTL`..`SPR7CTL` ($dff142, $dff14a, ...) — sprite control words (no
+  per-sprite width bits; width comes from `FMODE` bits 3-2)
 - `SPR0POS`..`SPR7POS` — sprite position
 - `SPR0DATA`/`SPR0DATB`..`SPR7DATA`/`SPR7DATB` — sprite data A/B
 - `SPR0PTH`/`SPR0PTL`.. — sprite data pointers (32-bit)

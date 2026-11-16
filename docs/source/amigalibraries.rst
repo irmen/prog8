@@ -244,8 +244,10 @@ modules. Import them the same way as any other library::
 
 ``sprites``
     Bare-metal OCS/ECS hardware-sprite helpers for ``mobs.Sprite`` descriptors:
-    ``init()``, ``pos()``, ``enable()``, ``disable()``, ``hide()`` and
-    ``set_priority(pairs_in_front)``. The argument ranges from 0 (playfield in
+    ``init()``, ``pos()``, ``enable()``, ``disable()``, ``hide()``,
+    ``set_priority(pairs_in_front)``, ``set_colors(pair, c1, c2, c3)``,
+    ``set_colors16(colors)`` and ``attach(odd_sprite, on)``.
+    The priority argument ranges from 0 (playfield in
     front) to 4 (all sprite pairs in front). Pair order is fixed, so this selects
     a leading number of pairs rather than arbitrary pairs; use the
     ``sprites.Priority`` enum values. In single-playfield
@@ -253,6 +255,13 @@ modules. Import them the same way as any other library::
     DMA, while ``hide(sprite)`` hides one channel. ``copper.base_list()`` leaves
     BPLCON2 unchanged; a Copper list can add a MOVE if priority should change
     by scanline.
+    ``set_colors(pair, c1, c2, c3)`` sets the three visible 12-bit colours of a
+    4-colour pair; colour 0 stays transparent. ``set_colors16(colors)`` writes all
+    16 colours of the single shared attached-sprite bank (COLOR16-31).
+    ``attach(odd_sprite, on)`` sets the attach bit in an odd channel's control
+    word so it pairs with the preceding even channel as one 16-colour sprite;
+    ``pos()`` preserves that bit when it rewrites the control word. Colours are
+    12-bit ``$0RGB`` values for OCS/ECS; AGA palette banks are not handled.
 
 ``blitter``
     Bare-metal blitter programming, no OS calls: ``copy_rect()`` and
