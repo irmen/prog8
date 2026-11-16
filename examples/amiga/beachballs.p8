@@ -28,7 +28,7 @@ main {
 
     const word MAX_X = WIDTH-SAVE_W*16 as word   ; 3 words always fit: 272
     const word MAX_Y = HEIGHT-BOB_HEIGHT as word
-    const ubyte NUM_BALLS = 10
+    const ubyte NUM_BALLS = 12
     const word STAR_RADIUS = 120
 
     ; Save/restore covers the Jones max width (3 words), so shifted and
@@ -208,7 +208,7 @@ main {
         }
     }
 
-    sub oxslot(ubyte buf, ubyte i) -> uword {
+    inline sub oxslot(ubyte buf, ubyte i) -> uword {
         ; Index into the per-buffer ox/oy arrays.
         return (buf as uword)*NUM_BALLS + (i as uword)
     }
@@ -263,7 +263,7 @@ bobbuffers {
     %option amiga_chipram
 
     ; 2 screen buffers x 10 balls x 4 planes x (3 words x 32 rows).
-    uword[7680] save
+    uword[2 * main.NUM_BALLS * main.DEPTH * main.SAVE_W * main.BOB_HEIGHT] save
 }
 
 copperdata {

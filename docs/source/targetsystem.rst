@@ -18,7 +18,7 @@ Currently these machines can be selected as a compilation target (via the ``-tar
 - 'c128': the Commodore 128
 - 'pet32': the Commodore PET 4032
 - 'amiga500': Amiga 500
-- 'amiga1200': Amiga 1200 (68020 CPU with optional FPU)
+- 'amiga1200': Amiga 1200 (68020 CPU; FPU required only for floating point)
 - 'qemu68k': Qemu M68k simulator
 - 'virtual': a builtin virtual machine (32-bit pointers, 16 MB memory)
 - custom targets via a separate configuration file (see :ref:`customizable_target`)

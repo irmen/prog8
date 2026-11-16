@@ -186,12 +186,12 @@ IRQ7 = $7C
 
     asmsub waitvsync() {
         %asm {{
-; synchronize near the start of vertical blank, on PAL and NTSC
-GfxVBlankFrequency = $212
-            move.l  sys.GfxBase,a0
-            move.l  a0,d0
-            beq.s   .WaitLine250
-            cmpi.b  #50,GfxVBlankFrequency(a0)
+; synchronize near the start of vertical blank, on PAL and NTSC.
+; VBlankFrequency (50=PAL, 60=NTSC) lives in ExecBase, which is always
+; reachable via address 4 - unlike GfxBase, which may be null/closed.
+ExecVBlankFrequency = $212
+            move.l  4.w,a0
+            cmpi.b  #50,ExecVBlankFrequency(a0)
             beq.s   .WaitLine300
 .WaitLine250:
             move.l  $DFF004,d0

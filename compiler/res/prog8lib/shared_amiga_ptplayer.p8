@@ -642,7 +642,7 @@ _mt_install:
 
 	; determine if 02 clock for timers is based on PAL or NTSC
 	move.l	4.w,a1
-	cmp.b	#50,531(a1)		; PowerSupplyFrequency
+	cmp.b	#50,530(a1)		; VBlankFrequency (video, not PowerSupplyFrequency)
 	beq	.1
 	move.l	#1789773,d0             ; NTSC
 	bra	.2

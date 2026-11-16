@@ -19,6 +19,11 @@ skill covers `.p8` source and `.p8ir` intermediate representation for the
   Custom target configuration files can also be passed to `-target`.
 - `%import modulename` imports a module without aliases. Use its defined prefix,
   such as `%import textio` followed by `txt.print(...)`.
+- Symbols are public by default and reachable from anywhere via their full dotted
+  (qualified) name, e.g. `main.worker.counter` or `main.NUM_BALLS`. Unlike most
+  languages, a dotted name is resolved from the global namespace, not relative to
+  the current scope; unqualified names do relative lookup. Use `private` (or
+  `%option private_symbols`) to hide symbols.
 - `sys` is always available and needs no import.
 - `.p8ir` is target-independent IR and can be run with
   `prog8c -vm program.p8ir`.
