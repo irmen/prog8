@@ -6,6 +6,7 @@
 %import exec
 %import blitter
 %import copper
+%import sprites
 
 main {
     const uword SCREEN_WIDTH = 320
@@ -27,7 +28,7 @@ main {
         uword vstart = (y as uword) + 44
         uword vstop = vstart + SPRITE_SIZE
         spritedata.sprite[0] = ((vstart & $00ff) << 8) | ((hstart >> 1) & $00ff)
-        spritedata.sprite[1] = ((vstop & $00ff) << 8) | ((vstart & $0100) >> 6) | ((vstop & $0100) >> 7) | ((hstart & 1) << 7)
+        spritedata.sprite[1] = ((vstop & $00ff) << 8) | ((vstart & $0100) >> 6) | ((vstop & $0100) >> 7) | (hstart & 1)
     }
 
     sub set_sprite_pointers() {
@@ -113,6 +114,7 @@ main {
         custom.COP1LC = &copperdata.copper_list
         custom.DMACON = $83e0
         custom.COPJMP1 = 0
+        sprites.set_priority(sprites.Priority::PAIRS_4_IN_FRONT)
         custom.mouse_init(0, MOUSE_SCALE_DIVISOR)
 
         ubyte current_color = SPRITE_RED

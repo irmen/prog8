@@ -21,91 +21,29 @@ Implemented: the `mobs` module (`amiga500`/`amiga1200`, `%import mobs`) holds
 `Mob`, `Bob`, `Sprite` and the integer-only geometry helpers. See the library
 reference for the struct layouts and routine list.
 
-## Sprite Helper Library
+## Remaining Sprite Enhancements
 
-Add a bare-metal `sprites` helper module for the `amiga500` and `amiga1200`
-targets, using the registers exposed by `custom`.
+The OCS/ECS 16-pixel, 4-color sprite helpers are implemented in
+`compiler/res/prog8lib/shared_amiga_sprites.p8`. The remaining sprite work is
+optional attachment and AGA-specific modes.
 
-The sprite descriptor will reference the shared `Mob`; sprite-specific payload
-fields are deferred until the sprite implementation.
+### Sprite attachment (OCS/ECS and AGA)
 
-### Plan
+Sprite attachment combines two sprite channels (an even sprite plus the following
+odd one) into a single sprite with double the color depth:
 
-- Provide helpers to pack sprite position and control words.
-- Provide helpers to set the hardware sprite pointers to sprite data in
-  chip RAM.
-- Support AGA's global `FMODE` sprite fetch-width setting (up to 64 pixels in
-  low resolution), with the matching data/control-word layout; retain the
-  standard 16-pixel sprite format on non-AGA hardware.
-- Keep the module usable by demos and games after `custom.grab_system()`,
-  without OS dependencies or NDK/generator changes.
-- **Primitives only.** The helper provides low-level hardware operations
-  (pack control words, set pointers, enable/disable in DMACON). It does NOT
-  manage sprite state, animation, collision, or multiplexing. The main
-  program owns sprite data in chip RAM, positions, and lifecycle. This keeps
-  the library small, stateless, and composable — same philosophy as the blitter
-  helpers (primitives only, resource handling left to the main program).
+- OCS/ECS: attached pair = 4 bitplanes = 16 colors (vs. 2 bitplanes / 4 colors
+  for a single sprite). Costs two of the eight sprite slots.
+- AGA: attached pair = 8 bitplanes = 256 colors.
+- Enabled by setting the attach bit in the odd sprite's `SPRxCTL` control word;
+  the odd sprite's control word still carries the position/size data.
+- Data layout doubles: an attached 16px sprite stores 4 words per line
+  (OCS/ECS) instead of 2.
 
-- **Composable, not constraining.** The primitives must not prevent or
-  complicate higher-level usage. Specifically:
-  - **Animation**: primitives operate on raw chip-RAM data pointers. The main
-    program can swap the data pointer per frame (sprite sheet indexing) without
-    any helper involvement. No internal caching or state that would stale.
-  - **Multiplexing**: primitives are stateless per-call. The main program (or
-    copper list) can call `sprite.pos()` / `sprite.init()` multiple times per
-    frame for the same slot at different scanlines. The helper doesn't track
-    "which slot is in use" or enforce a one-object-per-slot model.
-  - **Palette management**: primitives don't touch palette entries beyond what
-    the caller explicitly sets via BPLCON4. The main program owns the palette
-    (COLOR00-COLOR255). The helper provides `set_even_bank`/`set_odd_bank`
-    but never allocates or reserves palette ranges. Caller decides which entries
-    to use for which bank.
-- **No hidden side effects**: primitives only write the registers they're
-  named after. No global state, no "current sprite" pointer, no cached
-  values that could go stale. Every call is independent and idempotent.
-
-### Implementation phases
-
-**Phase 1 — OCS-compatible sprites only (simple, ~50-100 lines)**
-
-Start with just 16px, 4-color (2 bitplane) sprites. This is the common
-denominator — works on every Amiga, no AGA detection, no FMODE/BPLCON4
-changes needed:
-
-- 2 data words per line (SPRxDATA, SPRxDATB) — standard OCS format
-- No FMODE changes (leave at $0000)
-- No BPLCON4 writes (palette entries 16-31, OCS default)
-- No chipset detection
-- No width bits (defaults to 16px)
-
-Minimal API:
-```
-sprite.init(num, data_ptr)     ; set SPRxPT to data
-sprite.pos(num, x, y)          ; set SPRxPOS
-sprite.enable(num)             ; enable in DMACON
-sprite.disable(num)            ; disable in DMACON
-```
-
-This covers 90% of what games need (HUDs, cursors, bullets, small objects).
-Works everywhere without chipset detection.
-
-**Phase 2 — AGA enhancements (additive, opt-in)**
-
-Layer on AGA features only when `detect_chipset() == CHIPSET::AGA`. Each
-feature is a separate opt-in function that a game calls only if needed:
-
-- `sprite.aga_16color()` — set BPLCON4 banks, store 4 words per line
-- `sprite.aga_wide(num, width)` — set SPRxCTL width bits (32/64px), store
-  8/16 words per line, set FMODE bits 0-1
-
-A game that only needs 16px 4-color sprites never touches BPLCON4 or FMODE.
-Phase 1 code keeps working unchanged on AGA hardware (OCS compatibility mode).
-
-**Why phased?** The full sprite module (all modes in one) is complex because
-it must coordinate FMODE, control words, data layout, and palette banks
-simultaneously. Splitting into phases keeps the basic API clean and the
-complexity opt-in. Phase 1 is a thin register wrapper; Phase 2 adds AGA
-features as separate functions.
+The helper should expose this as an opt-in (e.g. `sprite.attach(num)` for the
+even channel) rather than making it the default, and document the slot cost and
+the doubled data width. Attachment works on all Amiga chipsets, including
+original OCS, so it is not AGA-only.
 
 ### AGA vs OCS sprite modes
 

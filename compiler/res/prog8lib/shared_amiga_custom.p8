@@ -416,7 +416,7 @@ ExecVBlankFrequency = $212
 
             and.w   #$1f,d0
             lsl.w   #1,d0
-            move.l  #$dff180,a0
+            move.l  #custom.COLOR00,a0
             adda.w   d0,a0
 
             move.l  d1,d2
@@ -462,7 +462,7 @@ ExecVBlankFrequency = $212
         ; Index above 31 is ignored.
         if index > 31
             return
-        pokew($dff180 + (index as uword)*2, pack12(rgb24))
+        pokew(&custom.COLOR00 + (index as uword)*2, pack12(rgb24))
     }
 
     sub load_iff_cmap(^^ubyte cmap, uword count) {

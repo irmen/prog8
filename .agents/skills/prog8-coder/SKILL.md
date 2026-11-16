@@ -136,6 +136,9 @@ registers survive calls. Long operations may clobber `R12-R15`.
 ## Syntax Pitfalls
 
 - Hex uses `$FF`, binary uses `%1010`, and casts use `expression as type`.
+- Avoid redundant casts. Cast only when required for narrowing, signedness
+  reinterpretation, or type disambiguation; for example, assign `0` directly to
+  a pointer instead of writing `0 as pointer`.
 - There is no automatic type widening in expression results: the result keeps
   the operands' type. `byte * byte`, `ubyte * ubyte`, `word * word` and
   `uword * uword` all stay in their own type and can overflow/truncate. Cast

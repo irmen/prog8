@@ -20,7 +20,6 @@ mobs {
         ; x_pos/y_pos locate the screen anchor; origin_x/origin_y offset the
         ; image's top-left from it. The top-left is (x_pos + origin_x,
         ; y_pos + origin_y). With a zero origin, the anchor is the top-left.
-        uword id
         word x_pos
         word y_pos
         word origin_x
@@ -29,7 +28,6 @@ mobs {
         uword height
         ; Circle radius about the anchor. Zero means unset, so box routines are used.
         uword radius
-        uword state
     }
 
     struct Bob {
@@ -40,16 +38,18 @@ mobs {
         uword depth
         pointer data
         pointer mask
+        uword id
+        uword state
     }
 
     struct Sprite {
         ; Hardware sprite descriptor. References a Mob for position and size.
-        ; The data pointer is defined; sprite-specific fields are still being designed.
         ^^mobs.Mob mob
         pointer data
-        ; TODO: AGA width (32/64 px), palette bank (BPLCON4), FMODE fetch
-        ; width and any cached SPRxCTL control word. These are not needed for
-        ; the 16-pixel, 4-colour OCS path.
+        ; Keep the descriptor's array stride even for 68000 word/long accesses.
+        uword slot
+        uword id
+        uword state
     }
 
     asmsub collides(^^mobs.Mob a @A0, ^^mobs.Mob b @A1) -> bool @Pz {

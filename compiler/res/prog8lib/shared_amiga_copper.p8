@@ -110,22 +110,8 @@ copper {
     sub base_list(^^custom.DisplayRegs display, ubyte depth) -> uword {
         ; Emit the common copper-list prefix for a compute_display() mode:
         ; empty BPLxPT MOVE slots for depth planes, then the shadow
-        ; display registers (FMODE, BPLCON0, DIWSTRT/STOP, DDFSTRT/STOP,
-        ; BPL1MOD/2, DIWHIGH, plus BPLCON1/2 reset to 0 for no fine
-        ; scroll and single-playfield priorities). Returns the base
-        ; value-word index of the plane slots, ready to pass to
-        ; playfield.patch_copper() or copper.set_planes().
-        ; Returns $ffff on a null display pointer, invalid depth, or a
-        ; full list (partially emitted).
-        ;
-        ; display is the pointer returned by custom.compute_display();
-        ; select the mode there with the DISPLAY_ flags (DISPLAY_DEFAULT
-        ; for lores, | DISPLAY_HIRES for 640px, | DISPLAY_EHB or
-        ; | DISPLAY_HAM for the 6-plane modes). Assumes copper.init()
-        ; was already called on a CHIP-RAM buffer. DMA setup stays at
-        ; the call site (emit your own DMACON MOVE before calling this),
-        ; and colors/extras stay after: the caller adds COLORxx MOVEs,
-        ; rasterbars or WAITS, then copper.end().
+        ; display registers and leaves BPLCON2 to the caller. Returns the
+        ; plane-slot base for playfield.patch_copper() or copper.set_planes().
         if display == 0
             return $ffff
         uword base = attach_planes(depth)
@@ -141,7 +127,6 @@ copper {
         void move($010a, display.bpl2mod)
         void move($0102, 0)        ; BPLCON1: reset fine scrolling
         void move($01e4, display.diwhigh)
-        void move($0104, 0)        ; BPLCON2: single-playfield priorities
         return base
     }
 

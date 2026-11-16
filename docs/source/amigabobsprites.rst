@@ -20,7 +20,6 @@ the object's anchor; ``origin_x`` and ``origin_y`` offset the image's top-left
 from it::
 
     struct Mob {
-        uword id
         word x_pos
         word y_pos
         word origin_x
@@ -28,13 +27,11 @@ from it::
         uword width
         uword height
         uword radius
-        uword state
     }
 
 The object's top-left is ``(x_pos + origin_x, y_pos + origin_y)``. With an
-origin of ``(0, 0)``, the anchor is the top-left corner. The library leaves
-``id`` and ``state`` to the client. A ``radius`` of zero makes the circle
-collision helpers use the Mob's rectangular bounds instead.
+origin of ``(0, 0)``, the anchor is the top-left corner. A ``radius`` of zero
+makes the circle collision helpers use the Mob's rectangular bounds instead.
 
 Position and size live in the ``Mob`` because the renderers and the geometry
 helpers read them. Everything only game logic touches - velocity, timers,
@@ -49,11 +46,16 @@ from renderer-specific image data::
         uword depth
         pointer data
         pointer mask
+        uword id
+        uword state
     }
 
     struct Sprite {
         ^^mobs.Mob mob
         pointer data
+        uword slot
+        uword id
+        uword state
     }
 
 ``Bob.data`` points to plane 0 of the current frame. ``Bob.mask`` points to the
@@ -299,7 +301,7 @@ A sprite is described by a list of words in chip RAM, pointed to by
 * two control words: the position word and the control word;
 * per display line, the image words: two for the OCS 2-plane format, four for
   the AGA 4-plane format;
-* a zero word terminates the list.
+* two zero words terminate the list.
 
 The position word holds the vertical start (bits 15-8, low eight bits) and the
 high bits of the horizontal position (bits 7-0). The control word holds the
@@ -312,9 +314,10 @@ Within a line the words are stored low bitplane first. Bit 15 of a data word is
 the leftmost pixel, so the words of the 2-plane format are the low and the high
 colour bit of the same 16 pixels.
 
-The list has to be rebuilt whenever the sprite's height changes; moving a
-sprite only changes its position word, and switching a frame only changes the
-pointer.
+The list has to contain two words for every displayed line and end with two
+zero words. The sprite pointer registers are advanced by DMA while the list is
+read, so software must reload the starting pointer before the sprite is used
+again on the next frame.
 
 Sprite colours
 ~~~~~~~~~~~~~~
@@ -330,9 +333,9 @@ channels.
 Animating and multiplexing sprites
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Repositioning a sprite is a write to its position word, so an object can move
-every frame without touching pixel data. Animation is a matter of pointing
-``custom.SPRnPTH``/``PTL`` at another list of the same height.
+Repositioning a sprite updates its position/control words, so an object can
+move every frame without changing pixel data. Animation can use another list
+of the same height, with its pointer reloaded before the next use.
 
 Multiplexing reuses one channel for several objects per frame: the list is
 retriggered further down the screen, and the hardware overlays the same channel
@@ -376,13 +379,23 @@ AGA extends the same sprite hardware:
 Library support
 ~~~~~~~~~~~~~~~
 
-``mobs.Sprite`` already has the shape of a sprite descriptor (a ``Mob`` plus the
-chip RAM data pointer), so the metadata and geometry helpers can be shared with
-BOBs. A ``sprites`` helper module for position/control packing, pointer updates
-and the AGA modes does not exist yet. Until it does, program the registers
-directly through ``custom.SPRnPOS``, ``custom.SPRnCTL``, ``custom.SPRnDATA``,
-``custom.SPRnDATB`` and ``custom.SPRnPTH``/``PTL``, and use
-``custom.detect_chipset()`` to find out whether the AGA fields are usable.
+The ``sprites`` module provides bare-metal OCS/ECS ``init()``, ``pos()``,
+``enable()``, ``disable()``, ``hide()`` and ``set_priority(pairs_in_front)``
+helpers for ``mobs.Sprite`` descriptors. ``disable()`` stops sprite DMA globally;
+``hide(sprite)`` hides one sprite while DMA remains enabled.
+``pairs_in_front`` ranges from 0 (playfield in
+front) to 4 (all sprite pairs in front). The hardware orders pairs 0/1, 2/3,
+4/5 and 6/7, so only a leading number of pairs can be placed ahead of the
+playfield. On a single playfield, the helper writes this value to BPLCON2
+bits 5-3. Use the ``sprites.Priority`` enum for the argument. Set ``sprite.mob``,
+``sprite.data`` and ``sprite.slot`` first;
+``init(sprite)`` selects the assigned hardware channel, and ``pos(sprite)``
+packs the linked Mob's position and height into the data header while reloading
+that channel's pointer. ``hide(sprite)`` terminates its data header; another
+``pos(sprite)`` writes the position header again and shows it.
+``copper.base_list()`` leaves BPLCON2 alone. Set priority with the CPU helper
+or add a BPLCON2 MOVE to the Copper list if priority should change by scanline.
+AGA width, palette-bank and fetch-mode helpers are not implemented yet.
 
 .. seealso::
     ``examples/amiga/agabobs.p8`` demonstrates BOBs on an AGA planar playfield.

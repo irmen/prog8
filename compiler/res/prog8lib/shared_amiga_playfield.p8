@@ -268,7 +268,7 @@ playfield {
         ; byte would spray plane addresses across the whole custom range.
         %asm {{
             adda.w  #8,a0               ; a0 -> Planes[0] (BytesPerRow 0, Rows 2, Flags 4, Depth 5, Pad 6)
-            movea.l #$dff0e0,a1         ; a1 -> BPL1PT
+            movea.l #custom.BPL1PT,a1   ; a1 -> BPL1PT
             move.l  d2,-(sp)
             and.l   #$0000ffff,d1       ; zero-extend the uword offset (long immediate: no sign trap)
             andi.w  #$00ff,d0           ; zero-extend the ubyte depth (word counter)

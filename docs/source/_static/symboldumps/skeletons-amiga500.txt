@@ -1,6 +1,6 @@
 
 Prog8 compiler v14.0-BETA3 by Irmen de Jong (irmen@razorvine.net)
-Prerelease version from git commit 93bab5be in branch master
+Prerelease version from git commit 8f50c2ed in branch master
 This software is licensed under the GNU GPL 3.0, see https://www.gnu.org/licenses/gpl.html
 
 Compiling program import-all-amiga500.p8
@@ -641,7 +641,7 @@ blitter  {
     const uword  MINTERM_OR
     const uword  MINTERM_SET
     area_fill  (long src @A0, uword width_words @D0, uword height @D1, uword mod @D2)
-    copy_rect  (long src @A0, long dst @A1, uword width_words @D0, uword height @D1, uword src_mod @D2, uword dst_mod @D3, uword minterm @D4, ubyte descending @D5)
+    copy_rect  (long src @A0, long dst @A1, uword width_words @D0, uword height @D1, uword src_mod @D2, uword dst_mod @D3, uword minterm @D4, bool descending @D5)
     draw_bob  (^^mobs.Bob bob @A0, ^^pointer planes @A1, uword row_bytes @D0)
     erase  (long mask @A0, long dst @A1, uword width_words @D0, uword height @D1, uword mask_mod @D2, uword dst_mod @D3, ubyte shift @D4)
     fill_rect  (long dst @A0, uword width_words @D0, uword height @D1, uword pattern @D2, uword modulo @D3)
@@ -5327,6 +5327,7 @@ playfield  {
     destroy  ()
     destroy_backplane  ()
     flip  ()
+    flip_copper  (^^uword copper, uword base)
     patch_copper  (^^uword copper, uword base)
     patch_copper_at  (^^uword copper, uword base, uword xpix, uword yline) -> ubyte
     scroll_to  (uword xpix, uword yline) -> ubyte
@@ -5403,6 +5404,24 @@ sound  {
     stream_stop  (ubyte channel)
     wait_all  ()
     wait_channel  (ubyte channel)
+}
+
+
+LIBRARY MODULE NAME: sprites
+----------------------------
+
+sprites  {
+    const ubyte  Priority::PAIRS_0_IN_FRONT
+    const ubyte  Priority::PAIRS_1_IN_FRONT
+    const ubyte  Priority::PAIRS_2_IN_FRONT
+    const ubyte  Priority::PAIRS_3_IN_FRONT
+    const ubyte  Priority::PAIRS_4_IN_FRONT
+    disable  ()
+    enable  ()
+    hide  (^^mobs.Sprite spr)
+    init  (^^mobs.Sprite spr)
+    pos  (^^mobs.Sprite spr)
+    set_priority  (ubyte pairs_in_front)
 }
 
 
@@ -5736,5 +5755,3 @@ wavfile  {
     parse_header  (^^ubyte wav_data) -> bool
     read_le_word  (long addr) -> uword
 }
-
-
