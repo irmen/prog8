@@ -336,7 +336,7 @@ modules. Import them the same way as any other library::
     sequence behind a single slot handle.
     Emissions beyond capacity are dropped and counted in ``overflows``.
 
-``text``
+``gfxtext``
     Bare-metal 8x8 text renderer: ``init()`` caches pitch, depth and plane
     pointers, ``char()`` draws one glyph and ``print()`` draws a string with
     LF handling and reverse video (bit 7 of the character byte). CPU-only, no
@@ -389,7 +389,7 @@ tweaks exist on top of that.
 Hand-maintained modules (not generated from the NDK)
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-- ``custom``, ``blitter``, ``copper``, ``playfield``, ``text``, ``sound``,
+- ``custom``, ``blitter``, ``copper``, ``playfield``, ``gfxtext``, ``sound``,
   ``ptplayer``, ``easygfx`` - the bare-metal hardware modules.
 - ``audio``, ``timer``, ``trackdisk`` - thin ``audio.device`` / ``timer.device`` /
   ``trackdisk.device`` wrappers.

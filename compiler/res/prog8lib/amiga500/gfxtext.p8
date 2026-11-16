@@ -1,5 +1,5 @@
-%import shared_amiga_text
+%import shared_amiga_gfxtext
 
-text {
+gfxtext {
     %option no_symbol_prefixing, ignore_unused
 }

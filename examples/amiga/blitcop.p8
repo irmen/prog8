@@ -3,7 +3,7 @@
 %import copper
 %import blitter
 %import math
-%import text
+%import gfxtext
 
 main {
     sub start() {
@@ -65,10 +65,10 @@ main {
         blitter.wait()
 
         ; CPU text into the white bottom quarter (color 0 clears to black)
-        text.init(40, 1, &playfield.bitmap.Planes)
-        text.print(10, 200, iso:"bare-metal text", 0)
-        text.print(15, 210, iso:"reverse: \x82\x81", 0)
-        text.print(16, 220, iso:"some byte aligned text", 0)
+        gfxtext.init(40, 1, &playfield.bitmap.Planes)
+        gfxtext.print(10, 200, iso:"bare-metal text", 0)
+        gfxtext.print(15, 210, iso:"reverse: \x82\x81", 0)
+        gfxtext.print(16, 220, iso:"some byte aligned text", 0)
 
         ; Build the copper list with the copper helper (bitplane slots,
         ; display registers and the raster gradient) and start it.

@@ -10,6 +10,7 @@
 %import blitter
 %import math
 %import textio
+%import gfxtext
 
 main {
     const word WIDTH = 320
@@ -23,7 +24,7 @@ main {
     const uword ROW_BYTES = 40
     const word STAR_RADIUS = 120
 
-    mobs.Mob[NUM_BALLS] metas
+    mobs.Mob[NUM_BALLS] mobdata
     mobs.Sprite[NUM_BALLS] balls
     word[NUM_BALLS] vx
     word[NUM_BALLS] vy
@@ -42,6 +43,7 @@ main {
         }
         bm = playfield.bitmap
         regs = playfield.regs
+        gfxtext.init(40, DEPTH, &bm.Planes)
         prepare_balls()
         copperPlaneBase = build_copperlist()
         playfield.patch_copper(&copperdata.copper_list, copperPlaneBase)
@@ -62,39 +64,33 @@ main {
             custom.BPLCON4 = $0011
         }
         ; OCS/ECS sprite colors are shared by each channel pair.
-        custom.COLOR17 = $0f00
-        custom.COLOR18 = $0ff0
-        custom.COLOR19 = $00f0
-        custom.COLOR21 = $0f00
-        custom.COLOR22 = $0ff0
-        custom.COLOR23 = $00f0
-        custom.COLOR25 = $0f00
-        custom.COLOR26 = $0ff0
-        custom.COLOR27 = $00f0
-        custom.COLOR29 = $0f00
-        custom.COLOR30 = $0ff0
-        custom.COLOR31 = $00f0
+        sprites.set_colors(0, $0f00, $0ff0, $00f0)
+        sprites.set_colors(1, $0f00, $0ff0, $00f0)
+        sprites.set_colors(2, $0f00, $0ff0, $00f0)
+        sprites.set_colors(3, $0f00, $0ff0, $00f0)
         draw_starburst()
+        gfxtext.print(20, 20, iso:"Beachball sprites", 1)
         blitter.wait()
         sprites.enable()
 
         repeat {
             custom.waitvsync()
             for i in 0 to NUM_BALLS-1 {
-                metas[i].x_pos += vx[i]
-                if metas[i].x_pos < 0 {
-                    metas[i].x_pos = 0
+                ^^mobs.Mob m = balls[i].mob
+                m.x_pos += vx[i]
+                if m.x_pos < 0 {
+                    m.x_pos = 0
                     vx[i] = -vx[i]
-                } else if metas[i].x_pos > MAX_X {
-                    metas[i].x_pos = MAX_X
+                } else if m.x_pos > MAX_X {
+                    m.x_pos = MAX_X
                     vx[i] = -vx[i]
                 }
-                metas[i].y_pos += vy[i]
-                if metas[i].y_pos < 0 {
-                    metas[i].y_pos = 0
+                m.y_pos += vy[i]
+                if m.y_pos < 0 {
+                    m.y_pos = 0
                     vy[i] = -vy[i]
-                } else if metas[i].y_pos > MAX_Y {
-                    metas[i].y_pos = MAX_Y
+                } else if m.y_pos > MAX_Y {
+                    m.y_pos = MAX_Y
                     vy[i] = -vy[i]
                 }
                 sprites.pos(&balls[i])
@@ -112,17 +108,18 @@ main {
     sub prepare_balls() {
         math.rndseed(custom.JOY0DAT, custom.VHPOSR)
         for i in 0 to NUM_BALLS-1 {
-            metas[i].width = BALL_WIDTH
-            metas[i].height = BALL_HEIGHT
-            metas[i].origin_x = 0
-            metas[i].origin_y = 0
-            metas[i].x_pos = math.randrangew((MAX_X+1 as uword)) as word
-            metas[i].y_pos = math.randrangew((MAX_Y+1 as uword)) as word
+            balls[i].mob = &mobdata[i]
+            ^^mobs.Mob m = balls[i].mob
+            m.width = BALL_WIDTH
+            m.height = BALL_HEIGHT
+            m.origin_x = 0
+            m.origin_y = 0
+            m.x_pos = math.randrangew((MAX_X+1 as uword)) as word
+            m.y_pos = math.randrangew((MAX_Y+1 as uword)) as word
             vx[i] = (math.randrangew(5) as word)-2
             if vx[i] == 0 { vx[i] = 1 }
             vy[i] = (math.randrangew(5) as word)-2
             if vy[i] == 0 { vy[i] = -1 }
-            balls[i].mob = &metas[i]
             balls[i].slot = i
         }
         balls[0].data = &spritedata.sprite0

@@ -1,4 +1,4 @@
-; text - bare-metal 8x8 text renderer for the Amiga (CPU-only, no OS calls).
+; gfxtext - bare-metal 8x8 text renderer for the Amiga (CPU-only, no OS calls).
 ; Shared by amiga500 and amiga1200 targets.
 ;
 ; Rendering is limited to the embedded 8x8 font (font8x8_basic, 128 glyphs).
@@ -8,7 +8,7 @@
 %import math
 %import strings
 
-text {
+gfxtext {
     %option merge, no_symbol_prefixing, ignore_unused
 
     private uword @shared pitch
@@ -71,19 +71,19 @@ text {
             add.l   d5,a1
             ; a2 = pitch (long)
             moveq   #0,d0
-            move.w  text.pitch,d0
+            move.w  gfxtext.pitch,d0
             move.l  d0,a2
             ; a3 = font8x8 + (chr & $7f) * 8
             moveq   #0,d0
             move.b  d2,d0
             andi.w  #$7f,d0
             lsl.w   #3,d0
-            lea     text.font8x8,a3
+            lea     gfxtext.font8x8,a3
             add.l   d0,a3
-            lea     text.planes,a4
+            lea     gfxtext.planes,a4
             ; d6 = depth
             moveq   #0,d6
-            move.b  text.depth,d6
+            move.b  gfxtext.depth,d6
             moveq   #0,d5           ; row index
 .rowloop:
             cmpi.w  #8,d5

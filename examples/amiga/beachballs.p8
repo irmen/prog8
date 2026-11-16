@@ -15,6 +15,7 @@
 %import mobs
 %import math
 %import textio
+%import gfxtext
 
 main {
     const word WIDTH = 320
@@ -45,7 +46,7 @@ main {
     uword copperPlaneBase
     ^^graphics.BitMap drawBm   ; hidden buffer currently drawn into
 
-    mobs.Mob[NUM_BALLS] metas
+    mobs.Mob[NUM_BALLS] mobdata
     mobs.Bob[NUM_BALLS] bobs
 
     long[NUM_COLORS] palette = [
@@ -67,6 +68,7 @@ main {
         }
         bm = playfield.bitmap
         regs = playfield.regs
+        gfxtext.init(ROW_BYTES, DEPTH, &bm.Planes)
         prepare_bob()
         copperPlaneBase = build_copperlist()
         playfield.patch_copper(&copperdata.copper_list, copperPlaneBase)
@@ -83,6 +85,7 @@ main {
         }
 
         draw_starburst()
+        gfxtext.print(20, 20, iso:"Beachball BOBs", 1)
         copy_front_to_back()
         bounce_balls()
         blitter.wait()
@@ -98,12 +101,14 @@ main {
         ; Seed from mouse counters + beam position so each run scatters differently.
         math.rndseed(custom.JOY0DAT, custom.VHPOSR)
         for i in 0 to NUM_BALLS-1 {
-            metas[i].width = BOB_WIDTH
-            metas[i].height = BOB_HEIGHT
-            metas[i].origin_x = 0
-            metas[i].origin_y = 0
-            metas[i].x_pos = math.randrangew((MAX_X+1 as uword)) as word   ; 0..272
-            metas[i].y_pos = math.randrangew((MAX_Y+1 as uword)) as word   ; 0..224
+            bobs[i].mob = &mobdata[i]
+            ^^mobs.Mob m = bobs[i].mob
+            m.width = BOB_WIDTH
+            m.height = BOB_HEIGHT
+            m.origin_x = 0
+            m.origin_y = 0
+            m.x_pos = math.randrangew((MAX_X+1 as uword)) as word   ; 0..272
+            m.y_pos = math.randrangew((MAX_Y+1 as uword)) as word   ; 0..224
             vx[i] = (math.randrangew(5) as word) - 2        ; -2..2
             if vx[i]==0 {
                 vx[i] = 1
@@ -112,11 +117,10 @@ main {
             if vy[i]==0 {
                 vy[i] = -1
             }
-            ox[i] = metas[i].x_pos
-            oy[i] = metas[i].y_pos
-            ox[i+NUM_BALLS] = metas[i].x_pos
-            oy[i+NUM_BALLS] = metas[i].y_pos
-            bobs[i].mob = &metas[i]
+            ox[i] = m.x_pos
+            oy[i] = m.y_pos
+            ox[i+NUM_BALLS] = m.x_pos
+            oy[i+NUM_BALLS] = m.y_pos
             bobs[i].depth = DEPTH
             bobs[i].data = &ballbob.ball_planes
             bobs[i].mask = &ballbob.ball_mask
@@ -171,27 +175,28 @@ main {
                 restore_one(i, buf)
             }
             for i in 0 to NUM_BALLS-1 {
-                metas[i].x_pos += vx[i]
-                if metas[i].x_pos < 0 {
-                    metas[i].x_pos = 0
+                ^^mobs.Mob m = bobs[i].mob
+                m.x_pos += vx[i]
+                if m.x_pos < 0 {
+                    m.x_pos = 0
                     vx[i] = -vx[i]
                 }
-                else if metas[i].x_pos > MAX_X {
-                    metas[i].x_pos = MAX_X
+                else if m.x_pos > MAX_X {
+                    m.x_pos = MAX_X
                     vx[i] = -vx[i]
                 }
-                metas[i].y_pos += vy[i]
-                if metas[i].y_pos < 0 {
-                    metas[i].y_pos = 0
+                m.y_pos += vy[i]
+                if m.y_pos < 0 {
+                    m.y_pos = 0
                     vy[i] = -vy[i]
                 }
-                else if metas[i].y_pos > MAX_Y {
-                    metas[i].y_pos = MAX_Y
+                else if m.y_pos > MAX_Y {
+                    m.y_pos = MAX_Y
                     vy[i] = -vy[i]
                 }
                 uword s = oxslot(buf, i)
-                ox[s] = metas[i].x_pos
-                oy[s] = metas[i].y_pos
+                ox[s] = m.x_pos
+                oy[s] = m.y_pos
             }
             save_all(buf)
             for i in 0 to NUM_BALLS-1 {

@@ -24,7 +24,7 @@
 %import sorting
 %import strings
 %import syslib
-%import text
+%import gfxtext
 %import textio
 %import wavfile
 %import exec

@@ -79,4 +79,16 @@ sprites {
         if spr.slot < 8
             pokep(&custom.SPR0PT + spr.slot * 4, spr.data)
     }
+
+    ; Set the 3 visible colors of a sprite pair (pair 0..3 -> sprites 0&1, 2&3, ...).
+    ; Color 0 of the pair stays transparent (background).
+    ; Writes 12-bit $0RGB values, correct for OCS/ECS.
+    sub set_colors(ubyte pair, uword c1, uword c2, uword c3) {
+        if pair > 3
+            return
+        ^^uword base = &custom.COLOR17 + (pair as uword) * 8
+        base[0] = c1
+        base[1] = c2
+        base[2] = c3
+    }
 }
