@@ -1726,13 +1726,13 @@ internal class AsmGen(val program: IRProgram, internal val target: ICompilationT
             dt.isString && init is IRVariableInitializer.Str -> {
                 val bytes = program.encoding.encodeString(init.text, init.encoding)
                 val values = bytes.map { it.toString(10) } + "0"
-                emitLine("align  2")
+                emitLine("align  ${max(2, v.align.toInt())}")
                 emitRaw("$label:")
                 emitChunkedDc("dc.b", values, v.name)
             }
             dt.isArray && init is IRVariableInitializer.Array -> {
                 if(dt.sub==BaseDataType.STRUCT_INSTANCE) {
-                    emitLine("align  2")
+                    emitLine("align  ${max(2, v.align.toInt())}")
                     emitRaw("$label:")
                     for(elt in init.elements) {
                         val sym = (elt as? IRStSymbolicReference.Symbol)?.name ?: error("expected struct instance symbol for ${v.name}")
@@ -1778,17 +1778,17 @@ internal class AsmGen(val program: IRProgram, internal val target: ICompilationT
                     }
                     when (elemSize) {
                         1 -> {
-                            emitLine("align  2")
+                            emitLine("align  ${max(2, v.align.toInt())}")
                             emitRaw("$label:")
                             emitChunkedDc("dc.b", values, v.name)
                         }
                         2 -> {
-                            emitLine("align  2")
+                            emitLine("align  ${max(2, v.align.toInt())}")
                             emitRaw("$label:")
                             emitChunkedDc("dc.w", values, v.name)
                         }
                         4 -> {
-                            emitLine("align  $elemSize")
+                            emitLine("align  ${max(elemSize, v.align.toInt())}")
                             emitRaw("$label:")
                             emitChunkedDc("dc.l", values, v.name)
                         }
@@ -1945,12 +1945,14 @@ internal class AsmGen(val program: IRProgram, internal val target: ICompilationT
         fun layout(v: IRStStaticVariable): Triple<IRStStaticVariable, Int, Int> {
             val size = target.memorySize(v.dt, v.length?.toInt())
             // M68K alignment: 4 bytes for 32-bit types, 2 for 16-bit types, 1 for pure byte arrays/scalars.
-            val alignment = when {
+            val natural = when {
                 v.dt.isPointer || v.dt.isLong || v.dt.isFloat -> 4
                 v.dt.isWord -> 2
                 v.dt.isArray -> 2
                 else -> 1
             }
+            // Respect explicit @align64/@alignpage/@alignword tags (e.g. 64px AGA sprite buffers need quadword+).
+            val alignment = max(natural, v.align.toInt())
             return Triple(v, size, alignment)
         }
 
