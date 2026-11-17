@@ -356,25 +356,26 @@ That is free and pixel exact, unlike the rectangle tests in ``mobs``.
 AGA sprite modes
 ~~~~~~~~~~~~~~~~
 
-AGA extends the same sprite hardware:
+On AGA, sprites can also be 4 planes (16 colours) and 16, 32 or 64 pixels wide.
+The width is a global display mode selected by ``custom.FMODE`` bits 3-2 and
+applies to all eight channels; it cannot be mixed per sprite. It must be set
+before sprite DMA is enabled (``FMODE`` defaults to the 16-pixel OCS mode).
+The sprite data and control-word layout grow with the width, and wide sprite
+data must be aligned to the fetch width (8 bytes for 64 pixels).
 
-* 4 planes per sprite, so 16 colours instead of 4, still 16 pixels wide, four
-  words per line;
-* 32 or 64 pixel wide sprites through the width bits in the control word, with
-  the matching number of words per line;
-* ``custom.FMODE`` bits 0-1 select the sprite DMA fetch width (16, 32 or 64
-  bits). It has to be high enough for the widest sprite in use; until an AGA
-  register is written, sprites stay in the 16-pixel OCS compatible mode;
-* ``custom.BPLCON4`` selects the palette bank: bits 0-3 for the even channels
-  (0, 2, 4, 6) and bits 4-7 for the odd ones (1, 3, 5, 7), each bank being 16
-  consecutive colours. A single 16-colour sprite uses its bank; an attached pair
-  uses both banks at once for 256 colours.
+``custom.BPLCON4`` selects the palette bank: bits 0-3 for the even channels
+(0, 2, 4, 6) and bits 4-7 for the odd ones (1, 3, 5, 7), each bank being 16
+consecutive colours. A single 16-colour sprite uses its bank; an attached pair
+uses both banks at once for 256 colours.
 
 .. caution::
-    Fetch width and data layout must agree. A sprite whose width bits ask for
-    64 pixels while ``FMODE`` still fetches 16 bits per access, or whose data
-    structure stores fewer words than its width needs, shows a garbled or
-    truncated sprite.
+    ``FMODE`` and the sprite data layout must agree. A 64-pixel sprite while
+    ``FMODE`` still fetches 16 bits, or a data block with too few words, shows a
+    garbled or truncated sprite.
+
+.. note::
+    The ``sprites`` module does not yet provide AGA wide-sprite helpers; only
+    the OCS/ECS 16-pixel path and 16-colour attachment are implemented.
 
 Library support
 ~~~~~~~~~~~~~~~

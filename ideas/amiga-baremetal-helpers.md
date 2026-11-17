@@ -37,7 +37,7 @@ odd one) into a single sprite with double the color depth:
 
 - OCS/ECS: attached pair = 4 bitplanes = 16 colors (vs. 2 bitplanes / 4 colors
   for a single sprite). Costs two of the eight sprite slots.
-- AGA: attached pair = 8 bitplanes = 256 colors.
+- AGA can also attach two 4-plane channels for 8 bitplanes = 256 colors.
 - Enabled by setting the attach bit in the odd sprite's `SPRxCTL` control word;
   the odd sprite's control word still carries the position/size data.
 - Data layout (OCS/ECS 16-color case): each channel keeps its own 2-plane data
@@ -134,33 +134,47 @@ site. Unused `aga_*` subroutines are stripped on ECS builds by the block's
 
 - `enum AgaWidth { W16 = 0, W32 = 1, W64 = 3 }` (the values are `FMODE`
   bits 3-2; `W32` may also be 2 for page mode).
-- `aga_set_width(AgaWidth width)` — sets `FMODE` bits 3-2, preserves the
-  bitplane bits, and records the selected width in a private module variable
-  (declared like `blitter.line_mod`) for the wide routines to use.
-- `aga_init(^^mobs.Sprite spr)` — pointer setup plus the width-specific header
-  (same role as `init()`, but the caller must have called `aga_set_width`).
-- `aga_pos(^^mobs.Sprite spr)` — wide-aware replacement for `pos()`.
-- `aga_hide(^^mobs.Sprite spr)` — wide-aware replacement for `hide()`.
-- `aga_set_resolution(ubyte res)` — sprite resolution via `BPLCON3`.
-- `aga_set_bank(ubyte even_bank, ubyte odd_bank)` — `BPLCON4` palette banks.
-- Reuse the existing `attach()`, `set_colors16()`, `enable()` and `disable()`
-  where the width does not matter. Keep the 16px `init()`/`pos()`/`hide()`
-  unchanged so OCS/ECS code is unaffected.
+- `aga_set_width(AgaWidth width)` — does
+  `custom.FMODE = (custom.FMODE & $fff3) | ((width as uword & 3) << 2)`
+  (preserves the bitplane bits), then sets `aga_n` to 1 for `W16`, 4 for
+  `W64`, and 2 otherwise (so `W32` and page mode both map to 2).
+- `aga_pos(^^mobs.Sprite spr)` — wide-aware replacement for `pos()`, writing
+  CTL at the width's offset.
+- `aga_init_attached(^^mobs.Sprite even_spr, ^^mobs.Sprite odd_spr)` and
+  `aga_pos_attached(...)` — wide-aware counterparts of the existing pair
+  helpers.
+- `aga_set_resolution(ubyte res)` — sprite resolution in `BPLCON3` bits 7-6:
+  `custom.BPLCON3 = (custom.BPLCON3 & $ff3f) | ((res as uword & 3) << 6)`.
+  `res`: 0 = ECS default, 1 = lores (140ns), 2 = hires (70ns),
+  3 = superhires (35ns).
+- `aga_set_bank(ubyte even_bank, ubyte odd_bank)` — `BPLCON4` palette banks:
+  `custom.BPLCON4 = (custom.BPLCON4 & $ff00) | (even_bank & $0f) |
+  ((odd_bank & $0f) << 4)`.
+- Reuse `init()` unchanged: it only programs `SPRxPT`, which is width-agnostic,
+  so there is no `aga_init()`.
+- Do not add `aga_hide()`. Make the existing `hide()` width-aware instead:
+  zero the POS word and the CTL word at the current width's offset (or simply
+  zero the whole `aga_n*4`-byte header). With `aga_n` defaulting to 1 the
+  16px behavior is unchanged.
+- Reuse `attach()`, `set_colors16()`, `enable()` and `disable()`.
 
-Store the width as a private variable named e.g. `aga_width`. The caller must
-call `aga_set_width()` before any wide sprite use and reset it to `W16` (and
-`FMODE` to 0) before returning to OCS mode.
+Keep the width factor in a private variable `private uword aga_n = 1` (Prog8
+statics are zero-initialized, so the explicit `= 1` is required for the 16px
+`hide()` default). The caller must call `aga_set_width()` before any wide
+sprite use and call `aga_set_width(AgaWidth::W16)` before returning to OCS
+mode; that clears `FMODE` bits 3-2 while preserving the bitplane bits.
 
 **Implementation notes**
 
 - `aga_pos()` must write the POS word at data+0 and the CTL word at the width's
   CTL offset (`+2`, `+4` or `+8`), not always at `+2`. Leave the padding words
-  zero. `aga_hide()` must terminate the block with `2*N` zero words.
+  zero. `hide()` must clear the POS word and the CTL word at the same offset
+  (zeroing the whole `aga_n*4`-byte header is the simplest correct form).
 - The attach bit is still bit 7 of the CTL word.
 - Keep the sprite data pointer aligned to 2/4/8 bytes (word/longword/quadword)
-  for 16/32/64 px. Prog8 arrays are not guaranteed to be 8-byte aligned, so the
-  wide helper should align the data pointer (or allocate the buffers with an
-  alignment-aware mechanism) before handing it to `SPRxPT`.
+  for 16/32/64 px. In Prog8, declare the chip-RAM buffers with `@align64`
+  (e.g. `uword[...] @align64 sprite_buffer`), which covers the 8-byte
+  requirement for 64px. Do not rely on the default array alignment.
 - Set `FMODE` bits 3-2 before enabling sprite DMA. Writing any AGA register
   switches the chip out of OCS compatibility mode; reset `FMODE` to 0 (and
   `BPLCON4` as needed) when returning to OCS mode.
@@ -171,7 +185,8 @@ call `aga_set_width()` before any wide sprite use and reset it to `W16` (and
 VSTOP 10th bit, bits 4/3 = 70ns/35ns horizontal start bits, bit 2 = VSTART
 9th bit, bit 1 = VSTOP 9th bit, bit 0 = HSTART low bit (140ns). The existing
 lores formula (bits 2, 1, 0) is unchanged; leave bits 6-3 zero unless using
-hires/superhires positioning.
+hires/superhires positioning. The 10th vertical bits (6/5) are not handled by
+the current formula; positions or heights beyond 512 lines would need them.
 
 **Registers available in custom.p8 (shared_amiga_custom.p8):**
 
@@ -229,13 +244,13 @@ so different sprites can use different color ranges at different times. But on
 any single scanline, the even/odd bank pairing applies.
 
 **Implications for the sprite helper API:**
-- `sprite.color_bank(sprite_num, bank)` is not possible per-sprite — bank is
-  per even/odd group. The API should expose `sprite.set_even_bank(bank)` and
-  `sprite.set_odd_bank(bank)` instead.
+- A bank cannot be selected per sprite — the bank is per even/odd group. That is
+  why the helper exposes one call, `aga_set_bank(even_bank, odd_bank)`, rather
+  than a per-sprite `color_bank()`.
 - For games needing more than 2 distinct 16-color palettes simultaneously,
   use attached sprites (256 colors) or copper-driven bank switches.
-- The helper should document which palette entries each bank consumes so the
-  caller can allocate palette ranges without conflicts.
+- Document which palette entries each bank consumes so the caller can allocate
+  palette ranges without conflicts.
 
 ### References
 

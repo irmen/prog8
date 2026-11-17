@@ -19,9 +19,10 @@ sprites {
     const uword SPRITE_H_OFFSET = 128
     const uword SPRITE_V_OFFSET = 44
 
-    ; Primitives only: init/pos/enable/disable/hide, plus color setup and
-    ; 16-color attach. No state, animation, or multiplexing. The caller owns
-    ; sprite data in chip RAM and positions.
+    ; AGA-only helpers follow. aga_set_width() must be called first.
+    enum AgaWidth { W16 = 0, W32 = 1, W64 = 3 }
+
+    private uword aga_n   ; 1, 2 or 4 = width/16; set by aga_set_width
     ; Sprite data must start with two control words (POS, CTL) followed by
     ; the bitplane data: one word per bitplane per scanline (2 words/line for
     ; the 4-color OCS format).
@@ -130,5 +131,88 @@ sprites {
     sub pos_attached(^^mobs.Sprite even_spr, ^^mobs.Sprite odd_spr) {
         pos(even_spr)
         pos(odd_spr)
+    }
+
+    ; AGA-only: set sprite fetch/display width globally via FMODE bits 3-2.
+    ; aga_set_width() must be called before any aga_* sprite use.
+    sub aga_set_width(ubyte width) {
+        custom.FMODE = (custom.FMODE & $fff3) | ((width as uword & 3) << 2)
+        if width == 0
+            aga_n = 1
+        else if width == 3
+            aga_n = 4
+        else
+            aga_n = 2
+    }
+
+    ; AGA-only: pointer setup like init(), but width-specific header.
+    ; aga_set_width() must be called first.
+    sub aga_init(^^mobs.Sprite spr) {
+        if spr.slot < 8
+            pokep(&custom.SPR0PT + spr.slot * 4, spr.data)
+    }
+
+    ; AGA-only: wide-aware replacement for pos().
+    ; aga_set_width() must be called first.
+    sub aga_pos(^^mobs.Sprite spr) {
+        ; Restore the hardware pointer each frame (DMA advances it).
+        if spr.slot < 8
+            pokep(&custom.SPR0PT + spr.slot * 4, spr.data)
+        pointer p = spr.data
+        uword x = spr.mob.x_pos as uword
+        uword y = spr.mob.y_pos as uword
+        uword height = spr.mob.height
+        uword hstart = x + SPRITE_H_OFFSET
+        uword vstart = y + SPRITE_V_OFFSET
+        uword vstop = vstart + height
+        p[0] = (vstart & $ff) as ubyte
+        p[1] = ((hstart >> 1) & $ff) as ubyte
+        uword off = aga_n * 2
+        p[off] = (vstop & $ff) as ubyte
+        p[off+1] = ((((vstart & $100) >> 6) | ((vstop & $100) >> 7) |
+                     (hstart & 1)) | (p[off+1] & $80)) as ubyte
+    }
+
+    ; AGA-only: zero the header (aga_n*4 bytes) and reload the pointer.
+    ; aga_set_width() must be called first.
+    sub aga_hide(^^mobs.Sprite spr) {
+        pointer p = spr.data
+        uword n = aga_n * 2
+        for i in 0 to n-1 {
+            p[i] = 0
+        }
+        if spr.slot < 8
+            pokep(&custom.SPR0PT + spr.slot * 4, spr.data)
+    }
+
+    ; AGA-only: initialize an attached (16/256-color) sprite pair.
+    ; aga_set_width() must be called first.
+    sub aga_init_attached(^^mobs.Sprite even_spr, ^^mobs.Sprite odd_spr) {
+        odd_spr.slot = even_spr.slot + 1
+        attach(odd_spr, true)
+        aga_init(even_spr)
+        aga_init(odd_spr)
+        aga_pos(even_spr)
+        aga_pos(odd_spr)
+    }
+
+    ; AGA-only: position both sprites of an attached pair.
+    ; aga_set_width() must be called first.
+    sub aga_pos_attached(^^mobs.Sprite even_spr, ^^mobs.Sprite odd_spr) {
+        aga_pos(even_spr)
+        aga_pos(odd_spr)
+    }
+
+    ; AGA-only: sprite resolution via BPLCON3.
+    ; aga_set_width() must be called first.
+    sub aga_set_resolution(ubyte res) {
+        custom.BPLCON3 = (custom.BPLCON3 & $3f) | ((res as uword & 3) << 6)
+    }
+
+    ; AGA-only: BPLCON4 palette banks for even/odd sprites.
+    ; aga_set_width() must be called first.
+    sub aga_set_bank(ubyte even_bank, ubyte odd_bank) {
+        custom.BPLCON4 = (custom.BPLCON4 & $ff00) |
+                         (even_bank & $0f) | ((odd_bank & $0f) << 4)
     }
 }
