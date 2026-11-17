@@ -43,7 +43,7 @@ main {
         }
         bm = playfield.bitmap
         regs = playfield.regs
-        gfxtext.init(40, DEPTH, &bm.Planes)
+        gfxtext.init(ROW_BYTES, DEPTH, &bm.Planes)
         prepare_balls()
         copperPlaneBase = build_copperlist()
         playfield.patch_copper(&copperdata.copper_list, copperPlaneBase)
@@ -60,8 +60,14 @@ main {
         sprites.set_priority(sprites.Priority::PAIRS_4_IN_FRONT)
         custom.load_colors(&palette, 16)
         if custom.detect_chipset() == custom.CHIPSET::AGA {
-            ; Restore AGA's default sprite palette banks for ECS-compatible colors.
-            custom.BPLCON4 = $0011
+            ; BPLCON3/BPLCON4 are write-only on AGA and still hold the OS
+            ; screen's values here: reset the sprite resolution and the sprite
+            ; palette banks through the sprites module, which composes the
+            ; register values without reading them back. FMODE needs nothing:
+            ; the copper list already writes regs.fmode ($0001 on AGA), which
+            ; keeps the 16px sprite fetch bits clear.
+            sprites.aga_set_resolution(0)
+            sprites.aga_set_bank(1, 1)
         }
         ; OCS/ECS sprite colors are shared by each channel pair.
         sprites.set_colors(0, $0f00, $0ff0, $00f0)
@@ -75,26 +81,7 @@ main {
 
         repeat {
             custom.waitvsync()
-            for i in 0 to NUM_BALLS-1 {
-                ^^mobs.Mob m = balls[i].mob
-                m.x_pos += vx[i]
-                if m.x_pos < 0 {
-                    m.x_pos = 0
-                    vx[i] = -vx[i]
-                } else if m.x_pos > MAX_X {
-                    m.x_pos = MAX_X
-                    vx[i] = -vx[i]
-                }
-                m.y_pos += vy[i]
-                if m.y_pos < 0 {
-                    m.y_pos = 0
-                    vy[i] = -vy[i]
-                } else if m.y_pos > MAX_Y {
-                    m.y_pos = MAX_Y
-                    vy[i] = -vy[i]
-                }
-                sprites.pos(&balls[i])
-            }
+            bounce()
             bool pressed
             ubyte keycode
             pressed, keycode = custom.raw_keyboard_poll()
@@ -103,6 +90,29 @@ main {
         }
         custom.restore_system()
         playfield.destroy()
+    }
+
+    sub bounce() {
+        for i in 0 to NUM_BALLS-1 {
+            ^^mobs.Mob m = balls[i].mob
+            m.x_pos += vx[i]
+            if m.x_pos < 0 {
+                m.x_pos = 0
+                vx[i] = -vx[i]
+            } else if m.x_pos > MAX_X {
+                m.x_pos = MAX_X
+                vx[i] = -vx[i]
+            }
+            m.y_pos += vy[i]
+            if m.y_pos < 0 {
+                m.y_pos = 0
+                vy[i] = -vy[i]
+            } else if m.y_pos > MAX_Y {
+                m.y_pos = MAX_Y
+                vy[i] = -vy[i]
+            }
+            sprites.pos(&balls[i])
+        }
     }
 
     sub prepare_balls() {
@@ -117,9 +127,11 @@ main {
             m.x_pos = math.randrangew((MAX_X+1 as uword)) as word
             m.y_pos = math.randrangew((MAX_Y+1 as uword)) as word
             vx[i] = (math.randrangew(5) as word)-2
-            if vx[i] == 0 { vx[i] = 1 }
+            if vx[i] == 0
+                vx[i] = 1
             vy[i] = (math.randrangew(5) as word)-2
-            if vy[i] == 0 { vy[i] = -1 }
+            if vy[i] == 0
+                vy[i] = -1
             balls[i].slot = i
         }
         balls[0].data = &spritedata.sprite0
@@ -147,7 +159,7 @@ main {
             word dy = math.sin8(i*2)
             word x2 = WIDTH/2 + dx*STAR_RADIUS/127
             word y2 = HEIGHT/2 + dy*STAR_RADIUS/127
-            blitter.line_color(WIDTH/2, HEIGHT/2, x2 as uword, y2 as uword, i/8, DEPTH, &bm.Planes)
+            blitter.line_color(WIDTH/2, HEIGHT/2, x2 as uword, y2 as uword, 1+i/9, DEPTH, &bm.Planes)
         }
     }
 

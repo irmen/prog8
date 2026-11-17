@@ -1,6 +1,6 @@
 ; AGA hardware-sprite beachballs (16 colors via attached sprites).
-; AGA only, compile with -target amiga1200.
-; 64x64 pixel AGA sprites (64px wide, 64 high).
+; 64x64 pixel AGA sprites (64px wide, 64 high). Amiga 1200 +
+
 %import graphics
 %import custom
 %import playfield
@@ -19,7 +19,6 @@ main {
     const ubyte NUM_BALLS = 4
     const ubyte BALL_WIDTH = 64
     const ubyte BALL_HEIGHT = 64
-    ; 8-word header + 8 words/line (64px, 2 planes).
     const uword SPRITE_WORDS = 8 + (BALL_HEIGHT as uword) * 8 + 8  ; header + data + terminator
     const word MAX_X = WIDTH-BALL_WIDTH
     const word MAX_Y = HEIGHT-BALL_HEIGHT
@@ -51,10 +50,10 @@ main {
         bm = playfield.bitmap
         regs = playfield.regs
         ; The copper list rewrites FMODE/BPLCON0 every frame, so include the
-        ; 64px sprite fetch bits (FMODE 3-2) and ECSENA (needed for border
-        ; sprites) in the values it writes.
+        ; 64px sprite fetch bits (FMODE 3-2) and ECSENA (gates the BPLCON3
+        ; sprite resolution bits) in the values it writes.
         regs.fmode = regs.fmode | %1100
-        regs.bplcon0 = regs.bplcon0 | $0001   ; ECSENA gates border sprites
+        regs.bplcon0 = regs.bplcon0 | $0001   ; ECSENA gates the BPLCON3 sprite resolution bits
         prepare_balls()
         copperPlaneBase = build_copperlist()
         playfield.patch_copper(&copperdata.copper_list, copperPlaneBase)
@@ -73,7 +72,12 @@ main {
         sprites.aga_set_colors16(&sprite_palette as ^^long)
         custom.load_colors(&palette, 16)
         if custom.detect_chipset() == custom.CHIPSET::AGA {
-            custom.BPLCON4 = $0011
+            ; BPLCON3/BPLCON4 are write-only on AGA and still hold the OS
+            ; screen's values here: reset the sprite resolution (no BRDSPRT)
+            ; and the sprite palette banks through the sprites module, which
+            ; composes the register values without reading them back.
+            sprites.aga_set_resolution(0)
+            sprites.aga_set_bank(1, 1)
         }
         draw_starburst()
         gfxtext.print(20, 20, iso:"Beachball sprites, AGA 64x64", 1)
@@ -82,26 +86,7 @@ main {
 
         repeat {
             custom.waitvsync()
-            for i in 0 to NUM_BALLS-1 {
-                ^^mobs.Mob m = even_balls[i].mob
-                m.x_pos += vx[i]
-                if m.x_pos < 0 {
-                    m.x_pos = 0
-                    vx[i] = -vx[i]
-                } else if m.x_pos > MAX_X {
-                    m.x_pos = MAX_X
-                    vx[i] = -vx[i]
-                }
-                m.y_pos += vy[i]
-                if m.y_pos < 0 {
-                    m.y_pos = 0
-                    vy[i] = -vy[i]
-                } else if m.y_pos > MAX_Y {
-                    m.y_pos = MAX_Y
-                    vy[i] = -vy[i]
-                }
-                sprites.aga_pos_attached(&even_balls[i], &odd_balls[i])
-            }
+            bounce()
             bool pressed
             ubyte keycode
             pressed, keycode = custom.raw_keyboard_poll()
@@ -110,6 +95,29 @@ main {
         }
         custom.restore_system()
         playfield.destroy()
+    }
+
+    sub bounce() {
+        for i in 0 to NUM_BALLS-1 {
+            ^^mobs.Mob m = even_balls[i].mob
+            m.x_pos += vx[i]
+            if m.x_pos < 0 {
+                m.x_pos = 0
+                vx[i] = -vx[i]
+            } else if m.x_pos > MAX_X {
+                m.x_pos = MAX_X
+                vx[i] = -vx[i]
+            }
+            m.y_pos += vy[i]
+            if m.y_pos < 0 {
+                m.y_pos = 0
+                vy[i] = -vy[i]
+            } else if m.y_pos > MAX_Y {
+                m.y_pos = MAX_Y
+                vy[i] = -vy[i]
+            }
+            sprites.aga_pos_attached(&even_balls[i], &odd_balls[i])
+        }
     }
 
     sub prepare_balls() {
@@ -154,7 +162,7 @@ main {
             word dy = math.sin8(i*2)
             word x2 = WIDTH/2 + dx*STAR_RADIUS/127
             word y2 = HEIGHT/2 + dy*STAR_RADIUS/127
-            blitter.line_color(WIDTH/2, HEIGHT/2, x2 as uword, y2 as uword, i/8, DEPTH, &bm.Planes)
+            blitter.line_color(WIDTH/2, HEIGHT/2, x2 as uword, y2 as uword, 1+i/9, DEPTH, &bm.Planes)
         }
     }
 }

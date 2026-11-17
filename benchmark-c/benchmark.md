@@ -11,7 +11,8 @@ However conclusions so far (note: these are micro benchmarks so interpret the re
 * Prog8 program size is consistently one of the smallest.
 * Prog8 execution speed places it more or less in the middle of the stack.
 
-Measured with Prog8 V12.0 .
+The results below were measured with Prog8 V12.0 .
+Later prog8 versions have slightly better performance on some tests. 
 Benchmarks ran on a PAL C64 emulated through VICE.
 
 textual results:

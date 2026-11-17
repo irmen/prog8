@@ -1,8 +1,6 @@
 TODO
 ====
 
-- Amiga: confirm the sprite horizontal screen offset: ``sprites.pos()`` adds 128 to the visible x coordinate, one less than the lores ``hstart`` of 129 (``$81``) used by ``custom.compute_display()``. Verify on the emulator whether this is intentional (sprites may overlap the left border) or a one-pixel misalignment, and align it with DIWSTRT if it is a bug.
-
 Future Things and Ideas
 ^^^^^^^^^^^^^^^^^^^^^^^
 - extend the ``-gendoc`` command to generate user reference documentation from Markdown docstrings; see ``ideas/markdown-docstrings-and-reference-docs.md`` for the plan.

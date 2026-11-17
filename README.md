@@ -122,9 +122,12 @@ Additional required tools
 If you're on Windows, download a recent .exe from the official repository's file section <https://sourceforge.net/projects/tass64/files/binaries/>.
 For other systems (Mac, Linux) it is very easy to get it via your package manager or to compile it yourself.
 
-A **Java runtime (jre or jdk), version 11 or newer**  is required to run a prepackaged version of the compiler.
-If you want to build it from source, you'll need a Java SDK + Kotlin 1.3.x SDK (or for instance,
-IntelliJ IDEA with the Kotlin plugin).
+For the **m68k targets** (`amiga500`, `amiga1200`, `qemu68k`) you also need `vasmm68k_mot`.
+`vlink` is required for `qemu68k` only.
+
+A **Java runtime (jre or jdk), version 17 or newer**  is required to run a prepackaged version of the compiler.
+If you want to build it from source, you'll need a Java SDK 17 or newer. Gradle downloads the Kotlin
+toolchain; for IntelliJ IDEA, use the Kotlin plugin.
 
 It's handy to have an emulator (or a real machine perhaps!) to run the programs on. The compiler assumes the presence
 of the [Vice emulator](http://vice-emu.sourceforge.net/)  for the C64 target,

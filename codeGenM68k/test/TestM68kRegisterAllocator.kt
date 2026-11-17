@@ -5,6 +5,7 @@ import io.kotest.matchers.shouldBe
 import io.kotest.matchers.shouldNotBe
 import prog8.code.core.*
 import prog8.code.target.Qemu68kTarget
+import prog8.codegen.m68k.LOOP_COUNTER
 import prog8.codegen.m68k.M68kRegisterAllocator
 import prog8.codegen.m68k.renumberVregsPerSubroutine
 import prog8.intermediate.*
@@ -182,6 +183,29 @@ class TestM68kRegisterAllocator : FunSpec({
         val result = M68kRegisterAllocator(program).allocate()
         (result.spillDemandBySub[sub]!! > 0) shouldBe true
         result.spilledVregsBySub[sub]!!.isNotEmpty() shouldBe true
+    }
+
+    test("the d7 loop counter is never allocated, even under register pressure") {
+        val options = CompilationOptions.builder(Qemu68kTarget())
+            .output(OutputType.RAW).zeropage(ZeropageType.FLOATSAFE)
+            .compilerVersion("test").memtopAddress(0xffffu).optimize(true).build()
+        val program = IRProgram("test", IRSymbolTable(), options, DummyStringEncoder)
+        val chunk = IRCodeChunk(null, null)
+        // far more simultaneously live values than the allocatable pool, so d7 would be
+        // the obvious extra register if the reserved set were not honoured
+        for (i in 1..16) chunk.instructions.add(IRInstructions.binary(Opcode.MULR, IRDataType.WORD, i, i + 10))
+        chunk.instructions.add(IRInstructions.binary(Opcode.ADDR, IRDataType.WORD, 100, 1))
+        for (i in 2..16) chunk.instructions.add(IRInstructions.binary(Opcode.ADDR, IRDataType.WORD, 100, i))
+        val sub = IRSubroutine("test.start", emptyList(), emptyList(), Position.DUMMY)
+        sub.chunks.add(chunk)
+        val block = IRBlock("test", false, IRBlock.Options(), Position.DUMMY)
+        block.children.add(sub)
+        program.blocks.add(block)
+
+        val result = M68kRegisterAllocator(program).allocate()
+        (result.spillDemandBySub[sub]!! > 0) shouldBe true
+        result.mapBySub[sub]!!.values.none { it == LOOP_COUNTER } shouldBe true
+        result.calleeSavedBySub[sub]!!.contains(LOOP_COUNTER) shouldBe false
     }
 
     test("USE_DEF and USE in the same instruction do not share a register") {

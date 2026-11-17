@@ -31,23 +31,28 @@ with `rte`.
 - `custom.set_handler(level, sub)` / `custom.restore_handler(level)` plus
   Paula source-bit enable/disable (`INTENA`/`INTREQ` discipline). A straight
   copy of `sys.set_rasterirq` doesn't map: seven autovector levels (1-7) carry
-  multiplexed Amiga sources (VERTB and COPER share level 3, CIA-A/B sit on
-  2/6, and level 7 is NMI and not maskable through `INTENA`).
+  multiplexed Amiga sources (VERTB, COPER and BLIT share level 3, CIA-A/B sit
+  on 2/6, and level 7 is NMI and not maskable through `INTENA`). A level-3
+  handler must check `INTREQR` to tell the sources apart and acknowledge only
+  the one it services.
 - **VBR-aware**: the handler mechanism must use `custom.cpuVBR` as the vector
   base address (not hardcode $000000). On 68000, VBR is always 0 (no VBR
   register). On 68010+ (68020/68030/68040/68060), VBR can be relocated.
   `custom.cpuVBR` is already populated by `grab_system()` (or equivalent)
   via supervisor-mode `MOVEC VBR,d0` on capable CPUs, defaulting to 0 on
   68000. Autovector level N lives at `custom.cpuVBR + (24+N)*4`, i.e.
-  `custom.cpuVBR + $60 + N*4`; the existing `custom.IRQ1`..`custom.IRQ7`
-  constants hold exactly those offsets ($64..$7C). `cpuVBR + N*4` would land
-  on the reset/exception vectors instead. Call `set_handler` only after
+  `custom.cpuVBR + $60 + N*4` ($64..$7C for levels 1-7). `cpuVBR + N*4` would
+  land on the reset/exception vectors instead. The `IRQ1`..`IRQ7` equates in
+  `grab_system` are assembler-local, not Prog8 constants, so either add public
+  constants or compute the offset in the trampoline. Call `set_handler` only after
   `grab_system()`, so that `cpuVBR` is populated and the vectors it saves are
   the OS ones.
 - **No codegen work needed.** An `asmsub` trampoline supplies the frame: save
-  `D0-D7/A0-A6`, derive the level from `SR` (valid because exception entry
-  runs in supervisor mode with `IPL = level`), `jsr` the handler, restore the
-  registers and return with `rte`. The handler itself is an ordinary Prog8
+  `D0-D7/A0-A6`, derive the level with `MOVE.W SR,dN` inside the supervisor
+  trampoline (valid because exception entry runs in supervisor mode with
+  `IPL = level`), `jsr` the handler, restore the registers and return with
+  `rte`. Do not parse the stacked exception frame: its format differs between
+  68000 and 68010+. The handler itself is an ordinary Prog8
   `sub` with no parameters and no return value, returning with a normal `rts`.
   `rte` is accepted as an asmsub terminator (alongside `rts`/`rti`), so the
   trampoline needs no `; !notreached!` marker.
@@ -60,8 +65,8 @@ with `rte`.
 - **Leave `grab_system` unchanged; add an additive teardown hook to
   `restore_system`.** `grab_system` must not manage handlers: it runs at
   startup, before any handler exists, and it only saves the IRQ1/IRQ3/IRQ4
-  vectors anyway. Keep a separate registry (8 slots, one per autovector
-  level) holding the handler address plus the vector that was in place when
+  vectors anyway. Keep a separate registry (one slot per autovector level
+  1-7; slot 0 is unused) holding the handler address plus the vector in place when
   `set_handler` ran. `restore_handler(level)` puts that vector back.
   `restore_system()` gains one trailing loop that calls `restore_handler` for
   every active slot **after** restoring its own saved IRQ1/3/4 vectors. That
@@ -75,8 +80,9 @@ with `rte`.
   **Why a separate registry is simpler than modifying `grab_system`:**
   - `grab_system` runs at startup before user code — it saves original vectors
     but cannot know which handlers will be installed later.
-  - The 68000 has 7 autovector levels (1-7), but only a handful are used on
-    Amiga (2, 3, 4, 6). A fixed 8-slot table is tiny and covers all cases.
+  - The 68000 has 7 autovector levels (1-7), and the Amiga uses 1-6 (7 is the
+    nonmaskable level from the expansion connector). A fixed 7-slot table is
+    tiny and covers all cases.
   - Modifying `grab_system` to allocate and manage a handler table would
     couple IRQ tracking to system takeover, making it harder to test and
     increasing the risk of breaking existing `grab_system` behavior.
@@ -91,11 +97,13 @@ No bare-metal vertical-blank example exists (`lowlevel-timer.p8` is OS-based;
 m68k targets have no `sys.set_irq` helpers, see `targetsystem.rst`).
 
 - Install an autovector level-3 handler via `custom.cpuVBR` after
-  `custom.grab_system()`, enable `VERTB` in `INTENA` (including the master
-  `INTEN` bit, which `grab_system` cleared), acknowledge each vblank by
-  writing the VERTB bit to `INTREQ` (a write of 1 clears it), return with
-  `rte`. Restoration is handled by the separate handler registry plus the
-  trailing loop in `restore_system`; `grab_system` stays unchanged.
+  `custom.grab_system()`, clear any pending VERTB request first, then enable
+  `VERTB` in `INTENA` (including the master `INTEN` bit, which `grab_system`
+  cleared). Acknowledge each vblank with a `INTREQ` clear write, i.e. bit 15
+  (SET/CLR) = 0 and bit 5 = 1 (`#$0020`); writing `$8020` would set the request
+  again. Return with `rte`. Restoration is handled by the separate handler
+  registry plus the trailing loop in `restore_system`; `grab_system` stays
+  unchanged.
 - Keep the handler minimal (set a frame flag, like the timer example);
   the main loop does the work.
 - `playfield.waitvsync` stays the polling fallback; document when the IRQ
@@ -108,7 +116,11 @@ rather than register pokes:
 
 - Route to CPU levels 2 (CIA-A) / 6 (CIA-B) through `INTENA` PORTS/EXTER,
   install the handler via `custom.cpuVBR`, acknowledge by *reading* ICR,
-  return with `rte`, restore on exit.
+  return with `rte`, restore on exit. Do not assume the CIAs are in a known
+  state even after `grab_system()`: mask all ICR sources and clear pending
+  requests first, then enable only the timer bit. A read of ICR clears every
+  pending bit, so the handler must preserve the whole returned value and
+  service all bits it contained.
 - Keep the handler minimal (tick counter / frame flag), like the VERTB one.
 - Decide the callback shape: a Prog8 `sub` pointer called from the stub (needs
   a register contract the stub upholds), a bare address of hand-written asm, or

@@ -143,7 +143,7 @@ main {
             word dy = math.sin8(i*2)
             word x2 = (WIDTH/2 as word) + dx*STAR_RADIUS/127
             word y2 = (HEIGHT/2 as word) + dy*STAR_RADIUS/127
-            blitter.line_color(WIDTH/2, HEIGHT/2, x2 as uword, y2 as uword, i/8, DEPTH, &bm.Planes)
+            blitter.line_color(WIDTH/2, HEIGHT/2, x2 as uword, y2 as uword, 1+i/9, DEPTH, &bm.Planes)
         }
     }
 
@@ -171,9 +171,25 @@ main {
             custom.waitvsync()
             playfield.flip_copper(&copperdata.copper_list, copperPlaneBase)
             drawBm = playfield.back
-            for i in NUM_BALLS-1 downto 0 {
-                restore_one(i, buf)
+            for b in NUM_BALLS-1 downto 0 {
+                restore_one(b, buf)
             }
+            bounce()
+            save_all(buf)
+            for b in 0 to NUM_BALLS-1 {
+                blitter.draw_bob(&bobs[b], &drawBm.Planes, ROW_BYTES)
+            }
+            ; No wait here: the next blit call waits on entry, so the last
+            ; draw overlaps the key poll and vsync below.
+            bool pressed
+            ubyte keycode
+            pressed, keycode = custom.raw_keyboard_poll()
+            if pressed and (keycode & $80)==0 and keycode==custom.KeyCode::ESC
+                break
+            buf ^= 1
+        }
+
+        sub bounce() {
             for i in 0 to NUM_BALLS-1 {
                 ^^mobs.Mob m = bobs[i].mob
                 m.x_pos += vx[i]
@@ -198,18 +214,6 @@ main {
                 ox[s] = m.x_pos
                 oy[s] = m.y_pos
             }
-            save_all(buf)
-            for i in 0 to NUM_BALLS-1 {
-                blitter.draw_bob(&bobs[i], &drawBm.Planes, ROW_BYTES)
-            }
-            ; No wait here: the next blit call waits on entry, so the last
-            ; draw overlaps the key poll and vsync below.
-            bool pressed
-            ubyte keycode
-            pressed, keycode = custom.raw_keyboard_poll()
-            if pressed and (keycode & $80)==0 and keycode==custom.KeyCode::ESC
-                break
-            buf ^= 1
         }
     }
 
@@ -228,7 +232,7 @@ main {
 
     sub save_slot(ubyte i, ubyte p, ubyte buf) -> uword {
         ; Word offset of ball i, plane p, buffer buf inside the save area.
-        return (((buf as uword)*NUM_BALLS + (i as uword))*4 + (p as uword))*PLANE_WORDS
+        return (oxslot(buf, i)*4 + (p as uword))*PLANE_WORDS
     }
 
     sub restore_one(ubyte i, ubyte buf) {

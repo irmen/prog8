@@ -355,9 +355,34 @@ parity. An attached pair uses an even slot plus the following odd slot at
 the same position and size, with the attach bit set; ``pos()`` and
 ``aga_pos()`` preserve the bit when they rewrite CTL.
 
-Sprite DMA advances the channel pointer as it reads. Reload the start pointer
-before the next frame's DMA fetch; the ``pos()`` and ``aga_pos()`` helpers do
-this while updating the position. The AGA addendum specifies pointer alignment
+There is no separate height register. ``pos()`` derives ``VSTOP`` from the
+Mob's ``y_pos`` and ``height`` and does not validate it. The helpers write
+VSTART/VSTOP as 9-bit values (bit 8 lives in CTL), so positions up to 511 are
+representable; AGA bit 9 is left clear. In practice a lores sprite cannot be
+taller than the remaining visible scanlines below its start, and the sprite
+data list must contain one image line per requested scanline. A list that is
+too short makes DMA read past the terminator and show garbage or nothing.
+
+Sprite DMA advances the channel pointer as it reads. Call ``pos()`` or
+``aga_pos()`` on every displayed frame, even when the sprite does not move:
+these helpers reload the start pointer while updating the position. Without
+that reload, DMA past the end of the data shows nothing after the first frame.
+
+The reload can be handled in three ways:
+
+* CPU only: call ``pos()`` every frame. It rewrites both the header and
+  ``SPRxPT``, and is what the examples do.
+* Hybrid: write the POS/CTL header from the CPU, and use a copper MOVE to
+  ``SPRxPT`` at the top of the frame. This still needs the CPU for movement.
+* Copper only: have the copper write both ``SPRxPT`` and the header words.
+  This is mainly useful for multiplexing, where one channel is retriggered
+  several times per frame.
+
+The pointer write must happen before that channel's DMA fetch for the frame.
+Writing ``SPRxPT`` alone is enough only when the sprite never moves; when
+``pos()`` is already called every frame, a copper pointer write is redundant.
+
+The AGA addendum specifies pointer alignment
 of 2 bytes for 16-pixel sprites, 4 for 32-pixel sprites, and 16 for 64-pixel
 sprites. Prog8's ``@align64`` exceeds those requirements; see
 ``examples/amiga/beachballs-sprites64.p8`` for a 64x64 channel block.
@@ -456,7 +481,9 @@ bits 5-3. Use the ``sprites.Priority`` enum for the argument. Set ``sprite.mob``
 ``sprite.data`` and ``sprite.slot`` first;
 ``init(sprite)`` selects the assigned hardware channel, and ``pos(sprite)``
 packs the linked Mob's position and height into the data header while reloading
-that channel's pointer. ``hide(sprite)`` terminates its data header; another
+that channel's pointer. It does not validate the height; the VSTOP and data
+length constraints are described above. ``hide(sprite)`` terminates its data
+header; another
 ``pos(sprite)`` writes the position header again and shows it.
 ``copper.base_list()`` leaves BPLCON2 alone. Set priority with the CPU helper
 or add a BPLCON2 MOVE to the Copper list if priority should change by scanline.
@@ -469,8 +496,10 @@ writes 12-bit ``$0RGB`` colours to COLOR16-31. On AGA, use
 ``aga_set_colors16(colors)`` with 16 ``$00RRGGBB`` long values for full 24-bit
 colors. ``pos()`` keeps the attach bit when it rewrites the control word, so a
 single ``pos()`` works for attached and normal sprites. AGA palette banks are
-selected with ``aga_set_bank()``. AGA width and resolution helpers are available
-as ``aga_*`` (see above). See ``examples/amiga/beachballs-sprites.p8`` for
+selected with ``aga_set_bank()`` (a full BPLCON4 write: the register is
+write-only, so it clears the BPLAM bitplane color mask). AGA width and
+resolution helpers are available as ``aga_*`` (see above). See
+``examples/amiga/beachballs-sprites.p8`` for
 4-colour, ``examples/amiga/beachballs-sprites16.p8`` for 16-colour attached
 sprites and ``examples/amiga/beachballs-sprites64.p8`` for AGA 64-pixel sprites.
 

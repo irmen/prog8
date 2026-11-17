@@ -140,7 +140,18 @@ modules. Import them the same way as any other library::
     Intuition or View/ViewPort setup. ``view_width``/``view_height`` are the
     visible viewport; ``bitmap_width`` sets the backing bitplane row pitch.
     The caller can allocate extra bitmap rows and update plane pointers for
-    vertical scrolling. The shared ``isPAL`` boolean (set by ``grab_system()``)
+    vertical scrolling. The struct carries the registers the computed display
+    geometry depends on, including AGA's ``FMODE`` fetch mode: on AGA the
+    DDFSTRT/DDFSTOP and BPLxMOD values are derived from its 32-bit fetch.
+    Attribute registers that do not affect the geometry (``BPLCON3``,
+    ``BPLCON4``) are deliberately left out; programs that need them write the
+    registers directly or add their own copper MOVEs. Both registers are
+    write-only on AGA (reads return undefined values), so never read-modify-write
+    them: writing back a masked garbage read reintroduces stray bits such as
+    BPLCON3's SPRES sprite resolution, which makes sprites display at half
+    width in a lores playfield. Compose full register values instead, the way
+    ``set_aga_color()`` and the ``sprites`` module do.
+    The shared ``isPAL`` boolean (set by ``grab_system()``)
     reports the machine's TV standard. ``waitvsync()``,
     AGA colour register writes, and controller input routines. Canonical
     ``$00RRGGBB`` palette helpers ``load_colors()``/``set_color()``/
@@ -260,8 +271,21 @@ modules. Import them the same way as any other library::
     16 colours of the single shared attached-sprite bank (COLOR16-31).
     ``attach(odd_sprite, on)`` sets the attach bit in an odd channel's control
     word so it pairs with the preceding even channel as one 16-colour sprite;
-    ``pos()`` preserves that bit when it rewrites the control word. Colours are
-    12-bit ``$0RGB`` values for OCS/ECS; AGA palette banks are not handled.
+    ``pos()`` preserves that bit when it rewrites the control word. Call
+    ``pos()`` or ``aga_pos()`` on every displayed frame, even for a stationary
+    sprite: sprite DMA advances ``SPRxPT`` through the data list as it reads,
+    so reloading the start pointer each frame is what keeps the sprite visible.
+    A copper MOVE to ``SPRxPT`` can replace that part, but it does not update
+    POS/CTL; see the hardware-sprites chapter for the CPU, hybrid and copper
+    approaches. ``pos()`` does not validate ``Mob.height``: keep
+    ``y_pos + SPRITE_V_OFFSET + height <= 511`` and provide one data line per
+    sprite scanline.
+    Colours are 12-bit ``$0RGB`` values for OCS/ECS. On AGA the color routines select the
+    bank-0/LOCT-0 write window themselves and keep the sprite resolution set
+    with ``aga_set_resolution()``: BPLCON3 and BPLCON4 are write-only
+    registers, so the module composes their values from its own state instead
+    of reading them back, and ``aga_set_bank()`` is a full BPLCON4 write that
+    clears the BPLAM bitplane color mask.
 
 ``blitter``
     Bare-metal blitter programming, no OS calls: ``copy_rect()`` and
@@ -327,8 +351,12 @@ modules. Import them the same way as any other library::
     rebuilding; ``wait()``/``skip()`` hide the instruction encoding,
     ``attach_planes()`` emits ``BPLxPT`` slots for ``playfield.patch_copper()``,
     and ``base_list(display, depth)`` adds those slots plus the common display
-    registers from a ``custom.compute_display()`` result. It leaves BPLCON2
-    unchanged so callers own sprite/playfield priority. It returns the base
+    registers from a ``custom.compute_display()`` result, including ``FMODE``
+    (the copper list, not a direct register write, owns the fetch mode). It
+    leaves BPLCON2 unchanged so callers own sprite/playfield priority, and it
+    does not emit BPLCON3/BPLCON4, which callers set directly when needed (for
+    example to reset AGA's SPRES sprite resolution, see the ``custom``
+    section). It returns the base
     slot index for ``playfield.patch_copper()`` or ``set_planes()``. Select the
     display mode with ``DISPLAY_*`` flags when computing the display. The helper
     assumes ``copper.init()`` has been called on a chip-RAM buffer and does not
@@ -388,6 +416,62 @@ modules. Import them the same way as any other library::
     handles for direct library calls and IDCMP message handling. See
     ``examples/amiga/penrose-triangle.p8`` for a polling loop. Kickstart 1.3
     compatible.
+
+OCS-style bare-metal displays on AGA machines
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. index:: pair: Libraries; AGA compatibility
+
+An OCS/ECS-style display (lores bitplanes, 16-pixel sprites, 12-bit colors)
+usually runs unmodified on an AGA machine: on real hardware such a program
+either never runs an AGA screen's copper list (the chipset powers up and
+resets in ECS compatibility mode, with ``FMODE`` = 0 and neutral
+``BPLCON3``/``BPLCON4``), or graphics.library builds the copper list and
+writes the AGA registers itself for every view. The problem case is a
+bare-metal program that replaces the OS copper list with its own, for
+example after ``grab_system()`` on top of a Workbench screen: the AGA-only
+registers ``FMODE`` ($dff1fc), ``BPLCON3`` ($dff106) and ``BPLCON4``
+($dff10c) then keep whatever the OS screen last wrote, and the display
+inherits the Workbench settings. Typical symptoms: a shredded or shifted
+display (leftover ``FMODE``), colors from the wrong palette slice (leftover
+BANK/LOCT window), and sprites at half width in a lores display (leftover
+sprite resolution in BPLCON3's SPRES bits), the classic "fine on an A500,
+squished on an A1200" report.
+
+The classic fix is a two-instruction copper insert described in the
+demoscene AGA documentation (Randy of COMAX, "the AGA doc" V2.5, section
+"To make a standard Amiga demo run on AGA chipset"; parts of that document
+derive from Commodore's own C-18 AGA documentation)::
+
+    dc.w $106,$c00   ; AGA sprites, palette and dual playfield reset
+    dc.w $1FC,0      ; AGA sprites and burst reset
+
+The prog8 library modules cover this for you, split by register ownership:
+
+- ``FMODE`` travels with the display geometry: ``custom.compute_display()``
+  stores it in ``DisplayRegs.fmode`` (on AGA ``$0001``, with the
+  DDFSTRT/DDFSTOP and BPLxMOD values computed for its 32-bit fetch) and
+  ``copper.base_list()`` emits the MOVE, so the copper list, not a direct
+  register write, owns the fetch mode. Do not force it to 0 on AGA unless
+  you also switch the DDF/modulo values to the ECS ones.
+- ``BPLCON3`` and ``BPLCON4`` are attribute registers, deliberately absent
+  from ``DisplayRegs`` and from ``base_list()``. The ``sprites`` module owns
+  the sprite-related bits: its color routines select the bank-0/LOCT-0 write
+  window themselves, and ``aga_set_resolution()``/``aga_set_bank()`` set the
+  sprite resolution and palette banks (see
+  ``examples/amiga/beachballs-sprites.p8`` and its 16-color and 64-pixel
+  variants). A program that does not use the sprites module can add its own
+  ``copper.move($0106, $0c00)`` line instead.
+
+.. caution::
+    ``BPLCON3`` and ``BPLCON4`` are write-only registers on AGA: reads
+    return undefined values. Never read-modify-write them; compose the full
+    register value from state you track yourself, the way
+    ``custom.set_aga_color()`` and the ``sprites`` module do. Writing back a
+    masked garbage read reintroduces stray bits such as SPRES, which shows
+    up as horizontally squished sprites. Note that several emulators return
+    0 or the last-written value for such reads, which makes the bug invisible
+    there, so test on real hardware or on an emulator that models this.
 
 Manual additions and tweaks
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~

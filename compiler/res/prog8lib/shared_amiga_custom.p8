@@ -1071,6 +1071,13 @@ ExecVBlankFrequency = $212
     ; Amiga custom chip registers (full addresses, base $dff000)
     ; Regenerated from https://github.com/alfishe/amiga-bootcamp/blob/main/14_references/custom_chip_registers.md
     ; All registers are 16-bit words accessed on even byte boundaries.
+    ; Registers are mostly read-only, write-only, or strobe/clear-on-read, not read/write memory.
+    ; Control registers often have a separate read-only status address, such as DMACONR/DMACON
+    ; or INTENAR/INTENA. Reading a write-only register does not return the last written value.
+    ; Never use instructions that read a custom-chip address (clr, and, or, eor, bset, bclr,
+    ; btst, add, sub, inc, dec, ...) unless the register is explicitly readable: the read can
+    ; have side effects and write-back instructions can store an undefined value. Use move.w
+    ; to write the complete word; SET/CLR control registers use bit 15 to select set or clear.
 
     ; ========== Read-only registers ==========
 

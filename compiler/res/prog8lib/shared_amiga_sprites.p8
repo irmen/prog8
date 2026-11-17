@@ -23,6 +23,8 @@ sprites {
     enum AgaWidth { W16 = 0, W32 = 1, W64 = 3 }
 
     private uword aga_n = 1   ; 1, 2 or 4 = width/16; set by aga_set_width
+    private uword aga_spres   ; shadow of BPLCON3's SPRES bits; the register is
+                              ; write-only, so reads cannot be used to preserve them
     ; Sprite data must start with two control words (POS, CTL) followed by
     ; the bitplane data: one word per bitplane per scanline (2 words/line for
     ; the 4-color OCS format).
@@ -33,7 +35,9 @@ sprites {
     }
 
     sub pos(^^mobs.Sprite spr) {
-        ; Restore the hardware pointer each frame (DMA advances it).
+        ; Call every displayed frame, even if the position is unchanged. Sprite DMA
+        ; advances SPRxPT through the data list as it reads, so the start pointer
+        ; must be reloaded here or the sprite vanishes after one frame.
         if spr.slot < 8
             pokep(&custom.SPR0PT + spr.slot * 4, spr.data)
         pointer p = spr.data
@@ -87,13 +91,15 @@ sprites {
     ; Color 0 of the pair stays transparent (background).
     ; Writes 12-bit $0RGB values, correct for OCS/ECS.
     ; On AGA, COLORxx writes go through the BPLCON3 bank/LOCT window, so
-    ; force BANK0/LOCT=0 first; otherwise a leftover Workbench bank would
-    ; land the colors in the wrong 32-color slice.
+    ; select bank 0/LOCT=0 first; otherwise a leftover Workbench bank would
+    ; land the colors in the wrong 32-color slice. BPLCON3 is write-only
+    ; (reads return undefined values), so the value is composed from the
+    ; module's SPRES shadow instead of reading the register back.
     sub set_colors(ubyte pair, uword c1, uword c2, uword c3) {
         if pair > 3
             return
         if custom.detect_chipset()==custom.CHIPSET::AGA {
-            custom.BPLCON3 = custom.BPLCON3 & $1dff
+            custom.BPLCON3 = aga_spres << 6
         }
         ^^uword base = &custom.COLOR17 + (pair as uword) * 8
         base[0] = c1
@@ -104,11 +110,12 @@ sprites {
     ; Set all 16 colors of attached (16-color) sprites.
     ; colors points to 16 uwords -> COLOR16..31 (the single shared sprite bank).
     ; On AGA, COLORxx writes go through the BPLCON3 bank/LOCT window, so
-    ; force BANK0/LOCT=0 first; otherwise a leftover Workbench bank would
-    ; land the colors in the wrong 32-color slice.
+    ; select bank 0/LOCT=0 first; otherwise a leftover Workbench bank would
+    ; land the colors in the wrong 32-color slice. As in set_colors(), the
+    ; write-only BPLCON3 is composed from the SPRES shadow.
     sub set_colors16(^^uword colors) {
         if custom.detect_chipset()==custom.CHIPSET::AGA {
-            custom.BPLCON3 = custom.BPLCON3 & $1dff
+            custom.BPLCON3 = aga_spres << 6
         }
         ^^uword base = &custom.COLOR16
         for i in 0 to 15 {
@@ -178,7 +185,9 @@ sprites {
     ; AGA-only: wide-aware replacement for pos().
     ; aga_set_width() must be called first.
     sub aga_pos(^^mobs.Sprite spr) {
-        ; Restore the hardware pointer each frame (DMA advances it).
+        ; Call every displayed frame, even if the position is unchanged. Sprite DMA
+        ; advances SPRxPT through the data list as it reads, so the start pointer
+        ; must be reloaded here or the sprite vanishes after one frame.
         if spr.slot < 8
             pokep(&custom.SPR0PT + spr.slot * 4, spr.data)
         pointer p = spr.data
@@ -226,16 +235,19 @@ sprites {
         aga_pos(odd_spr)
     }
 
-    ; AGA-only: sprite resolution via BPLCON3.
+    ; AGA-only: sprite resolution via BPLCON3 (write-only register: the value
+    ; is composed from the module's SPRES shadow, no read-back).
     ; aga_set_width() must be called first.
     sub aga_set_resolution(ubyte res) {
-        custom.BPLCON3 = (custom.BPLCON3 & $ff3f) | ((res as uword & 3) << 6)
+        aga_spres = res & 3
+        custom.BPLCON3 = aga_spres << 6
     }
 
-    ; AGA-only: BPLCON4 palette banks for even/odd sprites.
+    ; AGA-only: BPLCON4 palette banks for even/odd sprites. BPLCON4 is
+    ; write-only, so this is a full-register write: BPLAM (the bitplane
+    ; color XOR mask in bits 15-8) is cleared.
     ; aga_set_width() must be called first.
     sub aga_set_bank(ubyte even_bank, ubyte odd_bank) {
-        custom.BPLCON4 = (custom.BPLCON4 & $ff00) |
-                         ((even_bank & $0f) << 4) | (odd_bank & $0f)
+        custom.BPLCON4 = ((even_bank & $0f) << 4) | (odd_bank & $0f)
     }
 }

@@ -281,7 +281,10 @@ intraprocedural register allocator, with values that live across calls placed in
 callee-saved registers and saved/restored by the subroutine's ``movem`` prologue and
 epilogue. Values that cannot stay in a register spill to slots appended to the ``A5``
 frame. ``D7``, ``A5`` and ``A6`` are reserved. Ordinary subroutine locals may therefore
-never be accessed directly from assembly; go through the frame instead.
+never be accessed directly from assembly; go through the frame instead. Generated code uses ``D7``
+as the down counter of counted ``repeat``/``for`` loops, saving and restoring it around nested
+loops and around calls in a loop body, so a call to a normal Prog8 subroutine can change ``D7``.
+Hand-written assembly that keeps a value there across such a call must save and restore it itself.
 
 Clean (non-``@dirty``) locals are zero-initialized on every call with a ``clr`` prologue, one
 store per element. This includes arrays, which on other targets are only cleared once at startup.

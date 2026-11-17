@@ -730,7 +730,7 @@ internal class AstChecker(private val program: Program,
 
             if(options.compTarget.cpu.is68k && subroutine.asmAddress == null && subroutine.asmClobbers.isNotEmpty()) {
                 err("an asmsub on m68k cannot declare clobbers(...): the subroutine itself must save/restore the " +
-                    "registers it uses (D2-D6/A2-A4/FP2-FP7) and must not destroy D7 or A5")
+                    "registers it changes (D2-D6/A2-A4/FP2-FP7, and D7 or A5 when it uses them)")
             }
 
             if(subroutine.statements.any{it !is InlineAssembly && !(it is Directive && (it.directive=="%asmbinary" || it.directive=="%asminclude"))})

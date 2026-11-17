@@ -296,6 +296,16 @@ syntax feature that you could not verify against one of these sources.
      struct instances cannot be subroutine parameters, arrays of typed pointers
      are not allowed as struct fields, and a struct cannot exceed 256 bytes on
      6502 targets.
+   - a subroutine whose body does several things in sequence that each have a
+     natural name (initialize, move/update, draw, handle input, clean up), or
+     whose main loop body mixes such steps: propose extracting a named step
+     into a subroutine nested inside the parent, so the parent reads as an
+     outline of the algorithm. An inner sub reads the parent's variables
+     directly, so no parameter threading is needed (see the nested subroutine
+     bullet below). Clarity alone justifies this: the extracted code does not
+     have to be duplicated, oversized, or slow, and a single caller is fine.
+     The signal is a chunk with a clean boundary and a name it would carry;
+     do not split small routines that already read as a single step.
    - near-identical locals in several subroutines, long parameter lists
      threading the same state, or helper routines that only exist for one
      caller, where nested subroutines would help. An inner sub reads its

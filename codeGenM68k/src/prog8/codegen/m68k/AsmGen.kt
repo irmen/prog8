@@ -19,15 +19,24 @@ internal const val SCRATCH_A1 = "a1"
 internal const val SCRATCH_FP0 = "fp0"
 internal const val SCRATCH_FP1 = "fp1"
 
+// dbra down counter of an IRLoopChunk; it holds a live value throughout the loop body.
+internal const val LOOP_COUNTER = "d7"
+
 // Allocatable (callee-saved) register pools, shared by allocator and codegen.
 internal val ALLOCATABLE_DATA_REGS = listOf("d2", "d3", "d4", "d5", "d6")
 internal val ALLOCATABLE_ADDR_REGS = listOf("a2", "a3", "a4")
 internal val ALLOCATABLE_FP_REGS = listOf("fp2", "fp3", "fp4", "fp5", "fp6", "fp7")
 
-// Single source of truth for the m68k register convention, shared by allocator and codegen.
+/**
+ * Single source of truth for the m68k register convention, shared by allocator and codegen.
+ * Codegen scratch is d0/d1/a0/a1/fp0/fp1; [LOOP_COUNTER] holds the live counter of an IRLoopChunk,
+ * so generated code changes it freely and any call may clobber it.
+ * a5 is the frame pointer, a6 the AmigaOS library base, a7 the hardware stack pointer.
+ */
 object M68kRegisterConvention {
     val CALLER_SAVED = setOf(SCRATCH_D0, SCRATCH_D1, SCRATCH_A0, SCRATCH_A1, SCRATCH_FP0, SCRATCH_FP1)
-    val RESERVED = CALLER_SAVED + setOf("d7", "a5", "a6", "a7")
+    /** Registers that must never hold a vreg; this is not the caller/callee-saved split. */
+    val RESERVED = CALLER_SAVED + setOf(LOOP_COUNTER, "a5", "a6", "a7")
     const val RETURN_INT = "d0"
     const val RETURN_FLOAT = "fp0"
     // The assembler-visible symbol for an IR label.
@@ -1248,11 +1257,11 @@ internal class AsmGen(val program: IRProgram, internal val target: ICompilationT
         val label = fixNameSymbols(loop.label!!)
         val tripMinusOne = if(loop.trip==65536) 65535 else loop.trip-1
         val needsSave = loopNestingDepth > 0
-        if(needsSave) emitLine("move.w  d7,-(sp)", "save outer loop counter")
+        if(needsSave) emitLine("move.w  $LOOP_COUNTER,-(sp)", "save outer loop counter")
         if (tripMinusOne in 0..127)
-            emitLine("moveq  #$tripMinusOne,d7")
+            emitLine("moveq  #$tripMinusOne,$LOOP_COUNTER")
         else
-            emitLine("move.w  #$tripMinusOne,d7")
+            emitLine("move.w  #$tripMinusOne,$LOOP_COUNTER")
         emitLabel(label)
         loopNestingDepth++
         for(chunk in loop.body) {
@@ -1267,9 +1276,9 @@ internal class AsmGen(val program: IRProgram, internal val target: ICompilationT
                     val cl = chunk.label?.let { fixNameSymbols(it) }
                     if(cl!=null) emitLabel(cl)
                     invalidateD0Cache()
-                    emitLine("move.w  d7,-(sp)", "save loop counter around inline assembly")
+                    emitLine("move.w  $LOOP_COUNTER,-(sp)", "save loop counter around inline assembly")
                     emitRaw(chunk.assembly)
-                    emitLine("move.w  (sp)+,d7", "restore loop counter after inline assembly")
+                    emitLine("move.w  (sp)+,$LOOP_COUNTER", "restore loop counter after inline assembly")
                 }
                 is IRInlineBinaryChunk -> {
                     val cl = chunk.label?.let { fixNameSymbols(it) }
@@ -1279,8 +1288,8 @@ internal class AsmGen(val program: IRProgram, internal val target: ICompilationT
             }
         }
         loopNestingDepth--
-        emitLine("dbra  d7,$label")
-        if(needsSave) emitLine("move.w  (sp)+,d7", "restore outer loop counter")
+        emitLine("dbra  $LOOP_COUNTER,$label")
+        if(needsSave) emitLine("move.w  (sp)+,$LOOP_COUNTER", "restore outer loop counter")
     }
 
     private fun translateChunk(
@@ -1340,7 +1349,7 @@ internal class AsmGen(val program: IRProgram, internal val target: ICompilationT
             }
             val clobbersLoopCounter = preserveLoopCounter && mayClobberLoopCounter(insn)
             if (clobbersLoopCounter)
-                emitLine("move.w  d7,-(sp)", "save loop counter around call")
+                emitLine("move.w  $LOOP_COUNTER,-(sp)", "save loop counter around call")
             val nextInsn = if (index + 1 < chunk.instructions.size) chunk.instructions[index + 1] else null
             translateInstruction(
                 insn,
@@ -1350,7 +1359,7 @@ internal class AsmGen(val program: IRProgram, internal val target: ICompilationT
             )
             previousInsn = insn
             if (clobbersLoopCounter)
-                emitLine("move.w  (sp)+,d7", "restore loop counter after call")
+                emitLine("move.w  (sp)+,$LOOP_COUNTER", "restore loop counter after call")
             index++
         }
     }
@@ -1402,6 +1411,12 @@ internal class AsmGen(val program: IRProgram, internal val target: ICompilationT
         invalidateD0Cache()
     }
 
+    /**
+     * True when [insn] may destroy [LOOP_COUNTER] while it holds a live IRLoopChunk counter.
+     * Calls and backend helper sequences (sqrt, 68000 long mul/div/mod) clobber d2-d7 with no IR
+     * call edge, so every new helper-based lowering must be listed here or it silently corrupts
+     * the enclosing loop count.
+     */
     private fun mayClobberLoopCounter(insn: IRInstruction): Boolean {
         if (insn.opcode in setOf(Opcode.CALL, Opcode.CALLI, Opcode.CALLFAR, Opcode.CALLFARVB, Opcode.SYSCALL))
             return true
