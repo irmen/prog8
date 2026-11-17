@@ -43,6 +43,34 @@ petgfx {
         }
     }
 
+    sub line(ubyte x1, ubyte y1, ubyte x2, ubyte y2) {
+        ; arbitrary line
+        byte dx = abs(x2 - x1) as byte
+        byte sx = if x1 < x2 1 else -1
+        byte dy = -(abs(y2 - y1) as byte)
+        byte sy = if y1 < y2 1 else -1
+        byte error = dx + dy
+        byte x = x1 as byte
+        byte y = y1 as byte
+
+        repeat {
+            plot(x as ubyte, y as ubyte)
+            byte e2 = 2 * error
+            if e2 >= dy {
+                if x == x2 
+                    break
+                error += dy
+                x += sx
+            }
+            if e2 <= dx {
+                if y == y2 
+                    break
+                error += dx
+                y += sy
+            }
+        }
+    }
+
     sub plot(ubyte x, ubyte y) {
         ubyte subchar
         x >>= 1
