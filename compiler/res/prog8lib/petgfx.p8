@@ -1,10 +1,31 @@
 %import textio
 
 petgfx {
+    ; Plot at "petscii subpixel" x,y , which is twice the text screen
+    ; resolution (so 40x25 -> 80 * 50, 80x25 -> 160 * 50)
+
     %option ignore_unused
 
-    ; Plot at "petscii subpixel" x,y , which is twice the text screen resolution so 80 * 50 , instead of 40*25.
-    ; NOTE: assumes the screen is cleared with spaces beforehand.
+    enum Mode {
+        Draw, Erase, Xor
+    }
+    ubyte mode = Mode::Draw
+
+    sub draw_mode() {
+        mode = Mode::Draw
+    }
+
+    sub erase_mode() {
+        mode = Mode::Erase
+    }
+
+    sub xor_mode() {
+        mode = Mode::Xor
+    }
+
+    sub clear_screen() {
+        txt.chrout(147)
+    }
 
     sub hline(ubyte x, ubyte y, ubyte length) {
         ; horizontal line
@@ -32,7 +53,7 @@ petgfx {
         else
             subchar = (subchar<<2) + 4
 
-        ubyte existing = cbm.Screen[y*(txt.DEFAULT_WIDTH as uword) + x]
+        ubyte existing = txt.getchr(x, y)
 
         ; search the index of the current subpixels in the cell
         %asm {{
@@ -45,15 +66,17 @@ petgfx {
             bne  -
 +           sty  p8v_existing
         }}
-;        for cx16.r0H in 0 to 15 {
-;            if subpixels[cx16.r0H] == existing {
-;                existing = cx16.r0H
-;                break
-;            }
-;        }
 
         ; update screen cell with new subpixel
-        txt.setchr(x, y, subpixels[subchar | existing])
+        when mode {
+            Mode::Draw -> txt.setchr(x, y, 
+                                 subpixels[existing | subchar ])
+            Mode::Erase-> txt.setchr(x, y, 
+                                 subpixels[existing & ~subchar & $f])
+            Mode::Xor  -> txt.setchr(x, y, 
+                                 subpixels[existing ^ subchar])
+        }
+
 
 ;  0     1     2     3     4     5     6     7     8     9     A     B     C      D      E      F
 ; --    #-    -#    ##    --    #-    -#    ##    --    #-    -#    ##    --     #-     -#     ##
