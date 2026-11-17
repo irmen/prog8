@@ -90,8 +90,8 @@ Playfield graphics cannot cover them, and a channel cannot be repositioned more
 than once on a scanline.
 
 Both use the bare-metal ``custom`` register layer and work without AmigaOS.
-``blitter`` provides BOB drawing; a sprite helper module is not yet available
-(see `Library support`_).
+``blitter`` provides BOB drawing and the ``sprites`` module (see below) provides
+hardware-sprite helpers.
 
 .. _amiga-bobs:
 
@@ -374,8 +374,10 @@ uses both banks at once for 256 colours.
     garbled or truncated sprite.
 
 .. note::
-    The ``sprites`` module does not yet provide AGA wide-sprite helpers; only
-    the OCS/ECS 16-pixel path and 16-colour attachment are implemented.
+    The ``sprites`` module now provides AGA helpers prefixed ``aga_``:
+    ``aga_set_width()``, ``aga_init()``, ``aga_pos()``, ``aga_hide()``,
+    ``aga_init_attached()``, ``aga_pos_attached()``, ``aga_set_resolution()``
+    and ``aga_set_bank()``. Call ``aga_set_width()`` before any wide sprite use.
 
 Library support
 ~~~~~~~~~~~~~~~
@@ -406,9 +408,10 @@ channel's control word (call it after ``init()``), and ``set_colors16(colors)``
 writes all 16 colours of the single shared bank, COLOR16-31. ``pos()`` keeps the
 attach bit when it rewrites the control word, so a single ``pos()`` works for
 attached and normal sprites. Colours are OCS/ECS 12-bit values; AGA palette banks
-are not handled. AGA width, palette-bank and fetch-mode helpers are not
-implemented yet. See ``examples/amiga/beachballs-sprites.p8`` for 4-colour and
-``examples/amiga/beachballs-sprites16.p8`` for 16-colour attached sprites.
+are handled by ``aga_set_bank()``. AGA width, resolution and fetch-mode helpers
+are available as ``aga_*`` (see above). See ``examples/amiga/beachballs-sprites.p8``
+for 4-colour, ``examples/amiga/beachballs-sprites16.p8`` for 16-colour attached
+sprites and ``examples/amiga/beachballs-sprites64.p8`` for AGA 64-pixel sprites.
 
 .. seealso::
     ``examples/amiga/agabobs.p8`` demonstrates BOBs on an AGA planar playfield.

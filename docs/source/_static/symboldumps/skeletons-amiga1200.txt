@@ -1,6 +1,6 @@
 
 Prog8 compiler v14.0-BETA3 by Irmen de Jong (irmen@razorvine.net)
-Prerelease version from git commit 8f50c2ed in branch master
+Prerelease version from git commit f462a228 in branch master
 This software is licensed under the GNU GPL 3.0, see https://www.gnu.org/licenses/gpl.html
 
 Compiling program import-all-amiga1200.p8
@@ -2881,6 +2881,16 @@ floats  {
 }
 
 
+LIBRARY MODULE NAME: gfxtext
+----------------------------
+
+gfxtext  {
+    char  (uword x, uword y, ubyte chr, ubyte color)
+    init  (uword p, ubyte d, ^^pointer bitplanes)
+    print  (uword x, uword y, str message, ubyte color)
+}
+
+
 LIBRARY MODULE NAME: graphics
 -----------------------------
 
@@ -5637,16 +5647,34 @@ LIBRARY MODULE NAME: sprites
 ----------------------------
 
 sprites  {
+    const ubyte  AgaWidth::W16
+    const ubyte  AgaWidth::W32
+    const ubyte  AgaWidth::W64
     const ubyte  Priority::PAIRS_0_IN_FRONT
     const ubyte  Priority::PAIRS_1_IN_FRONT
     const ubyte  Priority::PAIRS_2_IN_FRONT
     const ubyte  Priority::PAIRS_3_IN_FRONT
     const ubyte  Priority::PAIRS_4_IN_FRONT
+    const uword  SPRITE_H_OFFSET
+    const uword  SPRITE_V_OFFSET
+    aga_hide  (^^mobs.Sprite spr)
+    aga_init  (^^mobs.Sprite spr)
+    aga_init_attached  (^^mobs.Sprite even_spr, ^^mobs.Sprite odd_spr)
+    aga_pos  (^^mobs.Sprite spr)
+    aga_pos_attached  (^^mobs.Sprite even_spr, ^^mobs.Sprite odd_spr)
+    aga_set_bank  (ubyte even_bank, ubyte odd_bank)
+    aga_set_resolution  (ubyte res)
+    aga_set_width  (ubyte width)
+    attach  (^^mobs.Sprite odd_spr, bool on)
     disable  ()
     enable  ()
     hide  (^^mobs.Sprite spr)
     init  (^^mobs.Sprite spr)
+    init_attached  (^^mobs.Sprite even_spr, ^^mobs.Sprite odd_spr)
     pos  (^^mobs.Sprite spr)
+    pos_attached  (^^mobs.Sprite even_spr, ^^mobs.Sprite odd_spr)
+    set_colors  (ubyte pair, uword c1, uword c2, uword c3)
+    set_colors16  (^^uword colors)
     set_priority  (ubyte pairs_in_front)
 }
 
@@ -5724,16 +5752,6 @@ sys  {
     stack_size  () -> long @D0
     wait  (long ticks @D1)
     waitvsync  ()
-}
-
-
-LIBRARY MODULE NAME: text
--------------------------
-
-text  {
-    char  (uword x, uword y, ubyte chr, ubyte color)
-    init  (uword p, ubyte d, ^^pointer bitplanes)
-    print  (uword x, uword y, str message, ubyte color)
 }
 
 
@@ -5983,3 +6001,5 @@ wavfile  {
     parse_header  (^^ubyte wav_data) -> bool
     read_le_word  (long addr) -> uword
 }
+
+

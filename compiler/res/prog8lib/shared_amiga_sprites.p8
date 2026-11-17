@@ -22,7 +22,7 @@ sprites {
     ; AGA-only helpers follow. aga_set_width() must be called first.
     enum AgaWidth { W16 = 0, W32 = 1, W64 = 3 }
 
-    private uword aga_n   ; 1, 2 or 4 = width/16; set by aga_set_width
+    private uword aga_n = 1   ; 1, 2 or 4 = width/16; set by aga_set_width
     ; Sprite data must start with two control words (POS, CTL) followed by
     ; the bitplane data: one word per bitplane per scanline (2 words/line for
     ; the 4-color OCS format).
@@ -86,9 +86,15 @@ sprites {
     ; Set the 3 visible colors of a sprite pair (pair 0..3 -> sprites 0&1, 2&3, ...).
     ; Color 0 of the pair stays transparent (background).
     ; Writes 12-bit $0RGB values, correct for OCS/ECS.
+    ; On AGA, COLORxx writes go through the BPLCON3 bank/LOCT window, so
+    ; force BANK0/LOCT=0 first; otherwise a leftover Workbench bank would
+    ; land the colors in the wrong 32-color slice.
     sub set_colors(ubyte pair, uword c1, uword c2, uword c3) {
         if pair > 3
             return
+        if custom.detect_chipset()==custom.CHIPSET::AGA {
+            custom.BPLCON3 = custom.BPLCON3 & $1dff
+        }
         ^^uword base = &custom.COLOR17 + (pair as uword) * 8
         base[0] = c1
         base[1] = c2
@@ -97,7 +103,13 @@ sprites {
 
     ; Set all 16 colors of attached (16-color) sprites.
     ; colors points to 16 uwords -> COLOR16..31 (the single shared sprite bank).
+    ; On AGA, COLORxx writes go through the BPLCON3 bank/LOCT window, so
+    ; force BANK0/LOCT=0 first; otherwise a leftover Workbench bank would
+    ; land the colors in the wrong 32-color slice.
     sub set_colors16(^^uword colors) {
+        if custom.detect_chipset()==custom.CHIPSET::AGA {
+            custom.BPLCON3 = custom.BPLCON3 & $1dff
+        }
         ^^uword base = &custom.COLOR16
         for i in 0 to 15 {
             base[i] = colors[i]
@@ -105,14 +117,19 @@ sprites {
     }
 
     ; Attach/detach an odd sprite to the preceding even sprite (16-color mode).
+    ; Width-aware: the CTL word lives at aga_n*2 bytes (2 for 16px, 4 for
+    ; 32px, 8 for 64px); aga_n defaults to 1 so OCS 16px uses byte 3.
     ; Must be called after init(); pos() preserves the bit each frame.
     sub attach(^^mobs.Sprite odd_spr, bool on) {
         if odd_spr.slot < 8 {
             pointer p = odd_spr.data
+            uword off = aga_n * 2
+            if off == 0
+                off = 2
             if on
-                p[3] = p[3] | $80
+                p[off+1] = p[off+1] | $80
             else
-                p[3] = p[3] & $7f
+                p[off+1] = p[off+1] & $7f
         }
     }
 
@@ -177,7 +194,7 @@ sprites {
     ; aga_set_width() must be called first.
     sub aga_hide(^^mobs.Sprite spr) {
         pointer p = spr.data
-        uword n = aga_n * 2
+        uword n = aga_n * 4
         for i in 0 to n-1 {
             p[i] = 0
         }
@@ -206,7 +223,7 @@ sprites {
     ; AGA-only: sprite resolution via BPLCON3.
     ; aga_set_width() must be called first.
     sub aga_set_resolution(ubyte res) {
-        custom.BPLCON3 = (custom.BPLCON3 & $3f) | ((res as uword & 3) << 6)
+        custom.BPLCON3 = (custom.BPLCON3 & $ff3f) | ((res as uword & 3) << 6)
     }
 
     ; AGA-only: BPLCON4 palette banks for even/odd sprites.
