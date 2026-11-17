@@ -1478,11 +1478,12 @@ Blocking convenience helpers:
     Uses ``song()`` + ``update()`` internally with vsync timing.
     Requires ``on()`` to have been called before.
 
-petgfx  (PET, C64, C128)
-^^^^^^^^^^^^^^^^^^^^^^^^
+petgfx  (PET, C64, C128, CX16)
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 .. index:: pair: Libraries; petgfx
 
 To draw "graphics" at double the resolution of default text mode while using only Petscii block characters.
+On the C128 this is only supported in 40-column mode.
 
 ``sub hline(ubyte x, ubyte y, ubyte length)``
     Plots a horizontal line starting at x,y and with given length

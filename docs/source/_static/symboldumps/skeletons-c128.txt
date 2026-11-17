@@ -1,6 +1,6 @@
 
 Prog8 compiler v14.0-BETA3 by Irmen de Jong (irmen@razorvine.net)
-Prerelease version from git commit 5bfeb173 in branch master
+Prerelease version from git commit 5a4c7f86 in branch master
 This software is licensed under the GNU GPL 3.0, see https://www.gnu.org/licenses/gpl.html
 
 Compiling program import-all-c128.p8
@@ -365,9 +365,18 @@ LIBRARY MODULE NAME: petgfx
 ---------------------------
 
 petgfx  {
+    const ubyte  Mode::Draw
+    const ubyte  Mode::Erase
+    const ubyte  Mode::Xor
+    ubyte  mode
+    clear_screen  ()
+    draw_mode  ()
+    erase_mode  ()
     hline  (ubyte x, ubyte y, ubyte length)
+    line  (ubyte x1, ubyte y1, ubyte x2, ubyte y2)
     plot  (ubyte x, ubyte y)
     vline  (ubyte x, ubyte y, ubyte length)
+    xor_mode  ()
 }
 
 

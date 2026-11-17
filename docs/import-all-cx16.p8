@@ -19,6 +19,7 @@
 %import math
 %import monogfx
 %import palette
+%import petgfx
 %import prog8_lib
 %import psg
 %import serial
