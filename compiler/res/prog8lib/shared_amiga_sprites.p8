@@ -116,6 +116,12 @@ sprites {
         }
     }
 
+    ; Load 16 attached-sprite colors from $00RRGGBB values.
+    sub aga_set_colors16(^^long colors) {
+        for i in 0 to 15
+            custom.set_color((i + 16) as ubyte, colors[i])
+    }
+
     ; Attach/detach an odd sprite to the preceding even sprite (16-color mode).
     ; Width-aware: the CTL word lives at aga_n*2 bytes (2 for 16px, 4 for
     ; 32px, 8 for 64px); aga_n defaults to 1 so OCS 16px uses byte 3.
@@ -230,6 +236,6 @@ sprites {
     ; aga_set_width() must be called first.
     sub aga_set_bank(ubyte even_bank, ubyte odd_bank) {
         custom.BPLCON4 = (custom.BPLCON4 & $ff00) |
-                         (even_bank & $0f) | ((odd_bank & $0f) << 4)
+                         ((even_bank & $0f) << 4) | (odd_bank & $0f)
     }
 }

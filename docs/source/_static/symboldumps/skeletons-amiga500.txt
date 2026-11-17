@@ -1,6 +1,6 @@
 
 Prog8 compiler v14.0-BETA3 by Irmen de Jong (irmen@razorvine.net)
-Prerelease version from git commit f462a228 in branch master
+Prerelease version from git commit b48864fb in branch master
 This software is licensed under the GNU GPL 3.0, see https://www.gnu.org/licenses/gpl.html
 
 Compiling program import-all-amiga500.p8
@@ -5437,6 +5437,7 @@ sprites  {
     aga_pos  (^^mobs.Sprite spr)
     aga_pos_attached  (^^mobs.Sprite even_spr, ^^mobs.Sprite odd_spr)
     aga_set_bank  (ubyte even_bank, ubyte odd_bank)
+    aga_set_colors16  (^^long colors)
     aga_set_resolution  (ubyte res)
     aga_set_width  (ubyte width)
     attach  (^^mobs.Sprite odd_spr, bool on)

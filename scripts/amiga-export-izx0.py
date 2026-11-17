@@ -84,10 +84,9 @@ import subprocess
 import sys
 from PIL import Image
 
-try:
-    from cx16images import BAYER_4X4, BAYER_8X8, apply_ordered_dither
-except ImportError:  # script is run from another directory; add its own dir to the path
-    sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+if __package__:
+    from .cx16images import BAYER_4X4, BAYER_8X8, apply_ordered_dither
+else:
     from cx16images import BAYER_4X4, BAYER_8X8, apply_ordered_dither
 
 
