@@ -50,16 +50,9 @@ fun prefixSymbols(program: PtProgram, options: CompilationOptions, st: SymbolTab
             }
             is PtIdentifier -> {
                 val pexpr = node.parent as? PtBinaryExpression
-                if(pexpr?.operator==".") {
-                    if(pexpr.left is PtArrayIndexer) {
-                        val arrayvar = (pexpr.left as PtArrayIndexer).variable!!
-                        if(arrayvar.type.subType!=null) {
-                            return
-                        } else
-                            throw AssemblyError("can only use deref expression on struct type")
-                    } else {
-                        TODO("handle other left operand ${pexpr.left} in dereferencing of struct fields ${node.position}")
-                    }
+                if(pexpr?.operator=="." && pexpr.right===node) {
+                    // struct field name, not a symbol reference - never prefix/lookup it
+                    return
                 }
                 var lookupName = node.name
                 if(node.type.isSplitWordArray(program.target) && (lookupName.endsWith("_lsb") || lookupName.endsWith("_msb"))) {
@@ -102,6 +95,11 @@ fun prefixSymbols(program: PtProgram, options: CompilationOptions, st: SymbolTab
             }
         }
         else if (node is PtIdentifier) {
+            val pexpr = node.parent as? PtBinaryExpression
+            if(pexpr?.operator=="." && pexpr.right===node) {
+                // struct field name, not a symbol reference - never prefix/lookup it
+                return
+            }
             var lookupName = node.name
             if(node.type.isSplitWordArray(program.target) && (lookupName.endsWith("_lsb") || lookupName.endsWith("_msb"))) {
                 lookupName = lookupName.dropLast(4)

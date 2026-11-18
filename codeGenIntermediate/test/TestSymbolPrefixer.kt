@@ -300,6 +300,43 @@ class TestSymbolPrefixer : FunSpec({
         newIdRef.name shouldBe "p8b_main.p8s_start.p8v_x"
     }
 
+    test("struct array field access in noSymbolPrefixing block is skipped") {
+        val program = PtProgram("test", VMTarget())
+        val libOptions = PtBlock.Options(noSymbolPrefixing = true)
+        val libBlock = PtBlock("lib", false, SourceCode.Generated("test"), libOptions, Position.DUMMY)
+        val struct = PtStructDecl("Item", listOf(
+            PtStructField(DataType.pointer(BaseDataType.UWORD), "base", null),
+            PtStructField(DataType.LONG, "size", null)
+        ), Position.DUMMY)
+        libBlock.add(struct)
+        program.add(libBlock)
+
+        val options = basicTestOptions()
+        var st = SymbolTableMaker(program, options).make()
+        val stStruct = st.lookup("lib.Item")!! as ISubType
+        val arrType = DataType.arrayOfStructs(stStruct)
+        val variable = PtVariable("chipRegion", arrType, false, ZeropageWish.DONTCARE, 0u, false, null, 1u, Position.DUMMY)
+        libBlock.add(variable)
+        val sub = PtSub("setup", emptyList(), emptyList(), Position.DUMMY)
+        libBlock.add(sub)
+
+        // build chipRegion[0].base as it appears in the simple AST
+        val arrayId = PtIdentifier("lib.chipRegion", arrType, Position.DUMMY)
+        val indexer = PtArrayIndexer(DataType.structInstance(stStruct), false, Position.DUMMY)
+        indexer.add(arrayId)
+        indexer.add(PtNumber(BaseDataType.UBYTE, 0.0, Position.DUMMY))
+        val fieldId = PtIdentifier("base", DataType.pointer(BaseDataType.UWORD), Position.DUMMY)
+        val dot = PtBinaryExpression(".", DataType.pointer(BaseDataType.UWORD), Position.DUMMY)
+        dot.add(indexer)
+        dot.add(fieldId)
+        sub.add(dot)
+
+        st = SymbolTableMaker(program, options).make()
+        prefixSymbols(program, options, st) // should not throw unknown identifier "base"
+
+        fieldId.name shouldBe "base"
+    }
+
     test("prefixSymbols exception for unknown identifier") {
         val program = PtProgram("test", VMTarget())
         val block = PtBlock("main", false, SourceCode.Generated("test"), PtBlock.Options(), Position.DUMMY)
