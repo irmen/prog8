@@ -122,6 +122,7 @@ Pointers and Structs
 - Since **version 12.0**, prog8 supports struct types and typed pointers.
 - Structs are a grouping of one or more fields, that together make up the struct type.
 - Typed pointers are just that: a pointer to a specific type (which can be a simple type such as float, or a struct type.)
+- On the 32-bit and virtual targets, a struct can also be declared as a single direct variable (``Point p``) and copied by value; the 6502-based targets still require a pointer or an array of struct instances.
 
 
 Foreign function interface (external/ROM calls)

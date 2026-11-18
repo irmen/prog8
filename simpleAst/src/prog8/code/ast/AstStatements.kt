@@ -372,7 +372,8 @@ class PtVariable(
     init {
 
         if(value!=null) {
-            require(value is PtArray || value is PtString) {
+            require(value is PtArray || value is PtString ||
+                    (type.isStructInstance && value is PtFunctionCall && value.builtin && value.name=="prog8_lib_structalloc")) {
                 "variable initializer value must only be array or string"
             }
             // NOTE: the 6502 code generator expects numerical variables to not have an initialization value,

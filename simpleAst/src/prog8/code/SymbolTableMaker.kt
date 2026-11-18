@@ -105,6 +105,7 @@ class SymbolTableMaker(private val program: PtProgram, private val options: Comp
                 scope.first().add(slab)
                 null
             }
+            is PtVariable if node.type.isStructInstance -> makeStructInstanceVariable(node, scope)
             is PtVariable -> {
                 val initialNumeric: Double?
                 val initialString: StString?
@@ -175,9 +176,50 @@ class SymbolTableMaker(private val program: PtProgram, private val options: Comp
         }
     }
 
-    private fun handleStructAllocation(node: PtFunctionCall): StStructInstance? {
+    private fun makeStructInstanceVariable(node: PtVariable, scope: ArrayDeque<StNode>): StStructInstance {
+        val struct = node.type.subType as? StStruct ?: resolveStructForVariable(node, scope)
+        val scopedStructName = if(struct.astNode!=null) (struct.astNode as PtNamedNode).scopedName else struct.scopedNameString
+        val values = when(val value = node.value) {
+            null -> emptyList()
+            is PtFunctionCall if value.builtin && value.name=="prog8_lib_structalloc" ->
+                handleStructAllocation(value, struct)?.initialValues ?: emptyList()
+            else -> throw InternalCompilerException("invalid struct instance initializer for '${node.name}'")
+        }
+        return StStructInstance(node.name, scopedStructName, values, struct.size, node)
+    }
+
+    private fun resolveStructForVariable(node: PtVariable, scope: ArrayDeque<StNode>): StStruct {
+        val name = (node.type.subType?.scopedNameString ?: node.type.subTypeFromAntlr?.lastOrNull())
+            ?.substringAfterLast('.')
+            ?: throw InternalCompilerException("struct type not resolved for '${node.name}'")
+        for(level in scope.reversed()) {
+            val found = level.children.values.firstOrNull { it is StStruct && it.name==name } as? StStruct
+            if(found!=null)
+                return found
+        }
+        val wantedScopedName = node.type.subType?.scopedNameString
+        val decl = program.allBlocks().firstNotNullOfOrNull { block ->
+            block.children.filterIsInstance<PtStructDecl>().firstOrNull {
+                it.scopedName==wantedScopedName || it.name==name
+            }
+        } ?: throw InternalCompilerException("struct type '$name' not found for '${node.name}'")
+        val size = if(decl.isUnion) {
+            decl.fields.maxOfOrNull { field ->
+                if(field.isArray) program.memsizer.memorySize(field.type, field.arraySize!!)
+                else program.memsizer.memorySize(field.type, 1)
+            } ?: 0
+        } else {
+            decl.fields.sumOf { field ->
+                if(field.isArray) program.memsizer.memorySize(field.type, field.arraySize!!)
+                else program.memsizer.memorySize(field.type, 1)
+            }
+        }
+        return StStruct(decl.name, decl.fields, size.toUInt(), decl, decl.isUnion)
+    }
+
+    private fun handleStructAllocation(node: PtFunctionCall, structOverride: StStruct? = null): StStructInstance? {
         require(node.builtin)
-        val struct = node.type.subType as? StStruct ?: return null
+        val struct = structOverride ?: (node.type.subType as? StStruct ?: return null)
         val initialValues = node.args.map {
             when(it) {
                 is PtAddressOf -> StArrayElement.AddressOf(it.identifier!!.name)

@@ -1404,8 +1404,8 @@ internal class AstChecker(private val program: Program,
         if(decl.datatype.isStructInstance && decl.origin!=VarDeclOrigin.SUBROUTINEPARAM) {
             if(decl.type==VarDeclType.MEMORY)
                 errors.err("struct instances cannot be declared as memory-mapped currently, use a pointer and memory allocation call or direct address assignment instead", decl.position)
-            else
-                errors.err("struct instances cannot be declared directly, use a pointer and memory allocation call or direct address assignment instead", decl.position)
+            else if(options.compTarget.cpu.is6502)
+                errors.err("direct struct instance variables are not supported on this target, use a pointer or an array of struct instances instead", decl.position)
         }
 
         if (decl.dirty) {
@@ -3125,6 +3125,7 @@ internal class AstChecker(private val program: Program,
             targetDatatype.isLong -> sourceDatatype.isLong || sourceDatatype.isPointer || sourceDatatype.isWord || sourceDatatype.isByte
             targetDatatype.isFloat -> sourceDatatype.isNumeric
             targetDatatype.isString -> sourceDatatype.isString
+            targetDatatype.isStructInstance -> sourceDatatype.isStructInstance && sourceDatatype==targetDatatype
             else -> false
         }
 

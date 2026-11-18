@@ -146,6 +146,13 @@ private class StToIrConverter(val romable: Boolean) {
         }
         return if('.' in instance.name)
             IRStStructInstance(instance.name, instance.structName, values, instance.size)
+        else if(instance.astNode is prog8.code.ast.PtVariable) {
+            val parts = instance.scopedNameString.split('.').toMutableList()
+            val last = parts.last()
+            if(last.startsWith("p8v_"))
+                parts[parts.lastIndex] = "p8i_" + last.drop(4)
+            IRStStructInstance("$StStructInstanceBlockName.${parts.joinToString("_")}", instance.structName, values, instance.size)
+        }
         else
             IRStStructInstance("${StStructInstanceBlockName}.${instance.name}", instance.structName, values, instance.size)
     }

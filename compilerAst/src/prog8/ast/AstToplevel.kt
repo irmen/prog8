@@ -250,7 +250,7 @@ interface INameScope: IStatementContainer, INamedStatement {
     }
 
     fun searchStructFieldRef(localSymbol: Statement?, scopedName: List<String>): StructFieldRef? {
-        if(localSymbol is VarDecl && localSymbol.datatype.isPointer) {
+        if(localSymbol is VarDecl && (localSymbol.datatype.isPointer || localSymbol.datatype.isStructInstance)) {
             var struct = localSymbol.datatype.subType
             if(struct==null && localSymbol.datatype.subTypeFromAntlr!=null) {
                 // the antlr-injected type ref wasn't yet translated, do the lookup here

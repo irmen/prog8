@@ -216,19 +216,28 @@ The compiler evaluates the pointer expression exactly once and then stores the v
 
 
 .. note::
-    Structs are primarily supported as a *reference type* accessed through a pointer.
-    However, you can also declare an *array of struct instances* (see below), and a plain struct instance
-    can be used as an lvalue in a few specific assignment cases.
-    It is not yet possible to use a struct as a standalone value type, or to declare a single
-    memory-mapped struct instance (an *array* of struct instances can be memory-mapped, see below).
+    Structs can be accessed through a typed pointer, as an *array of struct instances*
+    (see below), or as a single direct struct variable on the 32-bit and virtual targets.
+    A direct struct variable is declared as ``Point p`` and its fields are accessed with
+    ``p.x``. Direct struct variables are not supported on the 6502-based targets;
+    use a pointer or an array of struct instances there. A single memory-mapped struct
+    instance is not supported either (an *array* of struct instances can be memory-mapped,
+    see below).
     The compiler replaces whole-struct assignments with a memory copy. You are allowed to write::
 
         ptr2^^ = ptr1^^
         ptr2^^ = ptr1[2]
         ptr2[2] = ptr1^^
         arr[i] = arr[j]           ; array of struct instances
+        p2 = p1                   ; direct struct variables (32-bit/virtual targets)
 
-    In the future more cases may be supported.
+    The source and target must be the same kind of struct storage; mixing forms such as
+    ``p = ptr^^`` or ``ptr^^ = p`` is not supported. The copy is a raw byte copy, so
+    pointer and string fields are copied by address (a shallow copy).
+
+    Direct struct variables are stored in static memory; they cannot be subroutine
+    parameters, return values, or memory-mapped variables. ``sizeof(p)`` on a direct
+    struct variable returns the storage size of its struct type.
 
 
 .. _structarrays:
@@ -379,7 +388,7 @@ Values must be written at runtime through the pointer::
 .. note::
     Unions, like structs, cannot yet be declared as a local instance - you always access
     a union through a typed pointer, as shown above. See the note in the structs section
-    for the current limitations around using structs (and now unions) as standalone values.
+    for the current limitations around using unions as standalone values.
 
 
 Static initialization of structs

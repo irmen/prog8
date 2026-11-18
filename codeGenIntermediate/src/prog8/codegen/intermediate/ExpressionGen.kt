@@ -39,6 +39,8 @@ internal fun CpuType.canSkipExplicitCmpi(lastInstr: IRInstruction?): Boolean =
 
 internal class ExpressionGen(private val codeGen: IRCodeGen) {
 
+    private fun structInstanceLabel(name: String) = "$StStructInstanceBlockName.${name.replace('.', '_')}"
+
     fun translateExpression(expr: PtExpression): ExpressionCodeResult {
         return when (expr) {
             is PtIrRegister -> {
@@ -69,6 +71,12 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
             }
             is PtIdentifier -> {
                 val code = IRCodeChunk(null, null)
+                if(expr.type.isStructInstance) {
+                    val dt = addressDtFor(codeGen.options.compTarget)
+                    val resultRegister = codeGen.registers.next(dt)
+                    code += IRInstructions.loadAddress(dt, resultRegister, structInstanceLabel(expr.name))
+                    return ExpressionCodeResult(code, dt, resultRegister, -1)
+                }
                 // Check if this identifier is a constant - if so, use LOAD instead of LOADM to get the constant value directly
                 val stNode = codeGen.symbolTable.lookup(expr.name)
                 val isConstant = stNode is StConstant && stNode.value != null
@@ -160,69 +168,10 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
 
     private fun translate(deref: PtPointerDeref): ExpressionCodeResult {
         val result = mutableListOf<IRCodeChunkBase>()
-        var pointerReg: Int
-
-        if(deref.startpointer.type.isStructInstance) {
-            TODO("translate structinstance deref??? ${deref.position}")
-/*
-            val arrayIndexer = deref.startpointer as? PtArrayIndexer
-            if(arrayIndexer==null)
-                throw AssemblyError("when start pointer is struct instance, array indexer is expected PTR[x]")
-            // first evaluate the adress of POINTER[x].a
-            // which is: value in pointer + x*sizeof(struct) + offsetof(a)
-            // then use traverseDerefChainToCalculateFinalAddress on b.c.d.field
-            val struct = deref.startpointer.type.subType as StStruct
-            val chain = ArrayDeque(deref.chain)
-            val firstField = struct.getField(chain.removeFirst(), codeGen.program.memsizer)
-            val pointerTr = translateExpression(arrayIndexer.variable)
-            result += pointerTr.chunks
-            pointerReg = pointerTr.resultReg
-            val constIndex = arrayIndexer.index.asConstInteger()
-            if(constIndex!=null) {
-                val offset = constIndex * struct.size.toInt()
-                addInstr(result, IRInstructions.binaryImmediate(Opcode.ADD, IRDataType.POINTER, pointerReg, offset), null)
-            } else {
-                val indexTr = translateExpression(arrayIndexer.index)
-                result += indexTr.chunks
-                // multiply the index by the size of the struct and add that to the pointer, then add the offset of the field,
-                // and retrieve the pointer value that is stored there, or the actual value if it's a pointer to simple type
-                result += IRCodeChunk(null, null).also {
-                    val indexReg: Int
-                    if(arrayIndexer.index.type.isByte) {
-                        // extend array index to word
-                        indexReg = codeGen.registers.next(IRDataType.WORD)
-                        it += IRInstructions.binary(Opcode.EXT, IRDataType.BYTE, indexReg, indexTr.resultReg)
-                    } else {
-                        indexReg = indexTr.resultReg
-                    }
-                    it += codeGen.multiplyByConst(DataType.UWORD, indexReg, struct.size.toInt())
-                    it += IRInstructions.binary(Opcode.ADDR, IRDataType.POINTER, pointerReg, indexReg)
-                }
-            }
-
-            result += IRCodeChunk(null, null).also {
-                it += IRInstructions.binaryImmediate(Opcode.ADD, IRDataType.POINTER, pointerReg, firstField.second)
-                if (firstField.first.isPointer) {
-                    // get the address stored in the pointer and use that for the rest of the chain
-                    // LOADI has an exception to allo reg1 and reg2 to be the same, so we can avoid using extra temporary registers and LOADs
-                    it += IRInstructions.loadMemory(Opcode.LOADI, IRDataType.POINTER, pointerReg, IRMemory.indirect(pointerReg))
-                } else {
-                    require(chain.isEmpty())
-                    // it's a pointer to a simple value, so keep the pointer as-is
-                }
-            }
-
-
-            // now use traverseDerefChainToCalculateFinalAddress on b.c.d and finally field  or on b.c.d.field if field isn't a field.
-            val derefField = if(deref.type.isPointer) null else chain.removeLastOrNull()
-            actualDeref = PtPointerDeref(deref.type, chain, derefField, deref.position)
-            actualDeref.add(arrayIndexer.variable)
-*/
-        } else {
-            val tr = translateExpression(deref.startpointer)
-            result += tr.chunks
-            pointerReg = tr.resultReg
-        }
+        val pointerReg: Int
+        val tr = translateExpression(deref.startpointer)
+        result += tr.chunks
+        pointerReg = tr.resultReg
 
         val (instructions, offset) = traverseRestOfDerefChainToCalculateFinalAddress(deref, pointerReg)
         result += instructions
@@ -378,7 +327,9 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
         val identifier = expr.identifier
 
         fun loadAddressOfArrayLabel(reg: Int) {
-            if (expr.isMsbForSplitArray) {
+            if (identifier!!.type.isStructInstance) {
+                addInstr(result, IRInstructions.loadAddress(vmDt, reg, structInstanceLabel(identifier.name)), null)
+            } else if (expr.isMsbForSplitArray) {
                 addInstr(result, IRInstructions.loadAddress(vmDt, reg, identifier!!.name + "_msb"), null)
             } else if (identifier!!.type.isSplitWordArray(codeGen.options.compTarget)) {
                 // the _lsb split array comes first in memory
@@ -2109,6 +2060,7 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
                     expr.arrayIndexExpr == null && expr.dereference == null) {
                     val name = identifier.name
                     val symbol = when {
+                        identifier.type.isStructInstance -> structInstanceLabel(name)
                         expr.isMsbForSplitArray -> "${name}_msb"
                         identifier.type.isSplitWordArray(codeGen.options.compTarget) -> "${name}_lsb"
                         else -> name

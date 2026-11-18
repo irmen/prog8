@@ -1757,6 +1757,16 @@ _after:
                 // special case simple struct instance assignment via memory copy
                 val size = program.target.memorySize(sourceDt.getOrUndef(), null)
                 val structSizeNum = NumericLiteral.optimalInteger(size, assignment.position)
+                val sourceIdentifier = assignment.value as? IdentifierReference
+                if(sourceIdentifier!=null && assignment.target.identifier!=null) {
+                    // b = a  -->  memcopy(&a, &b, sizeof(struct))
+                    val source = AddressOf(sourceIdentifier.copy(), null, null, false, true, assignment.position)
+                    val target = AddressOf(assignment.target.identifier!!.copy(), null, null, false, true, assignment.position)
+                    val memcopy = FunctionCallStatement(IdentifierReference(listOf("sys", "memcopy"), assignment.position),
+                        mutableListOf(source, target, structSizeNum),
+                        false, assignment.position)
+                    return listOf(AstReplaceNode(assignment, memcopy, parent))
+                }
                 val deref = assignment.value as? PtrDereference
                 if(deref!=null) {
                     val sourcePtr = IdentifierReference(deref.chain, assignment.position)
@@ -1909,6 +1919,14 @@ _after:
         }
 
         if(parent is VarDecl) {
+            if(parent.datatype.isStructInstance && parent.value===array) {
+                val struct = parent.datatype.subType
+                    ?: throw FatalAstException("struct type not resolved for '${parent.name}'")
+                val initializer = StaticStructInitializer(
+                    IdentifierReference(struct.scopedNameString.split("."), array.position),
+                    array.value.toMutableList(), array.position, false)
+                return listOf(AstReplaceNode(array, initializer, parent))
+            }
             if(!parent.datatype.isArray) return noModifications
             val elemDt = parent.datatype.elementType()
             val isStructPointerElem = elemDt.isPointer && elemDt.subType!=null

@@ -49,6 +49,8 @@ private class FrameAddressEscapeChecker(private val errors: IErrorReporter) : IA
     override fun visit(addressOf: AddressOf) {
         val identifier = addressOf.identifier ?: return
         val decl = identifier.targetVarDecl() ?: return
+        if(decl.datatype.isStructInstance)
+            return  // direct struct variables are static storage, not stack frames
         val declaringSub = decl.definingSubroutine
         if (declaringSub == null || !isSubroutineLocal(decl, declaringSub))
             return
