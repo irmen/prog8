@@ -13,6 +13,7 @@
 %import custom
 %import conv
 %import copper
+%import hwinfo
 %import emudbg
 %import floats
 %import lists

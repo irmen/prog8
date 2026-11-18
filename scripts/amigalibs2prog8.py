@@ -1079,6 +1079,7 @@ LIBRARY_BANK_MAP = {
 #   shared_amiga_audio.p8      - audio.device IO wrappers
 #   shared_amiga_blitter.p8    - blitter helpers + register constants
 #   shared_amiga_custom.p8     - custom chip registers, grab/restore, input helpers, AGA palette
+#   shared_amiga_hwinfo.p8     - hardware detection, must run before custom.grab_system()
 #   shared_amiga_easygfx.p8    - friendly OS graphics wrapper (NewScreen/NewWindow)
 #   shared_amiga_ptplayer.p8   - ProTracker music player
 #   shared_amiga_sound.p8      - Paula 4-channel PCM driver (hardware-banging)

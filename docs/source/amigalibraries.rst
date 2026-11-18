@@ -129,6 +129,20 @@ modules. Import them the same way as any other library::
     default output) and close it with ``ahi.close()``. Requires a system with ahi.device
     installed (real hardware or full emulation), so it does not work under vamos.
 
+``hwinfo``
+    Hardware detection for bare-metal programs. Call ``gather()`` while the OS is
+    still running, before ``custom.grab_system()``, because some of the detected
+    information is not recoverable afterwards. ``gather()`` is idempotent and always
+    returns true after a snapshot attempt; missing sources leave their fields at
+    defaults. It fills in the module variables: ``ready``, ``cpu``
+    (``CPU`` enum), ``fpu``, ``VBR``, ``videomode`` (``VIDEO`` enum),
+    ``chipset``, ``chipRegion``, ``floppyCount`` and ``kickVersion``. Memory is
+    reported as ``MemRegion`` structs (``base`` pointer and ``size``);
+    ``chipRegion[0]`` holds the single chip RAM segment, ``slowRegions`` holds
+    up to 4 entries with ``slowCount``, and
+    ``fastRegions`` up to 8 entries with ``fastCount``. Additional regions
+    beyond those limits are skipped.
+
 ``custom``
     Direct access to the custom chipset, with no library involved. Contains
     ``grab_system(replace_view)``/``restore_system()`` to take over the whole system and interrupt
@@ -483,7 +497,7 @@ Hand-maintained modules (not generated from the NDK)
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 - ``custom``, ``blitter``, ``copper``, ``playfield``, ``gfxtext``, ``sound``,
-  ``ptplayer``, ``easygfx`` - the bare-metal hardware modules.
+  ``ptplayer``, ``easygfx``, ``hwinfo`` - the bare-metal hardware modules.
 - ``audio``, ``timer``, ``trackdisk`` - thin ``audio.device`` / ``timer.device`` /
   ``trackdisk.device`` wrappers.
 - ``diskfont`` - trimmed to pre-3.0 content (up to Kickstart 2.0): the outline

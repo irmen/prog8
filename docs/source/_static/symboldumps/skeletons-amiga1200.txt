@@ -1,6 +1,6 @@
 
 Prog8 compiler v14.0-BETA3 by Irmen de Jong (irmen@razorvine.net)
-Prerelease version from git commit b48864fb in branch master
+Prerelease version from git commit 79629c79 in branch master
 This software is licensed under the GNU GPL 3.0, see https://www.gnu.org/licenses/gpl.html
 
 Compiling program import-all-amiga1200.p8
@@ -3788,6 +3788,37 @@ graphics  {
     load_iff_cmap  (^^graphics.ViewPort vp, ^^ubyte cmap, uword count)
     load_palette  (^^graphics.ViewPort vp, ^^long rgb24, uword count)
     set_palette_color  (^^graphics.ViewPort vp, uword index, long rgb24)
+}
+
+
+LIBRARY MODULE NAME: hwinfo
+---------------------------
+
+hwinfo  {
+    struct MemHeader
+    struct MemRegion
+    const ubyte  CPU::MC68000
+    const ubyte  CPU::MC68010
+    const ubyte  CPU::MC68020
+    const ubyte  CPU::MC68030
+    const ubyte  CPU::MC68040
+    const ubyte  CPU::MC68060
+    long @shared  VBR
+    const ubyte  VIDEO::NTSC
+    const ubyte  VIDEO::PAL
+    hwinfo.MemRegion[]  chipRegion
+    ubyte  chipset
+    ubyte  cpu
+    ubyte  fastCount
+    hwinfo.MemRegion[]  fastRegions
+    ubyte  floppyCount
+    bool  fpu
+    uword  kickVersion
+    bool  ready
+    ubyte  slowCount
+    hwinfo.MemRegion[]  slowRegions
+    ubyte  videomode
+    gather  () -> bool
 }
 
 
