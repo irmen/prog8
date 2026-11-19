@@ -1152,7 +1152,7 @@ internal class AsmGen(val program: IRProgram, private val target: ICompilationTa
                     }
                 }
                 is IRStSymbolicReference.Symbol -> {
-                    emitLine("    .word  ${fixNameSymbols(fv.name)}")
+                    emitLine("    .word  ${asmSymbolRef(fv.name)}")
                 }
                 is IRStSymbolicReference.BoolValue -> {
                     val v = if (fv.value) 1 else 0
@@ -1186,14 +1186,14 @@ internal class AsmGen(val program: IRProgram, private val target: ICompilationTa
                     when (it) {
                         is IRStSymbolicReference.Numeric -> (it.value.toInt() and 0xFF).toString()
                         is IRStSymbolicReference.BoolValue -> if (it.value) "1" else "0"
-                        is IRStSymbolicReference.Symbol -> "<${fixNameSymbols(it.name)}"
+                        is IRStSymbolicReference.Symbol -> "<${asmSymbolRef(it.name)}"
                     }
                 }
                 val msbValues = elements.map {
                     when (it) {
                         is IRStSymbolicReference.Numeric -> ((it.value.toInt() shr 8) and 0xFF).toString()
                         is IRStSymbolicReference.BoolValue -> "0"
-                        is IRStSymbolicReference.Symbol -> ">${fixNameSymbols(it.name)}"
+                        is IRStSymbolicReference.Symbol -> ">${asmSymbolRef(it.name)}"
                     }
                 }
                 emitLabel("${label}_lsb")

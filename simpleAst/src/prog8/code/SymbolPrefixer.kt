@@ -228,6 +228,23 @@ fun PtVariable.prefixVariable(parent: PtNode, st: SymbolTable): PtVariable {
     if(value==null)
         return this
 
+    val callValue = value as? PtFunctionCall
+    if(callValue!=null && callValue.builtin && callValue.name=="prog8_lib_structalloc") {
+        // struct instance variable: its initializer is a prog8_lib_structalloc call whose
+        // arguments are not reachable via children, so collectRefs never visits them;
+        // prefix the address-of ones here.
+        callValue.children.forEachIndexed { idx, arg ->
+            if (arg is PtAddressOf && arg.definingBlock()?.options?.noSymbolPrefixing != true) {
+                val newAddr = PtAddressOf(arg.type, false, arg.position)
+                newAddr.add(arg.identifier!!.prefixIdentifier(newAddr, st))
+                if (arg.arrayIndexExpr != null)
+                    newAddr.add(arg.arrayIndexExpr!!)
+                callValue.setChild(idx, newAddr)
+            }
+        }
+        return this
+    }
+
     val arrayValue = value as? PtArray
     return if(arrayValue!=null && arrayValue.children.any { it !is PtNumber && it !is PtBool } ) {
         val newValue = PtArray(arrayValue.type, arrayValue.position)

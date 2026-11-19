@@ -9,7 +9,7 @@ import prog8.intermediate.*
  * Converter object for transforming SymbolTable nodes to IR symbol table nodes.
  * Groups all conversion functions together for better organization.
  */
-private class StToIrConverter(val romable: Boolean) {
+private class StToIrConverter(val romable: Boolean, val st: SymbolTable?) {
     fun convert(struct: StStruct): IRStStructDef =
         IRStStructDef(struct.scopedNameString, makeIrStructFieldsFrom(struct.fields), struct.size, struct.isUnion)
 
@@ -22,13 +22,41 @@ private class StToIrConverter(val romable: Boolean) {
             is StArrayElement.Number -> IRStSymbolicReference.Numeric(elt.value)
             // Memory slabs and address-of are both stored as symbol references in the IR
             is StArrayElement.MemorySlab -> IRStSymbolicReference.Symbol("$StMemorySlabBlockName.${elt.name}")
-            is StArrayElement.AddressOf -> IRStSymbolicReference.Symbol(elt.symbol)
+            is StArrayElement.AddressOf -> IRStSymbolicReference.Symbol(structInstanceAddressOfSymbol(elt.symbol) ?: elt.symbol)
             is StArrayElement.StructInstance -> {
                 // Struct instances in arrays are stored as symbol references to the struct instance block
                 val symbol = StStructInstanceBlockName + "." + (if(elt.uninitialized) elt.name else elt.name)
                 IRStSymbolicReference.Symbol(symbol)
             }
         }
+    }
+
+    // Symbol-table name under which the IR registers the given struct instance's storage.
+    // References to struct instances must use exactly this form to be resolvable.
+    private fun structInstanceIRName(instance: StStructInstance): String {
+        if('.' in instance.name)
+            return instance.name
+        if(instance.astNode is prog8.code.ast.PtVariable) {
+            val parts = instance.scopedNameString.split('.').toMutableList()
+            val last = parts.last()
+            if(last.startsWith("p8v_"))
+                parts[parts.lastIndex] = "p8i_" + last.drop(4)
+            return "$StStructInstanceBlockName.${parts.joinToString("_")}"
+        }
+        return "$StStructInstanceBlockName.${instance.name}"
+    }
+
+    // An address-of of a direct struct instance variable is named with an 'i' prefix while its
+    // declaration is a 'v' prefixed variable; map such a symbol to the instance's IR symbol name.
+    // Returns null when the symbol is not a struct instance reference.
+    private fun structInstanceAddressOfSymbol(symbol: String): String? {
+        val parts = symbol.split('.').toMutableList()
+        val last = parts.last()
+        if(!last.startsWith("p8i_"))
+            return null
+        parts[parts.lastIndex] = "p8v_" + last.drop(4)
+        val target = st?.lookup(parts.joinToString(".")) as? StStructInstance ?: return null
+        return structInstanceIRName(target)
     }
 
     private fun makeInitializer(
@@ -50,9 +78,14 @@ private class StToIrConverter(val romable: Boolean) {
                 val scopedArray = array.map {
                     when(it) {
                         is StArrayElement.AddressOf -> {
-                            val target = variable.lookup(it.symbol) ?:
-                                throw NoSuchElementException("can't find variable ${it.symbol}")
-                            IRStSymbolicReference.Symbol(target.scopedNameString)
+                            val instanceSymbol = structInstanceAddressOfSymbol(it.symbol)
+                            if(instanceSymbol!=null)
+                                IRStSymbolicReference.Symbol(instanceSymbol)
+                            else {
+                                val target = variable.lookup(it.symbol) ?:
+                                    throw NoSuchElementException("can't find variable ${it.symbol}")
+                                IRStSymbolicReference.Symbol(target.scopedNameString)
+                            }
                         }
                         else -> convertArrayElt(it)
                     }
@@ -144,23 +177,13 @@ private class StToIrConverter(val romable: Boolean) {
             val elt = convertArrayElt(value)
             IRStructInitValue(baseType, elt)
         }
-        return if('.' in instance.name)
-            IRStStructInstance(instance.name, instance.structName, values, instance.size)
-        else if(instance.astNode is prog8.code.ast.PtVariable) {
-            val parts = instance.scopedNameString.split('.').toMutableList()
-            val last = parts.last()
-            if(last.startsWith("p8v_"))
-                parts[parts.lastIndex] = "p8i_" + last.drop(4)
-            IRStStructInstance("$StStructInstanceBlockName.${parts.joinToString("_")}", instance.structName, values, instance.size)
-        }
-        else
-            IRStStructInstance("${StStructInstanceBlockName}.${instance.name}", instance.structName, values, instance.size)
+        return structInstanceIRName(instance).let { IRStStructInstance(it, instance.structName, values, instance.size) }
     }
 }
 
 fun convertStToIRSt(sourceSt: SymbolTable?, romable: Boolean = false): IRSymbolTable {
     val st = IRSymbolTable()
-    val converter = StToIrConverter(romable)
+    val converter = StToIrConverter(romable, sourceSt)
     if (sourceSt != null) {
         sourceSt.flat.forEach {
             when(it.value.type) {

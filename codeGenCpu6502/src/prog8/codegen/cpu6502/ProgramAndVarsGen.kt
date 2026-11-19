@@ -361,7 +361,15 @@ internal class ProgramAndVarsGen(
     }
 
     private fun addressOfAsmSymbol(name: String): String {
-        val symbol = symboltable.lookup(name)!!
+        // a reference to a direct struct instance variable is named with an 'i' prefix while
+        // its declaration is a 'v' prefixed variable; map it to the instance's storage label
+        val parts = name.split('.').toMutableList()
+        val last = parts.last()
+        if(last.startsWith("p8i_"))
+            parts[parts.lastIndex] = "p8v_" + last.drop(4)
+        val symbol = symboltable.lookup(parts.joinToString("."))
+        if(symbol is StStructInstance)
+            return asmgen.structInstanceLabel(symbol)
         val actualName = if(symbol is StStaticVariable && symbol.dt.isSplitWordArray(compTarget)) name+"_lsb" else name
         return asmgen.asmSymbolName(actualName)
     }
@@ -1117,13 +1125,7 @@ internal class ProgramAndVarsGen(
             dt.isArray && (dt.elementType().isUnsignedWord || dt.elementType().isPointer) -> array.map {
                 when(it) {
                     is StArrayElement.Number -> "$" + it.value.toInt().toString(16).padStart(4, '0')
-                    is StArrayElement.AddressOf -> {
-                        val symbol = symboltable.lookup(it.symbol)!!
-                        if(symbol is StStaticVariable && symbol.dt.isSplitWordArray(compTarget))
-                            asmgen.asmSymbolName(it.symbol+"_lsb")
-                        else
-                            asmgen.asmSymbolName(it.symbol)
-                    }
+                    is StArrayElement.AddressOf -> addressOfAsmSymbol(it.symbol)
                     is StArrayElement.MemorySlab -> asmgen.asmSymbolName("$StMemorySlabBlockName.${it.name}")
                     is StArrayElement.StructInstance -> {
                         val prefix = if(it.uninitialized) "${StStructInstanceBlockName}_bss" else StStructInstanceBlockName
@@ -1158,13 +1160,7 @@ internal class ProgramAndVarsGen(
                 array.map {
                     when(it) {
                         is StArrayElement.Number -> "$" + it.value.toInt().toString(16).padStart(4, '0')
-                        is StArrayElement.AddressOf -> {
-                            val symbol = symboltable.lookup(it.symbol)!!
-                            if(symbol is StStaticVariable && symbol.dt.isSplitWordArray(compTarget))
-                                asmgen.asmSymbolName(it.symbol+"_lsb")
-                            else
-                                asmgen.asmSymbolName(it.symbol)
-                        }
+                        is StArrayElement.AddressOf -> addressOfAsmSymbol(it.symbol)
                         is StArrayElement.MemorySlab -> asmgen.asmSymbolName("$StMemorySlabBlockName.${it.name}")
                         is StArrayElement.StructInstance -> {
                             val prefix = if(it.uninitialized) "${StStructInstanceBlockName}_bss" else StStructInstanceBlockName
@@ -1181,7 +1177,7 @@ internal class ProgramAndVarsGen(
                             val hexnum = number.absoluteValue.toString(16).padStart(4, '0')
                             if (number >= 0) "$$hexnum" else "-$$hexnum"
                         }
-                        is StArrayElement.AddressOf -> asmgen.asmSymbolName(it.symbol)
+                        is StArrayElement.AddressOf -> addressOfAsmSymbol(it.symbol)
                         is StArrayElement.MemorySlab -> asmgen.asmSymbolName("$StMemorySlabBlockName.${it.name}")
                         else -> throw AssemblyError("unexpected array element type for signed word array")
                     }
@@ -1194,7 +1190,7 @@ internal class ProgramAndVarsGen(
                             val hexnum = number.absoluteValue.toLongHex()
                             if (number >= 0) "$$hexnum" else "-$$hexnum"
                         }
-                        is StArrayElement.AddressOf -> asmgen.asmSymbolName(it.symbol)
+                        is StArrayElement.AddressOf -> addressOfAsmSymbol(it.symbol)
                         is StArrayElement.MemorySlab -> asmgen.asmSymbolName("$StMemorySlabBlockName.${it.name}")
                         else -> throw AssemblyError("unexpected array element type for long array")
                     }
