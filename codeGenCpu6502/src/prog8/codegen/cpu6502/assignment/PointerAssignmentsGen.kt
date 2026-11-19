@@ -273,19 +273,33 @@ internal class PointerAssignmentsGen(private val asmgen: AsmGen6502Internal, pri
         if(pointer.startpointer.type.subType!=null)
             struct = pointer.startpointer.type.subType as StStruct
 
+        // a direct struct instance variable is not a pointer: load the address of its storage instead
+        fun loadStartPointer() {
+            val startpointer = pointer.startpointer
+            if(startpointer.type.isStructInstance) {
+                val label = asmgen.structInstanceLabelForIdentifier(startpointer)
+                asmgen.out("""
+                    lda  #<$label
+                    ldy  #>$label
+                    sta  P8ZP_SCRATCH_PTR
+                    sty  P8ZP_SCRATCH_PTR+1""")
+            } else
+                asmgen.assignExpressionToVariable(startpointer, "P8ZP_SCRATCH_PTR", DataType.UWORD)
+        }
+
         if(pointer.chain.isEmpty()) {
             require(pointer.derefLast)
             // just return the pointer itself
             if (allocator.isZpVar(pointer.startpointer.name))
                 return pointer.startpointer.name to 0u
             else {
-                asmgen.assignExpressionToVariable(pointer.startpointer, "P8ZP_SCRATCH_PTR", DataType.UWORD)
+                loadStartPointer()
                 return "P8ZP_SCRATCH_PTR" to 0u
             }
         } else if(pointer.chain.size==1) {
             val field = struct!!.getField(pointer.chain[0], asmgen.program.memsizer)
             if(addOffsetToPointer) {
-                asmgen.assignExpressionToVariable(pointer.startpointer, "P8ZP_SCRATCH_PTR", DataType.UWORD)
+                loadStartPointer()
                 addFieldOffsetToScratchPointer(field.second.toUInt())
                 if(pointer.derefLast || (loadPointerFieldValue && field.first.isPointer))
                     updateScratchPointer()
@@ -293,7 +307,7 @@ internal class PointerAssignmentsGen(private val asmgen: AsmGen6502Internal, pri
             } else {
                 if (allocator.isZpVar(pointer.startpointer.name)) {
                     if(pointer.derefLast) {
-                        asmgen.assignExpressionToVariable(pointer.startpointer, "P8ZP_SCRATCH_PTR", DataType.UWORD)
+                        loadStartPointer()
                         addFieldOffsetToScratchPointer(field.second.toUInt())
                         updateScratchPointer()
                         return "P8ZP_SCRATCH_PTR" to 0u
@@ -303,7 +317,7 @@ internal class PointerAssignmentsGen(private val asmgen: AsmGen6502Internal, pri
                 }
                 else {
                     // have to copy it to temp zp var
-                    asmgen.assignExpressionToVariable(pointer.startpointer, "P8ZP_SCRATCH_PTR", DataType.UWORD)
+                    loadStartPointer()
                     if(pointer.derefLast) {
                         addFieldOffsetToScratchPointer(field.second.toUInt())
                         updateScratchPointer()
@@ -316,7 +330,7 @@ internal class PointerAssignmentsGen(private val asmgen: AsmGen6502Internal, pri
         }
 
         // walk pointer chain, calculate pointer address using P8ZP_SCRATCH_PTR
-        asmgen.assignExpressionToVariable(pointer.startpointer, "P8ZP_SCRATCH_PTR", DataType.UWORD)
+        loadStartPointer()
 
         // traverse deref chain
         for(deref in pointer.chain.dropLast(1)) {

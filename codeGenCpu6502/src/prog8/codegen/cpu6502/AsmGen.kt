@@ -246,6 +246,8 @@ class AsmGen6502Internal (
     fun asmSymbolName(name: Iterable<String>) = fixNameSymbols(name.joinToString("."))
     fun asmVariableName(name: Iterable<String>) = fixNameSymbols(name.joinToString("."))
     fun asmSymbolName(identifier: PtIdentifier): String {
+        if(identifier.type.isStructInstance)
+            return structInstanceLabelForIdentifier(identifier)
         val name = asmSymbolName(identifier.name)
 
         // see if we're inside a subroutine, if so, remove the whole prefix and just make the variable name locally scoped (64tass scopes it to the proper .proc block)
@@ -257,6 +259,8 @@ class AsmGen6502Internal (
     }
 
     fun asmVariableName(identifier: PtIdentifier): String {
+        if(identifier.type.isStructInstance)
+            return structInstanceLabelForIdentifier(identifier)
         val name = asmVariableName(identifier.name)
 
         // see if we're inside a subroutine, if so, remove the whole prefix and just make the variable name locally scoped (64tass scopes it to the proper .proc block)
@@ -265,6 +269,37 @@ class AsmGen6502Internal (
             name.drop(subName.length+1)
         else
             name
+    }
+
+    // Label of a struct instance's storage. Direct struct instance variables are declared with a
+    // 'v' prefix but referenced with an 'i' prefix, so the declaration name is rewritten to match
+    // the references. Uninitialized instances (and unions) live in the zeroed BSS block.
+    internal fun structInstanceLabel(instance: StStructInstance): String {
+        val baseLabel = if(instance.astNode is PtVariable) {
+            val parts = instance.scopedNameString.split('.').toMutableList()
+            val last = parts.last()
+            if(last.startsWith("p8v_"))
+                parts[parts.lastIndex] = "p8i_" + last.drop(4)
+            parts.joinToString("_")
+        } else {
+            instance.name.substringAfter('.')
+        }
+        val structtype = symbolTable.lookup(instance.structName) as? StStruct
+        val blockName = if(instance.initialValues.isEmpty() || structtype?.isUnion==true)
+            "${StStructInstanceBlockName}_bss"
+        else
+            StStructInstanceBlockName
+        return "$blockName.${fixNameSymbols(baseLabel)}"
+    }
+
+    internal fun structInstanceLabelForIdentifier(identifier: PtIdentifier): String {
+        val parts = identifier.name.split('.').toMutableList()
+        val last = parts.last()
+        if(last.startsWith("p8i_"))
+            parts[parts.lastIndex] = "p8v_" + last.drop(4)
+        val instance = symbolTable.lookup(parts.joinToString(".")) as? StStructInstance
+            ?: throw AssemblyError("not a direct struct instance variable: ${identifier.name} ${identifier.position}")
+        return structInstanceLabel(instance)
     }
 
     fun unwrapCasts(expr: PtExpression): PtExpression {

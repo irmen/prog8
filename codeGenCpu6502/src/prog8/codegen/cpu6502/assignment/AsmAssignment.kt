@@ -198,6 +198,9 @@ internal class AsmAssignSource(val kind: SourceStorageKind,
                     if(parameter?.definingAsmSub() != null)
                         throw AssemblyError("can't assign from a asmsub register parameter $value ${value.position}")
 
+                    if(value.type.isStructInstance)
+                        TODO("should not occur: struct instance assignment is desugared into a memcopy by the CodeDesugarer, and assigning a struct instance to anything else is rejected by the checker ${value.position}")
+
                     // Check if this identifier is a constant with a value - if so, use the value directly instead of reading from memory
                     val symbol = asmgen.symbolTable.lookup(value.name)
                     if(symbol is StConstant && symbol.value != null) {

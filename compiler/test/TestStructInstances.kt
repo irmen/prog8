@@ -1,11 +1,13 @@
 package prog8tests.compiler
 
+import io.kotest.assertions.withClue
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.engine.spec.tempdir
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.shouldNotBe
 import io.kotest.matchers.string.shouldContain
 import prog8.code.StStructInstance
+import prog8.code.core.ICompilationTarget
 import prog8.code.target.Amiga500Target
 import prog8.code.target.C64Target
 import prog8.code.target.C128Target
@@ -18,6 +20,8 @@ import prog8.vm.VmRunner
 import prog8.vm.VmVariableAllocator
 import prog8tests.helpers.ErrorReporterForTests
 import prog8tests.helpers.compileText
+import prog8tests.helpers.simulate
+import razorvine.ksim65.testing.TestMachine
 import kotlin.io.path.readText
 
 class TestStructInstances : FunSpec({
@@ -31,6 +35,51 @@ class TestStructInstances : FunSpec({
         irProgram.st.stripAllPrefixes()
         val allocations = VmVariableAllocator(irProgram.st, irProgram.encoding, irProgram.options.compTarget).allocations
         VmRunner().runAndTestProgram(irContent) { vm -> check(vm, allocations) }
+    }
+
+    fun run6502(target: ICompilationTarget, src: String, newCodegen: Boolean = false): TestMachine {
+        val errors = ErrorReporterForTests()
+        val result = compileText(target, false, src, outputDir, errors = errors,
+            writeAssembly = true, newCodegen = newCodegen)
+        withClue("compilation failed for ${target.name} (newCodegen=$newCodegen): ${errors.errors}") {
+            result shouldNotBe null
+        }
+        return result!!.simulate(maxCycles = 100000)
+    }
+
+    fun assertWord(machine: TestMachine, address: Int, value: Int) {
+        machine.assertMemory(address, value and 0xff)
+        machine.assertMemory(address + 1, (value shr 8) and 0xff)
+    }
+
+    // PET needs %zeropage basicsafe, else the launcher's reset-vector return address prevents
+    // the simulator from ever reaching a BRK at program exit
+    fun copyTestSource(zeropageSafe: Boolean = false): String = $$"""
+%option no_sysinit
+%launcher none
+%address $1000
+$${if (zeropageSafe) "%zeropage basicsafe" else ""}
+main {
+    struct Point { ubyte x  uword y }
+    Point source = [11, 2222]
+    Point target
+    &ubyte @shared r1 = $0340
+    &uword @shared r2 = $0342
+    &uword @shared r3 = $0344
+    sub start() {
+        target = source
+        target.x = 99
+        r1 = source.x + target.x
+        r2 = source.y
+        r3 = target.y
+    }
+}
+"""
+
+    fun assertCopyTestResult(machine: TestMachine) {
+        machine.assertMemory(0x0340, 110)   // 11 + 99
+        assertWord(machine, 0x0342, 2222)
+        assertWord(machine, 0x0344, 2222)
     }
 
     test("local and global struct instance variables, field reads and writes") {
@@ -167,22 +216,136 @@ main {
         }
     }
 
-    test("6502 targets reject direct struct instance variables cleanly") {
-        val src = """
+    test("6502: local and global struct fields with initializers (C64, old codegen)") {
+        val src = $$"""
 %option no_sysinit
+%launcher none
+%address $1000
 main {
-    struct Point { uword x }
-    Point p
-    sub start() { p.x = 1 }
+    struct Point { ubyte x  uword y }
+    Point global = [7, 1000]
+    &ubyte @shared r1 = $0340
+    &uword @shared r2 = $0342
+    sub start() {
+        Point local = [3, 3000]
+        local.x = 9
+        global.y = 66
+        r1 = local.x + global.x
+        r2 = local.y + global.y
+    }
 }
 """
-        listOf(C64Target(), C128Target(), Cx16Target(), PETTarget()).forEach { target ->
-            val errors = ErrorReporterForTests()
-            val result = compileText(target, false, src, outputDir, errors = errors,
-                writeAssembly = false, assemble = false)
-            result shouldBe null
-            errors.errors.any { "direct struct instance variables are not supported" in it } shouldBe true
+        val machine = run6502(C64Target(), src)
+        machine.assertMemory(0x0340, 16)          // 9 + 7
+        assertWord(machine, 0x0342, 3066)         // 3000 + 66
+    }
+
+    test("6502: whole struct assignment copies by value (C64, old codegen)") {
+        val machine = run6502(C64Target(), copyTestSource())
+        assertCopyTestResult(machine)
+    }
+
+    test("6502: struct copy and field access with the new codegen (C64)") {
+        val machine = run6502(C64Target(), copyTestSource(), newCodegen = true)
+        assertCopyTestResult(machine)
+    }
+
+    test("6502: struct copy and field access on CX16, both codegens") {
+        withClue("old codegen") {
+            assertCopyTestResult(run6502(Cx16Target(), copyTestSource()))
         }
+        withClue("new codegen") {
+            assertCopyTestResult(run6502(Cx16Target(), copyTestSource(), newCodegen = true))
+        }
+    }
+
+    test("6502: struct copy and field access on C128 and PET") {
+        withClue("C128") {
+            assertCopyTestResult(run6502(C128Target(), copyTestSource()))
+        }
+        withClue("PET") {
+            assertCopyTestResult(run6502(PETTarget(), copyTestSource(zeropageSafe = true)))
+        }
+    }
+
+    test("6502: address of a direct struct instance in static initializer data compiles") {
+        // no code execution needed: the crash occurs while generating the static data itself
+        val src1 = $$"""
+%option no_sysinit
+main {
+    struct Point { uword x  uword y }
+    Point p1
+    Point p2
+    ^^Point[2] ptrs = [&p1, &p2]
+    sub start() {
+        ptrs[0].x = 5
+    }
+}
+"""
+        val src2 = $$"""
+%option no_sysinit
+main {
+    struct Point { uword x  uword y }
+    struct Holder { ^^Point pt  uword extra }
+    Point p1
+    Holder h = [&p1, 99]
+    sub start() {
+        h.pt.y = 7
+    }
+}
+"""
+        listOf(src1, src2).forEachIndexed { index, src ->
+            listOf(false, true).forEach { newCodegen ->
+                withClue("src $index, newCodegen=$newCodegen") {
+                    val result = compileText(C64Target(), false, src, outputDir,
+                        errors = ErrorReporterForTests(), writeAssembly = true, assemble = false,
+                        newCodegen = newCodegen)
+                    result shouldNotBe null
+                }
+            }
+        }
+    }
+
+    test("6502: sizeof on a direct struct variable is the struct type size") {
+        val src = $$"""
+%option no_sysinit
+%launcher none
+%address $1000
+main {
+    struct Point { uword x  uword y }
+    Point p
+    &ubyte @shared sz = $0340
+    sub start() {
+        sz = sizeof(p)
+    }
+}
+"""
+        run6502(C64Target(), src).assertMemory(0x0340, 4)
+    }
+
+    test("6502: struct instance pointer field chain") {
+        val src = $$"""
+%option no_sysinit
+%launcher none
+%address $1000
+main {
+    struct Node { ^^Node next  uword value }
+    Node first
+    Node second
+    &uword @shared r1 = $0340
+    &uword @shared r2 = $0342
+    sub start() {
+        first.next = &second
+        second.value = 42
+        r1 = first.next.value
+        first.next.value = 77
+        r2 = second.value
+    }
+}
+"""
+        val machine = run6502(C64Target(), src)
+        assertWord(machine, 0x0340, 42)
+        assertWord(machine, 0x0342, 77)
     }
 
     test("symbol table keeps struct instance type for direct variables") {

@@ -200,21 +200,19 @@ Variable storage by target
 
 6502-based and virtual targets:
 
-+----------------------------------------------+---------+-----------------------------------+
-| declaration inside a subroutine              | storage | what happens on every call        |
-+==============================================+=========+===================================+
-| ``ubyte x = 7``                              | static  | initializer re-applied            |
-+----------------------------------------------+---------+-----------------------------------+
-| ``ubyte x`` (no initializer)                 | static  | nothing (zeroed once at startup)  |
-+----------------------------------------------+---------+-----------------------------------+
-| ``ubyte[8] a`` (no initializer)              | static  | nothing (cleared once at startup) |
-+----------------------------------------------+---------+-----------------------------------+
-| ``ubyte[4] a = [1,2,3,4]``                   | static  | nothing (load-time initializer)   |
-+----------------------------------------------+---------+-----------------------------------+
-| ``Point p`` (direct struct, 6502)            | n/a     | not supported                     |
-+----------------------------------------------+---------+-----------------------------------+
-| ``Point p`` (direct struct, virtual)         | static  | nothing (zeroed once at startup)  |
-+----------------------------------------------+---------+-----------------------------------+
++----------------------------------------------+---------+----------------------------------------------+
+| declaration inside a subroutine              | storage | what happens on every call                   |
++==============================================+=========+==============================================+
+| ``ubyte x = 7``                              | static  | initializer re-applied                       |
++----------------------------------------------+---------+----------------------------------------------+
+| ``ubyte x`` (no initializer)                 | static  | nothing (zeroed once at startup)             |
++----------------------------------------------+---------+----------------------------------------------+
+| ``ubyte[8] a`` (no initializer)              | static  | nothing (cleared once at startup)            |
++----------------------------------------------+---------+----------------------------------------------+
+| ``ubyte[4] a = [1,2,3,4]``                   | static  | nothing (load-time initializer)              |
++----------------------------------------------+---------+----------------------------------------------+
+| ``Point p`` (direct struct)                  | static  | nothing (zeroed/initialized once at startup) |
++----------------------------------------------+---------+----------------------------------------------+
 
 On the M68K targets the picture differs because ordinary locals live in a stack frame, while
 variables with a non-numeric initializer (initializer-list arrays, strings, and direct struct

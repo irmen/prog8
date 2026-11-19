@@ -438,7 +438,8 @@ internal class ProgramAndVarsGen(
         asmgen.out("${StStructInstanceBlockName}_bss  .block\n")
         instancesNoInit.filterNot { it.name in inlineArrayInstanceNames }.forEach {
             val structtype: StStruct = symboltable.lookup(it.structName) as StStruct
-            asmgen.out("${it.name}    .fill  ${structtype.size}    ; struct ${it.structName}\n")
+            val instancename = asmgen.structInstanceLabel(it).substringAfter('.')
+            asmgen.out("$instancename    .fill  ${structtype.size}    ; struct ${it.structName}\n")
         }
         asmgen.out("    .endblock\n")
         asmgen.out("    .send BSS\n")
@@ -447,7 +448,7 @@ internal class ProgramAndVarsGen(
         asmgen.out("    .section STRUCTINSTANCES\n")
         asmgen.out("$StStructInstanceBlockName  .block\n")
         instances.forEach { instance ->
-            val instancename = instance.name.substringAfter('.')
+            val instancename = asmgen.structInstanceLabel(instance).substringAfter('.')
             val structtype: StStruct = symboltable.lookup(instance.structName) as StStruct
             val values = flatInitValues(instance, structtype)
             val hasArrays = structtype.fields.any { fld -> fld.isArray }
