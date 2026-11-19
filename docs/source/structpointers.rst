@@ -523,6 +523,20 @@ Address-Of: untyped vs typed
 The new *double ampersand* operator ``&&`` returns a *typed* pointer to the value. The semantics are slightly different from the old untyped address-of operator, because adding or subtracting
 a number from a typed pointer uses *pointer arithmetic* that takes the size of the value that it points to into account.
 
+Address-of expressions can also appear in static initializer data, for example to put pointers
+to struct instances in a pointer array or in a pointer-typed struct field::
+
+    struct Point { uword x  uword y }
+    struct Holder { ^^Point pt  uword extra }
+    Point p1, p2
+    ^^Point[2] ptrs = [&&p1, &&p2]
+    Holder h = [&&p1, 99]
+
+The typed form works on every target. The untyped ``&`` only works there when its inferred
+address type happens to match the declared pointer type: on the 6502 targets that is the case
+(16-bit addresses), but on the m68k and virtual targets the 32-bit address is inferred as
+``long``, so use ``&&`` to get a properly typed pointer.
+
 
 Accessing struct definitions in Assembly code
 ---------------------------------------------

@@ -48,15 +48,21 @@ private class StToIrConverter(val romable: Boolean, val st: SymbolTable?) {
 
     // An address-of of a direct struct instance variable is named with an 'i' prefix while its
     // declaration is a 'v' prefixed variable; map such a symbol to the instance's IR symbol name.
+    // Symbols without prefixes (the VM target doesn't prefix them) resolve directly.
     // Returns null when the symbol is not a struct instance reference.
     private fun structInstanceAddressOfSymbol(symbol: String): String? {
+        val candidates = mutableListOf(symbol)
         val parts = symbol.split('.').toMutableList()
         val last = parts.last()
-        if(!last.startsWith("p8i_"))
-            return null
-        parts[parts.lastIndex] = "p8v_" + last.drop(4)
-        val target = st?.lookup(parts.joinToString(".")) as? StStructInstance ?: return null
-        return structInstanceIRName(target)
+        if(last.startsWith("p8i_")) {
+            parts[parts.lastIndex] = "p8v_" + last.drop(4)
+            candidates += parts.joinToString(".")
+        }
+        for(candidate in candidates) {
+            val target = st?.lookup(candidate) as? StStructInstance ?: continue
+            return structInstanceIRName(target)
+        }
+        return null
     }
 
     private fun makeInitializer(

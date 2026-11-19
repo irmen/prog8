@@ -242,7 +242,7 @@ private fun PtVariable.prefixVariableOrThis(parent: PtNode, st: SymbolTable): Pt
         // prefix the address-of ones here.
         callValue.children.forEachIndexed { idx, arg ->
             if (arg is PtAddressOf && arg.definingBlock()?.options?.noSymbolPrefixing != true) {
-                val newAddr = PtAddressOf(arg.type, false, arg.position)
+                val newAddr = PtAddressOf(arg.type, arg.typedResult, arg.position, arg.isMsbForSplitArray)
                 newAddr.add(arg.identifier!!.prefixIdentifierOrThis(newAddr, st))
                 if (arg.arrayIndexExpr != null)
                     newAddr.add(arg.arrayIndexExpr!!)
@@ -264,7 +264,7 @@ private fun PtVariable.prefixVariableOrThis(parent: PtNode, st: SymbolTable): Pt
                     if(elt.definingBlock()?.options?.noSymbolPrefixing==true)
                         newValue.add(elt)
                     else {
-                        val newAddr = PtAddressOf(elt.type, false, elt.position)
+                        val newAddr = PtAddressOf(elt.type, elt.typedResult, elt.position, elt.isMsbForSplitArray)
                         newAddr.add(elt.identifier!!.prefixIdentifierOrThis(newAddr, st))
                         if (elt.arrayIndexExpr != null)
                             newAddr.add(elt.arrayIndexExpr!!)
@@ -280,7 +280,7 @@ private fun PtVariable.prefixVariableOrThis(parent: PtNode, st: SymbolTable): Pt
                         // collectRefs never visits them; prefix the address-of ones here.
                         elt.children.forEachIndexed { idx, arg ->
                             if (arg is PtAddressOf && arg.definingBlock()?.options?.noSymbolPrefixing != true) {
-                                val newAddr = PtAddressOf(arg.type, false, arg.position)
+                                val newAddr = PtAddressOf(arg.type, arg.typedResult, arg.position, arg.isMsbForSplitArray)
                                 newAddr.add(arg.identifier!!.prefixIdentifierOrThis(newAddr, st))
                                 if (arg.arrayIndexExpr != null)
                                     newAddr.add(arg.arrayIndexExpr!!)

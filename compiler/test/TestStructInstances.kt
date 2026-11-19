@@ -28,8 +28,8 @@ class TestStructInstances : FunSpec({
 
     val outputDir = tempdir().toPath()
 
-    fun runVm(src: String, check: (VirtualMachine, Map<String, UInt>) -> Unit) {
-        val result = compileText(VMTarget(), false, src, outputDir, writeAssembly = true)!!
+    fun runVm(src: String, optimize: Boolean = false, check: (VirtualMachine, Map<String, UInt>) -> Unit) {
+        val result = compileText(VMTarget(), optimize, src, outputDir, writeAssembly = true)!!
         val irContent = result.compilationOptions.outputDir.resolve(result.compilerAst.name + ".p8ir").readText()
         val irProgram = IRFileReader().read(irContent)
         irProgram.st.stripAllPrefixes()
@@ -294,7 +294,10 @@ main {
     }
 }
 """
-        listOf(src1, src2).forEachIndexed { index, src ->
+        // the typed address-of form must work as well
+        val src3 = src1.replace("&p1", "&&p1").replace("&p2", "&&p2")
+        val src4 = src2.replace("&p1", "&&p1")
+        listOf(src1, src2, src3, src4).forEachIndexed { index, src ->
             listOf(false, true).forEach { newCodegen ->
                 withClue("src $index, newCodegen=$newCodegen") {
                     val result = compileText(C64Target(), false, src, outputDir,
@@ -304,6 +307,65 @@ main {
                 }
             }
         }
+    }
+
+    test("virtual: typed address of a direct struct instance in static initializer data") {
+        val src = $$"""
+%option no_sysinit
+main {
+    struct Point { uword x  uword y }
+    struct Holder { ^^Point pt  uword extra }
+    Point p1
+    Point p2
+    ^^Point[2] ptrs = [&&p1, &&p2]
+    Holder h = [&&p2, 99]
+    uword @shared r1, r2, r3, r4, r5
+    sub start() {
+        p1.x = 111
+        p2.y = 222
+        r1 = ptrs[0].x
+        r2 = ptrs[1].y
+        r3 = h.pt.y
+        r4 = h.extra
+        h.pt.x = 5
+        r5 = p2.x
+    }
+}
+"""
+        runVm(src, optimize = true) { vm, allocations ->
+            vm.memory.getUW(allocations.getValue("main.r1")) shouldBe 111u
+            vm.memory.getUW(allocations.getValue("main.r2")) shouldBe 222u
+            vm.memory.getUW(allocations.getValue("main.r3")) shouldBe 222u
+            vm.memory.getUW(allocations.getValue("main.r4")) shouldBe 99u
+            vm.memory.getUW(allocations.getValue("main.r5")) shouldBe 5u
+        }
+    }
+
+    test("m68k: typed address of a direct struct instance in static initializer data") {
+        val src = $$"""
+%option no_sysinit
+main {
+    struct Point { uword x  uword y }
+    struct Holder { ^^Point pt  uword extra }
+    Point p1
+    Point p2
+    ^^Point[2] ptrs = [&&p1, &&p2]
+    Holder h = [&&p2, 99]
+    sub start() {
+        ptrs[0].x = 1
+        h.pt.y = 2
+    }
+}
+"""
+        val result = compileText(Amiga500Target(), false, src, outputDir,
+            errors = ErrorReporterForTests(), writeAssembly = true, assemble = false)!!
+        val asm = result.compilationOptions.outputDir.resolve(result.compilerAst.name + ".asm").readText()
+        val lines = asm.lines().map { it.trim() }
+        // the static data must reference the struct instance storage, not the variable declaration
+        lines.any { it.startsWith("dc.l") && it.contains("p8i_p1") } shouldBe true
+        lines.any { it.startsWith("dc.l") && it.contains("p8i_p2") } shouldBe true
+        val instanceLabels = lines.filter { it.endsWith("p8i_p1:") || it.endsWith("p8i_p2:") }
+        instanceLabels.size shouldBe 2
     }
 
     test("6502: sizeof on a direct struct variable is the struct type size") {
