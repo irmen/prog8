@@ -239,6 +239,16 @@ The compiler evaluates the pointer expression exactly once and then stores the v
     parameters, return values, or memory-mapped variables. ``sizeof(p)`` on a direct
     struct variable returns the storage size of its struct type.
 
+    Because the storage is static, a struct variable declared inside a subroutine
+    behaves differently from an ordinary local variable. Its initializer is emitted
+    as load-time data and is applied only once, when the program starts, and the
+    variable keeps its value between calls of the subroutine. This is exactly the
+    same behavior as a local array (or string) with an initializer list: variables
+    with a non-numeric initializer are never placed in the stack frame, so they are
+    not zeroed or re-initialized on every call. A struct variable that needs a fresh
+    value on every call must be initialized explicitly at the start of the
+    subroutine body.
+
 
 .. _structarrays:
 

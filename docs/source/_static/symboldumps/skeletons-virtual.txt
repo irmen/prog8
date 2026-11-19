@@ -1,6 +1,6 @@
 
 Prog8 compiler v14.0-BETA3 by Irmen de Jong (irmen@razorvine.net)
-Prerelease version from git commit 5bfeb173 in branch master
+Prerelease version from git commit 7cd59c40 in branch master
 This software is licensed under the GNU GPL 3.0, see https://www.gnu.org/licenses/gpl.html
 
 Compiling program import-all-virtual.p8
@@ -62,7 +62,7 @@ rsave  ()
 setlsb  (word|uword|long variable, byte|ubyte value)
 setmsb  (word|uword|long variable, byte|ubyte value)
 sgn  (ubyte|byte|uword|word|long|float value) -> byte
-sizeof  (ubyte|byte|uword|word|long|float|bool|str|array|array_splitw|pointer|undefined object) -> ubyte
+sizeof  (ubyte|byte|uword|word|long|float|bool|str|array|array_splitw|pointer|struct_instance|undefined object) -> uword
 sqrt  (ubyte|byte|uword|word|long|float value) -> undefined
 
 

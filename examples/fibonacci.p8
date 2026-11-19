@@ -1,7 +1,7 @@
 %import textio
 %zeropage basicsafe
 
-; This example computes the first 20 values of the Fibonacci sequence.
+; This example computes the first 21 values of the Fibonacci sequence.
 ; Note: this program can be compiled for multiple target systems.
 
 ; Note that the fibonacci subroutine keeps is state in two outer variables
@@ -22,9 +22,8 @@ main {
 
     sub fib_next() -> uword {
         uword result = fib_prev
-        uword new = fib_current + fib_prev
         fib_prev = fib_current
-        fib_current = new
+        fib_current += result
         return result
     }
 }

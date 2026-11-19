@@ -187,6 +187,60 @@ Cleaning large arrays is costly on every call, and the compiler warns you for th
 You might consider adding ``@dirty`` on such arrays but you must make sure you assign to the array first
 otherwise your program will read garbage values from it. 
 
+On the 6502-based and virtual targets, all variables use static storage, including variables
+declared inside a subroutine. Nothing is stack-allocated or zeroed on every call, and locals
+keep their value between calls. Numeric variables declared with an initializer are the exception:
+their initializer is emitted as code inside the subroutine body and is therefore re-applied on
+every call. For an overview:
+
+.. _var_storage_per_call:
+
+Variable storage by target
+^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+6502-based and virtual targets:
+
++----------------------------------------------+---------+-----------------------------------+
+| declaration inside a subroutine              | storage | what happens on every call        |
++==============================================+=========+===================================+
+| ``ubyte x = 7``                              | static  | initializer re-applied            |
++----------------------------------------------+---------+-----------------------------------+
+| ``ubyte x`` (no initializer)                 | static  | nothing (zeroed once at startup)  |
++----------------------------------------------+---------+-----------------------------------+
+| ``ubyte[8] a`` (no initializer)              | static  | nothing (cleared once at startup) |
++----------------------------------------------+---------+-----------------------------------+
+| ``ubyte[4] a = [1,2,3,4]``                   | static  | nothing (load-time initializer)   |
++----------------------------------------------+---------+-----------------------------------+
+| ``Point p`` (direct struct, 6502)            | n/a     | not supported                     |
++----------------------------------------------+---------+-----------------------------------+
+| ``Point p`` (direct struct, virtual)         | static  | nothing (zeroed once at startup)  |
++----------------------------------------------+---------+-----------------------------------+
+
+On the M68K targets the picture differs because ordinary locals live in a stack frame, while
+variables with a non-numeric initializer (initializer-list arrays, strings, and direct struct
+variables) are never framed and keep static storage. Static storage means the variable lives
+in the program's data or BSS section, its initializer is load-time data applied only once when
+the program starts, and the variable keeps its value between calls of its subroutine.
+See :ref:`m68k_memory_model` for the full frame and calling convention details.
+The M68K rows below assume a frame-eligible subroutine; some locals remain static when
+framing is prevented, for example by ``@shared`` or an address or assembly reference.
+
+M68K targets:
+
++----------------------------------------------+-------------+---------------------------------+
+| declaration inside a subroutine (m68k)       | storage     | what happens on every call      |
++==============================================+=============+=================================+
+| ``ubyte x = 7``                              | frame       | set to 7 (not zeroed first)     |
++----------------------------------------------+-------------+---------------------------------+
+| ``ubyte[4] a`` (no initializer)              | frame       | zeroed                          |
++----------------------------------------------+-------------+---------------------------------+
+| ``ubyte[4] a = [1,2,3,4]``                   | static      | nothing (load-time initializer) |
++----------------------------------------------+-------------+---------------------------------+
+| ``Point q`` (direct struct variable)         | static      | nothing (BSS)                   |
++----------------------------------------------+-------------+---------------------------------+
+| ``Point q = [11, 22]`` (direct struct)       | static      | nothing (load-time initializer) |
++----------------------------------------------+-------------+---------------------------------+
+
 **memory alignment:**
 A string or array variable can be aligned to a couple of possible interval sizes in memory.
 The use for this is very situational, but two examples are: sprite data for the C64 that needs

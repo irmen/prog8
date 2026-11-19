@@ -87,18 +87,7 @@ class SymbolTableMaker(private val program: PtProgram, private val options: Comp
                 StSub(node.name, params, node.signature.returns, node)
             }
             is PtStructDecl -> {
-                val size = if(node.isUnion) {
-                    node.fields.maxOfOrNull { field ->
-                        if(field.isArray) program.memsizer.memorySize(field.type, field.arraySize!!)
-                        else program.memsizer.memorySize(field.type, 1)
-                    } ?: 0
-                } else {
-                    node.fields.sumOf { field ->
-                        if(field.isArray) program.memsizer.memorySize(field.type, field.arraySize!!)
-                        else program.memsizer.memorySize(field.type, 1)
-                    }
-                }
-                StStruct(node.name, node.fields, size.toUInt(), node, node.isUnion)
+                StStruct(node.name, node.fields, structSize(node), node, node.isUnion)
             }
             is PtMemorySlabReservation -> {
                 val slab = StMemorySlab("memory_${node.slabName}", node.size, node.align, node)
@@ -188,22 +177,8 @@ class SymbolTableMaker(private val program: PtProgram, private val options: Comp
         return StStructInstance(node.name, scopedStructName, values, struct.size, node)
     }
 
-    private fun resolveStructForVariable(node: PtVariable, scope: ArrayDeque<StNode>): StStruct {
-        val name = (node.type.subType?.scopedNameString ?: node.type.subTypeFromAntlr?.lastOrNull())
-            ?.substringAfterLast('.')
-            ?: throw InternalCompilerException("struct type not resolved for '${node.name}'")
-        for(level in scope.reversed()) {
-            val found = level.children.values.firstOrNull { it is StStruct && it.name==name } as? StStruct
-            if(found!=null)
-                return found
-        }
-        val wantedScopedName = node.type.subType?.scopedNameString
-        val decl = program.allBlocks().firstNotNullOfOrNull { block ->
-            block.children.filterIsInstance<PtStructDecl>().firstOrNull {
-                it.scopedName==wantedScopedName || it.name==name
-            }
-        } ?: throw InternalCompilerException("struct type '$name' not found for '${node.name}'")
-        val size = if(decl.isUnion) {
+    private fun structSize(decl: PtStructDecl): UInt =
+        if(decl.isUnion) {
             decl.fields.maxOfOrNull { field ->
                 if(field.isArray) program.memsizer.memorySize(field.type, field.arraySize!!)
                 else program.memsizer.memorySize(field.type, 1)
@@ -213,8 +188,63 @@ class SymbolTableMaker(private val program: PtProgram, private val options: Comp
                 if(field.isArray) program.memsizer.memorySize(field.type, field.arraySize!!)
                 else program.memsizer.memorySize(field.type, 1)
             }
+        }.toUInt()
+
+    private fun resolveStructForVariable(node: PtVariable, scope: ArrayDeque<StNode>): StStruct {
+        val wanted = node.type.subType?.scopedNameString ?: node.type.subTypeFromAntlr?.joinToString(".")
+            ?: throw InternalCompilerException("struct type not resolved for '${node.name}' at ${node.position}")
+
+        // matches when the candidate and the wanted name are equal after prefix stripping,
+        // or when one is the trailing part of the other (a bare 'Point' reference matches
+        // a struct registered as 'main.Point', and vice versa)
+        fun matches(candidateName: String): Boolean {
+            val candidate = SymbolNames.stripPrefixes(candidateName)
+            val ref = SymbolNames.stripPrefixes(wanted)
+            return candidate==ref || candidate.endsWith(".$ref") || ref.endsWith(".$candidate")
         }
-        return StStruct(decl.name, decl.fields, size.toUInt(), decl, decl.isUnion)
+
+        // enclosing scopes first, most specific one wins (shadowing semantics)
+        for(level in scope.reversed()) {
+            (level.children.values.firstOrNull { it is StStruct && matches(it.scopedNameString) })?.let { return it as StStruct }
+        }
+
+        // fall back to the rest of the program: structs that are already in the symbol table
+        // elsewhere are preferred (reuse keeps struct identity stable), AST declarations that
+        // have not been turned into symbol table nodes yet come last
+        val stCandidates = collectStStructs(scope.first()).filter { matches(it.scopedNameString) }
+        if(stCandidates.size==1)
+            return stCandidates.single()
+
+        val declsInSymbolTable = stCandidates.mapNotNull { it.astNode }.toSet()
+        val astCandidates = program.allBlocks().flatMap { it.children.filterIsInstance<PtStructDecl>() }
+            .filter { it !in declsInSymbolTable && matches(it.scopedName) }
+            .toList()
+
+        val foundNames = (stCandidates.map { SymbolNames.stripPrefixes(it.scopedNameString) } +
+                astCandidates.map { SymbolNames.stripPrefixes(it.scopedName) }).distinct()
+        when {
+            stCandidates.isEmpty() && astCandidates.size==1 -> {
+                val decl = astCandidates.single()
+                return StStruct(decl.name, decl.fields, structSize(decl), decl, decl.isUnion)
+            }
+            foundNames.isEmpty() ->
+                throw InternalCompilerException("struct type '$wanted' not found for '${node.name}' at ${node.position}")
+            else ->
+                throw InternalCompilerException(
+                    "ambiguous struct type '$wanted' for '${node.name}' at ${node.position}, matching: ${foundNames.joinToString()}")
+        }
+    }
+
+    private fun collectStStructs(root: StNode): List<StStruct> {
+        val result = mutableListOf<StStruct>()
+        fun walk(node: StNode) {
+            node.children.values.forEach {
+                if(it is StStruct) result.add(it)
+                walk(it)
+            }
+        }
+        walk(root)
+        return result
     }
 
     private fun handleStructAllocation(node: PtFunctionCall, structOverride: StStruct? = null): StStructInstance? {
