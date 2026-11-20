@@ -368,6 +368,92 @@ main {
         instanceLabels.size shouldBe 2
     }
 
+    test("6502: memory-mapped struct instance fields (C64, both codegens)") {
+        val src = $$"""
+%option no_sysinit
+%launcher none
+%address $1000
+main {
+    struct Point { ubyte x  uword y }
+    &Point p = $c000
+    &ubyte @shared r1 = $0340
+    &uword @shared r2 = $0342
+    sub start() {
+        p.x = 42
+        p.y = 5000
+        r1 = p.x
+        r2 = p.y
+    }
+}
+"""
+        listOf(false, true).forEach { newCodegen ->
+            withClue("newCodegen=$newCodegen") {
+                val machine = run6502(C64Target(), src, newCodegen = newCodegen)
+                machine.assertMemory(0xc000, 42)
+                assertWord(machine, 0xc001, 5000)
+                machine.assertMemory(0x0340, 42)
+                assertWord(machine, 0x0342, 5000)
+            }
+        }
+    }
+
+    test("virtual: memory-mapped struct instance fields and address") {
+        val src = $$"""
+%option no_sysinit
+main {
+    struct Point { ubyte x  uword y }
+    &Point p = $c000
+    ^^Point[1] ptrs = [&&p]
+    uword @shared r1, r2, r3, r4
+    sub start() {
+        p.x = 42
+        p.y = 5000
+        r1 = p.x
+        r2 = p.y
+        r3 = &&p as uword
+        ptrs[0].x = 7
+        r4 = p.x
+    }
+}
+"""
+        val result = compileText(VMTarget(), false, src, outputDir, writeAssembly = true)!!
+        val ir = result.compilationOptions.outputDir.resolve(result.compilerAst.name + ".p8ir").readText()
+        ir shouldContain "@main.Point main.p=\$c000"
+        runVm(src, optimize = true) { vm, allocations ->
+            vm.memory.getUB(0xc000u) shouldBe 7u
+            vm.memory.getUW(0xc001u) shouldBe 5000u
+            vm.memory.getUW(allocations.getValue("main.r1")) shouldBe 42u
+            vm.memory.getUW(allocations.getValue("main.r2")) shouldBe 5000u
+            vm.memory.getUW(allocations.getValue("main.r3")) shouldBe 0xc000u
+            vm.memory.getUW(allocations.getValue("main.r4")) shouldBe 7u
+        }
+    }
+
+    test("m68k: memory-mapped struct instance uses the fixed address") {
+        val src = $$"""
+%option no_sysinit
+main {
+    struct Point { uword x  uword y }
+    &Point p = $c000
+    sub start() {
+        p.x = 1
+        p.y = 2
+    }
+}
+"""
+        val result = compileText(Amiga500Target(), false, src, outputDir,
+            writeAssembly = true, assemble = false)!!
+        val ir = result.compilationOptions.outputDir.resolve(result.compilerAst.name + ".p8ir").readText()
+        ir shouldContain "p=\$c000"
+        val asm = result.compilationOptions.outputDir.resolve(result.compilerAst.name + ".asm").readText()
+        val lines = asm.lines().map { it.trim() }
+        // the mapped instance must not get compiler-owned storage
+        lines.none { it.startsWith("dc.l") && it.contains("p8i_p") } shouldBe true
+        lines.none { it.startsWith("p8i_p:") } shouldBe true
+        // field access uses the literal address
+        lines.count { it.contains("#49152") } shouldBe 2
+    }
+
     test("6502: sizeof on a direct struct variable is the struct type size") {
         val src = $$"""
 %option no_sysinit

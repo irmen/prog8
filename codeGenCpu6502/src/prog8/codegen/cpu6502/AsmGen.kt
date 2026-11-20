@@ -297,7 +297,13 @@ class AsmGen6502Internal (
         val last = parts.last()
         if(last.startsWith("p8i_"))
             parts[parts.lastIndex] = "p8v_" + last.drop(4)
-        val instance = symbolTable.lookup(parts.joinToString(".")) as? StStructInstance
+        val scopedName = parts.joinToString(".")
+        val memvar = symbolTable.lookup(scopedName) as? StMemVar
+        if(memvar!=null && memvar.dt.isStructInstance) {
+            // a memory-mapped struct instance has a fixed address instead of a storage label
+            return memvar.address.toHex()
+        }
+        val instance = symbolTable.lookup(scopedName) as? StStructInstance
             ?: throw AssemblyError("not a direct struct instance variable: ${identifier.name} ${identifier.position}")
         return structInstanceLabel(instance)
     }

@@ -1,6 +1,11 @@
 TODO
 ====
 
+- static instance struct in c64/multiplexer -> larger code ... why
+- static instance struct in examples/pointers/sorting -> population counts corrupted + hugely larger code
+- 
+
+
 Future Things and Ideas
 ^^^^^^^^^^^^^^^^^^^^^^^
 - extend the ``-gendoc`` command to generate user reference documentation from Markdown docstrings; see ``ideas/markdown-docstrings-and-reference-docs.md`` for the plan.
@@ -51,6 +56,7 @@ Optimizations
 - IR optimization: investigate restricted common-subexpression elimination within a single basic block for identical pure arithmetic expressions whose inputs are unchanged. Initially exclude memory reads, calls, and control-flow boundaries. The qemu68k maze BFS repeats ``idx +/- H`` to update ``cells``, ``pathdirs``, and ``solveQueue``; sharing that computed neighbor index could be a focused benchmark.
 - optimize the small integer division routines in ``compiler/res/prog8lib/math.asm`` (``divmod_b_asm``, ``divmod_ub_asm``, ``divmod_w_asm``, ``divmod_uw_asm``) using the constant-divisor reciprocal-multiply / fast-division tricks from https://forums.nesdev.org/viewtopic.php?t=11336 . Division by a known small constant (or a small variable divisor) can often be replaced by a multiply and a shift, which is much faster than the current subtractive loops. For the 68000 targets this is likely only relevant for the software 32-bit helpers in ``amiga500/m68k_prog8_longmath.asm``, since native ``DIVU``/``DIVS`` already cover small divisions; evaluate and adapt as warranted.
 - 6502 codegen: avoid rebuilding a 16-bit address in scratch on every access to ``@(const + expr)`` (26-29 cycles) and emit the cheap ``sta BASE,x`` / ``lda (zp),y`` forms instead. See ``ideas/betterpointers.md`` for the measurements and the ranked work items: P1, P4 and P9 are the cheap local wins, P7 is the one that removes the per-store rebuild. The plan is compiler-only and verified against the working tree (three items turned out to be partially implemented already).
+- 6502 codegen: reuse the computed element address of an array-of-struct-instances access within a basic block. Both backends currently re-emit ``lda idx / jsr prog8_math.mul_word_<size> / 16-bit add to scratch`` per field access (about 20 bytes per field); the ``sorting.p8`` example's bubble sort and dump loop pay roughly 400 extra bytes for this on the classic backend, where it is large relative to the compact per-access code. Hoisting a typed pointer ``^^T p = &&arr[i]`` in the source avoids it (see the cost note in ``structpointers.rst``).
 - language-level companion to the above, not implemented: named memory regions (``&ubyte[40][25] screen = $0400``) with a fixed base, a zero-page cursor contract and 2D indexing, so a hot memory access does not depend on whether a base variable happens to be placed in zero page. See ``ideas/memory-regions.md``, which lists the open design questions that must be answered before implementing it.
 
 
@@ -66,7 +72,7 @@ Won't do's or deferred
 - Deferred: support arrays-of-struct-instances as struct fields (e.g. ``struct Outer { Inner[4] inners }``). Currently rejected with an error.
 - Deferred: support ``&array[i].field`` syntax to take the address of a struct field in an array. Currently only ``&array[i] + offsetof(Struct.field)`` works; ``&array[i].field`` is parsed as a field access on the resulting pointer and rejected by the checker.
 - Deferred: support typed pointer arrays as struct fields, curretly requires untyped pointers arrays.
-- Deferred: support a single memory-mapped struct instance. Currently rejected; use a pointer with memory allocation or a direct address assignment instead. (An *array* of struct instances can be memory-mapped.)
+- Bug: declaring a direct struct instance of a struct type declared inside a subroutine can throw an ``InternalCompilerException`` in ``SymbolTableMaker.resolveStructForVariable``; its fallback lookup only searches top-level program blocks.
 - Deferred: make a form of "manual generics" possible, see ``ideas/polymorphism.md``
 - Deferred: when implementing unsigned longs: remove the unsigned-long constant "hack" that lets unsigned long constants be used as values for signed longs without needing a cast (the ``Antlr2KotlinVisitor.kt:508``/``:548`` "TODO hack" comments, ``AstExpressions.kt:145`` "TODO should be ULONG, but we don't have that type yet", and ``AsmAssignment.kt:129`` ``TODO("unsigned long $pos")``)
 - Deferred: make the fixed zero-page scratch locations (``P8ZP_SCRATCH_B1``/``_REG``/``_W1``/``_W2``/``_PTR``) dynamic rather than hardcoded per target. Right now they live at fixed per-target addresses and are always reserved; a ``%zpreserved``/``%zpallowed`` range that excludes them only produces a warning (the codegen would still overwrite that memory). Relocating scratch to an available low-address byte (or making it configurable) when not in conflict would let ``%zpreserved``/``%zpallowed`` fully protect the desired areas. See ``MemoryRegions.kt`` (``Zeropage.checkScratchConflicts`` and the scratch-byte list it maintains) and the per-target ``*Zeropage`` classes.

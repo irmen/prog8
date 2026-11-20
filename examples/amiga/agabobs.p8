@@ -55,8 +55,8 @@ main {
     ^^graphics.BitMap bm
     ^^custom.DisplayRegs regs
 
-    ^^mobs.Mob monstermeta = memory("monster_meta", sizeof(mobs.Mob), 1)   ; position, size and anchor of the BOB
-    ^^mobs.Bob monster = memory("monster_bob", sizeof(mobs.Bob), 1)        ; depth, plane data and mask
+    mobs.Mob monstermeta
+    mobs.Bob monster
 
     sub start() {
         if custom.detect_chipset() != custom.CHIPSET::AGA {
@@ -110,7 +110,7 @@ main {
         monstermeta.origin_y = 0
         monstermeta.x_pos = 0
         monstermeta.y_pos = 0
-        monster.mob = monstermeta
+        monster.mob = &&monstermeta
         monster.depth = DEPTH
         monster.data = &monsterbob.monster_planes
         monster.mask = &monsterbob.monster_mask
@@ -187,7 +187,7 @@ main {
         for d in 0 to 3 {
             monster.mob.x_pos = die_xy[(d as uword)*2] as word
             monster.mob.y_pos = die_xy[(d as uword)*2+1] as word
-            blitter.draw_bob(monster, &bm.Planes, ROW_BYTES)
+            blitter.draw_bob(&&monster, &bm.Planes, ROW_BYTES)
         }
 
         ; Ten overlapping copies around the center, walking in 3x2 pixel steps.
@@ -196,7 +196,7 @@ main {
         for uword i in 0 to 9 {
             monster.mob.x_pos = (center_x + i*3) as word
             monster.mob.y_pos = (center_y + i*2) as word
-            blitter.draw_bob(monster, &bm.Planes, ROW_BYTES)
+            blitter.draw_bob(&&monster, &bm.Planes, ROW_BYTES)
         }
     }
 }

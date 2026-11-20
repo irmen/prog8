@@ -271,6 +271,8 @@ Major breaking changes that require code modifications when upgrading:
     - **``pointer`` type alias** — a plain untyped address type that is 2 bytes (a ``uword``) on the 8-bit targets and 4 bytes (a ``long``) on the 32-bit m68k and virtual targets. See :ref:`pointers`.
     - **``%assert`` directive** — compile-time assertions for constant expressions.
     - **Named struct-field initializers** — struct pointer initializers can now use explicit field names (``^^Enemy:[hp=100, x=10]``), in any order, with omitted fields zero-initialized.
+    - **Direct struct instance variables** — a struct type can now be used directly as a variable type (``Point p``), not only through a typed pointer or as an array of instances. The instance lives in static memory, whole-struct assignments become memory copies, and it can be statically initialized with a field list. Supported by both 6502 code generators and the m68k backend.
+    - **Memory-mapped struct instance** — a single struct instance can be placed at a fixed address with ``&Point p = $c000``, for example to overlay a hardware register block. Such an instance has no compiler-owned storage, and field access, address-of, and whole-struct copies all use the fixed address. See :ref:`structmemmap`.
     - **``verafx`` line routine** — new verafx-accelerated line drawing routine and the ``cobramk3`` example that uses it.
     - **C64 Vera64X support** — added VERA library modules for C64 programs, including PSG access and a VERA-based music example.
     - **``defer`` is now program-wide** — deferred blocks are also unwound when the program exits, or when ``return``/``exit()`` is used from the ``start()`` subroutine. Very useful to let programs cleanly return to the OS without forgetting to free resources.

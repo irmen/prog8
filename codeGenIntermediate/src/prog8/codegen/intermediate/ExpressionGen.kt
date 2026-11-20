@@ -41,6 +41,12 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
 
     private fun structInstanceLabel(name: String) = "$StStructInstanceBlockName.${name.replace('.', '_')}"
 
+    // A memory-mapped struct instance has a fixed address instead of compiler-owned storage.
+    private fun structInstanceMemAddress(name: String): UInt? {
+        val node = codeGen.symbolTable.lookup(name)
+        return if(node is StMemVar && node.dt.isStructInstance) node.address else null
+    }
+
     fun translateExpression(expr: PtExpression): ExpressionCodeResult {
         return when (expr) {
             is PtIrRegister -> {
@@ -74,7 +80,11 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
                 if(expr.type.isStructInstance) {
                     val dt = addressDtFor(codeGen.options.compTarget)
                     val resultRegister = codeGen.registers.next(dt)
-                    code += IRInstructions.loadAddress(dt, resultRegister, structInstanceLabel(expr.name))
+                    val memAddress = structInstanceMemAddress(expr.name)
+                    if(memAddress!=null)
+                        code += IRInstructions.load(dt, resultRegister, memAddress.toInt())
+                    else
+                        code += IRInstructions.loadAddress(dt, resultRegister, structInstanceLabel(expr.name))
                     return ExpressionCodeResult(code, dt, resultRegister, -1)
                 }
                 // Check if this identifier is a constant - if so, use LOAD instead of LOADM to get the constant value directly
@@ -328,7 +338,11 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
 
         fun loadAddressOfArrayLabel(reg: Int) {
             if (identifier!!.type.isStructInstance) {
-                addInstr(result, IRInstructions.loadAddress(vmDt, reg, structInstanceLabel(identifier.name)), null)
+                val memAddress = structInstanceMemAddress(identifier.name)
+                if(memAddress!=null)
+                    addInstr(result, IRInstructions.load(vmDt, reg, memAddress.toInt()), null)
+                else
+                    addInstr(result, IRInstructions.loadAddress(vmDt, reg, structInstanceLabel(identifier.name)), null)
             } else if (expr.isMsbForSplitArray) {
                 addInstr(result, IRInstructions.loadAddress(vmDt, reg, identifier!!.name + "_msb"), null)
             } else if (identifier!!.type.isSplitWordArray(codeGen.options.compTarget)) {
@@ -2059,6 +2073,11 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
                 if (identifier != null && identifier.name.isGlobalScopedSymbol &&
                     expr.arrayIndexExpr == null && expr.dereference == null) {
                     val name = identifier.name
+                    if(identifier.type.isStructInstance) {
+                        val memAddress = structInstanceMemAddress(name)
+                        if(memAddress!=null)
+                            return ImmediateOperand.Integer(memAddress.toInt(), paramDt)
+                    }
                     val symbol = when {
                         identifier.type.isStructInstance -> structInstanceLabel(name)
                         expr.isMsbForSplitArray -> "${name}_msb"

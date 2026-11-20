@@ -48,10 +48,12 @@ internal fun optimizeAssembly(lines: MutableList<String>, machine: ICompilationT
         linesBySeven = runPass(optimizeFoldIndexOffsetNonSplitWord(linesBySeven, symbolTable), 7, linesBySeven)
 
         var linesByFourteen = getLinesBy(pretrimmed, lines, 14)
+        // this pass must run before optimizeSameAssignments: its rewrite changes the final A/Y
+        // register state that optimizeSameAssignments' reload-removal relies on
+        linesByFourteen = runPass(optimizeAddWordToSameVariableOrExtraRegisterLoadInWordStore(linesByFourteen), 14, linesByFourteen)
         linesByFourteen = runPass(optimizeSameAssignments(linesByFourteen, machine, symbolTable), 14, linesByFourteen)
         linesByFourteen = runPass(optimizeSamePointerIndexingAndUselessBeq(linesByFourteen, machine, symbolTable), 14, linesByFourteen)
         linesByFourteen = runPass(optimizeSameIndexedConstantStores(linesByFourteen, machine, symbolTable), 14, linesByFourteen)
-        linesByFourteen = runPass(optimizeAddWordToSameVariableOrExtraRegisterLoadInWordStore(linesByFourteen), 14, linesByFourteen)
 
         if(!modified)
             break

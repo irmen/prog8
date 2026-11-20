@@ -289,7 +289,7 @@ private fun AsmGen.scaleIndexRegIfNeeded(idxReg: Int, scale: Int) {
             // generic scale fallback: use the existing 8-bit multiply helper (A * Y -> A)
             emitLine("lda  ${regAddrLo(idxReg)}")
             emitLine("ldy  #$scale")
-            emitLine("jsr  prog8_lib.multiply_bytes")
+            emitLine("jsr  prog8_math.multiply_bytes")
             emitLine("sta  ${regAddrLo(idxReg)}")
         }
     }
@@ -360,7 +360,7 @@ private fun AsmGen.emitFloatIndexScaled(idxReg: Int, scale: Int, ptr: String) {
         else -> {
             emitLine("lda  ${regAddrLo(idxReg)}")
             emitLine("ldy  #$scale")
-            emitLine("jsr  prog8_lib.multiply_bytes")
+            emitLine("jsr  prog8_math.multiply_bytes")
             emitLine("clc")
             emitLine("adc  $ptr")
             emitLine("sta  $ptr")

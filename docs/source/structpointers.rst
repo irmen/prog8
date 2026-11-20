@@ -219,8 +219,8 @@ The compiler evaluates the pointer expression exactly once and then stores the v
     Structs can be accessed through a typed pointer, as an *array of struct instances*
     (see below), or as a single direct struct variable.
     A direct struct variable is declared as ``Point p`` and its fields are accessed with
-    ``p.x``. A single memory-mapped struct instance is not supported (an *array* of
-    struct instances can be memory-mapped, see below).
+    ``p.x``. A direct struct variable can also be memory-mapped at a fixed address
+    (see below), just like an array of struct instances.
     The compiler replaces whole-struct assignments with a memory copy. You are allowed to write::
 
         ptr2^^ = ptr1^^
@@ -233,9 +233,9 @@ The compiler evaluates the pointer expression exactly once and then stores the v
     ``p = ptr^^`` or ``ptr^^ = p`` is not supported. The copy is a raw byte copy, so
     pointer and string fields are copied by address (a shallow copy).
 
-    Direct struct variables are stored in static memory; they cannot be subroutine
-    parameters, return values, or memory-mapped variables. ``sizeof(p)`` on a direct
-    struct variable returns the storage size of its struct type.
+    Direct struct variables are stored in static memory unless they are memory-mapped
+    to a fixed address. They cannot be subroutine parameters or return values.
+    ``sizeof(p)`` on a direct struct variable returns the storage size of its struct type.
 
     Because the storage is static, a struct variable declared inside a subroutine
     behaves differently from an ordinary local variable. Its initializer is emitted
@@ -246,6 +246,39 @@ The compiler evaluates the pointer expression exactly once and then stores the v
     not zeroed or re-initialized on every call. A struct variable that needs a fresh
     value on every call must be initialized explicitly at the start of the
     subroutine body.
+
+
+.. _structmemmap:
+
+Memory-mapped struct instance
+-----------------------------
+.. index:: pair: Structs; Memory-mapped instance
+
+A single struct instance can be placed at a fixed address with the ``&`` memory-mapped
+declaration form. This is useful to overlay a hardware register block or a memory area
+that is not owned by the program::
+
+    struct SpriteRegs {
+        ubyte x, y
+        ubyte color
+        ubyte pad
+    }
+
+    ; one SpriteRegs structure at $d000
+    &SpriteRegs sprite0 = $d000
+
+    sub start() {
+        sprite0.x = 100
+        sprite0.color = 7
+    }
+
+The instance has no compiler-owned storage, and its fields are laid out exactly as the
+struct declaration defines them (there is no alignment padding). The value after ``=`` is
+the address, not initialization data, so a memory-mapped instance cannot have field
+initializers. Field accesses, ``&sprite0`` (the instance address), and whole-struct copies
+such as ``copy = sprite0`` all use the fixed address. A memory-mapped instance can also be
+referenced from static initializer data, for example
+``^^SpriteRegs[2] ptrs = [&&sprite0, &&sprite0]``.
 
 
 .. _structarrays:
@@ -328,9 +361,29 @@ requires gaps.
     element instead, or use ``sys.memcopy`` if you need to pass a copy.
 
 .. note::
-    Arrays of struct instances are stored contiguously, so accessing fields with a variable index
-    is less efficient than accessing fields through a typed pointer. For performance-critical code,
-    prefer typed pointers to structs unless the contiguous array layout is required.
+    Arrays of struct instances are stored contiguously, and on the classic 6502 code generator
+    every field access with a variable index recomputes the element address in full
+    (``base + index * sizeof(struct)``), once per field. In a tight loop this adds up quickly:
+    reading three fields of ``enemies[i]`` rebuilds the address three times. Take the address of
+    the element once into a typed pointer and access the fields through it instead::
+
+        ^^Enemy enemy = &&enemies[i]
+        enemy^^.health += 10
+        enemy^^.elite = true
+
+    All 6502 backends currently recompute the element address for every field access. In the compact
+    classic codegen this repeated rebuild dominates the generated code size in field-heavy loops;
+    in the more verbose IR-based codegen, direct field access costs about the same as access through
+    a typed pointer, so the choice matters less there. The same applies to float fields: assigning a
+    float struct field copies the value through the floating-point accumulator, which costs more than
+    a plain word copy.
+
+.. note::
+    Exchanging two elements of an array of struct instances copies the whole struct value
+    (five bytes per float on 6502 targets), while exchanging two entries of an array of typed
+    pointers only swaps two 2-byte pointer values. If you only need to reorder elements, consider
+    sorting an array of typed pointers (or an index array) that references the struct instances
+    instead.
 
 .. note::
     Using structs instead of plain arrays usually results in more and less efficient code being generated.
