@@ -29,12 +29,6 @@ Inherent costs, documented rather than fixed:
   bytes even with pointer temporaries; under ``-newcodegen`` the adapted examples are not larger
   than the pointer-array originals (sorting: 5081 vs 5090; multiplexer is smaller optimized).
 
-Related language gaps already listed below: ``swap()`` rejects struct elements, and declaring a struct
-instance from a struct type declared inside a subroutine crashes in
-``SymbolTableMaker.resolveStructForVariable``. Whole-struct-instance assignment by value is now
-supported (desugared to ``sys.memcopy``), including declaration initializers such as
-``Country tmp = countries[i]``.
-
 
 Future Things and Ideas
 ^^^^^^^^^^^^^^^^^^^^^^^

@@ -27,6 +27,7 @@ internal class CodeDesugarer(val program: Program, private val target: ICompilat
     // - replace p1^^ = p2^^  by memcopy.
 
     private val globalReservedSlabs = mutableMapOf<String, MemorySlabReservation>()
+    private var swapTmpCounter = 0
 
     override fun before(program: Program): Iterable<AstModification> {
         globalReservedSlabs.clear()
@@ -2009,4 +2010,54 @@ _after:
         }
         return TypecastExpression(addr, addressDt, false, base.position)
     }
+
+    override fun after(swap: Swap, parent: Node): Iterable<AstModification> {
+        val dt1 = swap.t1.inferType(program)
+        val dt2 = swap.t2.inferType(program)
+        if (!dt1.isStructInstance || !dt2.isStructInstance || dt1 != dt2)
+            return noModifications
+
+        errors.info("swap() on struct instances copies the whole struct value (including float fields through the floating-point accumulator), which is much larger and slower than swapping pointer entries. Consider using typed pointers (^^T) and swapping those instead.", swap.position)
+
+        val structSize = program.target.memorySize(dt1.getOrUndef(), null)
+        val sizeNum = NumericLiteral.optimalInteger(structSize, swap.position)
+
+        fun addrOf(target: AssignTarget): Expression = when {
+            target.identifier != null ->
+                AddressOf(target.identifier!!.copy(), null, null, false, true, target.position)
+            target.arrayindexed != null ->
+                AddressOf(target.arrayindexed!!.plainarrayvar!!.copy(),
+                    target.arrayindexed!!.indexer.copy(), null, false, true, target.position)
+            else -> {
+                errors.err("cannot take address of swap operand", target.position)
+                AddressOf(IdentifierReference(listOf("_dummy"), target.position), null, null, false, true, target.position)
+            }
+        }
+
+        val addr1 = addrOf(swap.t1)
+        val addr2 = addrOf(swap.t2)
+        val tmpName = "swaptmp${swapTmpCounter++}"
+        val addrTmp = AddressOf(IdentifierReference(listOf(tmpName), swap.position), null, null, false, true, swap.position)
+
+        val tmpDecl = VarDecl(
+            VarDeclType.VAR, VarDeclOrigin.USERCODE, dt1.getOrUndef(), ZeropageWish.DONTCARE, SplitWish.DONTCARE,
+            null, null, tmpName, emptyList(), null, false, 0u, false, null, swap.position)
+
+        val memcopy = { src: Expression, dst: Expression ->
+            FunctionCallStatement(
+                IdentifierReference(listOf("sys", "memcopy"), swap.position),
+                mutableListOf(src.copy(), dst.copy(), sizeNum.copy()),
+                false, swap.position)
+        }
+
+        val scope = AnonymousScope(mutableListOf(
+            tmpDecl,
+            memcopy(addr2, addrTmp),
+            memcopy(addr1, addr2),
+            memcopy(addrTmp, addr1),
+        ), swap.position)
+
+        return listOf(AstReplaceNode(swap, scope, parent))
+    }
+
 }

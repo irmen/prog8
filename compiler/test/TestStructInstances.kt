@@ -129,6 +129,30 @@ main {
         }
     }
 
+    test("swap() on struct instances exchanges their values") {
+        val src = """
+%option no_sysinit
+main {
+    struct Point { uword x  ubyte y }
+    Point[2] pts = [[10, 20], [30, 40]]
+    uword @shared r1, r2, r3, r4
+    sub start() {
+        swap(pts[0], pts[1])
+        r1 = pts[0].x
+        r2 = pts[0].y as uword
+        r3 = pts[1].x
+        r4 = pts[1].y as uword
+    }
+}
+"""
+        runVm(src) { vm, allocations ->
+            vm.memory.getUW(allocations.getValue("main.r1")) shouldBe 30u
+            vm.memory.getUW(allocations.getValue("main.r2")) shouldBe 40u
+            vm.memory.getUW(allocations.getValue("main.r3")) shouldBe 10u
+            vm.memory.getUW(allocations.getValue("main.r4")) shouldBe 20u
+        }
+    }
+
     test("whole struct assignment copies by value") {
         val src = """
 %option no_sysinit
