@@ -1767,6 +1767,26 @@ _after:
                         false, assignment.position)
                     return listOf(AstReplaceNode(assignment, memcopy, parent))
                 }
+                // named instance -> array element:  arr[i] = a  -->  memcopy(&a, &arr[i], sizeof(struct))
+                val namedSourceToArrayTarget = assignment.target.arrayindexed
+                if(sourceIdentifier!=null && namedSourceToArrayTarget!=null) {
+                    val target = AddressOf(namedSourceToArrayTarget.plainarrayvar!!.copy(), namedSourceToArrayTarget.indexer.copy(), null, false, true, assignment.position)
+                    val source = AddressOf(sourceIdentifier.copy(), null, null, false, true, assignment.position)
+                    val memcopy = FunctionCallStatement(IdentifierReference(listOf("sys", "memcopy"), assignment.position),
+                        mutableListOf(source, target, structSizeNum),
+                        false, assignment.position)
+                    return listOf(AstReplaceNode(assignment, memcopy, parent))
+                }
+                // named instance -> pointer deref:  ptr^^ = a  -->  memcopy(&a, ptr, sizeof(struct))
+                val namedSourceToPtrTarget = assignment.target.pointerDereference
+                if(sourceIdentifier!=null && namedSourceToPtrTarget!=null) {
+                    val targetPtr = IdentifierReference(namedSourceToPtrTarget.chain, assignment.position)
+                    val source = AddressOf(sourceIdentifier.copy(), null, null, false, true, assignment.position)
+                    val memcopy = FunctionCallStatement(IdentifierReference(listOf("sys", "memcopy"), assignment.position),
+                        mutableListOf(source, targetPtr, structSizeNum),
+                        false, assignment.position)
+                    return listOf(AstReplaceNode(assignment, memcopy, parent))
+                }
                 val deref = assignment.value as? PtrDereference
                 if(deref!=null) {
                     val sourcePtr = IdentifierReference(deref.chain, assignment.position)
@@ -1833,6 +1853,16 @@ _after:
                                     false, assignment.position)
                                 return listOf(AstReplaceNode(assignment, memcopy, parent))
                             }
+                        }
+                        // array element -> named instance:  tmp = points[i]  -->  memcopy(&points[i], &tmp, sizeof(struct))
+                        val namedTarget = assignment.target.identifier
+                        if(namedTarget!=null) {
+                            val source = AddressOf(sourceIdx.plainarrayvar!!.copy(), sourceIdx.indexer.copy(), null, false, true, assignment.position)
+                            val target = AddressOf(namedTarget.copy(), null, null, false, true, assignment.position)
+                            val memcopy = FunctionCallStatement(IdentifierReference(listOf("sys", "memcopy"), assignment.position),
+                                mutableListOf(source, target, structSizeNum),
+                                false, assignment.position)
+                            return listOf(AstReplaceNode(assignment, memcopy, parent))
                         }
                     }
                 }

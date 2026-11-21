@@ -216,9 +216,7 @@ class SymbolTableMaker(private val program: PtProgram, private val options: Comp
             return stCandidates.single()
 
         val declsInSymbolTable = stCandidates.mapNotNull { it.astNode }.toSet()
-        val astCandidates = program.allBlocks().flatMap { it.children.filterIsInstance<PtStructDecl>() }
-            .filter { it !in declsInSymbolTable && matches(it.scopedName) }
-            .toList()
+        val astCandidates = collectStructDecls(program).filter { it !in declsInSymbolTable && matches(it.scopedName) }.toList()
 
         val foundNames = (stCandidates.map { SymbolNames.stripPrefixes(it.scopedNameString) } +
                 astCandidates.map { SymbolNames.stripPrefixes(it.scopedName) }).distinct()
@@ -245,6 +243,11 @@ class SymbolTableMaker(private val program: PtProgram, private val options: Comp
         }
         walk(root)
         return result
+    }
+
+    private fun collectStructDecls(node: PtNode): Sequence<PtStructDecl> = sequence {
+        if (node is PtStructDecl) yield(node)
+        node.children.forEach { yieldAll(collectStructDecls(it)) }
     }
 
     private fun handleStructAllocation(node: PtFunctionCall, structOverride: StStruct? = null): StStructInstance? {

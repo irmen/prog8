@@ -179,6 +179,58 @@ main {
         }
     }
 
+    test("struct type declared inside a subroutine can be used for a direct instance") {
+        val src = """
+%option no_sysinit
+main {
+    uword @shared r1, r2
+    sub start() {
+        struct Point { uword x  ubyte y }
+        Point p = [100, 20]
+        p.x = 300
+        p.y++
+        r1 = p.x
+        r2 = p.y as uword
+    }
+}
+"""
+        runVm(src) { vm, allocations ->
+            vm.memory.getUW(allocations.getValue("main.r1")) shouldBe 300u
+            vm.memory.getUW(allocations.getValue("main.r2")) shouldBe 21u
+        }
+    }
+
+    test("whole struct assignment by value including declaration initializer") {
+        val src = """
+%option no_sysinit
+main {
+    struct Point { uword x  ubyte y }
+    Point[2] pts = [[10, 20], [30, 40]]
+    uword @shared r1, r2, r3, r4
+    sub start() {
+        Point tmp = pts[0]
+        pts[0] = pts[1]
+        pts[1] = tmp
+        tmp = pts[0]
+        pts[0].x = 999
+        r1 = pts[0].x
+        r2 = pts[0].y as uword
+        r3 = pts[1].x
+        r4 = pts[1].y as uword
+    }
+}
+"""
+        val result = compileText(VMTarget(), false, src, outputDir, writeAssembly = true)!!
+        val ir = result.compilationOptions.outputDir.resolve(result.compilerAst.name + ".p8ir").readText()
+        ir shouldContain "sys.memcopy"
+        runVm(src) { vm, allocations ->
+            vm.memory.getUW(allocations.getValue("main.r1")) shouldBe 999u
+            vm.memory.getUW(allocations.getValue("main.r2")) shouldBe 40u
+            vm.memory.getUW(allocations.getValue("main.r3")) shouldBe 10u
+            vm.memory.getUW(allocations.getValue("main.r4")) shouldBe 20u
+        }
+    }
+
     test("m68k codegen accepts direct struct instance variables") {
         val src = """
 %option no_sysinit

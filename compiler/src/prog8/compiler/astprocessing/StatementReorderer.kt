@@ -37,9 +37,25 @@ internal class StatementReorderer(
             if(decl.dirty && decl.value!=null)
                 errors.err("dirty variable can't have initialization value", decl.position)
 
-            if (decl.datatype.isNumericOrBool || decl.datatype.isPointer) {
+            if (decl.datatype.isNumericOrBool || decl.datatype.isPointer || decl.datatype.isStructInstance) {
                 if(decl !in declsProcessedWithInitAssignment) {
                     declsProcessedWithInitAssignment.add(decl)
+                    if (decl.datatype.isStructInstance) {
+                        // struct instances are never zero-initialized as numeric vars are;
+                        // only split a runtime (non-static) initializer into a separate (memcopy) assignment
+                        val v = decl.value
+                        val isStaticInit = v == null || v is ArrayLiteral || v is StringLiteral || v is IFunctionCall
+                        val isRuntimeInit = v != null && (v is ArrayIndexedExpression || v is IdentifierReference || v is BinaryExpression)
+                        if (!isStaticInit && isRuntimeInit) {
+                            val pos = decl.value!!.position
+                            val identifier = IdentifierReference(listOf(decl.name), pos)
+                            val assign = Assignment(AssignTarget(identifier, null, null, null, false, position = pos),
+                                decl.value!!, AssignmentOrigin.VARINIT, pos)
+                            decl.value = null
+                            return listOf(AstInsert.after(decl, assign, parent as IStatementContainer))
+                        }
+                        return noModifications
+                    }
                     if (decl.value == null || decl.value?.constValue(program)?.number==0.0) {
                         decl.value = null
                         if (decl.origin==VarDeclOrigin.USERCODE && decl.allowInitializeWithZero) {

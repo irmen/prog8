@@ -7,20 +7,6 @@ Summary of the issues found while adapting ``agabobs``, ``multiplexer`` and ``so
 struct instances, and while analyzing the code generated for a single struct-instance variable on
 every target. Details and further items live in the sections below.
 
-Fixed (see git history for the exact changes):
-- Corruption of float field reads with a runtime variable index on the classic 6502 codegen
-  (populations printed as 0 in ``sorting.p8``). Two asm peephole passes interacted unsafely:
-  ``optimizeSameAssignments`` removed the ``lda/ldy`` scratch-pointer reloads that ``floats.MOVFM``
-  relies on, valid for the original register state, and then
-  ``optimizeAddWordToSameVariableOrExtraRegisterLoadInWordStore`` rewrote the pointer add such that
-  the final ``A``/``Y`` no longer held the address. Fix: run the pointer-add rewrite before the
-  reload removal in ``AsmOptimizer.kt``. An earlier observed crash of the same codegen
-  (``AssemblyError: invalid register for lsb: AY`` on certain variable-index struct field reads)
-  no longer reproduces; ``&&arr[i]`` pointer temporaries remain a safe workaround style.
-- new6502 codegen emitted ``jsr prog8_lib.multiply_bytes`` (undefined symbol) when scaling an array
-  index by a non-power-of-two element size; it now calls ``prog8_math.multiply_bytes`` like the
-  other sites (``InstrLoadStore.kt``).
-
 Open, with suggested fixes (code quality, not correctness):
 - Direct struct instances are not accessed optimally on any backend. The instance address is a
   compile-time constant, yet the IR re-materializes it into a pointer register before every field
@@ -43,10 +29,11 @@ Inherent costs, documented rather than fixed:
   bytes even with pointer temporaries; under ``-newcodegen`` the adapted examples are not larger
   than the pointer-array originals (sorting: 5081 vs 5090; multiplexer is smaller optimized).
 
-Related language gaps already listed below: ``swap()`` rejects struct elements, assigning a whole
-struct instance by value is unsupported (``Country tmp = countries[i]``), and declaring a struct
+Related language gaps already listed below: ``swap()`` rejects struct elements, and declaring a struct
 instance from a struct type declared inside a subroutine crashes in
-``SymbolTableMaker.resolveStructForVariable``.
+``SymbolTableMaker.resolveStructForVariable``. Whole-struct-instance assignment by value is now
+supported (desugared to ``sys.memcopy``), including declaration initializers such as
+``Country tmp = countries[i]``.
 
 
 Future Things and Ideas
@@ -115,7 +102,6 @@ Won't do's or deferred
 - Deferred: support arrays-of-struct-instances as struct fields (e.g. ``struct Outer { Inner[4] inners }``). Currently rejected with an error.
 - Deferred: support ``&array[i].field`` syntax to take the address of a struct field in an array. Currently only ``&array[i] + offsetof(Struct.field)`` works; ``&array[i].field`` is parsed as a field access on the resulting pointer and rejected by the checker.
 - Deferred: support typed pointer arrays as struct fields, curretly requires untyped pointers arrays.
-- Bug: declaring a direct struct instance of a struct type declared inside a subroutine can throw an ``InternalCompilerException`` in ``SymbolTableMaker.resolveStructForVariable``; its fallback lookup only searches top-level program blocks.
 - Deferred: make a form of "manual generics" possible, see ``ideas/polymorphism.md``
 - Deferred: when implementing unsigned longs: remove the unsigned-long constant "hack" that lets unsigned long constants be used as values for signed longs without needing a cast (the ``Antlr2KotlinVisitor.kt:508``/``:548`` "TODO hack" comments, ``AstExpressions.kt:145`` "TODO should be ULONG, but we don't have that type yet", and ``AsmAssignment.kt:129`` ``TODO("unsigned long $pos")``)
 - Deferred: make the fixed zero-page scratch locations (``P8ZP_SCRATCH_B1``/``_REG``/``_W1``/``_W2``/``_PTR``) dynamic rather than hardcoded per target. Right now they live at fixed per-target addresses and are always reserved; a ``%zpreserved``/``%zpallowed`` range that excludes them only produces a warning (the codegen would still overwrite that memory). Relocating scratch to an available low-address byte (or making it configurable) when not in conflict would let ``%zpreserved``/``%zpallowed`` fully protect the desired areas. See ``MemoryRegions.kt`` (``Zeropage.checkScratchConflicts`` and the scratch-byte list it maintains) and the per-target ``*Zeropage`` classes.
