@@ -1,9 +1,52 @@
 TODO
 ====
 
-- static instance struct in c64/multiplexer -> larger code ... why
-- static instance struct in examples/pointers/sorting -> population counts corrupted + hugely larger code
-- 
+Struct instance support: problem summary and follow-ups
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Summary of the issues found while adapting ``agabobs``, ``multiplexer`` and ``sorting`` to direct
+struct instances, and while analyzing the code generated for a single struct-instance variable on
+every target. Details and further items live in the sections below.
+
+Fixed (see git history for the exact changes):
+- Corruption of float field reads with a runtime variable index on the classic 6502 codegen
+  (populations printed as 0 in ``sorting.p8``). Two asm peephole passes interacted unsafely:
+  ``optimizeSameAssignments`` removed the ``lda/ldy`` scratch-pointer reloads that ``floats.MOVFM``
+  relies on, valid for the original register state, and then
+  ``optimizeAddWordToSameVariableOrExtraRegisterLoadInWordStore`` rewrote the pointer add such that
+  the final ``A``/``Y`` no longer held the address. Fix: run the pointer-add rewrite before the
+  reload removal in ``AsmOptimizer.kt``. An earlier observed crash of the same codegen
+  (``AssemblyError: invalid register for lsb: AY`` on certain variable-index struct field reads)
+  no longer reproduces; ``&&arr[i]`` pointer temporaries remain a safe workaround style.
+- new6502 codegen emitted ``jsr prog8_lib.multiply_bytes`` (undefined symbol) when scaling an array
+  index by a non-power-of-two element size; it now calls ``prog8_math.multiply_bytes`` like the
+  other sites (``InstrLoadStore.kt``).
+
+Open, with suggested fixes (code quality, not correctness):
+- Direct struct instances are not accessed optimally on any backend. The instance address is a
+  compile-time constant, yet the IR re-materializes it into a pointer register before every field
+  access (``load.l rN,#addr`` + ``loadi/storei [rN.p+off]``), which all backends lower as pointer
+  traffic: classic 6502 builds a zero-page pointer and uses ``(zp),y`` per field (9-13 instructions
+  where ``inc instance+2`` or ``lda instance+5`` would do), new6502 additionally round-trips the
+  register file and even adds ``#<0``/``#>0`` for offset 0, and m68k re-executes
+  ``movea.l #inst,a2`` per access. Suggested fix at the IR level: express direct-instance field
+  access as direct memory access (synthesized per-field labels at ``instance+offsetof``, or a
+  label+offset memory operand). Alternative: fold constant pointer registers to absolute addressing
+  in both 6502 backends, and reuse or drop the constant ``movea.l`` on m68k (overlaps with the
+  m68k pointer-reload item below).
+- Array-of-struct element addresses are rebuilt per field access on both 6502 backends (see the
+  Optimizations entry below). In source, hoisting ``^^T p = &&arr[i]`` avoids it; the idiom and the
+  swap-cost tradeoff are documented in ``structpointers.rst``.
+
+Inherent costs, documented rather than fixed:
+- Value-semantics swap: exchanging struct elements copies the data (floats go through the FAC),
+  versus swapping 2-byte pointer entries in a pointer array. ``sorting.p8`` therefore pays ~300
+  bytes even with pointer temporaries; under ``-newcodegen`` the adapted examples are not larger
+  than the pointer-array originals (sorting: 5081 vs 5090; multiplexer is smaller optimized).
+
+Related language gaps already listed below: ``swap()`` rejects struct elements, assigning a whole
+struct instance by value is unsupported (``Country tmp = countries[i]``), and declaring a struct
+instance from a struct type declared inside a subroutine crashes in
+``SymbolTableMaker.resolveStructForVariable``.
 
 
 Future Things and Ideas
