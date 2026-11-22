@@ -2,7 +2,7 @@
 
 **Status: partly implemented; Markdown generator still TODO.** Listed as an active item in `docs/source/todo.rst`.
 
-> Note (Oct 2026): the docstring *capture* side is done. The `-gendoc` compiler flag exists (`compiler/src/prog8/CompilerMain.kt:77`) and prints AST nodes with documentation comments (`compiler/src/prog8/compiler/Compiler.kt:182`). `/** ... */` comments are accepted and attached before blocks, variables, structs, enums, and subroutines, including ones **nested inside a block** (`main { /** ... */ sub foo() {} }` parses and prints fine). The earlier parse-error limitation for nested subroutines has been fixed.
+> Note (Oct 2026): the docstring *capture* side is done. The `-gendoc` compiler flag exists (`compiler/src/prog8/CompilerMain.kt:78`) and prints AST nodes with documentation comments (`compiler/src/prog8/compiler/Compiler.kt:182`). `/** ... */` comments are accepted and attached before blocks, variables, structs, enums, and subroutines, including ones **nested inside a block** (`main { /** ... */ sub foo() {} }` parses and prints fine). The earlier parse-error limitation for nested subroutines has been fixed.
 >
 > The missing piece is the actual Markdown generator that replaces/extends that temporary stdout output with real reference files and Sphinx integration.
 
@@ -37,7 +37,7 @@ For library modules, the documentation comment attached to the first `Block` nod
 ## Compiler Responsibilities
 
 - Preserve hidden-channel block comments during lexing (the lexer already puts `BLOCK_COMMENT` on a hidden channel; verify the visitor reads them).
-- Attach leading documentation comments to `Block`, `VarDecl`, and `Subroutine` AST nodes (`blockComment` fields already exist on these classes; `Antlr2KotlinVisitor.kt` already populates them at lines 315, 642, and 705).
+- Attach leading documentation comments to `Block`, `VarDecl`, and `Subroutine` AST nodes (`blockComment` fields already exist on these classes; `Antlr2KotlinVisitor.kt` in `compilerAst/src/prog8/ast/antlr` already populates them at lines 315, 643, and 706).
 - ~~Fix parser support for doc comments on nested declarations.~~ Done: the grammar/visitor accept doc comments before nested declarations (verified Oct 2026 for subroutines, variables, and structs inside a block).
 - Keep ordinary block comments available to the AST printer but exclude them from generated documentation.
 - `-gendoc` already exists; ensure it inspects the compiler AST before optimization and code generation.

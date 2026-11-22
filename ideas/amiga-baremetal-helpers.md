@@ -56,12 +56,7 @@ with `rte`.
   `sub` with no parameters and no return value, returning with a normal `rts`.
   `rte` is accepted as an asmsub terminator (alongside `rts`/`rti`), so the
   trampoline needs no `; !notreached!` marker.
-- **Do not use floating point in handlers.** The supplied trampoline preserves
-  all integer registers (`D0-D7/A0-A6`) but does not save FPU state. If a handler
-  must use the FPU, it needs a dedicated wrapper that saves and restores the
-  complete state for the installed FPU: `FP0-FP7`, `FPCR`, `FPSR`, `FPIAR`, and
-  any implementation-specific internal state. Keep handlers and routines they
-  call integer-only whenever possible.
+- **No FPU in handlers (decision):** handlers and the subroutines they call must be integer-only. The trampoline preserves `D0-D7/A0-A6` only and does not save any FPU state (`FP0-FP7`, `FPCR`, `FPSR`, `FPIAR`, or implementation-specific internal state). Use of FPU instructions inside a handler (or anything it calls) is unsupported and must be avoided - there is no FPU-saving wrapper provided. This keeps the trampoline small and predictable; if an FPU-using handler is ever needed, it will require a dedicated wrapper as a separate, opt-in feature.
 - **Leave `grab_system` unchanged; add an additive teardown hook to
   `restore_system`.** `grab_system` must not manage handlers: it runs at
   startup, before any handler exists, and it only saves the IRQ1/IRQ3/IRQ4

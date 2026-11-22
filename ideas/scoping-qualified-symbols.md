@@ -95,7 +95,7 @@ Q5: only value-context `scoped_identifier` dotted names; pointer deref `ptr.fiel
 
 ## Grammar change
 
-`Prog8ANTLR.g4:334` currently has a single rule used everywhere (line number verified Sep 2026):
+`Prog8ANTLR.g4:335` currently has a single rule used everywhere:
 
 ```
 scoped_identifier : identifier ('.' identifier)* ;
@@ -119,7 +119,7 @@ Then use `value_scoped_identifier` in expression/assignment/call/address-of/inde
 * `extsub` bank variable
 * directive name lists
 
-Visitor (`Antlr2KotlinVisitor.kt:487-495` for `visitScoped_identifier`; line numbers verified Sep 2026) already builds `IdentifierReference(listOf(...))`; add a new `visitLocal_scoped_identifier` or augment the existing visitor to set `isLocalQualified` when the parse tree came from `local_scoped_identifier`. `Position` should include the dot for error messages.
+Visitor (`compilerAst/src/prog8/ast/antlr/Antlr2KotlinVisitor.kt:481-495` for `visitScoped_identifier`; line numbers verified Nov 2026) already builds `IdentifierReference(listOf(...))`; add a new `visitLocal_scoped_identifier` or augment the existing visitor to set `isLocalQualified` when the parse tree came from `local_scoped_identifier`. `Position` should include the dot for error messages.
 
 ## AST representation
 
