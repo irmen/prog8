@@ -1212,9 +1212,7 @@ internal fun AsmGen.copyRegisterLong(dstReg: Int, srcReg: Int) {
     emitLine("bpl  -")
 }
 
-/** the address of a [base], plus [displacement]. The displacement is only added
- *  for a Symbol base; this matches the previous behavior of ignoring any offset
- *  that came together with a fixed numeric address. */
+/** the address of a [base], plus [displacement] (when non-zero) */
 internal fun AsmGen.resolveAddress(base: AddressBase, displacement: Int = 0): String {
     return when (base) {
         is AddressBase.Symbol -> {

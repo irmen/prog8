@@ -6,6 +6,7 @@ import io.kotest.engine.spec.tempdir
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.shouldNotBe
 import io.kotest.matchers.string.shouldContain
+import io.kotest.matchers.string.shouldNotContain
 import prog8.code.StStructInstance
 import prog8.code.core.ICompilationTarget
 import prog8.code.target.Amiga500Target
@@ -252,6 +253,77 @@ main {
         runVm(src, sourceDir = sourceDir) { vm, allocations ->
             vm.memory.getUW(allocations.getValue("main.r1")) shouldBe 42u
         }
+    }
+
+    test("array field of a direct struct instance keeps address semantics") {
+        val src = """
+%option no_sysinit
+main {
+    struct Foo { ubyte type  ubyte[5] value }
+    Foo inst
+    ubyte @shared r1, r2, r3
+    sub get(ubyte[] arr, ubyte i) -> ubyte {
+        return arr[i]
+    }
+    sub start() {
+        sys.memset(&inst, 6, 170)
+        inst.value[1] = 22
+        r1 = inst.value[1]
+        r2 = get(inst.value, 2)
+        inst.value[3] = 44
+        r3 = inst.value[3]
+    }
+}
+"""
+        runVm(src) { vm, allocations ->
+            vm.memory.getUB(allocations.getValue("main.r1")) shouldBe 22u
+            vm.memory.getUB(allocations.getValue("main.r2")) shouldBe 170u
+            vm.memory.getUB(allocations.getValue("main.r3")) shouldBe 44u
+        }
+    }
+
+    test("float augmented assignment with a float literal on a direct instance") {
+        val src = """
+%option no_sysinit, enable_floats
+%import floats
+main {
+    struct P { float w }
+    P p
+    uword @shared r1
+    sub start() {
+        p.w = 2.5
+        p.w += 1.0
+        r1 = (p.w * 10.0) as uword
+    }
+}
+"""
+        runVm(src) { vm, allocations ->
+            vm.memory.getUW(allocations.getValue("main.r1")) shouldBe 35u
+        }
+    }
+
+    test("compiling a struct program writes no stray debug output to stderr") {
+        val src = """
+%option no_sysinit
+main {
+    struct Point { uword x }
+    Point p
+    uword @shared r1
+    sub start() {
+        p.x = 42
+        r1 = p.x
+    }
+}
+"""
+        val captured = java.io.ByteArrayOutputStream()
+        val originalErr = System.err
+        System.setErr(java.io.PrintStream(captured))
+        try {
+            compileText(VMTarget(), false, src, outputDir, writeAssembly = true)
+        } finally {
+            System.setErr(originalErr)
+        }
+        captured.toString() shouldNotContain "DEBUG"
     }
 
     test("struct type declared inside a subroutine can be used for a direct instance") {

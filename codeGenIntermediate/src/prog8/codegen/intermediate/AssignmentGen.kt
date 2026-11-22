@@ -265,49 +265,49 @@ internal class AssignmentGen(private val codeGen: IRCodeGen, private val exprGen
             val startpointer = pointerDeref.startpointer
             if (startpointer.type.isStructInstance && pointerDeref.chain.size == 1 && startpointer is PtIdentifier) {
                 val struct = startpointer.type.subType as? StStruct
-                if (struct != null && (augAssign.operator == "+=" || augAssign.operator == "-=") &&
-                        (value.asConstInteger() == 1 || value.asConstInteger() == 2)) {
+                if (struct != null) {
                     val field = struct.getField(pointerDeref.chain[0], codeGen.program.memsizer)
-                    val memAddress = exprGen.structInstanceMemAddress(startpointer.name)
-                    val instanceLabel = if (memAddress != null) null else exprGen.structInstanceLabel(startpointer.name)
-                    val fieldVmDt = codeGen.irType(field.first)
-                    val fieldOffset = field.second
-                    val inplaceInstrs = mutableListOf<IRCodeChunkBase>()
-                    val oldvalueReg = codeGen.registers.next(targetDt)
-                    val memRef = if (memAddress != null) IRMemory.direct(memAddress, fieldOffset.toInt()) else IRMemory.direct(instanceLabel!!, fieldOffset)
-                    addInstr(inplaceInstrs, IRInstructions.loadMemory(Opcode.LOADM, fieldVmDt, oldvalueReg, memRef), null)
-                    val instr = if (augAssign.operator == "+=") Opcode.INC else Opcode.DEC
-                    repeat(value.asConstInteger()!!) {
-                        addInstr(inplaceInstrs, IRInstructions.unary(instr, targetDt, oldvalueReg), null)
+                    // array (and nested struct) fields are not scalar: fall through to the generic path
+                    if (!field.first.isArray && !field.first.isStructInstance) {
+                        val memAddress = exprGen.structInstanceMemAddress(startpointer.name)
+                        val instanceLabel = if (memAddress != null) null else exprGen.structInstanceLabel(startpointer.name)
+                        val fieldOffset = field.second
+                        val memRef = if (memAddress != null) IRMemory.direct(memAddress, fieldOffset.toInt()) else IRMemory.direct(instanceLabel!!, fieldOffset)
+                        if (!field.first.isFloat && (augAssign.operator == "+=" || augAssign.operator == "-=") &&
+                                (value.asConstInteger() == 1 || value.asConstInteger() == 2)) {
+                            val fieldVmDt = codeGen.irType(field.first)
+                            val inplaceInstrs = mutableListOf<IRCodeChunkBase>()
+                            val oldvalueReg = codeGen.registers.next(targetDt)
+                            addInstr(inplaceInstrs, IRInstructions.loadMemory(Opcode.LOADM, fieldVmDt, oldvalueReg, memRef), null)
+                            val instr = if (augAssign.operator == "+=") Opcode.INC else Opcode.DEC
+                            repeat(value.asConstInteger()!!) {
+                                addInstr(inplaceInstrs, IRInstructions.unary(instr, targetDt, oldvalueReg), null)
+                            }
+                            addInstr(inplaceInstrs, IRInstructions.storeMemory(Opcode.STOREM, targetDt, oldvalueReg, memRef), null)
+                            return inplaceInstrs
+                        }
+                        // float augmented assignment on a direct struct instance field
+                        if (field.first.isFloat && targetDt == IRDataType.FLOAT &&
+                                (augAssign.operator in setOf("+=", "-=", "*=", "/="))) {
+                            val inplaceInstrs = mutableListOf<IRCodeChunkBase>()
+                            val fpReg = codeGen.registers.next(IRDataType.FLOAT)
+                            addInstr(inplaceInstrs, IRInstructions.loadMemory(Opcode.LOADM, IRDataType.FLOAT, fpReg, memRef), null)
+                            val operandTr = exprGen.translateExpression(value)
+                            inplaceInstrs += operandTr.chunks
+                            val op = when (augAssign.operator) {
+                                "+=" -> Opcode.ADDR
+                                "-=" -> Opcode.SUBR
+                                "*=" -> Opcode.MULR
+                                "/=" -> Opcode.DIVSR
+                                else -> null
+                            }
+                            if (op != null) {
+                                addInstr(inplaceInstrs, IRInstructions.binary(op, IRDataType.FLOAT, fpReg, operandTr.resultFpReg), null)
+                            }
+                            addInstr(inplaceInstrs, IRInstructions.storeMemory(Opcode.STOREM, IRDataType.FLOAT, fpReg, memRef), null)
+                            return inplaceInstrs
+                        }
                     }
-                    addInstr(inplaceInstrs, IRInstructions.storeMemory(Opcode.STOREM, targetDt, oldvalueReg, memRef), null)
-                    return inplaceInstrs
-                }
-                // float augmented assignment on a direct struct instance field
-                if (struct != null && targetDt == IRDataType.FLOAT &&
-                        (augAssign.operator in setOf("+=", "-=", "*=", "/="))) {
-                    val field = struct.getField(pointerDeref.chain[0], codeGen.program.memsizer)
-                    val memAddress = exprGen.structInstanceMemAddress(startpointer.name)
-                    val instanceLabel = if (memAddress != null) null else exprGen.structInstanceLabel(startpointer.name)
-                    val fieldOffset = field.second
-                    val inplaceInstrs = mutableListOf<IRCodeChunkBase>()
-                    val fpReg = codeGen.registers.next(IRDataType.FLOAT)
-                    val memRef = if (memAddress != null) IRMemory.direct(memAddress, fieldOffset.toInt()) else IRMemory.direct(instanceLabel!!, fieldOffset)
-                    addInstr(inplaceInstrs, IRInstructions.loadMemory(Opcode.LOADM, IRDataType.FLOAT, fpReg, memRef), null)
-                    val operandTr = exprGen.translateExpression(value)
-                    inplaceInstrs += operandTr.chunks
-                    val op = when (augAssign.operator) {
-                        "+=" -> Opcode.ADDR
-                        "-=" -> Opcode.SUBR
-                        "*=" -> Opcode.MULR
-                        "/=" -> Opcode.DIVSR
-                        else -> null
-                    }
-                    if (op != null) {
-                        addInstr(inplaceInstrs, IRInstructions.binary(op, IRDataType.FLOAT, fpReg, operandTr.resultFpReg), null)
-                    }
-                    addInstr(inplaceInstrs, IRInstructions.storeMemory(Opcode.STOREM, IRDataType.FLOAT, fpReg, memRef), null)
-                    return inplaceInstrs
                 }
             }
             val inplaceInstrs = mutableListOf<IRCodeChunkBase>()

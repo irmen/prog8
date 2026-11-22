@@ -109,7 +109,6 @@ internal class PointerAssignmentsGen(private val asmgen: AsmGen6502Internal, pri
         val directAddr = directStructInstanceFieldAddress(target.pointer)
         if (directAddr != null) {
             val floatConst = allocator.getFloatAsmConst(float)
-            // offset is baked into directAddr; handle offset>0 not needed since directAddr already includes it
             asmgen.out("""
                 lda  #<$floatConst
                 ldy  #>$floatConst
@@ -266,22 +265,6 @@ internal class PointerAssignmentsGen(private val asmgen: AsmGen6502Internal, pri
      * loadPointerFieldValue: for addOffsetToPointer=true, also load the value if the final
      * field is a pointer-typed field (rather than returning its address).
      */
-    // Returns the absolute address (label or hex) of a direct single struct instance field access,
-    // or null if the pointer is not a direct struct instance field (or has an array index / chain).
-    internal fun directStructInstanceFieldAddress(pointer: PtPointerDeref): String? {
-        val startpointer = pointer.startpointer
-        if (!startpointer.type.isStructInstance) return null
-        if (startpointer !is PtIdentifier) return null
-        if (pointer.chain.size > 1) return null
-        val label = asmgen.structInstanceLabelForIdentifier(startpointer)
-        val fieldOffset = if (pointer.chain.isEmpty()) 0 else {
-            val struct = startpointer.type.subType as? StStruct ?: return null
-            val field = struct.getField(pointer.chain[0], asmgen.program.memsizer)
-            field.second
-        }
-        return if (fieldOffset == 0) label else "$label+$fieldOffset"
-    }
-
     internal fun deref(pointer: PtPointerDeref, addOffsetToPointer: Boolean=false, loadPointerFieldValue: Boolean=false): Pair<String, UByte> {
 
         fun addFieldOffsetToScratchPointer(fieldoffset: UInt) {
@@ -399,6 +382,22 @@ internal class PointerAssignmentsGen(private val asmgen: AsmGen6502Internal, pri
             } else
                 return "P8ZP_SCRATCH_PTR" to fieldinfo.second.toUByte()
         }
+    }
+
+    // Returns the absolute address (label or hex) of a direct single struct instance field access,
+    // or null if the pointer is not a direct struct instance field (or has an array index / chain).
+    internal fun directStructInstanceFieldAddress(pointer: PtPointerDeref): String? {
+        val startpointer = pointer.startpointer
+        if (!startpointer.type.isStructInstance) return null
+        if (startpointer !is PtIdentifier) return null
+        if (pointer.chain.size > 1) return null
+        val label = asmgen.structInstanceLabelForIdentifier(startpointer)
+        val fieldOffset = if (pointer.chain.isEmpty()) 0 else {
+            val struct = startpointer.type.subType as? StStruct ?: return null
+            val field = struct.getField(pointer.chain[0], asmgen.program.memsizer)
+            field.second
+        }
+        return if (fieldOffset == 0) label else "$label+$fieldOffset"
     }
 
     internal fun derefUsesScratchPointer(pointer: PtPointerDeref, addOffsetToPointer: Boolean=false): Boolean {
