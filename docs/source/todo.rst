@@ -1,25 +1,6 @@
 TODO
 ====
 
-Struct instance support: problem summary and follow-ups
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-Summary of the issues found while adapting ``agabobs``, ``multiplexer`` and ``sorting`` to direct
-struct instances, and while analyzing the code generated for a single struct-instance variable on
-every target. Details and further items live in the sections below.
-
-Open, with suggested fixes (code quality, not correctness):
-- Direct struct instances on the classic 6502 codegen are not accessed optimally. The IR/new-codegen/m68k backends now use direct memory access (``loadm``/``storem`` with the instance label + field offset), but the classic backend still builds a zero-page pointer from the (constant) instance address for every field access and reads via ``(zp),y`` (9-13 instructions where ``inc instance+2`` or ``lda instance+5`` would do). Memory-mapped instances (fixed address) have the same problem. Suggested fix: fold constant struct-instance field accesses to absolute addressing in ``AssignmentAsmGen`` (the ``value.operator=="."`` path with ``value.left.type.isStructInstance``) and in the augmented-assignment and store-target paths.
-- Array-of-struct element addresses are rebuilt per field access on both 6502 backends (see the
-  Optimizations entry below). In source, hoisting ``^^T p = &&arr[i]`` avoids it; the idiom and the
-  swap-cost tradeoff are documented in ``structpointers.rst``.
-
-Inherent costs, documented rather than fixed:
-- Value-semantics swap: exchanging struct elements copies the data (floats go through the FAC),
-  versus swapping 2-byte pointer entries in a pointer array. ``sorting.p8`` therefore pays ~300
-  bytes even with pointer temporaries; under ``-newcodegen`` the adapted examples are not larger
-  than the pointer-array originals (sorting: 5081 vs 5090; multiplexer is smaller optimized).
-
-
 Future Things and Ideas
 ^^^^^^^^^^^^^^^^^^^^^^^
 - extend the ``-gendoc`` command to generate user reference documentation from Markdown docstrings; see ``ideas/markdown-docstrings-and-reference-docs.md`` for the plan.
@@ -72,6 +53,7 @@ Optimizations
 - 6502 codegen: avoid rebuilding a 16-bit address in scratch on every access to ``@(const + expr)`` (26-29 cycles) and emit the cheap ``sta BASE,x`` / ``lda (zp),y`` forms instead. See ``ideas/betterpointers.md`` for the measurements and the ranked work items: P1, P4 and P9 are the cheap local wins, P7 is the one that removes the per-store rebuild. The plan is compiler-only and verified against the working tree (three items turned out to be partially implemented already).
 - 6502 codegen: reuse the computed element address of an array-of-struct-instances access within a basic block. Both backends currently re-emit ``lda idx / jsr prog8_math.mul_word_<size> / 16-bit add to scratch`` per field access (about 20 bytes per field); the ``sorting.p8`` example's bubble sort and dump loop pay roughly 400 extra bytes for this on the classic backend, where it is large relative to the compact per-access code. Hoisting a typed pointer ``^^T p = &&arr[i]`` in the source avoids it (see the cost note in ``structpointers.rst``).
 - language-level companion to the above, not implemented: named memory regions (``&ubyte[40][25] screen = $0400``) with a fixed base, a zero-page cursor contract and 2D indexing, so a hot memory access does not depend on whether a base variable happens to be placed in zero page. See ``ideas/memory-regions.md``, which lists the open design questions that must be answered before implementing it.
+- Direct struct instances on the classic 6502 codegen: word augmented assignment (``+=``/``-=`` on word fields) and float augmented assignment still build a zp pointer instead of using absolute addressing.
 
 
 Dead Code Elimination bug in 64tass, for nested subroutines

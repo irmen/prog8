@@ -86,16 +86,40 @@ internal class PointerAssignmentsGen(private val asmgen: AsmGen6502Internal, pri
     }
 
     internal fun assignWord(target: PtrTarget, word: Int) {
+        val directAddr = directStructInstanceFieldAddress(target.pointer)
+        if (directAddr != null) {
+            asmgen.out("  lda  #<($word) |  sta  $directAddr |  lda  #>($word) |  sta  $directAddr+1")
+            return
+        }
         val (zpPtrVar, offset) = deref(target.pointer)
         asmgen.storeIndirectWord(word, zpPtrVar, offset)
     }
 
     internal fun assignByte(target: PtrTarget, byte: Int) {
+        val directAddr = directStructInstanceFieldAddress(target.pointer)
+        if (directAddr != null) {
+            asmgen.out("  lda  #${byte.toHex()} |  sta  $directAddr")
+            return
+        }
         val (zpPtrVar, offset) = deref(target.pointer)
         asmgen.storeIndirectByte(byte, zpPtrVar, offset)
     }
 
     internal fun assignFloat(target: PtrTarget, float: Double) {
+        val directAddr = directStructInstanceFieldAddress(target.pointer)
+        if (directAddr != null) {
+            val floatConst = allocator.getFloatAsmConst(float)
+            // offset is baked into directAddr; handle offset>0 not needed since directAddr already includes it
+            asmgen.out("""
+                lda  #<$floatConst
+                ldy  #>$floatConst
+                sta  P8ZP_SCRATCH_W2
+                sty  P8ZP_SCRATCH_W2+1
+                lda  #<$directAddr
+                ldy  #>$directAddr
+                jsr  floats.copy_float2""")
+            return
+        }
         val (zpPtrVar, offset) = deref(target.pointer)
         asmgen.storeIndirectFloat(float, zpPtrVar, offset)
     }
@@ -242,6 +266,22 @@ internal class PointerAssignmentsGen(private val asmgen: AsmGen6502Internal, pri
      * loadPointerFieldValue: for addOffsetToPointer=true, also load the value if the final
      * field is a pointer-typed field (rather than returning its address).
      */
+    // Returns the absolute address (label or hex) of a direct single struct instance field access,
+    // or null if the pointer is not a direct struct instance field (or has an array index / chain).
+    internal fun directStructInstanceFieldAddress(pointer: PtPointerDeref): String? {
+        val startpointer = pointer.startpointer
+        if (!startpointer.type.isStructInstance) return null
+        if (startpointer !is PtIdentifier) return null
+        if (pointer.chain.size > 1) return null
+        val label = asmgen.structInstanceLabelForIdentifier(startpointer)
+        val fieldOffset = if (pointer.chain.isEmpty()) 0 else {
+            val struct = startpointer.type.subType as? StStruct ?: return null
+            val field = struct.getField(pointer.chain[0], asmgen.program.memsizer)
+            field.second
+        }
+        return if (fieldOffset == 0) label else "$label+$fieldOffset"
+    }
+
     internal fun deref(pointer: PtPointerDeref, addOffsetToPointer: Boolean=false, loadPointerFieldValue: Boolean=false): Pair<String, UByte> {
 
         fun addFieldOffsetToScratchPointer(fieldoffset: UInt) {
@@ -421,6 +461,38 @@ internal class PointerAssignmentsGen(private val asmgen: AsmGen6502Internal, pri
     }
 
     internal fun assignPointerDerefExpression(target: AsmAssignTarget, value: PtPointerDeref) {
+        val directAddr = directStructInstanceFieldAddress(value)
+        if (directAddr != null) {
+            // optimal: absolute addressing, no zp pointer setup
+            when {
+                value.type.isByteOrBool -> {
+                    asmgen.out("  lda  $directAddr")
+                    asmgen.assignRegister(RegisterOrPair.A, target)
+                }
+                value.type.isWord || value.type.isPointer -> {
+                    if (target.register == RegisterOrPair.AX) {
+                        asmgen.out("  lda  $directAddr |  ldx  $directAddr+1")
+                        asmgen.assignRegister(RegisterOrPair.AX, target)
+                    } else if (target.register == RegisterOrPair.AY) {
+                        asmgen.out("  lda  $directAddr |  ldy  $directAddr+1")
+                        asmgen.assignRegister(RegisterOrPair.AY, target)
+                    } else if (target.register == RegisterOrPair.XY) {
+                        asmgen.out("  ldx  $directAddr |  ldy  $directAddr+1")
+                        asmgen.assignRegister(RegisterOrPair.XY, target)
+                    } else {
+                        asmgen.out("  lda  $directAddr |  ldy  $directAddr+1")
+                        asmgen.assignRegister(RegisterOrPair.AY, target)
+                    }
+                }
+                value.type.isFloat -> {
+                    asmgen.out("  lda  #<$directAddr |  ldy  #>$directAddr |  jsr  floats.MOVFM")
+                    asmgen.assignRegister(RegisterOrPair.FAC1, target)
+                    return
+                }
+                else -> { /* fall through to generic path below */ }
+            }
+            if (value.type.isByteOrBool || value.type.isWord || value.type.isPointer || value.type.isFloat) return
+        }
         val (zpPtrVar, offset) = deref(value)
         if(value.type.isByteOrBool) {
             asmgen.loadIndirectByte(zpPtrVar, offset)
@@ -2153,6 +2225,11 @@ internal class PointerAssignmentsGen(private val asmgen: AsmGen6502Internal, pri
 
     private fun inplaceByteInc(target: PtrTarget, amount: Int) {
         require(amount==1 || amount==2)
+        val directAddr = directStructInstanceFieldAddress(target.pointer)
+        if (directAddr != null) {
+            repeat(amount) { asmgen.out("  inc  $directAddr") }
+            return
+        }
         val (zpPtrVar, offset) = deref(target.pointer)
         if(offset==0.toUByte() && asmgen.isTargetCpu(CpuType.CPU65C02)) {
             asmgen.out("  lda  ($zpPtrVar)")
@@ -2173,6 +2250,11 @@ internal class PointerAssignmentsGen(private val asmgen: AsmGen6502Internal, pri
 
     private fun inplaceByteDec(target: PtrTarget, amount: Int) {
         require(amount==1 || amount==2)
+        val directAddr = directStructInstanceFieldAddress(target.pointer)
+        if (directAddr != null) {
+            repeat(amount) { asmgen.out("  dec  $directAddr") }
+            return
+        }
         val (zpPtrVar, offset) = deref(target.pointer)
         if(offset==0.toUByte() && asmgen.isTargetCpu(CpuType.CPU65C02)) {
             asmgen.out("  lda  ($zpPtrVar)")

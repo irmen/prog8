@@ -581,6 +581,40 @@ main {
         lines.count { it.contains("move.") && it.contains("\$c000") } shouldBe 2
     }
 
+    test("6502: direct struct instance fields use absolute addressing (classic codegen)") {
+        val src = $$"""
+%option no_sysinit, enable_floats
+%launcher none
+%address $1000
+main {
+    struct Point { ubyte x  uword y  float w }
+    Point p
+    ubyte @shared rb
+    uword @shared rw
+    float @shared rf
+    sub start() {
+        p.x = 42
+        p.x++
+        p.y = 5000
+        p.w = 2.5
+        rb = p.x
+        rw = p.y
+        rf = p.w
+    }
+}
+"""
+        val result = compileText(C64Target(), false, src, outputDir,
+            errors = ErrorReporterForTests(), writeAssembly = true, assemble = false,
+            newCodegen = false)!!
+        val asm = result.compilationOptions.outputDir.resolve(result.compilerAst.name + ".asm").readText()
+        val lines = asm.lines().map { it.trim() }
+        // optimal: absolute addressing, no zp scratch pointer setup for field access
+        lines.any { it.contains("sta  ") && it.contains("p8i_p") && !it.contains("P8ZP") } shouldBe true
+        lines.any { it.contains("inc  ") && it.contains("p8i_p") } shouldBe true
+        lines.any { it.contains("lda  ") && it.contains("p8i_p") && !it.contains("P8ZP") } shouldBe true
+        // (P8ZP_SCRATCH_PTR may still appear in unrelated library/system code, so no strict absence check)
+    }
+
     test("6502: sizeof on a direct struct variable is the struct type size") {
         val src = $$"""
 %option no_sysinit
