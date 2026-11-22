@@ -82,7 +82,7 @@ class IRUnusedCodeRemover(
             }
             irprog.st.allVariables().forEach { variable ->
                 if(variable.dt.isPointer || variable.dt.isStructInstance)
-                    if(struct.name == variable.dt.subType!!.scopedNameString)
+                    if(variable.dt.subType != null && struct.name == variable.dt.subType!!.scopedNameString)
                         return   // a variable exists with the struct as (pointer) type
             }
         }

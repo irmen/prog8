@@ -1221,7 +1221,7 @@ internal fun AsmGen.resolveAddress(base: AddressBase, displacement: Int = 0): St
             val resolved = resolveSymbolRef(base.name)
             if (displacement != 0) "$resolved+$displacement" else resolved
         }
-        is AddressBase.Absolute -> base.address.value.toHex()
+        is AddressBase.Absolute -> if (displacement != 0) "${base.address.value.toHex()}+$displacement" else base.address.value.toHex()
         is AddressBase.FrameSlot -> error("stack frame slots are only supported on m68k targets, got $base")
     }
 }

@@ -193,6 +193,7 @@ class SymbolTableMaker(private val program: PtProgram, private val options: Comp
     private fun resolveStructForVariable(node: PtVariable, scope: ArrayDeque<StNode>): StStruct {
         val wanted = node.type.subType?.scopedNameString ?: node.type.subTypeFromAntlr?.joinToString(".")
             ?: throw InternalCompilerException("struct type not resolved for '${node.name}' at ${node.position}")
+        System.err.println("DEBUG wanted=" + wanted)
 
         // matches when the candidate and the wanted name are equal after prefix stripping,
         // or when one is the trailing part of the other (a bare 'Point' reference matches
@@ -211,12 +212,17 @@ class SymbolTableMaker(private val program: PtProgram, private val options: Comp
         // fall back to the rest of the program: structs that are already in the symbol table
         // elsewhere are preferred (reuse keeps struct identity stable), AST declarations that
         // have not been turned into symbol table nodes yet come last
-        val stCandidates = collectStStructs(scope.first()).filter { matches(it.scopedNameString) }
+        val allSt = collectStStructs(scope.first())
+        System.err.println("DEBUG program.children=" + program.children.map { it::class.simpleName + ":" + (it as? prog8.code.ast.PtNamedNode)?.name })
+        System.err.println("DEBUG allSt=" + allSt.map { it.scopedNameString })
+        val stCandidates = allSt.filter { matches(it.scopedNameString) }
         if(stCandidates.size==1)
             return stCandidates.single()
 
         val declsInSymbolTable = stCandidates.mapNotNull { it.astNode }.toSet()
-        val astCandidates = collectStructDecls(program).filter { it !in declsInSymbolTable && matches(it.scopedName) }.toList()
+        val allAst = collectStructDecls(program).toList()
+        System.err.println("DEBUG allAst=" + allAst.map { it.scopedName })
+        val astCandidates = allAst.filter { it !in declsInSymbolTable && matches(it.scopedName) }
 
         val foundNames = (stCandidates.map { SymbolNames.stripPrefixes(it.scopedNameString) } +
                 astCandidates.map { SymbolNames.stripPrefixes(it.scopedName) }).distinct()

@@ -3,6 +3,7 @@ package prog8.codegen.intermediate
 import prog8.code.StExtSub
 import prog8.code.StExtSubParameter
 import prog8.code.StNodeType
+import prog8.code.StStruct
 import prog8.code.StSub
 import prog8.code.ast.*
 import prog8.code.core.*
@@ -261,6 +262,54 @@ internal class AssignmentGen(private val codeGen: IRCodeGen, private val exprGen
         val chunks: IRCodeChunks
 
         if(pointerDeref!=null) {
+            val startpointer = pointerDeref.startpointer
+            if (startpointer.type.isStructInstance && pointerDeref.chain.size == 1 && startpointer is PtIdentifier) {
+                val struct = startpointer.type.subType as? StStruct
+                if (struct != null && (augAssign.operator == "+=" || augAssign.operator == "-=") &&
+                        (value.asConstInteger() == 1 || value.asConstInteger() == 2)) {
+                    val field = struct.getField(pointerDeref.chain[0], codeGen.program.memsizer)
+                    val memAddress = exprGen.structInstanceMemAddress(startpointer.name)
+                    val instanceLabel = if (memAddress != null) null else exprGen.structInstanceLabel(startpointer.name)
+                    val fieldVmDt = codeGen.irType(field.first)
+                    val fieldOffset = field.second
+                    val inplaceInstrs = mutableListOf<IRCodeChunkBase>()
+                    val oldvalueReg = codeGen.registers.next(targetDt)
+                    val memRef = if (memAddress != null) IRMemory.direct(memAddress, fieldOffset.toInt()) else IRMemory.direct(instanceLabel!!, fieldOffset)
+                    addInstr(inplaceInstrs, IRInstructions.loadMemory(Opcode.LOADM, fieldVmDt, oldvalueReg, memRef), null)
+                    val instr = if (augAssign.operator == "+=") Opcode.INC else Opcode.DEC
+                    repeat(value.asConstInteger()!!) {
+                        addInstr(inplaceInstrs, IRInstructions.unary(instr, targetDt, oldvalueReg), null)
+                    }
+                    addInstr(inplaceInstrs, IRInstructions.storeMemory(Opcode.STOREM, targetDt, oldvalueReg, memRef), null)
+                    return inplaceInstrs
+                }
+                // float augmented assignment on a direct struct instance field
+                if (struct != null && targetDt == IRDataType.FLOAT &&
+                        (augAssign.operator in setOf("+=", "-=", "*=", "/="))) {
+                    val field = struct.getField(pointerDeref.chain[0], codeGen.program.memsizer)
+                    val memAddress = exprGen.structInstanceMemAddress(startpointer.name)
+                    val instanceLabel = if (memAddress != null) null else exprGen.structInstanceLabel(startpointer.name)
+                    val fieldOffset = field.second
+                    val inplaceInstrs = mutableListOf<IRCodeChunkBase>()
+                    val fpReg = codeGen.registers.next(IRDataType.FLOAT)
+                    val memRef = if (memAddress != null) IRMemory.direct(memAddress, fieldOffset.toInt()) else IRMemory.direct(instanceLabel!!, fieldOffset)
+                    addInstr(inplaceInstrs, IRInstructions.loadMemory(Opcode.LOADM, IRDataType.FLOAT, fpReg, memRef), null)
+                    val operandTr = exprGen.translateExpression(value)
+                    inplaceInstrs += operandTr.chunks
+                    val op = when (augAssign.operator) {
+                        "+=" -> Opcode.ADDR
+                        "-=" -> Opcode.SUBR
+                        "*=" -> Opcode.MULR
+                        "/=" -> Opcode.DIVSR
+                        else -> null
+                    }
+                    if (op != null) {
+                        addInstr(inplaceInstrs, IRInstructions.binary(op, IRDataType.FLOAT, fpReg, operandTr.resultFpReg), null)
+                    }
+                    addInstr(inplaceInstrs, IRInstructions.storeMemory(Opcode.STOREM, IRDataType.FLOAT, fpReg, memRef), null)
+                    return inplaceInstrs
+                }
+            }
             val inplaceInstrs = mutableListOf<IRCodeChunkBase>()
             val (addressReg, fieldOffset) = codeGen.evaluatePointerAddressIntoReg(inplaceInstrs, pointerDeref)
             val oldvalueReg = codeGen.registers.next(targetDt)
@@ -797,6 +846,28 @@ internal class AssignmentGen(private val codeGen: IRCodeGen, private val exprGen
                     return result
                 }
                 pointerDeref != null -> {
+                    val startpointer = pointerDeref!!.startpointer
+                    if (startpointer.type.isStructInstance && pointerDeref!!.chain.size == 1 && startpointer is PtIdentifier) {
+                        val struct = startpointer.type.subType as? StStruct
+                        if (struct != null) {
+                            val field = struct.getField(pointerDeref!!.chain[0], codeGen.program.memsizer)
+                            val memAddress = exprGen.structInstanceMemAddress(startpointer.name)
+                            val instanceLabel = if (memAddress != null) null else exprGen.structInstanceLabel(startpointer.name)
+                            val actualValueReg = if (field.first.isFloat) valueFpRegister else valueRegister
+                            if (zero) {
+                                if (memAddress != null)
+                                    addInstr(result, IRInstructions.storeZero(Opcode.STOREZI, codeGen.irType(field.first), IRMemory.direct(memAddress, field.second)), null)
+                                else
+                                    addInstr(result, IRInstructions.storeZero(Opcode.STOREZI, codeGen.irType(field.first), IRMemory.direct(instanceLabel!!, field.second)), null)
+                            } else {
+                                if (memAddress != null)
+                                    addInstr(result, IRInstructions.storeMemory(Opcode.STOREM, if (field.first.isFloat) IRDataType.FLOAT else codeGen.irType(field.first), actualValueReg, IRMemory.direct(memAddress, field.second)), null)
+                                else
+                                    addInstr(result, IRInstructions.storeMemory(Opcode.STOREM, if (field.first.isFloat) IRDataType.FLOAT else codeGen.irType(field.first), actualValueReg, IRMemory.direct(instanceLabel!!, field.second)), null)
+                            }
+                            return result
+                        }
+                    }
                     val (addressReg, offset) = codeGen.evaluatePointerAddressIntoReg(result, pointerDeref!!)
                     val actualValueReg = if(pointerDeref!!.type.isFloat) valueFpRegister else valueRegister
                     codeGen.storeValueAtPointersLocation(result, addressReg, offset, pointerDeref!!.type, zero, actualValueReg)

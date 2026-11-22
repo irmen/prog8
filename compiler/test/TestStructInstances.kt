@@ -28,8 +28,8 @@ class TestStructInstances : FunSpec({
 
     val outputDir = tempdir().toPath()
 
-    fun runVm(src: String, optimize: Boolean = false, check: (VirtualMachine, Map<String, UInt>) -> Unit) {
-        val result = compileText(VMTarget(), optimize, src, outputDir, writeAssembly = true)!!
+    fun runVm(src: String, optimize: Boolean = false, sourceDir: java.nio.file.Path = outputDir, check: (VirtualMachine, Map<String, UInt>) -> Unit) {
+        val result = compileText(VMTarget(), optimize, src, sourceDir, writeAssembly = true)!!
         val irContent = result.compilationOptions.outputDir.resolve(result.compilerAst.name + ".p8ir").readText()
         val irProgram = IRFileReader().read(irContent)
         irProgram.st.stripAllPrefixes()
@@ -200,6 +200,57 @@ main {
             vm.memory.getUW(allocations.getValue("main.r1")) shouldBe 100u
             vm.memory.getUW(allocations.getValue("main.r2")) shouldBe 200u
             vm.memory.getUW(allocations.getValue("main.r3")) shouldBe 300u
+        }
+    }
+
+    test("struct type declared in a separate block can be used for a direct instance") {
+        val src = """
+%option no_sysinit
+types {
+    struct Foo {
+        ubyte type
+        ubyte[5] value
+    }
+}
+
+main {
+    uword @shared r1
+    sub start() {
+        types.Foo var
+        var.type = 42
+        r1 = var.type as uword
+    }
+}
+"""
+        runVm(src) { vm, allocations ->
+            vm.memory.getUW(allocations.getValue("main.r1")) shouldBe 42u
+        }
+    }
+
+    test("struct type in an imported module can be used for a direct instance") {
+        val sourceDir = tempdir().toPath()
+        sourceDir.resolve("types.p8").toFile().writeText("""
+types {
+    struct Foo {
+        ubyte type
+        ubyte[5] value
+    }
+}
+""")
+        val src = """
+%import types
+%option no_sysinit
+main {
+    uword @shared r1
+    sub start() {
+        types.Foo var
+        var.type = 42
+        r1 = var.type as uword
+    }
+}
+"""
+        runVm(src, sourceDir = sourceDir) { vm, allocations ->
+            vm.memory.getUW(allocations.getValue("main.r1")) shouldBe 42u
         }
     }
 
@@ -527,7 +578,7 @@ main {
         lines.none { it.startsWith("dc.l") && it.contains("p8i_p") } shouldBe true
         lines.none { it.startsWith("p8i_p:") } shouldBe true
         // field access uses the literal address
-        lines.count { it.contains("#49152") } shouldBe 2
+        lines.count { it.contains("move.") && it.contains("\$c000") } shouldBe 2
     }
 
     test("6502: sizeof on a direct struct variable is the struct type size") {

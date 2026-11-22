@@ -48,7 +48,10 @@ class UnusedCodeRemover(private val program: Program,
     }
 
     override fun before(module: Module, parent: Node): Iterable<AstModification> {
-        return if (!module.isLibrary && (module.containsNoCodeNorVars || callgraph.unused(module)))
+        val containsStruct = module.statements.filterIsInstance<Block>().any { block ->
+            block.statements.any { it is StructDecl }
+        }
+        return if (!module.isLibrary && !containsStruct && (module.containsNoCodeNorVars || callgraph.unused(module)))
             listOf(AstRemove(module, parent as IStatementContainer))
         else
             noModifications
@@ -95,7 +98,7 @@ class UnusedCodeRemover(private val program: Program,
                 }
                 return listOf(AstRemove(block, parent as IStatementContainer))
             }
-            if (callgraph.unused(block)) {
+            if (callgraph.unused(block) && !block.statements.any { it is StructDecl }) {
                 if (block.statements.any { it !is VarDecl || it.type == VarDeclType.VAR } && "ignore_unused" !in block.options()) {
                     if (!block.statements.any { it is Subroutine && !it.hasBeenInlined })
                         errors.info("removing unused block '${block.name}'", block.position)

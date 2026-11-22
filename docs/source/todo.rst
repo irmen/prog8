@@ -8,17 +8,7 @@ struct instances, and while analyzing the code generated for a single struct-ins
 every target. Details and further items live in the sections below.
 
 Open, with suggested fixes (code quality, not correctness):
-- Direct struct instances are not accessed optimally on any backend. The instance address is a
-  compile-time constant, yet the IR re-materializes it into a pointer register before every field
-  access (``load.l rN,#addr`` + ``loadi/storei [rN.p+off]``), which all backends lower as pointer
-  traffic: classic 6502 builds a zero-page pointer and uses ``(zp),y`` per field (9-13 instructions
-  where ``inc instance+2`` or ``lda instance+5`` would do), new6502 additionally round-trips the
-  register file and even adds ``#<0``/``#>0`` for offset 0, and m68k re-executes
-  ``movea.l #inst,a2`` per access. Suggested fix at the IR level: express direct-instance field
-  access as direct memory access (synthesized per-field labels at ``instance+offsetof``, or a
-  label+offset memory operand). Alternative: fold constant pointer registers to absolute addressing
-  in both 6502 backends, and reuse or drop the constant ``movea.l`` on m68k (overlaps with the
-  m68k pointer-reload item below).
+- Direct struct instances on the classic 6502 codegen are not accessed optimally. The IR/new-codegen/m68k backends now use direct memory access (``loadm``/``storem`` with the instance label + field offset), but the classic backend still builds a zero-page pointer from the (constant) instance address for every field access and reads via ``(zp),y`` (9-13 instructions where ``inc instance+2`` or ``lda instance+5`` would do). Memory-mapped instances (fixed address) have the same problem. Suggested fix: fold constant struct-instance field accesses to absolute addressing in ``AssignmentAsmGen`` (the ``value.operator=="."`` path with ``value.left.type.isStructInstance``) and in the augmented-assignment and store-target paths.
 - Array-of-struct element addresses are rebuilt per field access on both 6502 backends (see the
   Optimizations entry below). In source, hoisting ``^^T p = &&arr[i]`` avoids it; the idiom and the
   swap-cost tradeoff are documented in ``structpointers.rst``.

@@ -39,10 +39,10 @@ internal fun CpuType.canSkipExplicitCmpi(lastInstr: IRInstruction?): Boolean =
 
 internal class ExpressionGen(private val codeGen: IRCodeGen) {
 
-    private fun structInstanceLabel(name: String) = "$StStructInstanceBlockName.${name.replace('.', '_')}"
+    internal fun structInstanceLabel(name: String) = "$StStructInstanceBlockName.${name.replace('.', '_')}"
 
     // A memory-mapped struct instance has a fixed address instead of compiler-owned storage.
-    private fun structInstanceMemAddress(name: String): UInt? {
+    internal fun structInstanceMemAddress(name: String): UInt? {
         val node = codeGen.symbolTable.lookup(name)
         return if(node is StMemVar && node.dt.isStructInstance) node.address else null
     }
@@ -177,6 +177,35 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
 
 
     private fun translate(deref: PtPointerDeref): ExpressionCodeResult {
+        // Direct struct instance field access: emit a direct memory load using the
+        // instance's compile-time-constant storage label + field offset.
+        val startpointer = deref.startpointer
+        if (startpointer.type.isStructInstance && deref.chain.size == 1 && startpointer is PtIdentifier) {
+            val struct = startpointer.type.subType as? StStruct
+            if (struct != null) {
+                val field = struct.getField(deref.chain[0], codeGen.program.memsizer)
+                val fieldVmDt = codeGen.irType(field.first)
+                val memAddress = structInstanceMemAddress(startpointer.name)
+                val instanceLabel = if (memAddress != null) null else structInstanceLabel(startpointer.name)
+                val result = mutableListOf<IRCodeChunkBase>()
+                if (fieldVmDt == IRDataType.FLOAT) {
+                    val fpReg = codeGen.registers.next(IRDataType.FLOAT)
+                    if (memAddress != null)
+                        addInstr(result, IRInstructions.loadMemory(Opcode.LOADM, IRDataType.FLOAT, fpReg, IRMemory.direct(memAddress, field.second)), null)
+                    else
+                        addInstr(result, IRInstructions.loadMemory(Opcode.LOADM, IRDataType.FLOAT, fpReg, IRMemory.direct(instanceLabel!!, field.second)), null)
+                    return ExpressionCodeResult(result, fieldVmDt, -1, fpReg)
+                } else {
+                    val r = codeGen.registers.next(fieldVmDt)
+                    if (memAddress != null)
+                        addInstr(result, IRInstructions.loadMemory(Opcode.LOADM, fieldVmDt, r, IRMemory.direct(memAddress, field.second)), null)
+                    else
+                        addInstr(result, IRInstructions.loadMemory(Opcode.LOADM, fieldVmDt, r, IRMemory.direct(instanceLabel!!, field.second)), null)
+                    return ExpressionCodeResult(result, fieldVmDt, r, -1)
+                }
+            }
+        }
+
         val result = mutableListOf<IRCodeChunkBase>()
         val pointerReg: Int
         val tr = translateExpression(deref.startpointer)
