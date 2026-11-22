@@ -163,6 +163,17 @@ IRQ7 = $7C
             move.l  custom.savedIRQ1,d0      ; Restore IRQ1 vector
             move.l  d0,IRQ1(a0)
 
+            ; restore any installed IRQ handlers (levels 1-7, in any order); levels
+            ; 2,5,6,7 have no saved vector in grab_system, so the registry is their
+            ; only restore path. restore_handler is a no-op for inactive slots.
+            ; dbra counts down (7..1, plus a harmless no-op call for level 0).
+            moveq   #7,d6
+.restore_loop:
+            move.l  d6,d0
+            bsr     custom.restore_handler
+            dbra    d6,.restore_loop
+.restore_done:
+
             move.l  sys.GfxBase,a6      ; A6 = Graphics base
             move.l  gfx_copinit(a6),custom.COP1LC    ; Restore coplist pointer 1
             move.l  gfx_LOFlist(a6),custom.COP2LC    ; Restore coplist pointer 2
@@ -180,6 +191,280 @@ IRQ7 = $7C
             move.l  4.w,a6
             jsr     exec.Permit(a6)        ; Re-enable multitasking
             move.l  (sp)+,d6
+            rts
+        }}
+    }
+
+    asmsub irq_trampoline() {
+        ; Generic autovector trampoline. Installed at every level that has a
+        ; handler. Derives the level from SR, looks up the handler in
+        ; handler_table, calls it (a Prog8 sub, no params, no return value),
+        ; then restores all registers and returns with rte.
+        ; Handlers must be integer-only: no FPU instructions (the trampoline
+        ; does not save FPU state).
+        %asm {{
+            movem.l d0-d7/a0-a6,-(sp)
+            moveq   #0,d0               ; clear the upper word: move.w/and.w/lsr.w only touch the low word
+            move.w  sr,d0
+            and.w   #$0700,d0
+            lsr.w   #8,d0               ; d0 = level (1-7)
+            beq.s   .done
+            move.l  d0,d1
+            lsl.l   #2,d1
+            lea     custom.handler_table,a0
+            move.l  (a0,d1.l),d1        ; handler address
+            beq.s   .done               ; no handler installed
+            move.l  d1,a0
+            jsr     (a0)                ; call the user handler sub
+.done:
+            movem.l (sp)+,d0-d7/a0-a6
+            rte
+        }}
+    }
+
+    asmsub set_handler(ubyte level @D0, pointer handler @A0) {
+        ; Install handler at autovector level (1-7). Saves the original vector
+        ; in saved_vectors[level], stores handler in handler_table[level], and
+        ; installs irq_trampoline at the vector. Call only after grab_system().
+        %asm {{
+            movem.l d2,-(sp)
+            and.l   #$ff,d0            ; byte args marshal with move.b, so the upper bits may be garbage
+            cmp.b   #1,d0
+            blt.s   .done
+            cmp.b   #7,d0
+            bgt.s   .done
+            ; save original vector
+            move.l  d0,d1
+            lsl.l   #2,d1               ; level * 4
+            move.l  custom.cpuVBR,a1
+            add.l   #$60,a1             ; a1 = cpuVBR + $60 (level 0 base)
+            move.l  (a1,d1.l),d2        ; original vector
+            ; store saved vector
+            lea     custom.saved_vectors,a1
+            move.l  d2,(a1,d1.l)
+            ; store handler address
+            lea     custom.handler_table,a1
+            move.l  a0,(a1,d1.l)
+            ; install trampoline
+            move.l  custom.cpuVBR,a1
+            add.l   #$60,a1
+            lea     custom.irq_trampoline,a0
+            move.l  a0,(a1,d1.l)
+.done:
+            movem.l (sp)+,d2
+            rts
+        }}
+    }
+
+    asmsub restore_handler(ubyte level @D0) {
+        ; Restore the original vector for level (1-7). No-op if no handler was
+        ; installed. Clears the slot so restore_system's trailing loop skips it.
+        %asm {{
+            movem.l d2,-(sp)
+            and.l   #$ff,d0            ; byte args marshal with move.b, so the upper bits may be garbage
+            cmp.b   #1,d0
+            blt.s   .done
+            cmp.b   #7,d0
+            bgt.s   .done
+            move.l  d0,d1
+            lsl.l   #2,d1
+            lea     custom.saved_vectors,a0
+            move.l  (a0,d1.l),d2
+            beq.s   .done               ; not active
+            ; restore vector
+            move.l  custom.cpuVBR,a1
+            add.l   #$60,a1
+            move.l  d2,(a1,d1.l)
+            ; clear slots
+            lea     custom.saved_vectors,a0
+            clr.l   (a0,d1.l)
+            lea     custom.handler_table,a0
+            clr.l   (a0,d1.l)
+.done:
+            movem.l (sp)+,d2
+            rts
+        }}
+    }
+
+    asmsub enable_irq(uword source @D0) {
+        ; Enable an interrupt source (master enable + source bit).
+        ; source must be one of the INTF_* constants (e.g. INTF_VERTB),
+        ; or an OR of several. The master bit must be set in the same write:
+        ; bits written as 0 are left unchanged.
+        %asm {{
+            or.w    #$c000,d0
+            move.w  d0,custom.INTENA
+            rts
+        }}
+    }
+
+    asmsub disable_irq(uword source @D0) {
+        ; Disable an interrupt source (clear SETCLR, so this clears the bit).
+        %asm {{
+            move.w  d0,custom.INTENA
+            rts
+        }}
+    }
+
+    asmsub ack_irq(uword source @D0) {
+        ; Acknowledge a pending interrupt request (clear write).
+        %asm {{
+            move.w  d0,custom.INTREQ
+            rts
+        }}
+    }
+
+    asmsub set_level3_handler(pointer handler @A0) {
+        ; Install handler at autovector level 3. Does not enable or acknowledge
+        ; any source - call ack_irq and enable_irq for the source(s) you want.
+        %asm {{
+            moveq   #3,d0
+            bsr     custom.set_handler
+            rts
+        }}
+    }
+
+    ; ========== CIA interrupt helpers ==========
+    ; CIA-A is on autovector level 2 (INTENA PORTS bit), CIA-B on level 6
+    ; (INTENA EXTER bit). A CIA interrupt fires when any enabled ICR source
+    ; triggers. Reading ICR acknowledges ALL pending sources at once, so the
+    ; handler must read it once and service every bit that is set.
+    ; ICR bits: 0=Timer A, 1=Timer B, 2=TOD alarm, 3=serial, 4=flag pin.
+    ; To enable a source, write to ICR with bit 7 (SET/CLR) set; to disable,
+    ; write with bit 7 clear. tod_alarm_enable() handles the TOD alarm bit.
+
+    asmsub set_ciaa_handler(pointer handler @A0) {
+        ; Install handler at autovector level 2 (CIA-A).
+        %asm {{
+            moveq   #2,d0
+            bsr     custom.set_handler
+            rts
+        }}
+    }
+
+    asmsub set_ciab_handler(pointer handler @A0) {
+        ; Install handler at autovector level 6 (CIA-B).
+        %asm {{
+            moveq   #6,d0
+            bsr     custom.set_handler
+            rts
+        }}
+    }
+
+    asmsub enable_ciaa() {
+        ; Enable CIA-A interrupt in INTENA (master + PORTS bit).
+        %asm {{
+            move.w  #$c008,custom.INTENA
+            rts
+        }}
+    }
+
+    asmsub disable_ciaa() {
+        ; Disable CIA-A interrupt in INTENA.
+        %asm {{
+            move.w  #$0008,custom.INTENA
+            rts
+        }}
+    }
+
+    asmsub enable_ciab() {
+        ; Enable CIA-B interrupt in INTENA (master + EXTER bit).
+        %asm {{
+            move.w  #$e000,custom.INTENA
+            rts
+        }}
+    }
+
+    asmsub disable_ciab() {
+        ; Disable CIA-B interrupt in INTENA.
+        %asm {{
+            move.w  #$2000,custom.INTENA
+            rts
+        }}
+    }
+
+    asmsub read_ciaa_icr() -> ubyte @D0 {
+        ; Read CIA-A ICR: acknowledges all pending sources, returns them.
+        ; The CIA deasserts its /IRQ line, but the custom chip latches the
+        ; level 2 request in INTREQ until it is written, so clear PORTS too.
+        %asm {{
+            moveq   #0,d0
+            move.b  custom.CIAA_ICR,d0
+            move.w  #custom.INTF_PORTS,custom.INTREQ
+            rts
+        }}
+    }
+
+    asmsub read_ciab_icr() -> ubyte @D0 {
+        ; Read CIA-B ICR: acknowledges all pending sources, returns them.
+        ; The custom chip latches the level 6 request in INTREQ until it is
+        ; written, so clear EXTER too.
+        %asm {{
+            moveq   #0,d0
+            move.b  custom.CIAB_ICR,d0
+            move.w  #custom.INTF_EXTER,custom.INTREQ
+            rts
+        }}
+    }
+
+    ; ========== CIA interrupt convenience helpers ==========
+    ; These install a handler at the appropriate level, mask all ICR sources,
+    ; clear pending requests, enable the specific source, and enable the CIA
+    ; in INTENA. The handler is a Prog8 sub with no params; it must call
+    ; read_ciaa_icr / read_ciab_icr to acknowledge the interrupt.
+
+    asmsub set_ciaa_timer_handler(pointer handler @A0) {
+        ; CIA-A Timer A interrupt (level 2).
+        %asm {{
+            moveq   #2,d0
+            bsr     custom.set_handler
+            move.b  #$7f,custom.CIAA_ICR    ; mask all sources
+            move.b  custom.CIAA_ICR,d1       ; clear pending
+            move.w  #custom.INTF_PORTS,custom.INTREQ  ; drop a latched request
+            move.b  #$81,custom.CIAA_ICR    ; enable Timer A
+            move.w  #$c008,custom.INTENA    ; enable PORTS in INTENA
+            rts
+        }}
+    }
+
+    asmsub set_ciab_timer_handler(pointer handler @A0) {
+        ; CIA-B Timer A interrupt (level 6).
+        %asm {{
+            moveq   #6,d0
+            bsr     custom.set_handler
+            move.b  #$7f,custom.CIAB_ICR    ; mask all sources
+            move.b  custom.CIAB_ICR,d1       ; clear pending
+            move.w  #custom.INTF_EXTER,custom.INTREQ  ; drop a latched request
+            move.b  #$81,custom.CIAB_ICR    ; enable Timer A
+            move.w  #$e000,custom.INTENA    ; enable EXTER in INTENA
+            rts
+        }}
+    }
+
+    asmsub set_ciaa_tod_handler(pointer handler @A0) {
+        ; CIA-A TOD alarm interrupt (level 2).
+        %asm {{
+            moveq   #2,d0
+            bsr     custom.set_handler
+            move.b  #$7f,custom.CIAA_ICR    ; mask all sources
+            move.b  custom.CIAA_ICR,d1       ; clear pending
+            move.w  #custom.INTF_PORTS,custom.INTREQ  ; drop a latched request
+            move.b  #$84,custom.CIAA_ICR    ; enable TOD alarm
+            move.w  #$c008,custom.INTENA    ; enable PORTS in INTENA
+            rts
+        }}
+    }
+
+    asmsub set_ciab_tod_handler(pointer handler @A0) {
+        ; CIA-B TOD alarm interrupt (level 6).
+        %asm {{
+            moveq   #6,d0
+            bsr     custom.set_handler
+            move.b  #$7f,custom.CIAB_ICR    ; mask all sources
+            move.b  custom.CIAB_ICR,d1       ; clear pending
+            move.w  #custom.INTF_EXTER,custom.INTREQ  ; drop a latched request
+            move.b  #$84,custom.CIAB_ICR    ; enable TOD alarm
+            move.w  #$e000,custom.INTENA    ; enable EXTER in INTENA
             rts
         }}
     }
@@ -392,6 +677,8 @@ ExecVBlankFrequency = $212
     private pointer @shared savedIRQ1          ; original IRQ1 vector
     private pointer @shared savedIRQ3          ; original IRQ3 vector
     private pointer @shared savedIRQ4          ; original IRQ4 vector
+    private pointer[8] @shared handler_table   ; IRQ handler addresses, slot 0 unused, slots 1-7 for levels 1-7
+    private pointer[8] @shared saved_vectors   ; saved original vectors, slot 0 unused
 
 
 
@@ -931,6 +1218,13 @@ ExecVBlankFrequency = $212
             lea     custom.CIAB_PRA,a0
 .ack:
             tst.b   $d00(a0)            ; read ciaicr: clears the pending flags
+            cmp.b   #1,d0
+            beq.s   .ackb
+            move.w  #custom.INTF_PORTS,custom.INTREQ  ; drop a latched request
+            bra.s   .setmask
+.ackb:
+            move.w  #custom.INTF_EXTER,custom.INTREQ
+.setmask:
             moveq   #custom.CIAICRF_ALRM,d0
             tst.b   d1
             beq.s   .mask
@@ -1439,6 +1733,10 @@ ExecVBlankFrequency = $212
     const uword INTF_SOFTINT = $0004
     const uword INTF_DSKBLK  = $0002
     const uword INTF_TBE     = $0001
+
+    ; The INTF_* constants above are the Amiga interrupt source bitmasks
+    ; (from the NDK headers). Pass one (or an OR of several) as the
+    ; "source" argument to enable_irq / disable_irq / ack_irq.
 
     ; ========== ADK control bits (adkcon) ==========
 

@@ -1,6 +1,6 @@
 
 Prog8 compiler v14.0-BETA3 by Irmen de Jong (irmen@razorvine.net)
-Prerelease version from git commit 7cd59c40 in branch master
+Prerelease version from git commit f8ff64ff in branch master
 This software is licensed under the GNU GPL 3.0, see https://www.gnu.org/licenses/gpl.html
 
 Compiling program import-all-amiga1200.p8
@@ -1338,14 +1338,22 @@ custom  {
     long @shared  cpuVBR
     bool @shared  isPAL
     ubyte[]  key_state
+    ack_irq  (uword source @D0)
     any_key_pressed  () -> bool @D0
     compute_display  (word view_width, word view_height, word bitmap_width, ubyte depth, uword mode, word vertical_offset) -> ^^custom.DisplayRegs
     cycle_forward  (^^long rgb24, uword count)
     detect_chipset  () -> ubyte
+    disable_ciaa  ()
+    disable_ciab  ()
+    disable_irq  (uword source @D0)
+    enable_ciaa  ()
+    enable_ciab  ()
+    enable_irq  (uword source @D0)
     filter_off  ()
     filter_on  ()
     get_button_states  () -> uword @D0
     grab_system  (bool replace_view @D0)
+    irq_trampoline  ()
     joystick_axes  (ubyte port) -> byte, byte
     joystick_fire  (ubyte port @D0) -> bool @Pz
     joystick_fire2  (ubyte port @D0) -> bool @Pz
@@ -1360,10 +1368,21 @@ custom  {
     mouse_init  (ubyte port, ubyte scale_divisor)
     pack12  (long rgb24 @D0) -> uword @D0
     raw_keyboard_poll  () -> bool, ubyte
+    read_ciaa_icr  () -> ubyte @D0
+    read_ciab_icr  () -> ubyte @D0
+    restore_handler  (ubyte level @D0)
     restore_system  ()
     right_button  () -> bool @Pz
     set_aga_color  (ubyte color_index @D0, long rgb24 @D1)
+    set_ciaa_handler  (long handler @A0)
+    set_ciaa_timer_handler  (long handler @A0)
+    set_ciaa_tod_handler  (long handler @A0)
+    set_ciab_handler  (long handler @A0)
+    set_ciab_timer_handler  (long handler @A0)
+    set_ciab_tod_handler  (long handler @A0)
     set_color  (ubyte index, long rgb24)
+    set_handler  (ubyte level @D0, long handler @A0)
+    set_level3_handler  (long handler @A0)
     set_ocs_color  (ubyte index, long rgb24)
     timer_flag  (ubyte cia @D0, ubyte timer @D1) -> bool @Pz
     timer_start  (ubyte cia @D0, ubyte timer @D1, uword reload @D2, bool continuous @D3)

@@ -148,7 +148,21 @@ modules. Import them the same way as any other library::
     ``grab_system(replace_view)``/``restore_system()`` to take over the whole system and interrupt
     handlers for hardware banging programs (games, demos); pass true to load
     a blank NULL view first, false to leave the currently active View untouched
-    (display DMA stays on). ``compute_display()`` accepts a vertical offset
+    (display DMA stays on). Bare-metal programs can also install interrupt
+    handlers via ``set_handler(level, handler)`` / ``restore_handler(level)``
+    (levels 1-7), which installs a generic VBR-aware trampoline at the
+    autovector. Handlers must be integer-only (no FPU instructions): the
+    trampoline saves D0-D7/A0-A6 but no FPU state. ``set_level3_handler(handler)``
+    installs a handler at level 3 without enabling any source; use the
+    per-source helpers to enable what you need:
+    ``enable_irq(source)`` / ``disable_irq(source)`` / ``ack_irq(source)`` take an
+    ``INTF_*`` constant (VERTB, COPER, BLIT, PORTS, EXTER, TBE, DSKBLK,
+    SOFTINT, AUD0-3, RBF, DSKSYN, and others). These are the Amiga interrupt
+    source bitmasks from the NDK headers. ``restore_system()`` restores any
+    installed handlers automatically. A VERTB handler must call
+    ``ack_irq(INTF_VERTB)`` to acknowledge the interrupt. See
+    ``examples/amiga/vertb-demo.p8``.
+    ``compute_display()`` accepts a vertical offset
     in scanlines (positive moves the display down) and computes shadow display
     register values (``DisplayRegs``) for a bare-metal playfield without
     Intuition or View/ViewPort setup. ``view_width``/``view_height`` are the
@@ -228,7 +242,9 @@ modules. Import them the same way as any other library::
     ``tod_alarm_set`` loads the alarm register and ``tod_alarm_enable`` masks
     the resulting interrupt (ICR bit 2, ``custom.CIAICRF_ALRM``); with the mask
     off the alarm flag can still be polled from ``CIAA_ICR``/``CIAB_ICR``,
-    since reading an ICR acknowledges it.
+    since reading an ICR acknowledges it. The alarm matches once, so a handler
+    that wants a repeating alarm must re-arm it with the next count, for
+    example ``tod_alarm_set(cia, tod_read(cia) + interval)``.
 
     The two 16-bit interval timers of each CIA are reachable through
     ``timer_start(cia, timer, reload, continuous)``, ``timer_stop(cia, timer)``,
@@ -539,6 +555,62 @@ Tweaks applied by the generator
   ``RastPort`` and ``BitMap``.
 - The ``graphics`` palette loaders build their tables in fixed static scratch
   buffers instead of allocating memory per call.
+
+Bare-metal interrupt handling
+-----------------------------
+
+Programs that take over the machine with ``custom.grab_system()`` can install
+their own interrupt handlers on the 68000 autovector levels. The ``custom``
+module provides a generic, VBR-aware mechanism plus per-source helpers.
+Handlers must be integer-only (no FPU instructions): the trampoline saves
+D0-D7/A0-A6 but no FPU state.
+
+``custom.set_handler(level, handler)`` / ``custom.restore_handler(level)``
+install and remove a handler on autovector level 1-7. The trampoline derives
+the level from the status register, looks up the handler in an internal
+registry, and calls it (a Prog8 ``sub`` with no parameters and no return
+value). ``custom.restore_system()`` restores any installed handlers
+automatically.
+
+``custom.set_level3_handler(handler)`` installs a handler at level 3 without
+enabling any source. Use the per-source helpers to enable what you need:
+``custom.enable_irq(source)`` / ``custom.disable_irq(source)`` /
+``custom.ack_irq(source)``, where ``source`` is an ``INTF_*`` constant
+(VERTB, COPER, BLIT, PORTS, EXTER, TBE, DSKBLK, SOFTINT, AUD0-3, RBF,
+DSKSYN, and others). These are the Amiga interrupt source bitmasks from
+the NDK headers.
+
+Note that the Amiga multiplexes several sources onto each autovector level:
+level 3 carries VERTB, COPER and BLIT; levels 2 and 6 carry all CIA-A/CIA-B
+sources (timers, TOD alarm, serial, flag pin) behind a single enable bit.
+The ``set_level3_handler`` installs the trampoline only; enable the
+source(s) you want via ``enable_irq()``. A level-3 handler sees just the
+enabled source(s); CIA handlers must read ICR and service every pending bit,
+because reading ICR acknowledges all of them at once.
+
+For the vertical-blank interrupt, a typical setup is::
+
+    custom.set_level3_handler(&handler)
+    custom.ack_irq(custom.INTF_VERTB)
+    custom.enable_irq(custom.INTF_VERTB)
+
+and the handler must call ``custom.ack_irq(custom.INTF_VERTB)`` to
+acknowledge each interrupt. See ``examples/amiga/vertb-demo.p8``.
+
+For CIA timer interrupts, ``set_ciaa_handler`` / ``set_ciab_handler``
+install at levels 2 and 6, ``enable_ciaa`` / ``disable_ciaa`` /
+``enable_ciab`` / ``disable_ciab`` control INTENA, and
+``read_ciaa_icr`` / ``read_ciab_icr`` read (and acknowledge) the ICR.
+Reading the ICR also clears the custom chip's latched INTREQ bit
+(``PORTS`` or ``EXTER``); without that write the level request stays
+asserted and the CPU re-enters the handler forever.
+Convenience functions ``set_ciaa_timer_handler`` /
+``set_ciab_timer_handler`` / ``set_ciaa_tod_handler`` /
+``set_ciab_tod_handler`` combine install, mask, clear, and enable in one
+call. TOD alarm interrupts use the same mechanism: ``tod_alarm_set`` and
+``tod_alarm_enable`` configure the alarm, and the handler checks the
+``CIAICRF_ALRM`` bit (bit 2) of the value returned by ``read_ciaa_icr``
+or ``read_ciab_icr``. See ``examples/amiga/tod-alarm-demo.p8``.
 
 Amiga/m68k specifics in cross-target libraries
 ----------------------------------------------
