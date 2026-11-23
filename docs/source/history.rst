@@ -282,6 +282,7 @@ Major breaking changes that require code modifications when upgrading:
     - **``-o`` / ``--output`` compiler option** - choose the exact file name and path of the output program file;
       all auxiliary output files (assembly, listing, monitor list, IR) are placed alongside it.
       Mutually exclusive with ``-out``.
+    - **Enhanced bmx.py script tool** - 1/2/4/8 bpp, dithering options, and palette output in ``info``.
 
 
 *This document summarizes major and minor releases. Bugfix releases (e.g., v12.0.1, v12.1.1) are omitted for brevity.*

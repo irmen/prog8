@@ -12,6 +12,9 @@ if __package__:
         BAYER_4X4,
         BAYER_8X8,
         apply_ordered_dither,
+        default_colors,
+        flat_palette_to_rgb,
+        palette_8to4,
     )
 else:
     from cx16images import (
@@ -19,6 +22,9 @@ else:
         BAYER_4X4,
         BAYER_8X8,
         apply_ordered_dither,
+        default_colors,
+        flat_palette_to_rgb,
+        palette_8to4,
     )
 
 
@@ -50,7 +56,8 @@ class Bmx:
         return f"[BMX image {self.width}*{self.height}, {self.bpp} bpp, {self.pal_used} colors, {cmpr}]"
 
     def read(self, filename: str):
-        data = open(filename, "rb").read()
+        with open(filename, "rb") as inp:
+            data = inp.read()
         self.__parse_header(data)
         self.palette_data = data[32: 32 + self.pal_used * 2]
         self.bitmap_data = data[32 + self.pal_used * 2:]
@@ -124,7 +131,15 @@ class Bmx:
             print(f"Warning: cropping {bitmap_image.width - aligned_width} right-edge pixels for {bpp}bpp byte alignment")
             bitmap_image = bitmap_image.crop(0, 0, aligned_width, bitmap_image.height)
 
-        preserve_palette = bitmap_image.has_palette() and bpp == 8 and not preserve_first_16_colors and dither == "none"
+        preserve_palette = bitmap_image.has_palette() and bpp == 8 and dither == "none"
+        if preserve_first_16_colors and bitmap_image.has_palette() and bpp == 8:
+            # Leave an existing palette untouched; only warn if it doesn't start
+            # with the CX16 defaults that --preserve16 asks for.
+            preserve_palette = True
+            palette = palette_8to4(bitmap_image.get_palette())
+            if palette[:16] != default_colors[:16]:
+                print("warning: --preserve16 has no effect on an image with a palette; "
+                      "the first 16 colors are not the CX16 defaults. Leaving the palette unchanged.")
         if not preserve_palette:
             if dither in ("ordered4", "ordered8"):
                 source_image = bitmap_image.get_image().convert("RGB")
@@ -229,10 +244,44 @@ def bmx_show(filename: str) -> None:
     img.show()
 
 
+def bmx_palette_words(bmx: Bmx) -> List[int]:
+    return [int.from_bytes(bmx.palette_data[i:i + 2], "little")
+            for i in range(0, len(bmx.palette_data), 2)]
+
+
+def image_palette_words(image: Image) -> List[int]:
+    palette = palette_8to4(flat_palette_to_rgb(image.getpalette() or []))
+    return [r << 8 | g << 4 | b for r, g, b in palette]
+
+
+def print_palette(words: List[int]) -> None:
+    if not words:
+        print("no palette")
+        return
+    print(f"palette ({len(words)} colors, 0RGB hex):")
+    for start in range(0, len(words), 16):
+        row = words[start:start + 16]
+        print(f"  {start:02x}: " + " ".join(f"{word:03x}" for word in row))
+
+
 def bmx_info(filename: str) -> None:
-    bmx = Bmx()
-    bmx.read(filename)
-    print(f"{filename}: {bmx}")
+    with open(filename, "rb") as inp:
+        is_bmx = inp.read(3) == b"BMX"
+
+    if is_bmx:
+        bmx = Bmx()
+        bmx.read(filename)
+        print(f"{filename}: {bmx}")
+        print_palette(bmx_palette_words(bmx))
+        return
+
+    with Image.open(filename) as image:
+        if image.mode == "P":
+            print(f"{filename}: palette image {image.width}*{image.height}, "
+                  f"{len(image.getpalette()) // 3} colors")
+            print_palette(image_palette_words(image))
+        else:
+            print(f"{filename}: {image.mode} image {image.width}*{image.height}, no palette")
 
 
 def bmx_create(filename: str, outputfile: str, preserve16: bool, dither: str, bpp: int, hires: bool = False) -> None:

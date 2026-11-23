@@ -216,6 +216,8 @@ class BitmapImage:
         palette_rgb = flat_palette_to_rgb(palette_image.getpalette() or [])
         palette_rgb = list(dict.fromkeys(palette_8to4(palette_rgb)))
         if preserve_first_16_colors:
+            # Don't waste palette entries on colors that are already defaults.
+            palette_rgb = [color for color in palette_rgb if color not in default_colors[:16]]
             palette_rgb = default_colors[:16] + palette_rgb
         elif fixed_color_zero:
             assert fixed_color_zero[0]<16 and fixed_color_zero[1]<16 and fixed_color_zero[2]<16, "fixed color 0 must to be 4 bits per channel"

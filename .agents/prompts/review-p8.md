@@ -207,6 +207,15 @@ syntax feature that you could not verify against one of these sources.
      `long` or `float` math in code that does not need the range or precision
    - generic pointer or struct field access where a typed pointer or a plain
      array would generate less code; `structs`/pointers are not free on 6502
+   - copying or assigning a struct instance variable by value (``a = b`` where
+     both are struct instances, or ``Country tmp = countries[i]``) performs a
+     full memory copy of the struct (via ``sys.memcopy``), including float fields
+     that go through the FAC. In a loop (iterating, sorting, swapping elements)
+     this is very expensive: prefer typed pointers (``^^T``) and operate on the
+     instance in place, or swap pointer entries instead of whole structs. This
+     applies to both reads and writes of whole struct values. Note that ``swap()``
+     on struct instances is desugared to three such memcopies (through a compiler
+     temp), so it carries the same cost; prefer swapping pointer entries.
    - flags and truth values held in `ubyte` instead of `bool`: logical
      expressions on `bool` operands compile more efficiently than on integers,
      which have to be converted to 0 or 1. Conversely, a `bool` array costs one
