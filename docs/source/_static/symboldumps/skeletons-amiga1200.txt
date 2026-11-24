@@ -2310,6 +2310,7 @@ easygfx  {
     ^^graphics.RastPort  rastport
     uword  width
     ^^intuition.Window  window
+    active_screen  () -> ^^intuition.Screen
     circle  (word cx, word cy, word radius, ubyte pen)
     clear  (ubyte pen)
     close  ()

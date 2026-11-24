@@ -145,6 +145,14 @@ easygfx {
         return true
     }
 
+    sub active_screen() -> ^^intuition.Screen {
+        if screen != 0
+            return screen
+        if window != 0
+            return window.WScreen
+        return 0
+    }
+
     sub close() {
         ; close window and screen (if ours), back to Workbench/textmode
         if window != 0 {

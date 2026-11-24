@@ -710,27 +710,29 @@ short-circuit cases with side effects in the right operand.
 Target: diagnostics.
 
 Where: `AstChecker.visit(DirectMemoryWrite)` in
-`compiler/src/prog8/compiler/astprocessing/AstChecker.kt`. Warnings go through
-`errors.warn(msg, position)` and are gated by `-ignorefootguns`.
+`compiler/src/prog8/compiler/astprocessing/AstChecker.kt`. Infos go through
+`errors.info(msg, position)` and are gated by `-ignorefootguns`.
 
 Original state: there was no lint for slow `@(...)` stores or address arithmetic.
 
 Implemented: on 6502-family targets, direct stores with a dynamic `+` address
-offset warn when they may rebuild a scratch pointer. The checker skips library
-code, constant offsets, the P4 absolute-indexed form, and byte-indexed accesses
-through a base known to be in zero page.
+offset are reported when the suggested fast form can actually be used. The
+checker skips library code, constant-only addresses, the P4 absolute-indexed
+form, and byte-indexed accesses through a base known to be in zero page, in
+either operand order. It also stays quiet when the base is only *possibly*
+allocated to zero page (the real allocation happens later, during codegen) or
+when the index is a word whose range is not known to fit a byte.
 
 The diagnostic is:
 
-> this store may rebuild a scratch pointer (many cpu cycles); consider a
-> zero-page uword base with a byte index, or a fixed-address page array
-> (`&ubyte[256] page = ADDRESS`).
+> slow store; use a zero-page base with a ubyte index if possible
 
 It is advisory only; it does not change code generation.
 
-Tests: `TestAstChecks` verifies warnings for word-indexed numeric bases and
-non-zero-page pointer bases, and no warning for the P4 byte-indexed path,
-constant offsets, or a required-zero-page cursor.
+Tests: `TestAstChecks` verifies infos for explicitly non-zero-page pointer bases
+with a byte index, and no info for the P4 byte-indexed path, constant offsets,
+a required-zero-page cursor, the reversed byte-plus-pointer form with a
+possibly zero-page pointer, or a word index that cannot be narrowed safely.
 
 ### P10 (stretch). Split loops at page boundaries
 

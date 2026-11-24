@@ -443,7 +443,16 @@ modules. Import them the same way as any other library::
     blocking and returns 0 when the queue is empty; drain messages with
     ``imsg_poll()``/``imsg_reply()`` in animation loops. ``imsg_wait()`` blocks
     until a message arrives. The ``rastport`` and ``window`` variables expose the
-    handles for direct library calls and IDCMP message handling. See
+    handles for direct library calls and IDCMP message handling.
+    ``active_screen()`` returns the screen associated with the current window:
+    the custom screen in fullscreen mode, the Workbench screen in windowed mode,
+    or 0 when closed. The returned pointer is borrowed; use it to access the
+    screen's bitmap or viewport, but let ``easygfx.close()`` close the screen.
+    For example, after opening the display::
+
+        ^^graphics.BitMap bitmap = intuition.GetScreenBitMap(easygfx.active_screen())
+
+    See
     ``examples/amiga/penrose-triangle.p8`` for a polling loop. Kickstart 1.3
     compatible.
 

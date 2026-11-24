@@ -2693,36 +2693,32 @@ internal class AstChecker(private val program: Program,
             }
         }
 
-        val rightType = right.inferType(program).getOrUndef()
-        val offsetIsByte = when(right) {
-            is TypecastExpression -> right.expression.inferType(program).getOrUndef().isUnsignedByte
-            else -> rightType.isUnsignedByte
-        }
-        val leftIdentifier = left as? IdentifierReference
         val leftType = left.inferType(program).getOrUndef()
-        val leftIsPointerIdentifier = leftIdentifier!=null && (leftType.isUnsignedWord || leftType.isPointer)
+        val rightType = right.inferType(program).getOrUndef()
+        val leftIsByteIndex = leftType.isUnsignedByte ||
+                (left is TypecastExpression && left.expression.inferType(program).getOrUndef().isUnsignedByte)
+        val rightIsByteIndex = rightType.isUnsignedByte ||
+                (right is TypecastExpression && right.expression.inferType(program).getOrUndef().isUnsignedByte)
+        val leftIsByteConstant = left.constValue(program)?.number?.toLong()?.let { it in 0L..0xffL } == true
+        val rightIsByteConstant = rightValue?.number?.toLong()?.let { it in 0L..0xffL } == true
 
-        if(leftIsPointerIdentifier) {
-            if(offsetIsByte && isDefinitelyInZeropage(leftIdentifier))
+        val baseExpr = when {
+            (leftType.isUnsignedWord || leftType.isPointer) && (rightIsByteIndex || rightIsByteConstant) -> left
+            (rightType.isUnsignedWord || rightType.isPointer) && (leftIsByteIndex || leftIsByteConstant) -> right
+            else -> return
+        }
+        val baseIdentifier = baseExpr as? IdentifierReference
+        if(baseIdentifier!=null) {
+            if(isDefinitelyInZeropage(baseIdentifier))
                 return
-            errors.warn("this store may rebuild a scratch pointer (many cpu cycles); consider a zero-page uword base with a byte index, or a fixed-address page array", memwrite.position)
+            // An undecided or preferred zeropage wish may still be allocated there; don't claim it is slow.
+            if(!isDefinitelyNotInZeropage(baseIdentifier))
+                return
+        } else if(baseExpr is NumericLiteral) {
             return
         }
 
-        val baseValue = left.constValue(program)?.number?.toLong()
-        val byteIndexIdentifier = when (right) {
-            is IdentifierReference -> right.takeIf { offsetIsByte }
-            is TypecastExpression -> (right.expression as? IdentifierReference)?.takeIf {
-                offsetIsByte && it.inferType(program).getOrUndef().isUnsignedByte
-            }
-            else -> null
-        }
-        val p4FastAddress = baseValue!=null && baseValue in 0x100L..0xffffL &&
-                offsetIsByte && byteIndexIdentifier!=null
-        if(p4FastAddress)
-            return
-
-        errors.warn("this store may rebuild a scratch pointer (many cpu cycles); consider a zero-page uword base with a byte index, or a fixed-address page array", memwrite.position)
+        errors.info("slow store; use a zero-page base with a ubyte index if possible", memwrite.position)
     }
 
     private fun isDefinitelyInZeropage(identifier: IdentifierReference): Boolean {
@@ -2732,6 +2728,17 @@ internal class AstChecker(private val program: Program,
         if(decl.type == VarDeclType.MEMORY) {
             val address = decl.value?.constValue(program)?.number?.toLong()
             return address!=null && address in 0L..0xffL
+        }
+        return false
+    }
+
+    private fun isDefinitelyNotInZeropage(identifier: IdentifierReference): Boolean {
+        val decl = identifier.targetVarDecl() ?: return false
+        if(decl.zeropage == ZeropageWish.NOT_IN_ZEROPAGE)
+            return true
+        if(decl.type == VarDeclType.MEMORY) {
+            val address = decl.value?.constValue(program)?.number?.toLong()
+            return address!=null && address !in 0L..0xffL
         }
         return false
     }
