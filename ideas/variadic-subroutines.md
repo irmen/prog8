@@ -1,4 +1,4 @@
-# Compile-time Variadic Subroutines
+# Compile-time Variadic Subroutines [won't do]
 
 **Status: won't do unless a concrete need appears.** This is a design exploration
 only; no compiler or library files are changed by this document. The M68K

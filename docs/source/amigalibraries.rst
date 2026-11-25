@@ -408,7 +408,14 @@ modules. Import them the same way as any other library::
     pointers, ``char()`` draws one glyph and ``print()`` draws a string with
     LF handling and reverse video (bit 7 of the character byte). CPU-only, no
     OS calls, transparent glyph background, exact foreground color including 0.
-    Limited to the embedded 8x8 font; no clipping is performed.
+    The embedded 8x8 font (128 glyphs) is the default after each ``init()``.
+    ``set_font()`` points the renderer at a caller-owned 1024-byte table with
+    8 rows per glyph, and ``set_font(0)`` restores the built-in font.
+    ``set_glyph()`` overwrites one glyph, codepoint 0-127, in the active table
+    from an 8-byte buffer; invalid codepoints are ignored. Bit 7 selects
+    reverse video and is not part of the codepoint. Call the font routines
+    after ``init()`` because ``init()`` resets the font. The active table must
+    be writable RAM when ``set_glyph()`` is used. No clipping is performed.
 
 ``sound``
     Direct Paula audio: hardware-banging 4-channel 8-bit PCM playback with no

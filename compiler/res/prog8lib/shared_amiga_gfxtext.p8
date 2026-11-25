@@ -1,8 +1,9 @@
 ; gfxtext - bare-metal 8x8 text renderer for the Amiga (CPU-only, no OS calls).
 ; Shared by amiga500 and amiga1200 targets.
 ;
-; Rendering is limited to the embedded 8x8 font (font8x8_basic, 128 glyphs).
-; Custom fonts, variable-size glyphs, and font switching are NOT supported.
+; The embedded 8x8 font (font8x8_basic, 128 glyphs) is the default.
+; set_font() selects a caller-owned 1024-byte table, set_font(0) restores the default.
+; set_glyph() edits one glyph of the active font.
 ; Reverse video is available via bit 7 of the character byte (no second font).
 
 %import math
@@ -14,6 +15,7 @@ gfxtext {
     private uword @shared pitch
     private ubyte @shared depth
     private pointer[8] @shared planes
+    private pointer @shared active_font
 
     sub init(uword p, ubyte d, ^^pointer bitplanes) {
         pitch = p
@@ -24,6 +26,23 @@ gfxtext {
             planes[i] = bitplanes[i]
             i = i + 1
         }
+        active_font = &font8x8
+    }
+
+    sub set_font(pointer font) {
+        if font == 0
+            active_font = &font8x8
+        else
+            active_font = font
+    }
+
+    sub set_glyph(ubyte codepoint, pointer rows) {
+        if codepoint > 127
+            return
+        uword base = (codepoint as uword) * 8
+        ubyte i
+        for i in 0 to 7
+            @(active_font + base + i) = rows[i]
     }
 
     sub char(uword x, uword y, ubyte chr, ubyte color) {
@@ -73,12 +92,12 @@ gfxtext {
             moveq   #0,d0
             move.w  gfxtext.pitch,d0
             move.l  d0,a2
-            ; a3 = font8x8 + (chr & $7f) * 8
+            ; a3 = active_font + (chr & $7f) * 8
             moveq   #0,d0
             move.b  d2,d0
             andi.w  #$7f,d0
             lsl.w   #3,d0
-            lea     gfxtext.font8x8,a3
+            move.l  gfxtext.active_font,a3
             add.l   d0,a3
             lea     gfxtext.planes,a4
             ; d6 = depth
@@ -166,7 +185,7 @@ gfxtext {
         bool reverse = (chr & $80) != 0
         ubyte row
         for row in 0 to 7 {
-            ubyte g = font8x8[glyphIndex + row]
+            ubyte g = active_font[glyphIndex + row]
             if reverse { g = ~g }
             if g == 0 {
                 rowBase += pitch

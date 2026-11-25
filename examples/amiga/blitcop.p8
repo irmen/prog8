@@ -70,6 +70,12 @@ main {
         gfxtext.print(15, 210, iso:"reverse: \x82\x81", 0)
         gfxtext.print(16, 220, iso:"some byte aligned text", 0)
 
+        ; Install a custom heart glyph and draw it in the white bottom quarter.
+        gfxtext.set_glyph(1, &heart)
+        gfxtext.char(200, 200, 1, 0)
+        gfxtext.char(210, 201, 1, 0)
+        gfxtext.char(220, 202, 1, 0)
+
         ; Build the copper list with the copper helper (bitplane slots,
         ; display registers and the raster gradient) and start it.
         uword planeBase = build_copperlist(regs)
@@ -89,6 +95,15 @@ main {
 
     const ubyte BAR_TOP = 90
     const ubyte BAR_LINES = 24
+
+    ubyte[8] heart = [%00000000,
+                      %01100110,
+                      %11111111,
+                      %11111111,
+                      %01111110,
+                      %00111100,
+                      %00011000,
+                      %00000000]
 
     ; Static purple-to-magenta raster gradient, one COLOR00 per line.
     uword[BAR_LINES] gradient = [
