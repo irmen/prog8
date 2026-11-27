@@ -137,7 +137,8 @@ modules. Import them the same way as any other library::
     defaults. It fills in the module variables: ``ready``, ``cpu``
     (``CPU`` enum), ``fpu``, ``VBR``, ``videomode`` (``VIDEO`` enum),
     ``chipset``, ``chipRegion``, ``floppyCount`` and ``kickVersion``. Memory is
-    reported as ``MemRegion`` structs (``base`` pointer and ``size``);
+    reported as ``MemRegion`` structs (``base`` pointer, ``long size``
+    and ``word priority``);
     ``chipRegion[0]`` holds the single chip RAM segment, ``slowRegions`` holds
     up to 4 entries with ``slowCount``, and
     ``fastRegions`` up to 8 entries with ``fastCount``. Additional regions

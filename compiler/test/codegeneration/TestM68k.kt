@@ -343,6 +343,65 @@ main {
         errorsNarrow.errors.any { it.contains("doesn't match target type") } shouldBe true
     }
 
+    test("m68k normal return preserves the target cleanup path") {
+        val src = """
+            main {
+                sub start() {
+                }
+            }"""
+        for (target in listOf(Amiga500Target(), Qemu68kTarget())) {
+            val result = compileText(target, optimize = true, src, outputDir, writeAssembly = true, assemble = false)
+            result shouldNotBe null
+            val asm = result!!.compilationOptions.outputDir.resolve("${result.compilerAst.name}.asm").toFile().readText()
+            val exitRoutine = if (target is Qemu68kTarget)
+                "p8_sys_startup.terminate"
+            else
+                "p8_sys_startup.cleanup_at_exit"
+            asm.lines().any { it.trim() == "bra  $exitRoutine" } shouldBe true
+        }
+    }
+
+    test("qemu68k exit halts after running separate cleanup") {
+        val src = """
+            main {
+                sub start() {
+                    sys.exit(0)
+                }
+            }"""
+        val result = compileText(Qemu68kTarget(), optimize = true, src, outputDir, writeAssembly = true, assemble = false)
+        result shouldNotBe null
+        val asm = result!!.compilationOptions.outputDir.resolve("${result.compilerAst.name}.asm").toFile().readText()
+
+        fun subLines(name: String): List<String> {
+            val start = asm.indexOf("; ---- Subroutine: $name")
+            val end = asm.indexOf("; End of subroutine: $name", start)
+            start shouldBeGreaterThan -1
+            end shouldBeGreaterThan start
+            return asm.substring(start, end).lines()
+                .map { it.substringBefore(';').trim() }
+                .filter { it.isNotEmpty() }
+        }
+
+        val exitLines = subLines("sys.exit")
+        exitLines.any { it.startsWith("jmp") && it.contains("p8_sys_startup.terminate") } shouldBe true
+
+        val terminateLines = subLines("p8_sys_startup.terminate")
+        val cleanupCall = terminateLines.indexOfFirst {
+            (it.startsWith("jsr") || it.startsWith("bsr")) && it.contains("p8_sys_startup.cleanup_at_exit")
+        }
+        val haltWrite = terminateLines.indexOfFirst { it.startsWith("move.l") && it.contains("qemu.CTRL_CMD_HALT") }
+        val stop = terminateLines.indexOfFirst { it.matches(Regex("stop\\s+#0")) }
+        cleanupCall shouldBeGreaterThan -1
+        haltWrite shouldBeGreaterThan cleanupCall
+        stop shouldBeGreaterThan haltWrite
+
+        val cleanupLines = subLines("p8_sys_startup.cleanup_at_exit")
+        cleanupLines.none { it.contains("qemu.CTRL_CMD_HALT") || it.matches(Regex("stop\\s+#0")) } shouldBe true
+        cleanupLines.last() shouldBe "rts"
+
+        asm.lines().any { it.trim() == "bra  p8_sys_startup.terminate" } shouldBe true
+    }
+
     test("large constant index on long pointer compiles on qemu68k") {
         val src = """
             main {

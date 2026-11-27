@@ -147,6 +147,13 @@ proc_CLI = 172
             movem.l  (sp)+,d0/d6    ; restore return code and d6
         }}
     }
+
+    sub terminate() {
+        %option noframe
+        %asm {{
+            jmp  p8_sys_startup.cleanup_at_exit
+        }}
+    }
 }
 
 prog8_lib {

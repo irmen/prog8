@@ -1070,7 +1070,11 @@ internal class AsmGen(val program: IRProgram, internal val target: ICompilationT
         emitLine("bsr  ${fixNameSymbols("p8_sys_startup.init_system_phase2")}")
         emitLine("bsr  ${fixNameSymbols("p8b_main.p8s_start")}")
         emitLine("moveq  #0, $SCRATCH_D0", "normal return status 0")
-        emitLine("bra  ${fixNameSymbols("p8_sys_startup.cleanup_at_exit")}")
+        val exitRoutine = if (options.compTarget.name == "qemu68k")
+            "p8_sys_startup.terminate"
+        else
+            "p8_sys_startup.cleanup_at_exit"
+        emitLine("bra  ${fixNameSymbols(exitRoutine)}")
     }
 
     // === code emission ===

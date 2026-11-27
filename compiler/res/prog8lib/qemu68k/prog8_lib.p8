@@ -49,10 +49,17 @@ p8_sys_startup {
     }
 
     sub cleanup_at_exit() {
+        ; placeholder for possible on-exit resource cleanup
+    }
+
+    sub terminate() {
         %option noframe
         %asm {{
+            jsr  p8_sys_startup.cleanup_at_exit
             movea.l  #qemu.CTRL_REG_CMD,a1
             move.l   #qemu.CTRL_CMD_HALT,(a1)
+            stop #0
+            ; !notreached!
         }}
     }
 }

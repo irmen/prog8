@@ -14,6 +14,7 @@ Future Things and Ideas
 - sign-correct the saved ``_remainder`` in ``prog8_math.divmod_b_asm``; it currently fixes only the quotient sign, and the saved remainder is not currently read by codegen.
 - add automated validation for m68k ``asmsub`` clobber declarations, including user and third-party assembly bodies (declared asmsubs use precise per-call forbidding; bodies without usable metadata conservatively destroy the whole allocatable pool).
 - the c64 sprite multiplexer still needs adjustments to make it smooth, it lacks a proper raster event scheduler.
+- Allow ``%encoding`` at block level as well as module level, so unprefixed string and character literals use the encoding of the block they are written in, falling back to the module and then the target default. This needs a ``Block.textEncoding``, a relaxed check in ``AstChecker``, and docs/tests; ``StatementReorderer`` already moves the directive to the top of a block. Open semantic question: ``BlockMerger`` runs before ``AstPreprocessor`` and reparents statements from ``%option merge`` blocks while dropping their directives, so a literal written in a merged-away block would get the target block's encoding unless encodings are stamped before merging.
 
 
 Romable (%option romable)

@@ -549,23 +549,35 @@ If you ask such a library to give you a pointer to a piece of memory with size `
 a dynamic pointer to an Enemy struct.
 
 For this pattern, use the standard ``arena`` library module. Create a static
-memory slab, pass it directly to the initializer, and then allocate from it::
+memory slab and allocate from it. On 6502 targets the module keeps one global
+slab::
 
     %import arena
 
     arena.init(memory("arena", 2000, 0), 2000)
-
     ^^Node newnode = arena.alloc(sizeof(Node))
     ...
     arena.reset()
 
-Each compilation target selects the appropriate ``arena`` implementation:
-6502 targets use ``uword`` sizes without even-address rounding, while m68k
-and virtual targets use ``long`` sizes and round odd allocations up to an
-even address. ``arena.alloc()`` returns 0 when the slab is exhausted. The
-module tracks only one slab at a time; calling ``arena.init()`` again
-discards any previous allocations. Individual allocations cannot be freed;
-``arena.reset()`` makes the whole slab available again.
+On m68k and virtual targets the allocator state is caller-owned, so several
+independent slabs can be used at once::
+
+    %import arena
+
+    arena.Arena node_arena
+    arena.init(&&node_arena, memory("arena", 2000, 0), 2000)
+    ^^Node newnode = arena.alloc(&&node_arena, sizeof(Node))
+    ...
+    arena.reset(&&node_arena)
+
+Use ``&&`` for a typed ``^^Arena`` pointer. An ordinary ``&`` also works on
+these 32-bit targets as an untyped ``long`` address, but ``&&`` is preferable.
+The 6502 implementation uses ``uword`` sizes without even-address rounding and
+tracks one slab at a time. The m68k/virtual implementation uses ``long`` sizes,
+rounds odd allocations up to an even address, and keeps each slab's state in
+its own ``Arena`` struct. ``arena.alloc()`` returns 0 when the selected slab is
+exhausted. Individual allocations cannot be freed; ``arena.reset()`` makes the
+selected slab available again.
 
 
 Address-Of: untyped vs typed

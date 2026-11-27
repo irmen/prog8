@@ -91,6 +91,14 @@ defaults to `.x` (12 bytes). Register-to-register operations need no suffix.
   leaves `A6` free for that reason.
 - `move.l d0,-(sp)` pushes and `move.l (sp)+,d0` pops.
 
+### Struct alignment
+
+- Only 2-byte (word) alignment is required on 68000/68010 for word/long accesses; 4-byte alignment is NOT. An ODD address causes an address-error trap; `4k+2` is fine (two word accesses). Byte accesses work at any address. 68020+ permits misalignment but it is slower. The struct's own fields do not need to be 4-aligned, only even.
+- Structs are packed: fields are laid out back-to-back in declaration order with no automatic padding (Prog8 `struct`, and vasm `dc.b/w/l` / `ds.b/w/l` layouts alike). Keeping multi-byte fields on a suitable address is your own responsibility.
+- Order fields so multi-byte members land at even offsets; add explicit padding (e.g. Prog8 `ubyte[N] padding`, or extra `dc.b`/`ds.b`) otherwise. A multi-byte field immediately after an odd-size byte field sits at an odd offset and produces `move.w`/`move.l` on an odd address -> `warning 2075 ... accessing odd address` and, on real 68000, an address-error.
+- For a `S[N]` array, element `k` is at `base + k * sizeof(S)`. Keep `sizeof(S)` even (and the array base even) so every element and every member in it stays word-aligned; `sizeof` reflects the packed size, not any hidden padding.
+- vasm is run with `-warnunaligned` and emits `warning 2075` (a warning, not an error); nothing fails the build. Run on a 68000 emulator to confirm. `memory(name, size, alignment)` / `%align` can align slabs and data; they do not add intra-struct padding.
+
 ### Prog8 M68K stack ABI
 
 - Normal framed subroutines use `link a5,#-N` and `unlk a5`; locals are at

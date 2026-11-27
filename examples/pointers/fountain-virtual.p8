@@ -21,9 +21,10 @@ main {
 
     ^^Particle particles            ; linked list of all active particles
     uword active_particles = 0
+    arena.Arena particle_arena
 
     sub start() {
-        arena.init(memory("arena", 5500, 0), 5500)
+        arena.init(&&particle_arena, memory("arena", 5500, 0), 5500)
 
         repeat 4
             spawnrandom()
@@ -40,7 +41,7 @@ main {
 
     sub spawnrandom() {
         if active_particles < MAX_PARTICLES {
-            ^^Particle pp = arena.alloc(sizeof(Particle))
+            ^^Particle pp = arena.alloc(&&particle_arena, sizeof(Particle))
             pp.next = particles
             particles = pp
             initparticle(pp)

@@ -33,7 +33,7 @@ hwinfo {
         pointer First         ; 16
         pointer Lower         ; 20
         pointer Upper         ; 24
-        uword Free            ; 28
+        long Free             ; 28
     }
 
     ; Zorro II RAM sits behind the chip bus: fast memory, but the slow kind.
@@ -59,8 +59,9 @@ hwinfo {
     }
 
     struct MemRegion {
-        pointer base
-        long size
+        pointer base          ; 0
+        long size             ; 4
+        word priority         ; 8
     }
 
     bool ready
@@ -90,6 +91,7 @@ hwinfo {
         chipset = custom.CHIPSET::OCS
         chipRegion[0].base = 0
         chipRegion[0].size = 0
+        chipRegion[0].priority = 0
         slowCount = 0
         fastCount = 0
         floppyCount = 0
@@ -97,10 +99,12 @@ hwinfo {
         for ubyte s in 0 to 3 {
             slowRegions[s].base = 0
             slowRegions[s].size = 0
+            slowRegions[s].priority = 0
         }
         for ubyte f in 0 to 7 {
             fastRegions[f].base = 0
             fastRegions[f].size = 0
+            fastRegions[f].priority = 0
         }
 
         kickVersion = sys.exec_version()
@@ -114,7 +118,7 @@ hwinfo {
             if peek(execBase + EXECB_VBLANKFREQ)==50
                 videomode = VIDEO::PAL
             VBR = read_VBR()
-            scan_memory(execBase)
+            scan_memory()
         }
         probe_floppies()
         ready = true
@@ -162,41 +166,45 @@ hwinfo_AttnFlags = 296
         }}
     }
 
-    private sub scan_memory(pointer execBase) {
+    private sub scan_memory() {
         ; Walk exec's MemList; Forbid() keeps it from changing while it is read.
         exec.Forbid()
-        ^^MemHeader node = peekp(execBase + EXECB_MEMLIST)     ; lh_Head
+        ^^MemHeader node = peekp(peekp(4) + EXECB_MEMLIST)     ; ExecBase is always at address 4
         ubyte visited = 0
         while node != 0 and visited < MAX_MEM_NODES {
             visited += 1
             long size = (node.Upper as long) - (node.Lower as long)
             if size > 0 {
                 if (node.Attributes & exec.MEMF_CHIP) != 0 {
-                    if chipRegion[0].base == 0
+                    if chipRegion[0].base == 0 {
                         chipRegion[0].base = node.Lower
+                        chipRegion[0].priority = node.Pri
+                    }
                     chipRegion[0].size += size
                 }
                 else if (node.Attributes & exec.MEMF_FAST) != 0
-                    add_fast_region(node.Lower, size)
+                    add_fast_region(node.Lower, size, node.Pri)
             }
             node = node.Succ        ; the list tail has no successor
         }
         exec.Permit()
     }
 
-    private sub add_fast_region(pointer base, long size) {
+    private sub add_fast_region(pointer base, long size, byte priority) {
         ; Stored entries are counted; regions that no longer fit are only flagged.
         long address = base as long
         if address >= SLOWRAM_FIRST and address <= SLOWRAM_LAST {
             if slowCount < MAX_SLOW_REGIONS {
                 slowRegions[slowCount].base = base
                 slowRegions[slowCount].size = size
+                slowRegions[slowCount].priority = priority
                 slowCount += 1
             }
         } else {
             if fastCount < MAX_FAST_REGIONS {
                 fastRegions[fastCount].base = base
                 fastRegions[fastCount].size = size
+                fastRegions[fastCount].priority = priority
                 fastCount += 1
             }
         }

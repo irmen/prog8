@@ -856,9 +856,9 @@ internal class AssignmentGen(private val codeGen: IRCodeGen, private val exprGen
                             val actualValueReg = if (field.first.isFloat) valueFpRegister else valueRegister
                             if (zero) {
                                 if (memAddress != null)
-                                    addInstr(result, IRInstructions.storeZero(Opcode.STOREZI, codeGen.irType(field.first), IRMemory.direct(memAddress, field.second)), null)
+                                    addInstr(result, IRInstructions.storeZero(Opcode.STOREZM, codeGen.irType(field.first), IRMemory.direct(memAddress, field.second)), null)
                                 else
-                                    addInstr(result, IRInstructions.storeZero(Opcode.STOREZI, codeGen.irType(field.first), IRMemory.direct(instanceLabel!!, field.second)), null)
+                                    addInstr(result, IRInstructions.storeZero(Opcode.STOREZM, codeGen.irType(field.first), IRMemory.direct(instanceLabel!!, field.second)), null)
                             } else {
                                 if (memAddress != null)
                                     addInstr(result, IRInstructions.storeMemory(Opcode.STOREM, if (field.first.isFloat) IRDataType.FLOAT else codeGen.irType(field.first), actualValueReg, IRMemory.direct(memAddress, field.second)), null)

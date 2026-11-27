@@ -93,7 +93,7 @@ sys {
         %asm {{
             and.l    #$ffff,d0
             move.l   p8_sys_startup.orig_stackpointer,sp
-            jmp  p8_sys_startup.cleanup_at_exit
+            jmp  p8_sys_startup.terminate
         }}
     }
 

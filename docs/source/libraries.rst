@@ -442,16 +442,33 @@ arena
 ^^^^^
 .. index:: pair: Libraries; arena
 
-Simple arena/bump allocator over one static, caller-provided memory slab.
+Simple arena/bump allocator over caller-provided static memory slabs.
 Each compilation target imports the same ``arena`` module name, but the
-per-target implementation selects the appropriate size type.
+per-target implementation selects the appropriate size type and state API.
 
-Typical use::
+Typical use on a 6502 target::
 
     %import arena
 
     arena.init(memory("arena", 4000, 0), 4000)
     ^^Node node = arena.alloc(sizeof(Node))
+
+On m68k and virtual targets the allocator state is caller-owned: every call
+takes an ``arena.Arena`` struct pointer, so any number of independent slabs
+can be managed at the same time::
+
+    %import arena
+
+    arena.Arena level_arena
+    arena.init(&&level_arena, memory("levelarena", 4000, 0), 4000)
+    ^^Node node = arena.alloc(&&level_arena, sizeof(Node))
+    arena.reset(&&level_arena)
+
+Use ``&&`` to get a typed ``^^Arena`` pointer to the state struct. An ordinary
+``&`` also works on these targets, but produces an untyped ``long`` address
+rather than a typed pointer, so ``&&`` is preferable. There are no state-less
+calls on these targets, so source written for 6502 targets must pass an arena
+here (see ``examples/pointers/fountain-virtual.p8`` for the pattern).
 
 On 6502 targets:
 
@@ -464,21 +481,29 @@ On 6502 targets:
     Allocates ``size`` bytes from the arena. It returns 0 when ``size``
     is 0 or the slab does not have enough space left.
 
-On m68k and virtual targets:
-
-``sub init(pointer base_addr, long size)``
-    Initializes the arena over the range ``[base_addr, base_addr + size)``.
-    The long size allows slabs larger than 64 KB.
-
-``sub alloc(long size) -> pointer``
-    Allocates ``size`` bytes from the arena. Odd sizes are rounded up to an
-    even address so word, long, and struct accesses stay aligned. It returns
-    0 when ``size`` is 0 or the slab does not have enough space left.
-
 ``sub reset()``
     Discards all allocations and makes the slab available again from its start.
     The module tracks only one slab at a time; initializing it again replaces
     the previously tracked range.
+
+On m68k and virtual targets:
+
+``arena.Arena``
+    State struct holding the ``base``, ``next`` and ``end`` pointers of one
+    slab. Declare one instance per arena you want to manage.
+
+``sub init(^^Arena state, pointer base_addr, long size)``
+    Initializes the given arena over the range ``[base_addr, base_addr + size)``.
+    The long size allows slabs larger than 64 KB.
+
+``sub alloc(^^Arena state, long size) -> pointer``
+    Allocates ``size`` bytes from the given arena. Odd sizes are rounded up to
+    an even address so word, long, and struct accesses stay aligned. It returns
+    0 when ``size`` is 0 or that slab does not have enough space left.
+
+``sub reset(^^Arena state)``
+    Discards all allocations in the given arena and makes its slab available
+    again from its start. Other arenas are unaffected.
 
 Read the :source:`word-sized arena source code <compiler/res/prog8lib/shared_word_arena.p8>`
 and :source:`long-sized arena source code <compiler/res/prog8lib/shared_long_arena.p8>` for details.

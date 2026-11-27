@@ -362,11 +362,10 @@ sys {
 
     asmsub exit(word returnvalue @D0) {
         ; -- exit the program with a return code in D0. When invoked from Prog8 via sys.exit(), all active defers in the call chain are unwound program-wide (LIFO) before system cleanup. sys.reset_system()/poweroff_system() do not run defers.
+        ; -- route through the qemu halt routine so cleanup runs before the HALT.
         %asm {{
             and.l    #$ffff,d0
-            movea.l  #qemu.CTRL_REG_CMD,a1
-            move.l   #qemu.CTRL_CMD_HALT,(a1)
-            stop #0
+            jmp  p8_sys_startup.terminate
             ; !notreached!
         }}
     }

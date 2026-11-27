@@ -398,6 +398,25 @@ main {
         ir shouldContain "sys.memcopy"
     }
 
+    test("m68k: zero assignment to direct struct instance fields compiles") {
+        val src = $$"""
+%option no_sysinit
+main {
+    struct Point { uword x  uword y }
+    Point p
+    &Point mapped = $c000
+    sub start() {
+        p.x = 0
+        mapped.y = 0
+    }
+}
+"""
+        val result = compileText(Amiga500Target(), false, src, outputDir,
+            writeAssembly = true, assemble = false)!!
+        val ir = result.compilationOptions.outputDir.resolve(result.compilerAst.name + ".p8ir").readText()
+        ir shouldContain "storezm.w"
+    }
+
     test("sizeof on a direct struct variable is the struct type size") {
         val src = """
 %option no_sysinit
