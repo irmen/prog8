@@ -109,6 +109,23 @@ complexity/impact.
   pointer-indexed loops.
 - **Effort**: large.
 
+### 5.5 Pre-decrement load/store: `LOADP_DEC` / `STOREP_DEC`
+- **Problem**: backward traversal and stack-like access currently need a
+  separate decrement plus a load or store. M68K can do this in one
+  instruction with pre-decrement addressing, but the IR only has the
+  post-increment pair `LOADP_INC`/`STOREP_INC`. 
+- **Fix**: add `LOADP_DEC` and `STOREP_DEC`, mirroring `LOADP_INC` and
+  `STOREP_INC`. Semantics: decrement the pointer by `sizeof(type)` first,
+  then load or store at the new address. M68K lowers this to `move.s (-(An)),Dn`
+  or `move.s Dn,-(An)` (with staging if the pointer is not already in an
+  address register). new6502 lowers it to decrement plus indirect access.
+- Scope/gate: shared `intermediate` change - new opcodes, `IRTextCodec`,
+  reader/writer, validation, VM interpreter, and both codegens.
+- 68000 and 68020+ both support pre-decrement addressing.
+- **Benefit**: one IR instruction and one M68K instruction instead of a
+  separate decrement plus access; simpler codegen for backward walks.
+- **Effort**: medium.
+
 ### 5.4 Memory-based multi-value return convention [low priority]
 - **Problem**: multi-return subroutines return their values in d0, d1, d2, ...
   (fp0.. for floats). Values beyond d1 land in callee-saved pool registers, so
@@ -177,7 +194,7 @@ The unoptimized IR already had both loads typed as `loadm.p`; the optimizer rewr
 This plan is **only** about the double reload. Two related improvements are tracked separately and implemented first:
 
 1. ~~Remove the dead `and.w #$ff` before a left shift by 8.~~ **Done.** The IR pattern is `loadiz.b X; lsli.w #N` (and the sign/zero-extending variants). For a left shift by `N >= resultSize - sourceSize`, the extension is dead because the shift discards all extended/sign-replicated bits. Implemented in the M68K backend (`InstrLoadStore.kt`): an extending load immediately followed by such a shift now emits just `move.<srcSize> M, dN` and lets the following shift operate on the narrow value directly. The temporary assembly peephole was removed.
-2. ~~Use the shorter `moveq #0, dN; move.b M, dN` idiom instead of `move.b M, dN; and.w #$ff, dN` for zero extension.~~ **Done.** All byte/word zero-extending loads now emit `moveq #0, dN; move.<size> M, dN` in the backend.
+2. ~~Use the shorter `moveq #0, dN; move.b M, dN` idiom instead of `move.b M, dN; and.w #$ff, dN` for zero extension.~~ **Partial.** The masking was removed and loads now use `moveq #0, d0; move.<size> M, d0`. When the destination register is not `d0`, the backend still emits an extra `move.<size> d0, dN`. A further improvement is to target an allocated data register directly when the address resolution does not clobber it.
 
 ### Proposed solution
 
@@ -226,6 +243,86 @@ The IR-level fix is preferred because it benefits every backend and removes the 
   code generator's register allocation and address computation. Days-to-weeks,
   risks regressions across all m68k programs. Cannot be closed by AsmOptimizer
   passes alone.
+
+### A.7 Constant indexed store as an immediate
+- Problem: `STOREX` stages the value in `d1` and then stores it:
+  `move.s d1,(a0,dN.w*scale)`. When the stored value is a compile-time
+  constant, the value register is unnecessary.
+- Example from `examples/test.p8`:
+  ```asm
+  move.b  #99,d2
+  move.b  d2,(a0,d3.w)
+  ```
+  could become:
+  ```asm
+  move.b  #99,(a0,d3.w)
+  ```
+- Fix: in `InstrLoadStore.kt`, recognize `STOREX` whose value register is
+  defined by an immediately preceding `LOAD` immediate and emit the immediate
+  directly to the resolved target. Keep the `d1` staging for non-constant
+  values. The indexed target must still be resolved first, including any
+  address/index setup.
+- Scope/gate: backend-only optimization; no IR change. Must preserve I/O
+  address handling and must not reorder across side effects.
+- Benefit: one fewer instruction and one fewer register per constant indexed
+  store.
+- Effort: small-medium.
+
+### A.8 Zero-extension directly into the destination register
+- Problem: `LOADMZ` and `LOADMS` currently load into `d0` and then move to
+  the destination:
+  ```asm
+  moveq   #0,d0
+  move.b  M,d0
+  move.w  d0,dN
+  ```
+  The `and.w #$ff` masking was already removed, but the `d0` staging remains.
+- Fix: when the destination is an allocated data register and address
+  resolution does not clobber that register, emit:
+  ```asm
+  moveq   #0,dN
+  move.b  M,dN
+  ```
+  Keep the `d0` path for address-register or memory destinations, or when
+  the address resolution needs `d0`.
+- Scope/gate: backend-only. Must invalidate the `d0` cache correctly and
+  preserve the existing dead-extension optimization.
+- Benefit: one fewer move per zero-extending load.
+- Effort: small.
+
+### A.9 Caller-saved temporaries for values dead across calls
+- Problem: the allocator only colors into `d2-d6` and `a2-a4`; `d0` and
+  `d1` are scratch and are not allocatable. A value that is dead across a
+  call can still end up in a callee-saved register, forcing `movem` saves.
+  In `examples/test.p8`, `d2` and `d3` are both saved even though neither is
+  live across `print_ub`.
+- Fix options:
+  - allow `d0`/`d1` for vregs whose live range does not cross a call or
+    instruction that clobbers them;
+  - or shrink `movem` lists based on which callee-saved registers are
+    actually live across call boundaries.
+- Scope/gate: register allocator change; must respect fixed-register call
+  boundaries and reentrancy.
+- Benefit: smaller prologues/epilogues and less register pressure.
+- Effort: medium-high.
+
+### A.10 Direct push from memory for call arguments
+- Problem: an argument register is often loaded from memory and then pushed:
+  ```asm
+  move.b  (a0,d2.w),d3
+  move.b  d3,-(sp)
+  ```
+  M68K can push directly from memory:
+  ```asm
+  move.b  (a0,d2.w),-(sp)
+  ```
+- Fix: a narrow backend peephole or argument-emission special case when the
+  argument register is defined by an immediately preceding memory load and
+  the address/index registers are unchanged.
+- Scope/gate: backend-only; must not cross calls, stores, or address
+  register updates.
+- Benefit: one fewer instruction and register per such argument.
+- Effort: medium.
 
 ## Decisions (won't do)
 

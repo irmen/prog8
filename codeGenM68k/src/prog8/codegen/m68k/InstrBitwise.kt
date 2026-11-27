@@ -94,7 +94,17 @@ private fun AsmGen.andImmediate(dstReg: Int, value: Int, type: IRDataType) {
         IRDataType.LONG -> value
         else -> error("unsupported type for AND immediate")
     }
-    emitLine("andi$s  #$mask, ${operand(dstReg)}")
+    val dst = operand(dstReg)
+    if(dst in ALLOCATABLE_ADDR_REGS) {
+        // ANDI cannot target an address register: stage through d0 at full width.
+        invalidateD0Cache()
+        emitLine("move.l  $dst, $SCRATCH_D0")
+        emitLine("andi$s  #$mask, $SCRATCH_D0")
+        emitLine("move.l  $SCRATCH_D0, $dst")
+        invalidateD0Cache()
+    } else {
+        emitLine("andi$s  #$mask, $dst")
+    }
     invalidateD0CacheForSlot(dstReg)
 }
 
@@ -130,7 +140,17 @@ private fun AsmGen.orImmediate(dstReg: Int, value: Int, type: IRDataType) {
         IRDataType.LONG -> value
         else -> error("unsupported type for OR immediate")
     }
-    emitLine("ori$s  #$mask, ${operand(dstReg)}")
+    val dst = operand(dstReg)
+    if(dst in ALLOCATABLE_ADDR_REGS) {
+        // ORI cannot target an address register: stage through d0 at full width.
+        invalidateD0Cache()
+        emitLine("move.l  $dst, $SCRATCH_D0")
+        emitLine("ori$s  #$mask, $SCRATCH_D0")
+        emitLine("move.l  $SCRATCH_D0, $dst")
+        invalidateD0Cache()
+    } else {
+        emitLine("ori$s  #$mask, $dst")
+    }
     invalidateD0CacheForSlot(dstReg)
 }
 
@@ -166,7 +186,17 @@ private fun AsmGen.xorImmediate(dstReg: Int, value: Int, type: IRDataType) {
         IRDataType.LONG -> value
         else -> error("unsupported type for XOR immediate")
     }
-    emitLine("eori$s  #$mask, ${operand(dstReg)}")
+    val dst = operand(dstReg)
+    if(dst in ALLOCATABLE_ADDR_REGS) {
+        // EORI cannot target an address register: stage through d0 at full width.
+        invalidateD0Cache()
+        emitLine("move.l  $dst, $SCRATCH_D0")
+        emitLine("eori$s  #$mask, $SCRATCH_D0")
+        emitLine("move.l  $SCRATCH_D0, $dst")
+        invalidateD0Cache()
+    } else {
+        emitLine("eori$s  #$mask, $dst")
+    }
     invalidateD0CacheForSlot(dstReg)
 }
 
@@ -185,7 +215,17 @@ private fun AsmGen.xorMemory(dstReg: Int, sourceAddress: String, type: IRDataTyp
 
 private fun AsmGen.invertRegister(reg: Int, type: IRDataType) {
     val s = dtSuffix(type)
-    emitLine("not$s  ${operand(reg)}")
+    val dst = operand(reg)
+    if(dst in ALLOCATABLE_ADDR_REGS) {
+        // NOT cannot target an address register: stage through d0 at full width.
+        invalidateD0Cache()
+        emitLine("move.l  $dst, $SCRATCH_D0")
+        emitLine("not$s  $SCRATCH_D0")
+        emitLine("move.l  $SCRATCH_D0, $dst")
+        invalidateD0Cache()
+    } else {
+        emitLine("not$s  $dst")
+    }
     invalidateD0CacheForSlot(reg)
 }
 

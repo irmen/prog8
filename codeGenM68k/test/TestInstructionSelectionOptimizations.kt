@@ -2694,4 +2694,49 @@ class TestInstructionSelectionOptimizations : FunSpec({
         )
         lines.any { it == "movea.l  #main.items+4,a0" } shouldBe true
     }
+
+    test("AND immediate on address-register operand is staged through d0, not andi on An") {
+        val ins = IRInstructions.binaryImmediate(Opcode.AND, IRDataType.LONG, 4, -2)
+        val rawLines = generateAsm(
+            tempRoot.resolve("test-m68k-andi-addrreg"),
+            listOf(ins),
+            Qemu68kTarget(),
+            regAllocation = mapOf(VirtualRegister.int(4) to "a2")
+        )
+        val lines = rawLines.map { it.replace(Regex("\\s+"), " ") }
+        lines.none { it == "andi.l #-2,a2" } shouldBe true
+        lines.any { it == "move.l a2,d0" } shouldBe true
+        lines.any { it == "andi.l #-2,d0" } shouldBe true
+        lines.any { it == "move.l d0,a2" } shouldBe true
+    }
+
+    test("OR immediate on address-register operand is staged through d0, not ori on An") {
+        val ins = IRInstructions.binaryImmediate(Opcode.OR, IRDataType.LONG, 4, 0x40)
+        val rawLines = generateAsm(
+            tempRoot.resolve("test-m68k-ori-addrreg"),
+            listOf(ins),
+            Qemu68kTarget(),
+            regAllocation = mapOf(VirtualRegister.int(4) to "a2")
+        )
+        val lines = rawLines.map { it.replace(Regex("\\s+"), " ") }
+        lines.none { it == "ori.l #64,a2" } shouldBe true
+        lines.any { it == "move.l a2,d0" } shouldBe true
+        lines.any { it == "ori.l #64,d0" } shouldBe true
+        lines.any { it == "move.l d0,a2" } shouldBe true
+    }
+
+    test("XOR immediate on address-register operand is staged through d0, not eori on An") {
+        val ins = IRInstructions.binaryImmediate(Opcode.XOR, IRDataType.LONG, 4, -2)
+        val rawLines = generateAsm(
+            tempRoot.resolve("test-m68k-xori-addrreg"),
+            listOf(ins),
+            Qemu68kTarget(),
+            regAllocation = mapOf(VirtualRegister.int(4) to "a2")
+        )
+        val lines = rawLines.map { it.replace(Regex("\\s+"), " ") }
+        lines.none { it == "eori.l #-2,a2" } shouldBe true
+        lines.any { it == "move.l a2,d0" } shouldBe true
+        lines.any { it == "eori.l #-2,d0" } shouldBe true
+        lines.any { it == "move.l d0,a2" } shouldBe true
+    }
 })
