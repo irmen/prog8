@@ -23,6 +23,7 @@ fun Number.toHex(): String {
         in 0 until 16 -> integer.toString()
         in 0 until 0x100 -> "$"+integer.toString(16).padStart(2,'0')
         in 0 until 0x10000 -> "$"+integer.toString(16).padStart(4,'0')
+        in 0 until 0x1000000 -> "$"+integer.toString(16).padStart(6,'0')
         else -> "$"+integer.toString(16).padStart(8,'0')
     }
 }
@@ -36,6 +37,7 @@ fun UInt.toHex(): String {
         in 0u until 16u -> this.toString()
         in 0u until 0x100u -> "$"+this.toString(16).padStart(2,'0')
         in 0u until 0x10000u -> "$"+this.toString(16).padStart(4,'0')
+        in 0u until 0x1000000u -> "$"+this.toString(16).padStart(6,'0')
         else -> "$"+this.toString(16).padStart(8,'0')
     }
 }

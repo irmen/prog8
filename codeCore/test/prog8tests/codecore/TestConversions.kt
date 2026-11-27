@@ -33,7 +33,7 @@ class TestConversions: FunSpec({
     }
 
     test("toHex for larger numbers (8 digit hex)") {
-        65536.toHex() shouldBe $$"$00010000"
+        65536.toHex() shouldBe $$"$010000"
         0x12345678.toHex() shouldBe $$"$12345678"
     }
 
@@ -49,6 +49,7 @@ class TestConversions: FunSpec({
         255u.toHex() shouldBe $$"$ff"
         65535u.toHex() shouldBe $$"$ffff"
     }
+
 
     // ============================================================================
     // escape() Tests

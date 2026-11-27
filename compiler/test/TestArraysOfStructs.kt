@@ -467,7 +467,7 @@ class TestArraysOfStructs: FunSpec({
         val asm = out.toFile().listFiles()!!.single { it.name.endsWith(".asm") }.readText()
         val lines = asm.lines().map { it.trim().replace(Regex("\\s+"), " ") }
         // struct is 8 bytes (4 byte pointer + 2 + 2), so chans[2] is at +16 and PER at +6
-        lines.any { it == "move.w #428,$00dff0b6" } shouldBe true
+        lines.any { it == $$"move.w #428,$dff0b6" } shouldBe true
     }
 
     test("memory-mapped struct array - field write uses the struct stride (6502)") {

@@ -1637,7 +1637,7 @@ class TestInstructionSelectionOptimizations : FunSpec({
         val sub = lines.subroutineLines()
         sub.count { it.startsWith("move.w  var+4,") } shouldBe 1
         sub.count { it == "move.w  var+4,d0" } shouldBe 0
-        sub.count { it.endsWith(",\$00dff180") } shouldBe 1
+        sub.count { it.endsWith(",\$dff180") } shouldBe 1
         sub.any { it == "move.w  #1234,var" } shouldBe true
     }
 
@@ -1820,7 +1820,7 @@ class TestInstructionSelectionOptimizations : FunSpec({
 
     test("does not fold absolute address sources that may be hardware") {
         val lines = mutableListOf(
-            "    movea.l  \$00dff096,a2",
+            "    movea.l  \$dff096,a2",
             "    addq.l  #2,a2",
             "    move.w  (a2),d0",
             "    rts"
@@ -2307,8 +2307,8 @@ class TestInstructionSelectionOptimizations : FunSpec({
             Amiga500Target()
         )
 
-        lines.any { it == "move.w  #0,$00dff096" } shouldBe true
-        lines.any { it == "move.w  #0,$00dff180" } shouldBe true
+        lines.any { it == $$"move.w  #0,$dff096" } shouldBe true
+        lines.any { it == $$"move.w  #0,$dff180" } shouldBe true
         lines.none { it.startsWith("clr") } shouldBe true
     }
 
@@ -2321,8 +2321,8 @@ class TestInstructionSelectionOptimizations : FunSpec({
             )
         )
 
-        lines.any { it == "clr.w  $00dff096" } shouldBe true
-        lines.any { it == "clr.w  $00dff180" } shouldBe true
+        lines.any { it == $$"clr.w  $dff096" } shouldBe true
+        lines.any { it == $$"clr.w  $dff180" } shouldBe true
     }
 
     test("zero store to plain RAM keeps clr even on Amiga") {
@@ -2368,7 +2368,7 @@ class TestInstructionSelectionOptimizations : FunSpec({
         check(asmFile.exists()) { "Assembly file not written: $asmFile" }
         val lines = asmFile.readText().lines().map { it.trim() }
 
-        lines.any { it == "move.w  #0,$00dff096" } shouldBe true
+        lines.any { it == $$"move.w  #0,$dff096" } shouldBe true
         lines.none { it.startsWith("clr") } shouldBe true
     }
 

@@ -820,7 +820,12 @@ data class IRInstruction(
 value class MemoryAddress(val value: UInt) {
     init { require(value <= 0xffffffffu) { "address out of range: $value" } }
     override fun toString(): String = "$" + value.toString(16).padStart(2, '0')
-    fun toHex(): String = "$" + value.toString(16)
+    fun toHex(): String = when (value) {
+        in 0u until 0x100u -> "$" + value.toString(16).padStart(2, '0')
+        in 0u until 0x10000u -> "$" + value.toString(16).padStart(4, '0')
+        in 0u until 0x1000000u -> "$" + value.toString(16).padStart(6, '0')
+        else -> "$" + value.toString(16).padStart(8, '0')
+    }
     operator fun plus(other: UInt): MemoryAddress = MemoryAddress(value + other)
     operator fun plus(other: Int): MemoryAddress = MemoryAddress(value + other.toUInt())
     operator fun minus(other: UInt): MemoryAddress = MemoryAddress(value - other)

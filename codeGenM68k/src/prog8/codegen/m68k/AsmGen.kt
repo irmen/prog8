@@ -756,14 +756,16 @@ internal class AsmGen(val program: IRProgram, internal val target: ICompilationT
         return when (val node = program.st.lookup(name)) {
             is IRStMemVar -> {
                 val addr = node.address.toInt()
-                $$"$$${addr.toUInt().toString(16).padStart(8, '0')}"
+                val width = if (addr.toUInt() >= 0x1000000u) 8 else 6
+                $$"$$${addr.toUInt().toString(16).padStart(width, '0')}"
             }
             is IRStConstant -> {
                 if (node.memorySlabName != null)
                     constLabel(name)
                 else {
                     val addr = node.value!!.toInt()
-                    $$"$$${addr.toUInt().toString(16).padStart(8, '0')}"
+                    val width = if (addr.toUInt() >= 0x1000000u) 8 else 6
+                    $$"$$${addr.toUInt().toString(16).padStart(width, '0')}"
                 }
             }
             is IRStStructInstance, is IRStStaticVariable, is IRStMemorySlab -> fixNameSymbols(name)

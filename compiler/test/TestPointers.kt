@@ -4222,7 +4222,7 @@ main {
         val out = tempdir().toPath()
         compileText(VMTarget(), false, src, out, writeAssembly = true, assemble = true)!!
         val ir = out.toFile().listFiles()!!.single { it.name.endsWith(".p8ir") }.readText()
-        ir.contains($$"#$00dff1a0") shouldBe true
+        ir.contains($$"#$dff1a0") shouldBe true
         ir.contains($$"#$f1a0") shouldBe false
     }
     
