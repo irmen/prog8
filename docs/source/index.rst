@@ -16,6 +16,8 @@ while still being low level enough to create high performance programs.
 Supported target systems are Commodores (C64, C128, PET), Commander X16,
 the Commodore Amiga (32-bit m68k, via the amiga500 and amiga1200 targets), the Qemu M68k simulator (qemu68k), and others.
 
+See the `single-page Prog8 overview <_static/whatisprog8.html>`_ for a quick tour of the language, targets, workflow, and generated code.
+
 Get the compiler here :ref:`downloading`.
 
 

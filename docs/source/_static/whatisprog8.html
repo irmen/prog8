@@ -1,0 +1,646 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="description" content="Prog8 is a cross-compiler for 6502-family and M68000-family computers, with built-in Commodore and Amiga targets plus custom target support.">
+    <title>Prog8 - A modern language for retro machines</title>
+    <link rel="stylesheet" href="whatisprog8.css">
+</head>
+<body>
+    <header class="site-header">
+        <div class="wrap header-inner">
+            <a class="wordmark" href="#top" aria-label="Prog8 home">
+                <span class="wordmark-mark" aria-hidden="true">P8</span>
+                <span>Prog8</span>
+            </a>
+            <div class="header-right">
+                <div class="target-badges" aria-label="Target architectures">
+                    <span class="badge badge-cyan">6502</span>
+                    <span class="badge badge-amber">M68000</span>
+                </div>
+                <nav class="site-nav" aria-label="Main navigation">
+                    <a href="#showcase">Work</a>
+                    <a href="#goals">Goals</a>
+                    <a href="#features">Features</a>
+                    <a href="#libraries">Libraries</a>
+                    <a href="#targets">Targets</a>
+                    <a href="#v14">New in V14</a>
+                    <a href="#workflow">Workflow</a>
+                    <a href="#editors">Editors</a>
+                    <a href="#clankers">Clankers</a>
+                    <a href="#community">Community</a>
+                </nav>
+            </div>
+        </div>
+    </header>
+
+    <main id="top">
+        <section class="hero" aria-labelledby="hero-title">
+            <div class="wrap hero-grid">
+                <div>
+                    <figure class="hero-logo">
+                        <img src="logo.jpg" width="640" height="222" alt="Prog8 wordmark built into a 6510 CBM chip.">
+                    </figure>
+                    <p class="eyebrow">A language for the machines we love</p>
+                    <h1 id="hero-title">A modern language<br><span>for retro machines.</span></h1>
+                    <p class="hero-promise">Fast programs with minimal effort.</p>
+                    <p class="hero-copy">
+                        <strong>Prog8</strong> is a cross-compiler for 6502-family and M68000-family computers.
+                        Its richest built-in support is for Commodore 8-bit systems and the Amiga, while custom
+                        target files extend it to other 6502 hardware. Develop on Linux, macOS, Windows or another
+                        modern desktop OS and produce a native program for the machine you choose.
+                    </p>
+                    <div class="hero-cta">
+                        <a class="button" href="https://github.com/irmen/prog8/releases">Get the compiler <span aria-hidden="true">↗</span></a>
+                        <a class="text-link" href="https://prog8.readthedocs.io/en/latest/compiling.html#building-compiler">Installation instructions</a>
+                        <a class="text-link" href="https://prog8.readthedocs.io/">Full documentation</a>
+                    </div>
+                </div>
+                <div>
+                    <div class="chip-pair" aria-hidden="true">
+                        <div class="chip-package"><strong>6502</strong><span>8-BIT FAMILY</span></div>
+                        <span class="chip-link" aria-hidden="true">·</span>
+                        <div class="chip-package"><strong>M68000</strong><span>M68K FAMILY</span></div>
+                    </div>
+                    <div class="terminal" aria-label="Prog8 command examples">
+                        <div class="terminal-top">
+                            <span class="terminal-lights" aria-hidden="true"><i>●</i><i>●</i><i>●</i></span>
+                            <span>cross-compile / target selection</span>
+                        </div>
+                        <div class="terminal-body">
+                            <p class="comment"># Commodore 64 - 6502 family</p>
+                            <p><span class="prompt">$</span> <span class="command">prog8c -target c64 game.p8</span></p>
+                            <p class="comment"># Amiga 500 - Motorola 68000</p>
+                            <p><span class="prompt">$</span> <span class="command">prog8c -target amiga500 game.p8</span></p>
+                            <p class="prompt-line"><span class="prompt">$</span><span class="terminal-cursor" aria-hidden="true">█</span></p>
+                        </div>
+                    </div>
+                    <p class="hero-note"><span>↳</span> Load each native output on its target computer or in a compatible emulator.</p>
+                </div>
+            </div>
+        </section>
+
+        <section class="section" id="showcase" aria-labelledby="showcase-title">
+            <div class="wrap">
+                <div class="section-heading">
+                    <p class="section-kicker">01 / Built with Prog8</p>
+                    <h2 id="showcase-title">The output is the point.</h2>
+                    <p>Real programs from the project: character graphics, raster tricks and a game running on the Commander X16.</p>
+                </div>
+                <div class="showcase-grid">
+                    <figure class="showcase-card">
+                        <a class="showcase-open" href="#preview-tehtriz" aria-label="Open a larger Tehtriz screenshot">
+                            <div class="showcase-image">
+                                <img src="tehtriz.png" width="513" height="367" alt="A colorful text-mode Tetris-style game in progress, with score and next-piece panels." loading="lazy">
+                            </div>
+                        </a>
+                        <figcaption><div><strong>Tehtriz</strong><span>block-stacking game</span></div><span>PROG8</span></figcaption>
+                    </figure>
+                    <figure class="showcase-card">
+                        <a class="showcase-open" href="#preview-wizzine" aria-label="Open a larger Wizzine screenshot">
+                            <div class="showcase-image">
+                                <img src="wizzine.png" width="516" height="370" alt="Animated balloon sprites arranged diagonally across a Commodore 64 screen." loading="lazy">
+                            </div>
+                        </a>
+                        <figcaption><div><strong>Wizzine</strong><span>C64 · raster sprites</span></div><span>VIC-II</span></figcaption>
+                    </figure>
+                    <figure class="showcase-card">
+                        <a class="showcase-open" href="#preview-rockrunner" aria-label="Open a larger RockRunner screenshot">
+                            <div class="showcase-image">
+                                <img src="rrgame.png" width="640" height="510" alt="RockRunner, a Boulder Dash-style game in progress on the Commander X16." loading="lazy">
+                            </div>
+                        </a>
+                        <figcaption><div><strong>RockRunner</strong><span>Commander X16 · game</span></div><span>65C02</span></figcaption>
+                    </figure>
+                </div>
+                <div class="showcase-lightbox" id="preview-tehtriz">
+                    <figure class="showcase-lightbox-content">
+                        <a class="showcase-lightbox-close" href="#showcase">Close preview</a>
+                        <img src="tehtriz.png" width="513" height="367" alt="A colorful text-mode Tetris-style game in progress, with score and next-piece panels.">
+                        <figcaption>Tehtriz</figcaption>
+                    </figure>
+                </div>
+                <div class="showcase-lightbox" id="preview-wizzine">
+                    <figure class="showcase-lightbox-content">
+                        <a class="showcase-lightbox-close" href="#showcase">Close preview</a>
+                        <img src="wizzine.png" width="516" height="370" alt="Animated balloon sprites arranged diagonally across a Commodore 64 screen.">
+                        <figcaption>Wizzine · C64 raster sprites</figcaption>
+                    </figure>
+                </div>
+                <div class="showcase-lightbox" id="preview-rockrunner">
+                    <figure class="showcase-lightbox-content">
+                        <a class="showcase-lightbox-close" href="#showcase">Close preview</a>
+                        <img src="rrgame.png" width="640" height="510" alt="RockRunner, a Boulder Dash-style game in progress on the Commander X16.">
+                        <figcaption>RockRunner · Commander X16</figcaption>
+                    </figure>
+                </div>
+            </div>
+        </section>
+
+        <section class="section" id="goals" aria-labelledby="goals-title">
+            <div class="wrap">
+                <div class="section-heading">
+                    <p class="section-kicker">02 / Design goals</p>
+                    <h2 id="goals-title">High-level enough to move fast.<br>Low-level enough to be honest.</h2>
+                    <p>Prog8 adds expressive language tools without hiding the constraints that make each machine different.</p>
+                </div>
+                <div class="goals-grid">
+                    <article class="goal-card">
+                        <h3>Readable structure, native output</h3>
+                        <p>Use types, modules and control flow to organize a program; compile it to native code for the target CPU.</p>
+                    </article>
+                    <article class="goal-card">
+                        <h3>Abstraction without hiding the machine</h3>
+                        <p>Memory maps, ROM calls and hardware registers remain accessible when the design needs direct control.</p>
+                    </article>
+                </div>
+            </div>
+        </section>
+
+        <section class="section" id="features" aria-labelledby="features-title">
+            <div class="wrap">
+                <div class="section-heading">
+                    <p class="section-kicker">03 / Language features</p>
+                    <h2 id="features-title">Modern features. Machine-specific choices.</h2>
+                    <p>A shared language surface with explicit differences where the CPU, memory map or operating system demands them.</p>
+                </div>
+                <div class="feature-grid">
+                    <article class="feature">
+                        <span class="feature-icon" aria-hidden="true">u8</span>
+                        <div>
+                            <h3>Typed data and pointers</h3>
+                            <p>Booleans, signed and unsigned integers, arrays, strings, structs and typed pointers. The <code>pointer</code> type follows the target's 16-bit or 32-bit address width; floating point uses the <code>floats</code> library where supported.</p>
+                        </div>
+                    </article>
+                    <article class="feature">
+                        <span class="feature-icon" aria-hidden="true">{ }</span>
+                        <div>
+                            <h3>Blocks, modules and visibility</h3>
+                            <p>Organize code into named blocks, import reusable modules, and use public or private symbols without forward declarations.</p>
+                        </div>
+                    </article>
+                    <article class="feature">
+                        <span class="feature-icon" aria-hidden="true">&lt;/&gt;</span>
+                        <div>
+                            <h3>Assembly and ROM contracts</h3>
+                            <p>Write target routines with <code>asmsub</code>, or declare ROM and foreign routines with <code>extsub</code> signatures and call them normally. Supported banked calls can switch and restore banks automatically.</p>
+                        </div>
+                    </article>
+                    <article class="feature">
+                        <span class="feature-icon" aria-hidden="true">MEM</span>
+                        <div>
+                            <h3>Memory and banking controls</h3>
+                            <p>Place data in 6502 zero page, align hardware assets, switch banks for selected external calls on supported systems, or request Amiga Chip RAM for DMA data. See the target comparison for each CPU's storage model.</p>
+                        </div>
+                    </article>
+                    <article class="feature">
+                        <span class="feature-icon" aria-hidden="true">OPT</span>
+                        <div>
+                            <h3>Compiler optimizations</h3>
+                            <p>Prog8 tends to produce compact, fast native code through optimization, target-specialized assembly generation and tuned library routines. Use <code>asmsub</code> to hand-tune the hotspots where every cycle counts.</p>
+                        </div>
+                    </article>
+                    <article class="feature">
+                        <span class="feature-icon" aria-hidden="true">CPU</span>
+                        <div>
+                            <h3>Bring a custom target</h3>
+                            <p>Use a target properties file to describe another machine's CPU, memory layout and startup conventions. Six <a href="https://github.com/irmen/prog8/tree/master/examples/customtarget/targetconfigs">example configs</a> cover Atari, Foenix F256, NEO6502 and tiny CBM targets.</p>
+                        </div>
+                    </article>
+                </div>
+                <div class="syntax-reference" id="syntax">
+                    <h3 class="syntax-title">Optional syntax reference</h3>
+                    <p class="syntax-intro">Want syntax detail without a wall of text? Open only the topics you need.</p>
+                    <div class="syntax-grid">
+                        <details class="syntax-detail">
+                            <summary>Blocks, imports and visibility</summary>
+                            <p>Source files contain named blocks; subroutines and data are scoped inside them. Imports make library or project modules available.</p>
+                            <pre><code>%import textio
+
+main {
+    private ubyte lives = 3
+
+    sub start() {
+        txt.print("ready\n")
+    }
+}</code></pre>
+                        </details>
+                        <details class="syntax-detail">
+                            <summary>Types, arrays and memory tags</summary>
+                            <p>Declarations put the type first. Tags describe placement or sharing; zero-page tags apply only to 6502 targets.</p>
+                            <pre><code>ubyte[8] @shared sprite_row
+uword @requirezp screen_ptr = $0400
+pointer current_address = $0400</code></pre>
+                        </details>
+                        <details class="syntax-detail">
+                            <summary>Control flow for small machines</summary>
+                            <p>Use structured loops and <code>when</code> for fixed choices. <code>on ... goto</code> and <code>on ... call</code> provide indexed jump-table dispatch.</p>
+                            <pre><code>when mode {
+    0 -> draw_text()
+    1 -> draw_bitmap()
+    else -> draw_fallback()
+}
+
+bool done = false
+repeat {
+    update_frame()
+    if done break
+}</code></pre>
+                        </details>
+                        <details class="syntax-detail">
+                            <summary>Cleanup and multiple return values</summary>
+                            <p><code>defer</code> runs cleanup on every normal exit from a subroutine. A routine can also return several values for parallel assignment.</p>
+                            <pre><code>sub read_frame() -> bool, uword {
+    ubyte file = open_file()
+    defer close_file(file)
+    return false, 0
+}
+
+bool failed
+uword bytes
+failed, bytes = read_frame()</code></pre>
+                        </details>
+                        <details class="syntax-detail">
+                            <summary>Everyday language comforts</summary>
+                            <p>Loops read like intent: <code>for</code> iterates ranges, arrays and strings, <code>do ... until</code> reads naturally, and <code>unroll</code> trades size for speed.</p>
+                            <pre><code>for i in 7 downto 0  plot(i, row)
+
+do  poll() until ready
+
+unroll 8  write_next(color)</code></pre>
+                            <p><code>swap</code> needs no temporary variable, and a routine's multiple results can initialize variables directly.</p>
+                            <pre><code>swap(tile_x, tile_y)
+ubyte cols, rows = txt.size()</code></pre>
+                            <p>String literals can target the machine's encodings, and status-flag branches map straight to CPU instructions.</p>
+                            <pre><code>str greeting = sc:"HELLO"
+str suits = petscii:"♠♥♣♦"
+
+if_cs  handle_carry()      ; branch on the CPU carry flag</code></pre>
+                        </details>
+                        <details class="syntax-detail">
+                            <summary>Register-aware assembly: 6502 and M68K</summary>
+                            <p>Register annotations map parameters to CPU registers. On 6502, <code>clobbers</code> can declare modified registers. M68K <code>asmsub</code> does not accept a <code>clobbers</code> clause; preserve its calling convention and save/restore any callee-saved or reserved registers you use. <code>A5</code> is the frame pointer, and AmigaOS calls use <code>A6</code> as the library base.</p>
+                            <p>C64 / 6502:</p>
+                            <pre><code>main {
+    asmsub set_border(ubyte color @A) {
+        %asm {{
+            sta $d020
+            rts
+        }}
+    }
+}</code></pre>
+                            <p>Amiga / M68000:</p>
+                            <pre><code>main {
+    asmsub set_color(ubyte color @D0) {
+        %asm {{
+            move.w d0,$dff180
+            rts
+        }}
+    }
+}</code></pre>
+                        </details>
+                        <details class="syntax-detail">
+                            <summary>Call a 6502 ROM routine by signature</summary>
+                            <p><code>extsub</code> gives a ROM or external routine a checked call signature. On supported targets, an <code>@bank</code> annotation can add automatic bank switching.</p>
+                            <pre><code>main {
+    extsub $FFD5 = LOAD(ubyte verify @A, uword address @XY) clobbers() -&gt; bool @Pc, ubyte @A, ubyte @X, ubyte @Y
+
+    sub read_from_rom(ubyte verify, uword address) -&gt; bool {
+        bool failed
+        failed, void, void, void = LOAD(verify, address)
+        return failed
+    }
+}</code></pre>
+                        </details>
+                        <details class="syntax-detail">
+                            <summary>Amiga data placement: Chip RAM</summary>
+                            <p>Amiga's custom chips can DMA from Chip RAM. Put a copper list or other DMA data in an Amiga-specific block.</p>
+                            <pre><code>copperdata {
+    %option amiga_chipram
+    uword[48] copper_list
+}</code></pre>
+                        </details>
+                        <details class="syntax-detail">
+                            <summary>Custom target properties</summary>
+                            <p>A target properties file describes a CPU, memory map, launcher and libraries; a new machine also needs a system library. Custom M68K targets use <code>pointer_size = 4</code>, link ELF with <code>vlink</code>, and cannot emit Amiga Hunk; that output is for built-in Amiga targets.</p>
+                            <pre><code>cpu = 6502
+pointer_size = 2</code></pre>
+                            <p>See the <a href="https://prog8.readthedocs.io/en/latest/targetsystem.html#customizable-targets">target configuration guide</a> for how to select and complete a custom machine definition.</p>
+                        </details>
+                        <details class="syntax-detail">
+                            <summary>What the optimizer does</summary>
+                            <p>Optimization is staged: constant folding, unused-code removal, expression and statement simplification, strength reduction, subroutine inlining, then backend-specific IR or assembly peepholes. M68K also allocates virtual values to hardware registers and spills when needed. For cycle-critical code, inspect the generated assembly and use <code>asmsub</code> to tune only the hot path. Compare builds with <code>-noopt</code> and <code>-compareir</code>.</p>
+                        </details>
+                        <details class="syntax-detail">
+                            <summary>More current language features</summary>
+                            <ul>
+                                <li>Data and layout: the address-of operator, 32-bit <code>long</code>, enums, 2D arrays, unions, named struct-field initializers and memory-mapped struct instances.</li>
+                                <li>Control flow: <code>continue</code>, <code>in</code> value/range tests, short-circuit logic and if-expressions.</li>
+                                <li>Target tools: <code>@split</code> word arrays, CX16 virtual registers, compile-time <code>%assert</code> and the <code>arena</code> allocator.</li>
+                            </ul>
+                        </details>
+                    </div>
+                    <details class="syntax-detail comparison-detail">
+                        <summary>Why choose Prog8 over C</summary>
+                        <div class="comparison-table-scroll">
+                            <table class="comparison-table">
+                                <caption>Prog8's language is shaped around small machines; these are the areas where that shows most.</caption>
+                                <thead>
+                                    <tr>
+                                        <th scope="col">Topic</th>
+                                        <th scope="col">Prog8 strength</th>
+                                        <th scope="col">What C needs</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr>
+                                        <th scope="row">Arithmetic</th>
+                                        <td>Byte, word and long have fixed widths, and calculations stay in the declared type. No hidden promotions means predictable results and compact code.</td>
+                                        <td>Integer promotion and implementation-defined widths can widen operations and add conversion code.</td>
+                                    </tr>
+                                    <tr>
+                                        <th scope="row">Memory layout</th>
+                                        <td>Variables are statically allocated and zero-initialized. Zero-page placement and <code>@split</code> word arrays are language-level controls tuned for 6502 addressing.</td>
+                                        <td>Storage and word-array layout are left to the compiler and runtime; zero-page placement usually needs linker or assembly work.</td>
+                                    </tr>
+                                    <tr>
+                                        <th scope="row">Control flow</th>
+                                        <td><code>when</code> selects on values, <code>on ... goto</code> emits jump-table dispatch, <code>in</code> tests ranges directly, and <code>defer</code> handles cleanup.</td>
+                                        <td><code>switch</code>, comparisons and cleanup are written by hand; a jump table often needs explicit tables or compiler extensions.</td>
+                                    </tr>
+                                    <tr>
+                                        <th scope="row">Subroutines</th>
+                                        <td>Multiple return values, multi-assignment, and nested subroutines that read parent variables. On 6502, parameters are static, so calls need no stack-frame setup.</td>
+                                        <td>Functions return one value; multiple results need structs or output parameters, and calls typically set up a stack frame.</td>
+                                    </tr>
+                                    <tr>
+                                        <th scope="row">Hardware access</th>
+                                        <td><code>extsub</code> declares ROM calls with a checked signature and emits direct calls with no stubs. <code>asmsub</code> binds arguments to registers, and <code>@bank</code> can switch banks automatically.</td>
+                                        <td>ROM calls need headers, function-pointer casts or assembly stubs, and bank switching is manual.</td>
+                                    </tr>
+                                    <tr>
+                                        <th scope="row">Data and pointers</th>
+                                        <td>Typed pointers, structs and memory-mapped struct instances describe data and hardware registers with the same syntax.</td>
+                                        <td>Pointers and structs are available, but hardware access relies on <code>volatile</code> and platform headers.</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                        <p class="comparison-note">Prog8 usually produces much better code than cc65, though more advanced C compilers are also available for the C64 and Commander X16. <a href="https://prog8.readthedocs.io/en/latest/comparing.html">More in the manual</a>.</p>
+                    </details>
+                </div>
+            </div>
+        </section>
+
+        <section class="section section--compact" id="libraries" aria-labelledby="libraries-title">
+            <div class="wrap">
+                <div class="section-heading">
+                    <p class="section-kicker">04 / Included libraries</p>
+                    <h2 id="libraries-title">A broad toolkit for retro development.</h2>
+                    <p>The compiler ships with focused modules for common retro-computing tasks, with availability tailored to each target.</p>
+                </div>
+                <div class="library-grid">
+                    <div class="library-item">
+                        <h3>Portable core</h3>
+                        <p><code>textio</code>, <code>math</code>, <code>floats</code>, <code>strings</code>, <code>buffers</code> and <code>sorting</code>; shared APIs can keep a program portable across targets.</p>
+                    </div>
+                    <div class="library-item">
+                        <h3>Graphics</h3>
+                        <p>Target-specific bitmap and sprite helpers, including Commander X16 <code>gfx_lores</code> and <code>gfx_hires</code>.</p>
+                    </div>
+                    <div class="library-item">
+                        <h3>Audio + data</h3>
+                        <p><code>wavfile</code> and <code>adpcm</code> helpers, alongside playback modules adapted to each machine's sound hardware.</p>
+                    </div>
+                    <div class="library-item">
+                        <h3>System calls</h3>
+                        <p>Use CBM Kernal routines through <code>extsub</code>; AmigaOS modules and custom-chip helpers are covered below.</p>
+                    </div>
+                </div>
+                <p class="target-footnote">See the <a href="https://prog8.readthedocs.io/en/latest/libraries.html">library reference</a> for the per-target module list; some modules exist only on particular machines.</p>
+            </div>
+        </section>
+
+        <section class="section" id="targets" aria-labelledby="targets-title">
+            <div class="wrap">
+                <div class="section-heading">
+                    <p class="section-kicker">05 / Targets</p>
+                    <h2 id="targets-title">One compiler. Different rules of the road.</h2>
+                    <p>Choose a target to select its CPU backend, memory model, libraries and output format.</p>
+                </div>
+                <div class="target-grid">
+                    <article class="target-card">
+                        <div class="target-card-header">
+                            <span class="badge badge-cyan">8-BIT / 6502 FAMILY</span>
+                            <h3>Commodore &amp; friends</h3>
+                            <p>C64 · C128 · PET · Commander X16</p>
+                        </div>
+                        <dl class="target-details">
+                            <dt>CPU</dt>
+                            <dd>6510-compatible 6502 on C64; 65C02 on CX16. C128 and PET support is more limited.</dd>
+                            <dt>Memory</dt>
+                            <dd>16-bit pointers and a 64 KB CPU address space; zero-page placement is a 6502-specific tool.</dd>
+                            <dt>Hardware</dt>
+                            <dd>Machine-specific I/O, including C64 VIC-II and SID registers, remains directly addressable.</dd>
+                            <dt>Output</dt>
+                            <dd><code>.prg</code> program assembled by 64tass. Disk images such as D64 must be made with external tools, not Prog8.</dd>
+                        </dl>
+                    </article>
+                    <article class="target-card amiga">
+                        <div class="target-card-header">
+                            <span class="badge badge-amber">MOTOROLA M68000 FAMILY</span>
+                            <h3>Commodore Amiga</h3>
+                            <p>Amiga 500 · Amiga 1200</p>
+                        </div>
+                        <dl class="target-details">
+                            <dt>CPU</dt>
+                            <dd>Amiga 500 uses the 68000; Amiga 1200 uses the 68020.</dd>
+                            <dt>Memory</dt>
+                            <dd>32-bit pointers and stack frames for ordinary subroutine locals and parameters.</dd>
+                            <dt>Chipset</dt>
+                            <dd>Denise, Agnus and Paula have distinct jobs; custom-chip DMA needs data in Chip RAM, not just any Fast RAM.</dd>
+                            <dt>Output</dt>
+                            <dd>Amiga Hunk executable assembled directly by vasm; Chip RAM placement can be requested for a Prog8 block.</dd>
+                        </dl>
+                    </article>
+                </div>
+                <div class="memory-models" aria-labelledby="memory-model-title">
+                    <h3 id="memory-model-title">Different CPUs, different storage models</h3>
+                    <div class="memory-model-grid">
+                        <article class="memory-model">
+                            <h4>6502 / 65C02</h4>
+                            <p>Variables are statically allocated. Regular subroutine calls do not create stack frames for locals; use <code>@zp</code> to prefer zero-page storage or <code>@requirezp</code> to require it.</p>
+                        </article>
+                        <article class="memory-model">
+                            <h4>M68000 family</h4>
+                            <p>Ordinary subroutine locals and parameters live in stack frames, while block-level and shared data remain static. Pointers are 32-bit.</p>
+                        </article>
+                    </div>
+                </div>
+                <p class="target-footnote">Built-in targets also include qemu68k, a virtual machine, and configurable targets. Capabilities and library coverage vary by target.</p>
+            </div>
+        </section>
+
+        <section class="section" id="v14" aria-labelledby="v14-title">
+            <div class="wrap">
+                <div class="section-heading">
+                    <p class="section-kicker">06 / Version 14</p>
+                    <h2 id="v14-title">Prog8 14.0 adds M68000 support and a more expressive language.</h2>
+                    <p>The Amiga 500 and 1200 targets are the headline: the new M68K backend brings AmigaOS library integration and direct custom-chip access. The same release adds features for data layout, cleanup and portable code.</p>
+                </div>
+                <div class="amiga-v14-callout">
+                    <div class="amiga-version-mark" aria-label="Version 14.0">
+                        <strong>14.0</strong>
+                        <span>M68K BACKEND</span>
+                    </div>
+                    <div>
+                        <h3>OS APIs and bare-metal hardware, side by side.</h3>
+                        <p>Import a Prog8 module, call its routines, use named NDK-derived constants and structures, and let the compiler handle the M68K calling convention. Drop to custom-chip helpers when the OS is not the right layer.</p>
+                    </div>
+                </div>
+                <div class="amiga-cards">
+                    <article class="amiga-card">
+                        <h3>Major OS libraries, ready to import</h3>
+                        <p>Use <code>dos</code>, <code>graphics</code>, <code>intuition</code>, <code>icon</code> and <code>utility</code> directly. Startup opens the core libraries where available (<code>utility</code> needs Kickstart 2.0+); <code>exec</code> is always available and optional libraries can be opened on demand.</p>
+                    </article>
+                    <article class="amiga-card">
+                        <h3>Constants, structures and typed APIs</h3>
+                        <p>Most bindings are generated from Amiga NDK includes, with constants, structure types and hand-written helpers. APIs whose structure types are not modelled use pointers, keeping the boundary explicit.</p>
+                    </article>
+                    <article class="amiga-card">
+                        <h3>OS libraries or custom-chip code</h3>
+                        <p>Use OS-friendly modules for screens and windows, or take over the display with <code>custom</code>, <code>playfield</code>, <code>copper</code> and <code>blitter</code>. Mark DMA buffers for Chip RAM with <code>%option amiga_chipram</code>.</p>
+                    </article>
+                </div>
+                <p class="target-footnote">AmigaOS library modules are available on <code>amiga500</code> and <code>amiga1200</code>, not <code>qemu68k</code>. Read the <a href="https://prog8.readthedocs.io/en/latest/amigalibraries.html">Amiga library guide</a>.</p>
+                <div class="v14-more">
+                    <h3>Also new in 14.0</h3>
+                    <ul>
+                        <li><strong>Structs at fixed addresses.</strong> Direct struct variables, named field initializers and memory-mapped instances such as <code>&amp;Point p = $c000</code>.</li>
+                        <li><strong>Unions and compile-time checks.</strong> Union types overlay fields at offset zero; <code>%assert</code> verifies constant assumptions before assembly.</li>
+                        <li><strong>Program-wide <code>defer</code>.</strong> Deferred cleanup now also runs when the program exits or <code>start()</code> returns.</li>
+                        <li><strong>Portable pointers and <code>arena</code>.</strong> The <code>pointer</code> type follows the target's 16-bit or 32-bit width, and <code>arena</code> adds a simple bump allocator.</li>
+                        <li><strong>C64 VERA support.</strong> VERA graphics and PSG modules are available to C64 programs, with a VERA-based music example.</li>
+                    </ul>
+                </div>
+            </div>
+        </section>
+
+        <section class="section" id="workflow" aria-labelledby="workflow-title">
+            <div class="wrap">
+                <div class="section-heading">
+                    <p class="section-kicker">07 / Build path</p>
+                    <h2 id="workflow-title">From source file to native program.</h2>
+                    <p>Keep the same editing setup. Let the target flag choose the CPU and its output path.</p>
+                </div>
+                <div class="pipeline" aria-label="Build steps from Prog8 source to a native program, then an emulator or real hardware">
+                    <div class="pipeline-step">
+                        <span class="pipeline-number">STEP 01</span>
+                        <strong>game.p8</strong>
+                        <p>Prog8 source, shared modules and target-specific routines.</p>
+                    </div>
+                    <span class="pipeline-arrow" aria-hidden="true">→</span>
+                    <div class="pipeline-step">
+                        <span class="pipeline-number">STEP 02</span>
+                        <strong>Prog8 compiler</strong>
+                        <p>Runs on Linux, macOS, Windows and other modern desktop systems.</p>
+                    </div>
+                    <span class="pipeline-arrow" aria-hidden="true">→</span>
+                    <div class="pipeline-step">
+                        <span class="pipeline-number">STEP 03</span>
+                        <strong>Target assembler</strong>
+                        <p>64tass for 6502, or vasm for Amiga M68K.</p>
+                    </div>
+                    <span class="pipeline-arrow" aria-hidden="true">→</span>
+                    <div class="pipeline-step">
+                        <span class="pipeline-number">STEP 04</span>
+                        <strong>Run it</strong>
+                        <p>Load the native file in an emulator or on retro hardware.</p>
+                    </div>
+                </div>
+                <div class="pipeline-note">
+                    <strong>OUTPUTS</strong>
+                    <span>The target assembler is a separate tool in the build chain; see the target comparison for each machine's output format.</span>
+                </div>
+                <p class="pipeline-examples">Looking for complete programs? Browse the <a href="https://github.com/irmen/prog8/tree/master/examples">Prog8 examples on GitHub</a>.</p>
+            </div>
+        </section>
+
+        <section class="section section--compact" id="editors" aria-labelledby="editors-title">
+            <div class="wrap">
+                <div class="section-heading">
+                    <p class="section-kicker">08 / Editor support</p>
+                    <h2 id="editors-title">Bring your own editor.</h2>
+                    <p>Syntax highlighting and language-server support are available without locking Prog8 to one IDE.</p>
+                </div>
+                <div class="editor-panel">
+                    <div>
+                        <h3>Highlights in the editor. Compile with the real compiler.</h3>
+                        <p>A community-contributed <a href="https://marketplace.visualstudio.com/items?itemName=sadlogic.prog8-lang">VS Code extension</a> provides Prog8 syntax highlighting. Separate syntax definitions are also in the <a href="https://github.com/irmen/prog8/tree/master/syntax-files">project's syntax-files directory</a> for Vim, Kate, JetBrains IDEs, Sublime Text, Notepad++ and nano.</p>
+                        <p>The <code>prog8-language-server</code> works with VS Code and other LSP editors, offering parse diagnostics, completion, hover, navigation, signature help and refactoring tools. It parses source but does not replace compiler type-checking or code generation.</p>
+                    </div>
+                    <div class="editor-tags" aria-label="Editors with syntax support">
+                        <span>VS Code</span>
+                        <span>Vim</span>
+                        <span>Kate</span>
+                        <span>JetBrains IDEs</span>
+                        <span>Sublime Text</span>
+                        <span>Notepad++</span>
+                        <span>nano</span>
+                        <span>LSP</span>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section class="section section--compact" id="clankers" aria-labelledby="clankers-title">
+            <div class="wrap">
+                <div class="section-heading">
+                    <p class="section-kicker">09 / Clankers 🤖</p>
+                    <h2 id="clankers-title">Coding agents that know Prog8.</h2>
+                    <p>The repository ships agent skills and a review prompt, so an AI assistant can follow the language instead of guessing.</p>
+                </div>
+                <div class="clankers-panel">
+                    <div>
+                        <h3>Language and assembly skills</h3>
+                        <p><code>prog8-coder</code> covers syntax, data types, standard library guidance and common pitfalls. For inline assembly, <code>asm6502-coder</code> and <code>m68k-coder</code> add 64tass and vasm syntax, register conventions and calling rules.</p>
+                    </div>
+                    <div>
+                        <h3>Review with <code>/review-p8</code></h3>
+                        <p>The harness-neutral review prompt looks for redundant code, missed builtin and library routines, performance pitfalls, hot paths that want <code>asmsub</code>, and modernization opportunities. It reports concrete replacements and waits for your approval before changing anything.</p>
+                    </div>
+                </div>
+                <p class="target-footnote">Read <a href="https://prog8.readthedocs.io/en/latest/introduction.html#aiassist">AI assisted development</a> in the manual, or browse the <a href="https://github.com/irmen/prog8/tree/master/.agents/skills">agent skills</a> and <a href="https://github.com/irmen/prog8/blob/master/.agents/prompts/review-p8.md">review prompt</a>.</p>
+                <p class="clankers-note">Please use generative AI responsibly.</p>
+            </div>
+        </section>
+
+        <section class="section section--compact" id="community" aria-labelledby="community-title">
+            <div class="wrap">
+                <div class="section-heading">
+                    <p class="section-kicker">10 / Community</p>
+                    <h2 id="community-title">From the C64, alongside the X16.</h2>
+                </div>
+                <div class="community-panel">
+                    <p>Prog8 began as a C64 language. Its X16 target and community developed alongside the Commander X16; today, most Prog8 use and activity still center on that machine but are expanding. The CBM family remains the strongest built-in target family, though C128 and PET support is more limited. Custom target files extend the compiler to other 6502 computers. The <a href="https://p8ug.org/">Prog8 Users Group (P8UG)</a> shares projects, examples and tips, and connects through Discord with occasional video meetups. The X16 Discord also has a small Prog8 channel; GitHub issues are the main route for project questions and contributions.</p>
+                    <div class="community-links" aria-label="Prog8, P8UG and Commander X16 community links">
+                        <a href="https://p8ug.org/">Prog8 Users Group</a>
+                        <a href="https://discord.gg/nS2PqEC">CX16 Discord</a>
+                        <a href="https://cx16forum.com/forum/">CX16 Forum</a>
+                        <a href="https://github.com/irmen/prog8/issues">Issues + contributions</a>
+                        <a href="https://github.com/irmen/prog8">Source on GitHub</a>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <footer class="site-footer">
+        <div class="wrap footer-inner">
+            <p>Prog8 is open source. Generated binaries are not covered by the compiler's GPL license.</p>
+            <p><a href="https://github.com/irmen/prog8">Source on GitHub</a> · <a href="https://prog8.readthedocs.io/">Documentation</a></p>
+        </div>
+    </footer>
+</body>
+</html>
